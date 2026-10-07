@@ -263,7 +263,7 @@ the tasks left. It disappears as soon as you type.
 
 ## Options
 
-Six options appear in Claude Code's config menu (`/config`, then Astrolabe). Changing one
+Seven options appear in Claude Code's config menu (`/config`, then Astrolabe). Changing one
 reloads the mod right away.
 
 | Option | Values | Default | What it changes |
@@ -273,6 +273,7 @@ reloads the mod right away.
 | `checkUpdates` | `true`, `false` | `true` | The daily update check and its buttons (see [Update notices](#update-notices)). |
 | `governUsage` | `true`, `false` | `true` | Usage governance (see [Usage governance](#usage-governance)). Off, the windows still show. |
 | `icons` | `auto`, `nerd`, `emoji`, `ascii` | `auto` | Icons in the footer and the Dashboard. `auto` is Nerd Font glyphs in the terminal and emoji elsewhere. |
+| `language` | `auto`, `en`, `pt-BR`, `es`, `fr` | `auto` | The language of the pane, the Dashboard, the governor's questions, the toasts and `/astrolabe help`. `auto` follows the language you type in, English until a prompt says enough. What Claude reads (refusals, resume prompts) stays in English. |
 | `askOnLimit` | `true`, `false` | `true` | Before it holds a subagent or pauses Claude, the governor asks you (see [Asked when it holds or pauses](#asked-when-it-holds-or-pauses)). Off, it holds and pauses without asking. |
 
 You can also type `/plugin configure astrolabe@astrolabe` in a session, or set them from a

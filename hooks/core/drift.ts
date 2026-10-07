@@ -1,5 +1,6 @@
 // The drift alarm (FR-003 to FR-005): a task ticked with no code edited since the
 // previous tick. Pure: no $.
+import { t, type Lang } from './i18n'
 import { parseTasks } from './tasks-parser'
 import type { DriftWindow, Task } from './types'
 
@@ -70,12 +71,12 @@ const matches = (edit: string, named: string, foldCase: boolean): boolean => {
  * The drift toast text for a newly ticked task, or undefined when the window shows work or
  * already raised one this turn. `foldCase` compares paths case-insensitively (Windows roots).
  */
-export const detectDrift = (task: Task, window: DriftWindow, foldCase = false): string | undefined => {
+export const detectDrift = (task: Task, window: DriftWindow, foldCase = false, lang: Lang = 'en'): string | undefined => {
   if (window.sawShell || window.alarmed) return undefined
   const named = namedPaths(task.text)
   if (named.length > 0) {
     const isEdited = named.some(p => window.edits.some(e => matches(e, p, foldCase)))
-    return isEdited ? undefined : `🧭 ${nameOf(task)} was ticked, but none of its files were edited: ${named.join(', ')}`
+    return isEdited ? undefined : t(lang, 'toast.driftNamed', { task: nameOf(task), files: named.join(', ') })
   }
-  return window.edits.length === 0 ? `🧭 ${nameOf(task)} was ticked with no code edited since the last tick` : undefined
+  return window.edits.length === 0 ? t(lang, 'toast.drift', { task: nameOf(task) }) : undefined
 }

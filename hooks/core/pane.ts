@@ -1,4 +1,5 @@
 // What each tab of the /astrolabe pane says (contracts/pane.md). Pure: no $.
+import { t as tr, type Lang } from './i18n'
 import { formatElapsed, cleanTaskText } from './spinner'
 import { parseTasks } from './tasks-parser'
 import type { ThemeRole } from './theme'
@@ -7,7 +8,7 @@ import type { Feature, SessionMemo, SpeckitState } from './types'
 export type PaneRow = { key: string; text: string; role: ThemeRole; dim?: boolean }
 
 const BAR_CELLS = 10
-const NO_SPECKIT: PaneRow = { key: 'none', text: 'This project does not use Spec Kit.', role: 'muted' }
+const noSpeckit = (lang: Lang): PaneRow => ({ key: 'none', text: tr(lang, 'pane.noSpeckit'), role: 'muted' })
 
 const width = (text: string): number => [...text].length
 const cut = (text: string, room: number): string =>
@@ -32,67 +33,69 @@ const featureRow = (f: Feature, isActive: boolean, columns: number): PaneRow => 
 }
 
 const WARNING_TEXT = {
-  'feature-json-dangling': '.specify/feature.json points at a missing folder',
-  'feature-json-malformed': '.specify/feature.json is not valid JSON',
+  'feature-json-dangling': 'pane.jsonDangling',
+  'feature-json-malformed': 'pane.jsonMalformed',
 } as const
 
-export const specsRows = (state: SpeckitState, columns: number): PaneRow[] => {
-  if (!state.present) return [NO_SPECKIT]
-  if (state.features.length === 0) return [{ key: 'empty', text: 'No features yet. Run /speckit-specify.', role: 'muted' }]
+export const specsRows = (state: SpeckitState, columns: number, lang: Lang = 'en'): PaneRow[] => {
+  if (!state.present) return [noSpeckit(lang)]
+  if (state.features.length === 0) return [{ key: 'empty', text: tr(lang, 'pane.noFeatures'), role: 'muted' }]
   const rows = state.features.map(f => featureRow(f, state.active?.dir === f.dir, columns))
   if (state.activeWarning !== undefined) {
-    const showing = state.active === undefined ? 'no feature' : `${state.active.id} (${state.active.source})`
-    rows.push({ key: 'warning-active', text: `~ ${WARNING_TEXT[state.activeWarning]}; showing ${showing}`, role: 'current' })
+    const showing = state.active === undefined ? tr(lang, 'pane.noFeature') : `${state.active.id} (${state.active.source})`
+    rows.push({ key: 'warning-active', text: tr(lang, 'pane.showing', { why: tr(lang, WARNING_TEXT[state.activeWarning]), showing }), role: 'current' })
   }
   for (const f of state.features) {
     if (f.warnings.includes('clarification-after-plan')) {
-      rows.push({ key: `warning-${f.id}`, text: `! ${f.id}: [NEEDS CLARIFICATION] left after the plan`, role: 'current' })
+      rows.push({ key: `warning-${f.id}`, text: tr(lang, 'pane.clarifyLeft', { id: f.id }), role: 'current' })
     }
     for (const file of ['spec', 'tasks'] as const) {
       if (f.warnings.includes(`unreadable-${file}`)) {
-        rows.push({ key: `warning-${f.id}-${file}`, text: `! ${f.id}: ${file}.md exists but could not be read`, role: 'current' })
+        rows.push({ key: `warning-${f.id}-${file}`, text: tr(lang, 'pane.unreadable', { id: f.id, file: `${file}.md` }), role: 'current' })
       }
     }
   }
   return rows
 }
 
-export const taskRows = (state: SpeckitState, memo: SessionMemo, rows: number, columns: number): PaneRow[] => {
+export const taskRows = (state: SpeckitState, memo: SessionMemo, rows: number, columns: number, lang: Lang = 'en'): PaneRow[] => {
   const active = state.active
-  if (!state.present) return [NO_SPECKIT]
-  if (active === undefined) return [{ key: 'none', text: 'No active feature.', role: 'muted' }]
+  if (!state.present) return [noSpeckit(lang)]
+  if (active === undefined) return [{ key: 'none', text: tr(lang, 'pane.noActive'), role: 'muted' }]
   const tasks = state.activeTasks ?? parseTasks(memo.files[active.dir]?.tasks ?? '')
-  if (tasks.length === 0) return [{ key: 'no-tasks', text: 'No tasks yet: this feature has no tasks.md, or it lists none.', role: 'muted' }]
+  if (tasks.length === 0) return [{ key: 'no-tasks', text: tr(lang, 'pane.noTasks'), role: 'muted' }]
   const open = tasks.filter(t => !t.isDone)
-  const out: PaneRow[] = [{ key: 'count', text: `${tasks.length - open.length}/${tasks.length} done`, role: 'muted' }]
-  if (open.length === 0) return [...out, { key: 'all-done', text: 'All tasks are ticked.', role: 'done' }]
+  const out: PaneRow[] = [{ key: 'count', text: tr(lang, 'pane.count', { done: tasks.length - open.length, total: tasks.length }), role: 'muted' }]
+  if (open.length === 0) return [...out, { key: 'all-done', text: tr(lang, 'pane.allTicked'), role: 'done' }]
   const room = Math.max(1, rows - 1)
   const shown = open.length <= room ? open : open.slice(0, room - 1)
   for (const [index, t] of shown.entries()) {
     const head = t.id === undefined ? '' : `${t.id} `
     out.push({ key: `task-${t.id ?? index}`, text: `${head}${cut(cleanTaskText(t.text), columns - width(head))}`.trimEnd(), role: 'text' })
   }
-  if (shown.length < open.length) out.push({ key: 'more', text: `+${open.length - shown.length} more`, role: 'muted' })
+  if (shown.length < open.length) out.push({ key: 'more', text: tr(lang, 'pane.more', { n: open.length - shown.length }), role: 'muted' })
   return out
 }
 
-export const sessionRows = (state: SpeckitState, now: number): PaneRow[] => {
-  if (!state.present) return [NO_SPECKIT]
+export const sessionRows = (state: SpeckitState, now: number, lang: Lang = 'en'): PaneRow[] => {
+  if (!state.present) return [noSpeckit(lang)]
   const task = state.currentTask
-  const pairs: Array<[string, string]> = [
-    ['root', state.root ?? 'unknown'],
-    ['constitution', state.constitution],
-    ['active', state.active === undefined ? 'none' : `${state.active.id} ${state.active.name}`],
-    ['chosen by', state.active?.source ?? 'none'],
-    ['next', state.nextCommand ?? 'none'],
-    ['running', state.runningSkill?.name ?? 'none'],
-    ['analyzed', state.isAnalyzed ? 'yes' : 'no'],
+  const none = tr(lang, 'word.none')
+  const pairs: Array<[string, string, string]> = [
+    ['root', tr(lang, 'session.root'), state.root ?? tr(lang, 'word.unknown')],
+    ['constitution', tr(lang, 'session.constitution'), state.constitution],
+    ['active', tr(lang, 'session.active'), state.active === undefined ? none : `${state.active.id} ${state.active.name}`],
+    ['chosen-by', tr(lang, 'session.chosenBy'), state.active?.source ?? none],
+    ['next', tr(lang, 'session.next'), state.nextCommand ?? none],
+    ['running', tr(lang, 'session.running'), state.runningSkill?.name ?? none],
+    ['analyzed', tr(lang, 'session.analyzed'), state.isAnalyzed ? tr(lang, 'word.yes') : tr(lang, 'word.no')],
     [
-      'current task',
+      'current-task',
+      tr(lang, 'session.currentTask'),
       task === undefined
-        ? 'none'
+        ? none
         : `${task.id ?? cleanTaskText(task.text)}${task.startedAt === undefined ? '' : ` · ${formatElapsed(now - task.startedAt)}`}`,
     ],
   ]
-  return pairs.map(([label, value]) => ({ key: `session-${label.replace(' ', '-')}`, text: `${label.padEnd(14)}${value}`, role: 'text' }))
+  return pairs.map(([key, label, value]) => ({ key: `session-${key}`, text: `${label.padEnd(14)}${value}`, role: 'text' }))
 }

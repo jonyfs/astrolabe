@@ -170,6 +170,8 @@ export type SessionStats = {
   context?: { percent: number }
   cost?: number
   git?: GitState
+  /** The person's language guessed from their prompts (019): en, pt-BR, es or fr. */
+  language?: string
   /** The binding window's percent per reading, at most 60 points. */
   series: Array<{ at: number; percent: number }>
 }

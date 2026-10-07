@@ -55,6 +55,7 @@ import { dial, kpiRows, phaseBars, usageChart } from './core/dashboard'
 import { footerText } from './core/footer'
 import { parseGitStatus } from './core/git-status'
 import { iconSet, iconsFor } from './core/icons'
+import { guessLang, langOf, t, type Lang } from './core/i18n'
 import { paneTree } from './surfaces/pane'
 import { formatStatus } from './core/status-text'
 
@@ -65,20 +66,22 @@ const PANE_STATE = { plugin: 'astrolabe', key: 'pane' } as const
 const PANE_ID = 'astrolabe'
 const PANE_TITLE = '🧭 Astrolabe'
 const ASK_ID = 'astrolabe-usage'
-// /astrolabe help (025, roadmap #39): the commands, the pane's tabs and their keys.
-const HELP = [
-  'Astrolabe commands:',
-  '  /astrolabe                  open the pane (focused; Esc closes it)',
-  '  /astrolabe help             this list',
-  '  /astrolabe allow <90-99> <30m-12h>   raise stop and the ceiling for the window that decides (typed by you)',
-  '  /astrolabe revoke           end that raise',
-  'Pane tabs (press the number while the pane has the keyboard; ctrl+x tab focuses it):',
-  '  1 Specs      every feature, its phase and progress',
-  '  2 Tasks      the active feature\'s open tasks',
-  '  3 Session    how Astrolabe sees the project, the governor and updates',
-  '  4 Dashboard  the dial, phases, the usage chart and the session\'s numbers',
-  'Options: /config, then Astrolabe (preset, flavor, icons, checkUpdates, governUsage, askOnLimit).',
-].join('\n')
+// /astrolabe help (025, roadmap #39): the commands, the pane's tabs and their keys, in the
+// person's language (019).
+const helpText = (lang: Lang): string =>
+  [
+    t(lang, 'help.title'),
+    `  /astrolabe                  ${t(lang, 'help.open')}`,
+    `  /astrolabe help             ${t(lang, 'help.help')}`,
+    `  /astrolabe allow <90-99> <30m-12h>   ${t(lang, 'help.allow')}`,
+    `  /astrolabe revoke           ${t(lang, 'help.revoke')}`,
+    t(lang, 'help.tabs'),
+    `  1 ${t(lang, 'tab.specs').padEnd(10)} ${t(lang, 'help.specs')}`,
+    `  2 ${t(lang, 'tab.tasks').padEnd(10)} ${t(lang, 'help.tasksTab')}`,
+    `  3 ${t(lang, 'tab.session').padEnd(10)} ${t(lang, 'help.sessionTab')}`,
+    `  4 ${t(lang, 'tab.dashboard').padEnd(10)} ${t(lang, 'help.dashboardTab')}`,
+    `${t(lang, 'help.options')} (preset, flavor, icons, language, checkUpdates, governUsage, askOnLimit).`,
+  ].join('\n')
 const ASK = { plugin: 'astrolabe', key: 'ask' } as const
 const DEFAULT_PANE: PaneState = { tab: 'specs', autoOpened: false }
 const UPDATES = { plugin: 'astrolabe', key: 'updates' } as const
@@ -100,6 +103,10 @@ const live = { toolCalls: 0, drifts: 0, agentsRun: 0, agentsQueued: 0, model: un
 let columnsSeen = 120
 let surfaceSeen: string | null = 'terminal'
 let iconsOption: unknown = 'auto'
+// The person's language (019): the `language` option, or the guess from their prompts.
+let languageOption: unknown = 'auto'
+let guessedLang: Lang | undefined
+const currentLang = (): Lang => langOf(languageOption, guessedLang)
 
 const decisionOf = (usage: UsageState, now: number): Decision =>
   decide(usage.readings, usage.history, usage.override, now, usage.holdLift, usage.held)
@@ -117,7 +124,8 @@ async function showStatus($: EngineInterface, state: Held['state']): Promise<voi
   const now = await $.clock.now()
   $.ui.status(
     footerText({
-      speckit: columns => formatStatus(state, columns),
+      speckit: columns => formatStatus(state, columns, currentLang()),
+      lang: currentLang(),
       readings: usage.readings,
       decision: decisionOf(usage, now),
       ...(stats?.context === undefined ? {} : { context: stats.context }),
@@ -405,7 +413,7 @@ async function touchFile(
   let drift: string | undefined
   const held = await guarded($, async previous => {
     if (previous === undefined) return undefined
-    const touched = await applyFileTouch(fs, previous, path, isWrite, now, change)
+    const touched = await applyFileTouch(fs, previous, path, isWrite, now, change, currentLang())
     drift = touched.drift
     return touched.held
   })
@@ -427,7 +435,7 @@ async function afterReconcile($: EngineInterface, preset: Preset, held: Held | u
     const active = held.state.active
     const nextOf = active !== undefined && held.state.nextCommand !== undefined ? { [active.dir]: held.state.nextCommand } : {}
     const toasted = held.memo.toasted ?? []
-    const out = phaseToasts(held.state.features, baseline, toasted, held.memo.baselined === true, nextOf)
+    const out = phaseToasts(held.state.features, baseline, toasted, held.memo.baselined === true, nextOf, currentLang())
     for (const toast of out.toasts) $.ui.toast(toast.text)
     const isSame = held.memo.baselined === true && out.toasted.length === toasted.length && JSON.stringify(out.baseline) === JSON.stringify(baseline)
     if (!isSame) {
@@ -676,7 +684,7 @@ async function gate($: GateArgs[0], e: GateArgs[1], next: GateArgs[2]): Promise<
       await armResume($, decision)
       const refused = refusal(decision, { queuedAs, inFlight: running, ...(resetClock === undefined ? {} : { resetClock }) })
       if (isAsked && remembered === undefined) {
-        askLater($, holdQuestion(decision, input.description ?? 'subagent', resetClock), {
+        askLater($, holdQuestion(decision, input.description ?? 'subagent', resetClock, currentLang()), {
           id: queuedAs,
           description: input.description ?? 'subagent',
           prompt: input.prompt ?? '',
@@ -690,7 +698,7 @@ async function gate($: GateArgs[0], e: GateArgs[1], next: GateArgs[2]): Promise<
   // Only the main thread pauses; a subagent's own requests for more subagents are gated above.
   if (isPaused(decision) && !isSubagentCall && !isReadOnlyTool(String(e.tool))) {
     const isAsked = asks && isInteractive && usage.asked?.kind !== 'pause'
-    if (isAsked) askLater($, pauseQuestion(decision, String(e.tool), resetClock))
+    if (isAsked) askLater($, pauseQuestion(decision, String(e.tool), resetClock, currentLang()))
     await updateUsage($, u => (u.paused ? u : { ...u, paused: true }))
     await armResume($, decision)
     const refused = refusal(decision, resetClock === undefined ? {} : { resetClock })
@@ -709,12 +717,28 @@ export const register: Register = (on, options) => {
   governs = options['governUsage'] !== false
   asks = governs && options['askOnLimit'] !== false
   iconsOption = options['icons']
+  languageOption = options['language']
+
+  // The person's language (019): guessed from what they type, kept for the session.
+  on('prompt.submit', async ($, e, next) => {
+    if (e.origin.kind === 'composer') {
+      const guess = guessLang(e.text)
+      if (guess !== undefined && guess !== guessedLang) {
+        guessedLang = guess
+        await flushStats($, s => ({ ...s, language: guess }))
+      }
+    }
+    return next(e)
+  }).catch(($, e, next) => next(e))
 
   on('turn.step', noteModel)
 
   on('session.start', async ($, e, next) => {
     isInteractive = e.isInteractive !== false
     surfaceSeen = e.surface
+    // A reload starts the module over: the guess made earlier in the session is in $.state.
+    const kept = (await $.state.get(SESSION)).value?.language
+    if (kept === 'en' || kept === 'pt-BR' || kept === 'es' || kept === 'fr') guessedLang = kept
     const result = await next(e)
     try {
       await $.command.register({ name: 'astrolabe', description: 'Open the Astrolabe pane: every Spec Kit feature, the open tasks and the session' })
@@ -828,7 +852,7 @@ export const register: Register = (on, options) => {
     if (value?.question === undefined) return <Box key="astrolabe-usage-body" />
     const at = new Date(value.deadline ?? 0)
     const clock = [at.getHours(), at.getMinutes(), at.getSeconds()].map(n => String(n).padStart(2, '0')).join(':')
-    return askTree({ Box, Text, Button, ...(Select === undefined ? {} : { Select }) }, value.question, clock, tokens, choice => pick?.(choice))
+    return askTree({ Box, Text, Button, ...(Select === undefined ? {} : { Select }) }, value.question, clock, tokens, choice => pick?.(choice), currentLang())
   })
 
   // Bash and Agent change files the mod cannot see, so drift stays quiet for this window.
@@ -886,7 +910,7 @@ export const register: Register = (on, options) => {
     return (
       <Box flexDirection="column">
         {segments.length > 0 && bandRow({ Box, Text }, segments, tokens)}
-        {buttons.length > 0 && updatesRow({ Box, Text, Button }, buttons, tokens, press, e.props.bodyColumns, () => hideUpdates($))}
+        {buttons.length > 0 && updatesRow({ Box, Text, Button }, buttons, tokens, press, e.props.bodyColumns, () => hideUpdates($), t(currentLang(), 'updates.hide'))}
         {await next(e)}
       </Box>
     )
@@ -911,7 +935,7 @@ export const register: Register = (on, options) => {
 
   on('command.run', { command: 'astrolabe' }, async ($, e) => {
     const args = e.args.trim()
-    if (args === 'help') return { text: HELP }
+    if (args === 'help') return { text: helpText(currentLang()) }
     if (args !== '') {
       const parsed = parseAllow(args)
       if (parsed === undefined) return { text: `Unknown: /astrolabe ${args}. Type /astrolabe help for the commands.` }
@@ -940,10 +964,10 @@ export const register: Register = (on, options) => {
     const columns = e.props.bodyColumns
     const rows =
       pane.tab === 'tasks'
-        ? taskRows(state, emptyMemo(), Math.max(3, (e.viewport?.rows ?? 24) - 4), columns)
+        ? taskRows(state, emptyMemo(), Math.max(3, (e.viewport?.rows ?? 24) - 4), columns, currentLang())
         : pane.tab === 'session'
           ? [
-              ...sessionRows(state, await $.clock.now()),
+              ...sessionRows(state, await $.clock.now(), currentLang()),
               ...usageRows((await $.state.get(USAGE)).value ?? DEFAULT_USAGE, await $.clock.now()).map(([label, text]) => ({
                 key: `usage-${label}`,
                 text: `${label.padEnd(14)}${text}`,
@@ -955,13 +979,13 @@ export const register: Register = (on, options) => {
                 role: 'current' as const,
               })),
             ]
-          : specsRows(state, columns)
+          : specsRows(state, columns, currentLang())
     const { Box, Text, Button } = $.ui.resolve(e)
     const select = async (tab: PaneTab) => {
       const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
       await $.state.set(PANE_STATE, { ...held, tab })
     }
-    if (pane.tab !== 'dashboard') return paneTree({ Box, Text, Button }, pane.tab, rows, tokens, select)
+    if (pane.tab !== 'dashboard') return paneTree({ Box, Text, Button }, pane.tab, rows, tokens, select, undefined, currentLang())
     // The Dashboard (018): numbers from $.state only, charts sized to the pane.
     const elements = $.ui.resolve(e)
     const usage = (await $.state.get(USAGE)).value ?? DEFAULT_USAGE
@@ -976,9 +1000,9 @@ export const register: Register = (on, options) => {
       dial: dial(activeFeature?.phase, tokens),
       ...(bars === undefined ? {} : { bars }),
       ...(chart === undefined ? {} : { chart }),
-      chartNote: stats === undefined || stats.series.length === 0 ? 'No usage reading yet.' : columns < 30 ? 'Too narrow for the chart.' : 'Usage over the session, with the projection to the reset.',
-      ...(activeFeature === undefined || activeFeature.total === 0 ? {} : { progress: `${activeFeature.id} ${activeFeature.name}: ${activeFeature.done}/${activeFeature.total} tasks done` }),
-      kpis: stats === undefined ? [] : kpiRows(stats, binding, now),
+      chartNote: t(currentLang(), stats === undefined || stats.series.length === 0 ? 'dash.noReading' : columns < 30 ? 'dash.narrow' : 'dash.chartNote'),
+      ...(activeFeature === undefined || activeFeature.total === 0 ? {} : { progress: t(currentLang(), 'dash.progress', { id: activeFeature.id, name: activeFeature.name, done: activeFeature.done, total: activeFeature.total }) }),
+      kpis: stats === undefined ? [] : kpiRows(stats, binding, now, currentLang()),
     }
     const body = dashboardTree(
       {
@@ -990,7 +1014,8 @@ export const register: Register = (on, options) => {
       view,
       tokens,
       ascii,
+      currentLang(),
     )
-    return paneTree({ Box, Text, Button }, pane.tab, rows, tokens, select, body)
+    return paneTree({ Box, Text, Button }, pane.tab, rows, tokens, select, body, currentLang())
   })
 }

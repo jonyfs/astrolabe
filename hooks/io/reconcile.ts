@@ -1,6 +1,7 @@
 // Turns "what happened" into a fresh { state, memo }: reads what the moment calls
 // for (FR-015, FR-016, FR-019) and derives the rest. No $: register.tsx passes an Fs.
 import { detectDrift, newlyTicked, taskKey, withEdit, withShell } from '../core/drift'
+import type { Lang } from '../core/i18n'
 import { parseTasks } from '../core/tasks-parser'
 import { isWindowsPath, joinPath, relativeTo, specsLocation } from '../core/paths'
 import { skillHint } from '../core/skill-hints'
@@ -115,6 +116,7 @@ export const applyFileTouch = async (
   now: number,
   /** For an Edit: the text it replaced and the text it wrote, which say what it ticked. */
   change?: { before: string; after: string },
+  lang: Lang = 'en',
 ): Promise<{ held: Held; drift?: string }> => {
   const root = previous.state.root
   if (root === undefined) return { held: previous }
@@ -144,7 +146,7 @@ export const applyFileTouch = async (
         ? fullTasks(newlyTicked(change.before, change.after), fresh.tasks)
         : newlyTicked(previous.memo.files[dir]?.tasks, fresh.tasks)
   const first = ticked[0]
-  const drift = first === undefined ? undefined : detectDrift(first, windowOf(memo), foldCase)
+  const drift = first === undefined ? undefined : detectDrift(first, windowOf(memo), foldCase, lang)
   const next = drift === undefined ? memo : { ...memo, window: { ...windowOf(memo), alarmed: true } }
   const held = deriveSpeckitState({ ...snapshot, features }, next, now)
   return drift === undefined ? { held } : { held, drift }
