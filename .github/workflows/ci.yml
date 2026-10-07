@@ -31,3 +31,6 @@ jobs:
         run: claude plugin test .
       - name: Type check
         run: npx -y -p typescript@5 tsc -p .
+      - name: Test the release version check
+        if: runner.os != 'Windows'
+        run: sh scripts/test-check-release-version.sh
