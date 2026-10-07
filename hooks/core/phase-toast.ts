@@ -1,4 +1,5 @@
 // Decides which phase toasts a reconcile raises (FR-001). Pure: no $.
+import { t, type Lang } from './i18n'
 import type { Feature, Phase } from './types'
 
 export type Toast = { key: string; text: string }
@@ -25,6 +26,7 @@ export const phaseToasts = (
   isBaselined: boolean,
   /** The real next command for a feature (the active one's may be /speckit-analyze). */
   nextOf: Readonly<Record<string, string>> = {},
+  lang: Lang = 'en',
 ): { toasts: Toast[]; baseline: Record<string, Phase>; toasted: string[] } => {
   // Only listed features stay, so the stored baseline never grows with deleted ones.
   const next: Record<string, Phase> = {}
@@ -39,8 +41,8 @@ export const phaseToasts = (
     seen.push(key)
     const text =
       f.phase === 'done'
-        ? `🧭 ${f.id} ${f.name} is done · next: ${NEXT.done}`
-        : `🧭 ${f.id} ${f.name} moved to ${f.phase} · next: ${nextOf[f.dir] ?? NEXT[f.phase]}`
+        ? t(lang, 'toast.done', { id: f.id, name: f.name, next: NEXT.done! })
+        : t(lang, 'toast.moved', { id: f.id, name: f.name, phase: f.phase, next: nextOf[f.dir] ?? NEXT[f.phase]! })
     toasts.push({ key, text })
   }
   return { toasts, baseline: next, toasted: seen }

@@ -1,4 +1,5 @@
 // Usage governance policy (spec 008, contracts/governor.md). Pure: no $.
+import { t, type Lang } from './i18n'
 import type { QueuedAgent, UsageAnswer, UsageQuestion, UsageReading, UsageState } from './types'
 
 export type Band = 'ok' | 'throttle' | 'hold' | 'stop' | 'ceiling'
@@ -99,9 +100,9 @@ export const nextHeld = (readings: readonly UsageReading[], held: Held | undefin
   return live.some(r => sameWindow(r, held) && r.percentUsed >= REOPEN_BELOW) ? held : undefined
 }
 
-export const usageSegment = (d: Decision): string | undefined => {
+export const usageSegment = (d: Decision, lang: Lang = 'en'): string | undefined => {
   if (d.highest === undefined) return undefined
-  if (d.highest.renewed === true) return `${labelOf(d.highest.kind)} renewed`
+  if (d.highest.renewed === true) return `${labelOf(d.highest.kind)} ${t(lang, 'status.renewed')}`
   const text = `${labelOf(d.highest.kind)} ${Math.round(d.highest.percent)}%`
   return d.band === 'ok' ? text : `${text} ${d.band}`
 }
@@ -169,29 +170,29 @@ const ceilingFor = (percent: number, floor: number): number | undefined => {
   return target > percent ? target : undefined
 }
 
-export const holdQuestion = (d: Decision, description: string, resetClock?: string): Question => ({
+export const holdQuestion = (d: Decision, description: string, resetClock?: string, lang: Lang = 'en'): Question => ({
   kind: 'hold',
-  text: `🧭 ${usageText(d)} (${d.band}): a new subagent, "${description}". What now?`,
+  text: t(lang, 'ask.hold', { usage: usageText(d), band: d.band, description }),
   options: [
-    { value: 'queue', label: `Queue it until ${resetClock ?? 'the reset'}` },
-    { value: 'run', label: 'Run this one now' },
-    { value: 'lift', label: 'Allow subagents for 1 hour, one at a time' },
-    { value: 'drop', label: 'Drop this request' },
+    { value: 'queue', label: t(lang, 'ask.queue', { at: resetClock ?? t(lang, 'ask.theReset') }) },
+    { value: 'run', label: t(lang, 'ask.run') },
+    { value: 'lift', label: t(lang, 'ask.lift') },
+    { value: 'drop', label: t(lang, 'ask.drop') },
   ],
   fallback: 'queue',
 })
 
-export const pauseQuestion = (d: Decision, tool: string, resetClock?: string): Question => {
+export const pauseQuestion = (d: Decision, tool: string, resetClock?: string, lang: Lang = 'en'): Question => {
   const percent = d.highest?.percent ?? 0
   const extend = ceilingFor(percent, 91)
   const raise = ceilingFor(percent, 95)
   return {
     kind: 'pause',
-    text: `🧭 ${usageText(d)} (${d.band}): Claude wants to run ${tool}. What now?`,
+    text: t(lang, 'ask.pause', { usage: usageText(d), band: d.band, tool }),
     options: [
-      { value: 'pause', label: `Pause until ${resetClock ?? 'the reset'}` },
-      ...(extend === undefined ? [] : [{ value: 'extend', label: `Continue for 30 more minutes (ceiling ${extend}%)`, target: extend }]),
-      ...(raise === undefined ? [] : [{ value: 'raise', label: `Raise the ceiling to ${raise}% for 2 hours`, target: raise }]),
+      { value: 'pause', label: t(lang, 'ask.pauseUntil', { at: resetClock ?? t(lang, 'ask.theReset') }) },
+      ...(extend === undefined ? [] : [{ value: 'extend', label: t(lang, 'ask.extend', { n: extend }), target: extend }]),
+      ...(raise === undefined ? [] : [{ value: 'raise', label: t(lang, 'ask.raise', { n: raise }), target: raise }]),
     ],
     fallback: 'pause',
   }

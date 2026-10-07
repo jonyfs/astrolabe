@@ -78,6 +78,9 @@ session that made them.
   context, model and effort, git, cost, duration), icon sets (`icons`), and a Dashboard tab with
   the dial, phase bars, a usage chart and session counts. One `git status` per main turn.
 
+- Spec 019 (0.13.0): the person-facing texts in English, Brazilian Portuguese, Spanish and
+  French, following the language the person types in (option `language`).
+
 ## Still open
 
 - **Desktop app images**: Claude Code documents that it raises the band, the spinner and the pane

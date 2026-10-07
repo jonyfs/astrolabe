@@ -1,6 +1,7 @@
 // The Dashboard tab (spec 018): the astrolabe dial, features by phase, usage over the
 // session and the session's KPIs. Charts are cell grids (cells.ts). Pure: no $.
 import { blank, put, write, type Grid } from './cells'
+import { t as tr, type Lang } from './i18n'
 import type { Tokens } from './theme'
 import type { Feature, Phase, SessionStats } from './types'
 
@@ -123,22 +124,23 @@ export const kpiRows = (
   stats: SessionStats,
   binding: { kind: string; percent: number; resetsAt?: string } | undefined,
   now: number,
+  lang: Lang = 'en',
 ): Array<[string, string]> => {
   const rows: Array<[string, string]> = [
-    ['turns', String(stats.turns)],
-    ['tool calls', String(stats.toolCalls)],
-    ['drift alarms', String(stats.drifts)],
-    ['subagents', `${stats.agentsRun} run, ${stats.agentsQueued} queued`],
+    [tr(lang, 'kpi.turns'), String(stats.turns)],
+    [tr(lang, 'kpi.toolCalls'), String(stats.toolCalls)],
+    [tr(lang, 'kpi.drifts'), String(stats.drifts)],
+    [tr(lang, 'kpi.subagents'), tr(lang, 'kpi.subagentsValue', { run: stats.agentsRun, queued: stats.agentsQueued })],
   ]
-  if (stats.context !== undefined) rows.push(['context', `${Math.round(stats.context.percent)}%`])
-  if (stats.cost !== undefined) rows.push(['cost', `$${stats.cost.toFixed(2)}`])
-  rows.push(['session', duration(now - stats.startedAt)])
+  if (stats.context !== undefined) rows.push([tr(lang, 'kpi.context'), `${Math.round(stats.context.percent)}%`])
+  if (stats.cost !== undefined) rows.push([tr(lang, 'kpi.cost'), `$${stats.cost.toFixed(2)}`])
+  rows.push([tr(lang, 'kpi.session'), duration(now - stats.startedAt)])
   const rate = burnRate(stats.series)
-  if (rate !== undefined) rows.push(['burn rate', `${Math.round(rate)} points an hour`])
+  if (rate !== undefined) rows.push([tr(lang, 'kpi.burn'), tr(lang, 'kpi.burnValue', { n: Math.round(rate) })])
   const reset = binding?.resetsAt === undefined ? Number.NaN : Date.parse(binding.resetsAt)
   if (binding !== undefined && rate !== undefined && !Number.isNaN(reset) && reset > now) {
     const at = Math.min(100, Math.max(0, binding.percent + (rate * (reset - now)) / 3_600_000))
-    rows.push(['at the reset', `${LABELS[binding.kind] ?? binding.kind} about ${Math.round(at)}%`])
+    rows.push([tr(lang, 'kpi.atReset'), tr(lang, 'kpi.atResetValue', { window: LABELS[binding.kind] ?? binding.kind, p: Math.round(at) })])
   }
   return rows
 }

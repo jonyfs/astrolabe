@@ -4,6 +4,7 @@
 // $ only inside register.tsx, so it passes the element table and the pick handler in.
 import type { ElementTable } from 'claude-code'
 
+import { t, type Lang } from '../core/i18n'
 import type { Tokens } from '../core/theme'
 import type { UsageQuestion } from '../core/types'
 
@@ -13,6 +14,7 @@ export const askTree = (
   at: string,
   tokens: Tokens,
   onPick: (value: string) => void,
+  lang: Lang = 'en',
 ) => (
   <Box key="astrolabe-usage-body" flexDirection="column">
     <Text color={tokens.current} wrap="wrap">
@@ -34,7 +36,7 @@ export const askTree = (
       />
     )}
     <Text color={tokens.muted} wrap="truncate-end">
-      {`↑↓ to choose, Enter to pick. Esc or no answer: the default goes ahead at ${at}.`}
+      {t(lang, 'ask.footer', { at })}
     </Text>
   </Box>
 )

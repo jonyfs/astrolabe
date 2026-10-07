@@ -28,6 +28,7 @@ export const updatesRow = (
   onPress: (key: string) => Promise<void>,
   columns: number,
   onHide: () => Promise<void>,
+  hideLabel = 'hide',
 ) => {
   // The hide button ("[ hide ]", 8 cells) always stays at the end of the row.
   const { shown, more } = fitUpdateButtons(buttons.map(b => b.label), columns - 9)
@@ -39,7 +40,7 @@ export const updatesRow = (
       ))}
       {more > 0 && <Text color={tokens.muted}>{` +${more}`}</Text>}
       <Text> </Text>
-      <Button key="updates-hide" label="hide" onPress={() => onHide()} />
+      <Button key="updates-hide" label={hideLabel} onPress={() => onHide()} />
     </Box>
   )
 }

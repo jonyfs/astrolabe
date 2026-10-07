@@ -4,6 +4,7 @@
 import type { ElementTable } from 'claude-code'
 
 import { encodeRaster, toSvg, toText, type Grid } from '../core/cells'
+import { t, type Lang } from '../core/i18n'
 import type { Tokens } from '../core/theme'
 
 type Elements = Pick<ElementTable<'mobile'>, 'Box' | 'Text'> & {
@@ -35,20 +36,20 @@ const chart = (el: Elements, key: string, grid: Grid, alt: string, tokens: Token
   )
 }
 
-export const dashboardTree = (el: Elements, view: DashboardView, tokens: Tokens, ascii: boolean) => (
+export const dashboardTree = (el: Elements, view: DashboardView, tokens: Tokens, ascii: boolean, lang: Lang = 'en') => (
   <el.Box key="astrolabe-dashboard" flexDirection="column">
-    <el.Text color={tokens.accent}>Spec Kit cycle</el.Text>
-    {chart(el, 'astrolabe-dial', view.dial, 'Where the active feature is on the Spec Kit cycle', tokens, ascii)}
+    <el.Text color={tokens.accent}>{t(lang, 'dash.cycle')}</el.Text>
+    {chart(el, 'astrolabe-dial', view.dial, t(lang, 'dash.cycleAlt'), tokens, ascii)}
     {view.progress === undefined ? null : <el.Text color={tokens.text}>{view.progress}</el.Text>}
-    {view.bars === undefined ? null : <el.Text color={tokens.accent}>Features by phase</el.Text>}
-    {view.bars === undefined ? null : chart(el, 'astrolabe-bars', view.bars, 'Features by phase', tokens, ascii)}
-    <el.Text color={tokens.accent}>Usage this session</el.Text>
+    {view.bars === undefined ? null : <el.Text color={tokens.accent}>{t(lang, 'dash.phases')}</el.Text>}
+    {view.bars === undefined ? null : chart(el, 'astrolabe-bars', view.bars, t(lang, 'dash.phases'), tokens, ascii)}
+    <el.Text color={tokens.accent}>{t(lang, 'dash.usage')}</el.Text>
     {view.chart === undefined ? (
       <el.Text color={tokens.muted}>{view.chartNote}</el.Text>
     ) : (
       chart(el, 'astrolabe-usage-chart', view.chart, view.chartNote, tokens, ascii)
     )}
-    <el.Text color={tokens.accent}>Session</el.Text>
+    <el.Text color={tokens.accent}>{t(lang, 'dash.session')}</el.Text>
     {view.kpis.map(([label, value]) => (
       <el.Text color={tokens.text} wrap="truncate-end">{`${label.padEnd(14)}${value}`}</el.Text>
     ))}

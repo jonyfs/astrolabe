@@ -2,6 +2,7 @@
 // Ranked parts, joined with ' · ', dropped from the least important end to fit. Pure: no $.
 import { clockOf, decide, usageSegment, type Decision } from './governor'
 import type { Icons } from './icons'
+import { t, type Lang } from './i18n'
 import type { GitState, UsageReading } from './types'
 
 export type FooterInput = {
@@ -19,6 +20,7 @@ export type FooterInput = {
   now: number
   icons: Icons
   columns: number
+  lang?: Lang
 }
 
 const LABELS: Readonly<Record<string, string>> = { five_hour: '5h', seven_day: '7d' }
@@ -43,9 +45,9 @@ const duration = (ms: number): string => {
 
 type Part = { text: string; rank: number }
 
-const windowText = (r: UsageReading, now: number): string => {
+const windowText = (r: UsageReading, now: number, lang: Lang): string => {
   const renewed = r.resetsAt !== undefined && Date.parse(r.resetsAt) <= now
-  if (renewed) return `${labelOf(r.kind)} renewed`
+  if (renewed) return `${labelOf(r.kind)} ${t(lang, 'status.renewed')}`
   const at = clockOf(r.resetsAt)
   return `${labelOf(r.kind)} ${Math.round(r.percentUsed)}%${at === undefined ? '' : ` (${at})`}`
 }
@@ -56,13 +58,13 @@ const parts = (input: FooterInput): Part[] => {
   const decision = input.decision ?? decide(input.readings, [], undefined, now)
   const binding = decision.highest
   if (binding !== undefined) {
-    const segment = usageSegment(decision) ?? ''
+    const segment = usageSegment(decision, input.lang ?? 'en') ?? ''
     const at = binding.renewed === true ? undefined : clockOf(binding.resetsAt)
     out.push({ text: at === undefined ? segment : `${segment} (${at})`, rank: 0 })
   }
   for (const r of input.readings) {
     if (r.kind === binding?.kind) continue
-    out.push({ text: windowText(r, now), rank: 2 })
+    out.push({ text: windowText(r, now, input.lang ?? 'en'), rank: 2 })
   }
   if (input.context !== undefined) out.push({ text: withIcon(icons.context, `${Math.round(input.context.percent)}%`), rank: 1 })
   if (input.model !== undefined) {
