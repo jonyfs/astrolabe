@@ -49,8 +49,15 @@ export const drawBand = async (
   surface: RenderSurface,
   bodyColumns = 120,
   over: Record<string, unknown> = {},
+  viewport?: { columns: number; rows: number; isFullscreen?: boolean },
 ): Promise<Drawn> => {
-  const ui = await $.ui.mount({ plugin: 'astrolabe', surface, component: 'AbovePrompt', props: { ...bandProps(bodyColumns), ...over } } as never)
+  const ui = await $.ui.mount({
+    plugin: 'astrolabe',
+    surface,
+    component: 'AbovePrompt',
+    props: { ...bandProps(bodyColumns), ...over },
+    ...(viewport === undefined ? {} : { viewport }),
+  } as never)
   const band = await ui.find({ key: 'astrolabe-band' })
   const engine = await ui.find({ key: 'engine' })
   const tree = await ui.drawn()
@@ -89,4 +96,46 @@ export const drawSpinner = async (
   const ui = await $.ui.mount(target as never)
   await ui.unmount()
   return handed.suffix === '…' ? undefined : handed.suffix
+}
+
+const paneProps = (bodyColumns: number) => ({
+  title: '🧭 Astrolabe',
+  isFocused: true,
+  bodyColumns,
+  placement: 'dock',
+  scroll: { bodyRows: 30, top: 0 },
+})
+
+type PaneUi = {
+  find: (q: { key?: string; text?: string | RegExp }) => Promise<{ text: string } | undefined>
+  press: (q: { key: string }) => Promise<unknown>
+  unmount: () => Promise<void>
+}
+
+/** Mounts the pane; returns its body text and a way to press its buttons. */
+export const mountPane = async ($: Mounter, surface: RenderSurface, bodyColumns = 80, rows = 30) => {
+  const ui = (await $.ui.mount({
+    plugin: 'astrolabe',
+    surface,
+    component: 'Pane',
+    requestId: 'astrolabe',
+    props: paneProps(bodyColumns),
+    viewport: { columns: bodyColumns + 4, rows, isFullscreen: true },
+  } as never)) as unknown as PaneUi
+  return {
+    body: async () => (await ui.find({ key: 'astrolabe-pane-body' }))?.text ?? '',
+    tabs: async () => (await ui.find({ key: 'astrolabe-pane-tabs' }))?.text ?? '',
+    press: (key: string) => ui.press({ key }),
+    unmount: () => ui.unmount(),
+  }
+}
+
+/** Answers the command and pane nouns beneath the plugin and records what it asked for. */
+export const installPaneEngine = (on: On) => {
+  const seen = { opened: [] as Array<{ id: string; title?: string }> }
+  on('ui.open', ($, e) => {
+    seen.opened.push(e as { id: string; title?: string })
+    return { value: { isPlaced: true } } as never
+  })
+  return seen
 }

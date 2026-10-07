@@ -4,10 +4,10 @@ A Claude Code mod that shows where your session is and where it is heading: the
 project, git and model state from a classic status line, live Spec Kit progress, and
 usage-window governance that keeps subagent fan-out under your plan limits.
 
-> **Status: v0.3.0.** Astrolabe draws four things: a band above the prompt with the Spec Kit
-> phase rail, the next command at the end of the prompt hint, the task in progress on the
-> spinner line, and an entry in the status line. The pane, toasts and usage governance arrive
-> in later releases (see [Roadmap](#roadmap)). Progress is tracked as Spec Kit features under `specs/`.
+> **Status: v0.4.0.** Astrolabe draws a band above the prompt with the Spec Kit phase rail,
+> the next command at the end of the prompt hint, the task in progress on the spinner line, an
+> entry in the status line, and a pane you open with `/astrolabe`. Toasts and usage governance
+> arrive in later releases (see [Roadmap](#roadmap)). Progress is tracked as Spec Kit features under `specs/`.
 
 ## Why "Astrolabe"
 
@@ -214,7 +214,7 @@ reloads the mod right away.
 
 | Option | Values | Default | What it changes |
 |---|---|---|---|
-| `preset` | `minimal`, `compact`, `full` | `compact` | Where Astrolabe draws. `minimal` keeps only the status entry. `compact` adds the band, the prompt hint and the spinner narration. `full` is `compact` for now; it will also open the pane by itself on wide screens and show phase toasts when those arrive. |
+| `preset` | `minimal`, `compact`, `full` | `compact` | Where Astrolabe draws. `minimal` keeps only the status entry. `compact` adds the band, the prompt hint and the spinner narration. `full` also opens the `/astrolabe` pane by itself on a wide fullscreen terminal, and will show phase toasts when those arrive. |
 | `flavor` | `mocha`, `frappe`, `macchiato`, `latte` | `mocha` | The Catppuccin palette for the band. `latte` is the light one. |
 
 You can also type `/plugin configure astrolabe@astrolabe` in a session, or set them from a
@@ -227,6 +227,58 @@ echo '{"preset":"minimal","flavor":"latte"}' | claude plugin configure astrolabe
 
 Colors are sent as hex values. On a terminal without truecolor, Claude Code decides how close a
 color it can show.
+
+## The /astrolabe pane
+
+Type `/astrolabe` to open a pane with three tabs. In a fullscreen terminal it docks at the
+right; otherwise it sits above the prompt. To use the keys, focus it with a click or
+`ctrl+x tab`, then press `1`, `2` or `3`. The tab you pick stays for the session.
+
+**1 Specs** lists every feature (real capture,
+[docs/screens/004-pane-specs.txt](docs/screens/004-pane-specs.txt)):
+
+```text
+[ Specs ][ Tasks ][ Session ]
+  ● 001 core-state  done  ██████████ 100%
+  ◐ 002 band-hint  implement  █████████░ 94%
+▸ ◐ 004 pane  implement  ███████░░░ 72%
+```
+
+`▸` marks the active feature. `●` is done, `◐` in progress, and `○` abandoned (drawn dim). Under
+the list come warnings: a `~` line when the active feature was guessed because
+`.specify/feature.json` is broken, and a `!` line for a spec that still has
+`[NEEDS CLARIFICATION` after its plan exists.
+
+**2 Tasks** lists the active feature's open tasks in file order, after a count
+([docs/screens/004-pane-tasks.txt](docs/screens/004-pane-tasks.txt)):
+
+```text
+8/11 done
+T009 README: the command, each tab with an example, hotkeys, the unasked-open r…
+T010 Run validate, tests and tsc; capture the pane in tmux into docs/screens/00…
+```
+
+When more tasks are open than the pane has rows, the last line says `+N more`.
+
+**3 Session** shows how Astrolabe sees the project right now:
+
+```text
+root          /Users/me/src/astrolabe
+constitution  ratified
+active        004 pane
+chosen by     feature.json
+next          /speckit-implement
+running       none
+analyzed      yes
+current task  T009 · 4m
+```
+
+`chosen by` is how the active feature was picked (`feature.json`, `branch` or `latest`).
+`analyzed` says whether `/speckit-analyze` ran in this session.
+
+With the `full` preset, the pane also opens by itself once per session, at the end of the
+first turn, but only in a fullscreen terminal at least 144 columns wide. It never opens by
+itself on a narrower or non-fullscreen terminal.
 
 ## What Astrolabe reads
 
@@ -318,7 +370,6 @@ These are designed and planned, one Spec Kit feature each:
 
 | Release | Adds |
 |---|---|
-| 004 | The `/astrolabe` pane with Session, Specs, Usage and Agents tabs |
 | 005 | Toasts when a phase finishes and when a task is ticked with no code edited |
 | 006 | Tag-driven releases and the statusline-to-mod tutorial |
 | 007 | Once a day, clickable notices when gstack, the Spec Kit CLI or Astrolabe has an update |

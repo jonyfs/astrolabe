@@ -95,8 +95,13 @@ export type SpeckitState = {
   nextCommand?: string
 }
 
+export type PaneTab = 'specs' | 'tasks' | 'session'
+
+/** The /astrolabe pane's session state: the tab shown and whether it opened unasked already. */
+export type PaneState = { tab: PaneTab; autoOpened: boolean }
+
 declare module 'claude-code' {
   interface PluginState {
-    astrolabe: { speckit: { state: SpeckitState; memo: SessionMemo } }
+    astrolabe: { speckit: { state: SpeckitState; memo: SessionMemo }; pane: PaneState }
   }
 }

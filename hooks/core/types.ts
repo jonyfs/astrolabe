@@ -20,6 +20,8 @@ export type {
   SessionMemo,
   ConstitutionState,
   SpeckitState,
+  PaneTab,
+  PaneState,
 } from '../../types'
 
 export const emptyMemo = (): SessionMemo => ({ files: {}, analyzed: [], touched: [] })
