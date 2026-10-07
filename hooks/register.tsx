@@ -4,15 +4,22 @@ import type { EngineInterface, Register } from 'claude-code'
 
 import { bandSegments } from './core/band'
 import { hintTail } from './core/hint'
+import { sessionRows, specsRows, taskRows } from './core/pane'
 import { presetOf } from './core/presets'
 import { spinnerSuffix } from './core/spinner'
 import { themeOf } from './core/theme'
+import type { PaneState, PaneTab } from './core/types'
 import type { Fs } from './io/fs-port'
 import { applyFileTouch, applySkill, type Held, reconcileStart, reconcileTurn } from './io/reconcile'
 import { bandRow } from './surfaces/band'
+import { paneTree } from './surfaces/pane'
 import { statusText } from './surfaces/status'
 
 const SPECKIT = { plugin: 'astrolabe', key: 'speckit' } as const
+const PANE_STATE = { plugin: 'astrolabe', key: 'pane' } as const
+const PANE_ID = 'astrolabe'
+const PANE_TITLE = '🧭 Astrolabe'
+const DEFAULT_PANE: PaneState = { tab: 'specs', autoOpened: false }
 
 function fsOf($: EngineInterface): Fs {
   return {
@@ -55,12 +62,32 @@ async function touchFile($: EngineInterface, path: string, isWrite: boolean): Pr
   await guarded($, async previous => (previous === undefined ? undefined : applyFileTouch(fs, previous, path, isWrite, now)))
 }
 
+/** Opens the pane once per session without being asked (preset full, wide fullscreen). */
+async function openUnasked($: EngineInterface): Promise<void> {
+  try {
+    const pane = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
+    if (pane.autoOpened) return
+    await $.state.set(PANE_STATE, { ...pane, autoOpened: true })
+    await $.ui.open({ id: PANE_ID, title: PANE_TITLE })
+  } catch (error) {
+    $.ui.log(`astrolabe: ${error instanceof Error ? error.message : String(error)}`, { to: 'debug' })
+  }
+}
+
 export const register: Register = (on, options) => {
   const preset = presetOf(options)
   const tokens = themeOf(options)
+  // Whether the last band draw saw a fullscreen terminal of 144 columns or more. The pane
+  // never opens unasked below that (Principle VII); session.start reports no width.
+  let isWide = false
 
   on('session.start', async ($, e, next) => {
     const result = await next(e)
+    try {
+      await $.command.register({ name: 'astrolabe', description: 'Open the Astrolabe pane: every Spec Kit feature, the open tasks and the session' })
+    } catch (error) {
+      $.ui.log(`astrolabe: ${error instanceof Error ? error.message : String(error)}`, { to: 'debug' })
+    }
     const fs = fsOf($)
     const now = await $.clock.now()
     await guarded($, previous => reconcileStart(fs, e.cwd, previous, now))
@@ -74,6 +101,7 @@ export const register: Register = (on, options) => {
       const cwd = await $.session.cwd()
       const now = await $.clock.now()
       await guarded($, previous => reconcileTurn(fs, cwd, previous, now))
+      if (preset.pane === 'auto' && isWide) await openUnasked($)
     }
     return result
   })
@@ -107,6 +135,7 @@ export const register: Register = (on, options) => {
 
   // Drawing reads only $.state (Principle XII); a reconcile's write redraws these sites.
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
+    isWide = e.viewport?.isFullscreen === true && e.viewport.columns >= 144
     if (!preset.band || e.props.hasSurvey) return next(e)
     const { value } = await $.state.get(SPECKIT)
     const segments = value === undefined ? [] : bandSegments(value.state, e.props.bodyColumns)
@@ -135,5 +164,29 @@ export const register: Register = (on, options) => {
     if (value === undefined) return next(e)
     const suffix = spinnerSuffix(value.state, value.memo, await $.clock.now(), e.viewport?.columns)
     return suffix === undefined ? next(e) : next({ ...e, props: { ...e.props, suffix } })
+  })
+
+  on('command.run', { command: 'astrolabe' }, async $ => {
+    await $.ui.open({ id: PANE_ID, title: PANE_TITLE })
+    return { text: 'Astrolabe pane opened.' }
+  })
+
+  on('ui.render', { component: 'Pane', requestId: PANE_ID }, async ($, e) => {
+    const { value } = await $.state.get(SPECKIT)
+    const pane = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
+    const state = value?.state ?? { present: false, constitution: 'missing' as const, features: [], isAnalyzed: false }
+    const columns = e.props.bodyColumns
+    const rows =
+      pane.tab === 'tasks'
+        ? taskRows(state, value?.memo ?? { files: {}, analyzed: [], touched: [] }, Math.max(3, (e.viewport?.rows ?? 24) - 4), columns)
+        : pane.tab === 'session'
+          ? sessionRows(state, await $.clock.now())
+          : specsRows(state, columns)
+    const { Box, Text, Button } = $.ui.resolve(e)
+    const select = async (tab: PaneTab) => {
+      const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
+      await $.state.set(PANE_STATE, { ...held, tab })
+    }
+    return paneTree({ Box, Text, Button }, pane.tab, rows, tokens, select)
   })
 }

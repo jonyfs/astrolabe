@@ -1,0 +1,8 @@
+# Real capture: claude 2.1.292, terminal 180 columns fullscreen, astrolabe 0.4.0, after typing /astrolabe.
+# The pane docks at the right; only its column is kept here.
+[ Specs ][ Tasks ][ Session ]
+  ● 001 core-state  done  ██████████ 100%
+  ◐ 002 band-hint  implement  █████████░ 94%
+  ◐ 003 spinner-narration  implement  ████████░░ 87%
+▸ ◐ 004 pane  implement  ███████░░░ 72%
+! 001: [NEEDS CLARIFICATION] left after the plan
