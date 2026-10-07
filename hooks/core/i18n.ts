@@ -5,6 +5,13 @@ export const LANGS = ['en', 'pt-BR', 'es', 'fr'] as const
 export type Lang = (typeof LANGS)[number]
 
 const EN = {
+  'pace.label': 'pace',
+  'pace.value': 'at this pace {window} reaches about {p}% by {at}',
+  'toast.cost80': '🧭 The session has cost ${cost}, {p}% of its ${budget} budget',
+  'toast.cost100': '🧭 The session has cost ${cost}, past its ${budget} budget',
+  'toast.context': '🧭 The context window is {p}% full: /compact before Claude Code compacts it for you',
+  'toast.cache': '🧭 The prompt cache goes cold in about 30 s: the next prompt after that re-reads the whole context',
+  'push.resumed': 'Astrolabe: the usage window renewed ({why}); the queued work is running again.',
   'kpi.slowest': 'slowest task',
   'kpi.estimate': 'estimate',
   'kpi.estimateValue': 'about {time} for {n} open tasks',
@@ -118,6 +125,13 @@ export type TextKey = keyof typeof EN
 type Dictionary = Readonly<Record<TextKey, string>>
 
 const PT_BR: Dictionary = {
+  'pace.label': 'ritmo',
+  'pace.value': 'neste ritmo {window} chega a cerca de {p}% às {at}',
+  'toast.cost80': '🧭 A sessão já custou ${cost}, {p}% do orçamento de ${budget}',
+  'toast.cost100': '🧭 A sessão já custou ${cost}, acima do orçamento de ${budget}',
+  'toast.context': '🧭 A janela de contexto está {p}% cheia: rode /compact antes que o Claude Code compacte por você',
+  'toast.cache': '🧭 O cache do prompt esfria em cerca de 30 s: o próximo prompt depois disso relê todo o contexto',
+  'push.resumed': 'Astrolabe: a janela de uso renovou ({why}); o trabalho na fila voltou a rodar.',
   'kpi.slowest': 'tarefa mais lenta',
   'kpi.estimate': 'previsão',
   'kpi.estimateValue': 'cerca de {time} para {n} tarefas abertas',
@@ -228,6 +242,13 @@ const PT_BR: Dictionary = {
 }
 
 const ES: Dictionary = {
+  'pace.label': 'ritmo',
+  'pace.value': 'a este ritmo {window} llega a cerca de {p}% a las {at}',
+  'toast.cost80': '🧭 La sesión ya costó ${cost}, el {p}% de su presupuesto de ${budget}',
+  'toast.cost100': '🧭 La sesión ya costó ${cost}, por encima de su presupuesto de ${budget}',
+  'toast.context': '🧭 La ventana de contexto está al {p}%: usa /compact antes de que Claude Code compacte por ti',
+  'toast.cache': '🧭 La caché del prompt se enfría en unos 30 s: el siguiente prompt después vuelve a leer todo el contexto',
+  'push.resumed': 'Astrolabe: la ventana de uso se renovó ({why}); el trabajo en cola vuelve a ejecutarse.',
   'kpi.slowest': 'tarea más lenta',
   'kpi.estimate': 'estimación',
   'kpi.estimateValue': 'unos {time} para {n} tareas abiertas',
@@ -338,6 +359,13 @@ const ES: Dictionary = {
 }
 
 const FR: Dictionary = {
+  'pace.label': 'rythme',
+  'pace.value': 'à ce rythme {window} atteint environ {p} % à {at}',
+  'toast.cost80': '🧭 La session a coûté ${cost}, {p} % de son budget de ${budget}',
+  'toast.cost100': '🧭 La session a coûté ${cost}, au-delà de son budget de ${budget}',
+  'toast.context': '🧭 La fenêtre de contexte est pleine à {p} % : /compact avant que Claude Code ne compacte pour vous',
+  'toast.cache': '🧭 Le cache du prompt refroidit dans environ 30 s : le prompt suivant relira tout le contexte',
+  'push.resumed': "Astrolabe : la fenêtre d'usage s'est renouvelée ({why}) ; le travail en file reprend.",
   'kpi.slowest': 'tâche la plus lente',
   'kpi.estimate': 'estimation',
   'kpi.estimateValue': 'environ {time} pour {n} tâches ouvertes',

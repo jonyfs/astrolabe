@@ -1,6 +1,6 @@
 // The footer: the status entry under the prompt, in place of a statusline (spec 018).
 // Ranked parts, joined with ' · ', dropped from the least important end to fit. Pure: no $.
-import { clockOf, decide, usageSegment, type Decision } from './governor'
+import { clockOf, decide, labelOf, usageSegment, type Decision } from './governor'
 import type { Icons } from './icons'
 import { t, type Lang } from './i18n'
 import type { GitState, UsageReading } from './types'
@@ -23,8 +23,7 @@ export type FooterInput = {
   lang?: Lang
 }
 
-const LABELS: Readonly<Record<string, string>> = { five_hour: '5h', seven_day: '7d' }
-const labelOf = (kind: string) => LABELS[kind] ?? kind.replace(/_/g, ' ')
+
 const SEP = ' · '
 
 /** Columns a text takes: emoji and other wide pictographs count two. */

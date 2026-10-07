@@ -53,7 +53,7 @@ import { applyFileTouch, applyRead, applyShell, applySkill, type Held, reconcile
 import { bandRow, nextRow, updatesRow } from './surfaces/band'
 import { askTree } from './surfaces/ask'
 import { dashboardTree } from './surfaces/dashboard'
-import { dial, kpiRows, phaseBars, usageChart } from './core/dashboard'
+import { dial, kpiRows, phaseBars, sparkline, usageChart } from './core/dashboard'
 import { addWeek, estimateLeft, slowest, weekKey, type Weeks } from './core/history'
 import { footerText } from './core/footer'
 import { parseGitStatus } from './core/git-status'
@@ -85,7 +85,7 @@ const helpText = (lang: Lang): string =>
     `  2 ${t(lang, 'tab.tasks').padEnd(10)} ${t(lang, 'help.tasksTab')}`,
     `  3 ${t(lang, 'tab.session').padEnd(10)} ${t(lang, 'help.sessionTab')}`,
     `  4 ${t(lang, 'tab.dashboard').padEnd(10)} ${t(lang, 'help.dashboardTab')}`,
-    `${t(lang, 'help.options')} (preset, flavor, icons, language, checkUpdates, governUsage, askOnLimit).`,
+    `${t(lang, 'help.options')} (preset, flavor, icons, language, checkUpdates, governUsage, askOnLimit, costBudget).`,
   ].join('\n')
 const ASK = { plugin: 'astrolabe', key: 'ask' } as const
 const DEFAULT_PANE: PaneState = { tab: 'specs', autoOpened: false }
@@ -218,10 +218,49 @@ async function resume($: EngineInterface, why: string): Promise<void> {
     await updateUsage($, u => ({ ...u, queue: [], paused: false }))
     await logGovernor($, t(currentLang(), 'log.resumed', { why }))
     await $.prompt.submit({ text: resumePrompt(usage.queue, why) })
+    // A phone notice when the work starts again (022 #31); the engine skips it while the person is present.
+    await $.tool
+      .call({ tool: 'PushNotification', tool_use_id: `astrolabe-resume-${await $.clock.now()}`, message: t(currentLang(), 'push.resumed', { why }), status: 'proactive' } as never)
+      .catch(() => undefined)
   } catch (error) {
     $.ui.log(`astrolabe: ${error instanceof Error ? error.message : String(error)}`, { to: 'debug' })
   }
 }
+
+/** The cost budget and context warnings (022 #30, #33), each once a session; the context one again after a compact. */
+async function warnUsage($: EngineInterface, percent: number | undefined, usd: number | undefined): Promise<void> {
+  const lang = currentLang()
+  const stats = (await $.state.get(SESSION)).value
+  const warned = { ...(stats?.warned ?? {}) }
+  const toasts: string[] = []
+  if (budget > 0 && usd !== undefined) {
+    const p = Math.round((usd * 100) / budget)
+    const money = { cost: usd.toFixed(2), budget: budget.toFixed(2), p }
+    if (usd >= budget && warned.cost100 !== true) {
+      toasts.push(t(lang, 'toast.cost100', money))
+      warned.cost100 = true
+      warned.cost80 = true
+    } else if (p >= 80 && warned.cost80 !== true) {
+      toasts.push(t(lang, 'toast.cost80', money))
+      warned.cost80 = true
+    }
+  }
+  if (percent !== undefined) {
+    if (percent >= 85 && warned.context !== true) {
+      toasts.push(t(lang, 'toast.context', { p: Math.round(percent) }))
+      warned.context = true
+    } else if (percent < 70 && warned.context === true) warned.context = false
+  }
+  if (JSON.stringify(warned) === JSON.stringify(stats?.warned ?? {})) return
+  await flushStats($, s => ({ ...s, warned }))
+  for (const text of toasts) $.ui.toast(text)
+}
+
+// The cost budget in USD from the option, 0 for none (022).
+let budget = 0
+// When the last main turn ended; the prompt cache timer fires only if no turn came after it (022 #34).
+let lastTurnAt = 0
+const CACHE_WARN_MS = 270_000
 
 // One resume timer at a time. A reload drops timers and this variable together, and the
 // next reading or refusal arms a new one.
@@ -807,6 +846,7 @@ export const register: Register = (on, options) => {
   const checksUpdates = options['checkUpdates'] !== false
   governs = options['governUsage'] !== false
   asks = governs && options['askOnLimit'] !== false
+  budget = typeof options['costBudget'] === 'number' && options['costBudget'] > 0 ? options['costBudget'] : 0
   iconsOption = options['icons']
   languageOption = options['language']
 
@@ -873,6 +913,11 @@ export const register: Register = (on, options) => {
       if (held !== undefined) await showStatus($, held.state)
       if (preset.pane === 'auto' && isWide) await openUnasked($)
       if (checksUpdates) $.clock.after(0, () => void checkUpdates($))
+      const ended = now
+      lastTurnAt = ended
+      $.clock.after(CACHE_WARN_MS, () => {
+        if (lastTurnAt === ended) $.ui.toast(t(currentLang(), 'toast.cache'))
+      })
     }
     return result
   })
@@ -916,6 +961,7 @@ export const register: Register = (on, options) => {
         ...(e.cost === undefined ? {} : { cost: e.cost.usd }),
         ...(binding === undefined || binding.renewed === true ? {} : { series: [...s.series, { at: now, percent: binding.percent }].slice(-SERIES_POINTS) }),
       }))
+      await warnUsage($, percent, e.cost?.usd)
       const speckit = (await $.state.get(SPECKIT)).value
       if (speckit !== undefined) await showStatus($, speckit)
       if (!governs) return result
@@ -1000,7 +1046,13 @@ export const register: Register = (on, options) => {
     isWide = e.viewport?.isFullscreen === true && e.viewport.columns >= 144
     if (!preset.band || e.props.hasSurvey) return next(e)
     const { value } = await $.state.get(SPECKIT)
-    const segments = value === undefined ? [] : bandSegments(value, e.props.bodyColumns)
+    const base = value === undefined ? [] : bandSegments(value, e.props.bodyColumns)
+    // The usage sparkline (022 #25): the last readings of the binding window, on a wide band only.
+    const series = (await $.state.get(SESSION)).value?.series ?? []
+    const segments =
+      base.length > 0 && series.length >= 3 && e.props.bodyColumns >= 70
+        ? [...base, { key: 'spark', text: sparkline(series.slice(-12).map(p => p.percent)), role: 'muted' as const }]
+        : base
     const updates = (await $.state.get(UPDATES)).value ?? { items: [] }
     const command = value?.nextCommand
     if (segments.length === 0 && updates.items.length === 0 && command === undefined) return next(e)
