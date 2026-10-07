@@ -474,7 +474,7 @@ export const register: Register = (on, options) => {
     return (
       <Box flexDirection="column">
         {segments.length > 0 && bandRow({ Box, Text }, segments, tokens)}
-        {buttons.length > 0 && updatesRow({ Box, Text, Button }, buttons, tokens, press)}
+        {buttons.length > 0 && updatesRow({ Box, Text, Button }, buttons, tokens, press, e.props.bodyColumns)}
         {await next(e)}
       </Box>
     )

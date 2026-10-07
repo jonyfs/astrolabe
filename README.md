@@ -345,7 +345,8 @@ updates: [ gstack 1.91.33.0 ][ specify 1.2.0 ][ Spec Kit skills 1.2.0 ][ astrola
 | Spec Kit skills | `specify version` is newer than this project's `.specify/integrations/speckit.manifest.json` | The first click turns the button into `confirm: rewrite .claude/skills/speckit-*`. The second runs `specify init --here --integration claude --force` in the project, which rewrites the project's Spec Kit skills. |
 | astrolabe | GitHub's latest release of jonyfs/astrolabe is newer than the installed version | Runs `claude plugin update astrolabe`, then toasts that you should run `/reload-plugins`. |
 
-A button disappears once its update succeeds. When one fails, a toast gives the first error
+On a narrow terminal the row keeps the buttons that fit and ends with `+N` for the rest. A
+button disappears once its update succeeds. When one fails, a toast gives the first error
 line and the command to run yourself. A tool that is not installed is simply skipped.
 
 This is the one network call Astrolabe makes: a single request a day to
