@@ -5,3 +5,5 @@
 /tsconfig.tsbuildinfo
 node_modules/
 .DS_Store
+# Engine declarations for the type check: fetched by scripts/fetch-engine-types.sh, never shipped
+/types/engine/

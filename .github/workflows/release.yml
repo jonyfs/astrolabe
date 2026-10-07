@@ -38,6 +38,9 @@ jobs:
         run: claude plugin validate .
       - name: Run the plugin tests
         run: claude plugin test .
+      - name: Fetch the engine declarations for the type check
+        shell: bash
+        run: sh scripts/fetch-engine-types.sh 2.1.292
       - name: Type check
         run: npx -y -p typescript@5 tsc -p .
 
