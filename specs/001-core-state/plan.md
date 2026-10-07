@@ -36,10 +36,11 @@ run in VS Code, `claude -p` and cloud sessions without drawing.
 
 **Project Type**: Claude Code plugin (mod), repository doubling as its marketplace.
 
-**Performance Goals**: an end-of-turn reconcile on a 40-feature project performs at most
-`4 + 3k` file reads (feature.json, constitution, the active feature's three files, plus
-three per other feature touched in the turn) and one `specs/` listing. A session start
-reads every feature once.
+**Performance Goals**: an end-of-turn reconcile on a 40-feature project makes one `specs/`
+listing, `2 + 2k` file reads (feature.json, constitution, then `spec.md` and `tasks.md` for
+each of the k features re-read, the active one included), k `exists` checks for `plan.md`,
+and up to two reads for git `HEAD`. A session start reads every feature once. Deriving the
+state for 100 features with 200 tasks each takes about 30 ms in the test engine.
 
 **Constraints**: no `$` in `hooks/core/`; no file reads, processes or network on any draw
 path; no writes outside `$.state`; no environment variables; every input failure degrades
@@ -58,7 +59,7 @@ missing file).
 | I. English-only | All code, docs, tests and strings in English. | Pass |
 | II. Complete docs | README updated in this feature with install, status entry states, Spec Kit layout, ignored env vars, surfaces, update, uninstall, troubleshooting (FR-030). | Pass |
 | III. Native mod, zero settings | Plugin = manifests, `hooks/hooks.json`, hooks module and supporting files. No settings writes (FR-028). Session values in `$.state`, declared in `types/index.d.ts`. | Pass |
-| IV. Pure core, thin surfaces | All logic in `hooks/core/` with no `$`. `hooks/io/` reads through a small `Fs` port that `register.tsx` binds to `$.fs`. `hooks/surfaces/status.ts` only formats and calls `$.ui.status`. | Pass |
+| IV. Pure core, thin surfaces | All logic in `hooks/core/` with no `$`. `hooks/io/` reads through a small `Fs` port that `register.tsx` binds to `$.fs`. `hooks/surfaces/status.ts` only returns the text: the engine follows `$` only into functions declared in `register.tsx`, so that file makes the `$.ui.status` call. | Pass |
 | V. Disk is the truth | Reconcile at `session.start` and `turn.complete`; `tool.call` only sets hints that the next reconcile clears; active-feature order exactly as written; dangling or malformed `feature.json` reported; no env vars; front matter wins. | Pass |
 | VI. Test-first | Every task starts with a failing test. Fixtures live in `tests/fixtures/<scenario>/` as TypeScript modules exporting an in-memory file tree (see research R2). The status adapter is not a render component, so the `['terminal','desktop']` mount rule does not apply until feature 002. | Pass |
 | VII. Good neighbor | Only `$.ui.status`; no band, pane or toast in this feature. | Pass |

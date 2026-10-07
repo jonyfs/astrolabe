@@ -20,7 +20,7 @@ Later features read `astrolabe.speckit` and never write it.
 parseFrontMatter(text: string): { track?: 'quick' | 'full'; status?: 'active' | 'done' | 'abandoned' }
 parseTasks(text: string): Task[]
 classifyConstitution(text: string | undefined): 'missing' | 'template' | 'ratified'
-derivePhase(files: FeatureFiles): { phase: Phase; feature: Feature }
+deriveFeature(files: FeatureFiles): Feature
 resolveActive(snapshot: Snapshot, features: Feature[]): { active?: Active; warning?: ActiveWarning }
 nextCommand(state: Omit<SpeckitState, 'nextCommand'>): string | undefined
 skillHint(name: string): { step: Step } | { analyze: true } | undefined

@@ -14,7 +14,7 @@ The first step that is not yet complete. Derived by the decision table in FR-005
 | Field | Type | Rule |
 |---|---|---|
 | `id` | `string \| undefined` | First `T\d+` token after the checkbox, when present. |
-| `text` | `string` | The rest of the line after the checkbox, trimmed. |
+| `text` | `string` | The rest of the line after the checkbox and the id, trimmed. |
 | `isDone` | `boolean` | `[x]` or `[X]`. |
 | `line` | `number` | 1-based line number in `tasks.md`. |
 
@@ -79,6 +79,7 @@ Resolution order in FR-011; a feature counts as existing when its directory is i
 | `runningSkill` | `{ name, step } \| undefined` | From a `Skill` call; cleared at reconcile (FR-018). |
 | `touched` | `string[]` | Feature dirs a tool call touched this turn; cleared at reconcile. |
 | `currentTask` | `{ dir, id, startedAt } \| undefined` | `startedAt` changes only when the id changes. |
+| `base` | `Snapshot` without `features` | The rest of the last snapshot, so a skill hint or a single file re-read can re-derive without other reads. |
 
 `step` is `'constitution' | 'specify' | 'clarify' | 'plan' | 'tasks' | 'implement'`.
 
