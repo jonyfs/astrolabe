@@ -5,6 +5,8 @@ status: done # active | done | abandoned
 
 # Quick spec: The governor asks before it holds or pauses
 
+> Amended by spec 017 (0.11.1): the gate refuses at once with the default and asks afterwards, because a hook has 10 seconds. FR-003, FR-004 and FR-006 below describe 0.10.0; see `specs/017-ask-never-blocks/spec.md`.
+
 **Created**: 2026-10-07 · **Source**: the owner's request (`/investigate`, 2026-10-07); options chosen in D1: the full set
 
 ## Problem

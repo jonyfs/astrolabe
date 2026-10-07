@@ -37,13 +37,14 @@ import {
   RAISE_MS,
   refusal,
   resumePrompt,
+  runPrompt,
   usageRows,
   usageSegment,
   type Decision,
   type Question,
 } from './core/governor'
 import { themeOf } from './core/theme'
-import { emptyMemo, type PaneState, type PaneTab, type UpdateId, type UpdateItem, type UpdatesState, type UsageState, type UsageReading } from './core/types'
+import { emptyMemo, type PaneState, type PaneTab, type UpdateId, type UpdateItem, type UpdatesState, type UsageState, type UsageReading, type QueuedAgent } from './core/types'
 import type { Preset } from './core/presets'
 import type { Fs } from './io/fs-port'
 import { applyFileTouch, applyRead, applyShell, applySkill, type Held, reconcileStart, reconcileTurn } from './io/reconcile'
@@ -146,16 +147,19 @@ async function armResume($: EngineInterface, decision: Decision): Promise<void> 
   })
 }
 
-// One usage question at a time (015). A call of the same kind that arrives while it is open
-// shares its answer (`isAsker` false); a call of the other kind waits, then asks its own.
-// `pick` settles it from a press in the pane or the pane's close; the timer and the engine
-// dialog settle it through their own resolve, so a stale one never reaches a later question.
-let asking: { kind: Question['kind']; answer: Promise<string> } | undefined
+// One usage question at a time (015, 017). The gate never waits for it: a hook has 10 s, so it
+// refuses with the cautious default at once and the question runs in the plugin's own time,
+// from a timer. The answer then acts on the queue and the pause. `pick` settles it from a
+// press in the pane or the pane's close.
+let isAsking = false
 let pick: ((value: string) => void) | undefined
 // Whether a person is at the prompt: a -p run or the SDK is never asked (015).
 let isInteractive = true
+const TIMED_OUT = '\u0000timeout'
+// What a refusal adds while the person is asked, so Claude waits instead of retrying.
+const ASKING_NOTE = 'The person is being asked; if they allow it, a prompt will say so. Do not retry it.'
 
-/** What an answer changes beyond the call that asked: a lift of the hold or of the ceiling. */
+/** A lift of the hold or of the ceiling, for its own window (016); false for any other answer. */
 async function applyLift($: EngineInterface, question: Question, value: string): Promise<boolean> {
   const now = await $.clock.now()
   const target = question.options.find(o => o.value === value)?.target
@@ -173,57 +177,78 @@ async function applyLift($: EngineInterface, question: Question, value: string):
 }
 
 /**
- * Asks the person (spec 015): a focused pane with a Select, or the engine's dialog where the
- * pane cannot be placed. Resolves the answer's value, or the default after ASK_MS or on Esc.
+ * What an answer does, whenever it comes (017). The default (or no answer) is remembered for
+ * the band. `drop` takes the call out of the queue; `run` takes it out and lets that one
+ * prompt through once, then tells Claude to send it again; a lift resumes what waits.
  */
-async function askOwner($: EngineInterface, question: Question): Promise<{ value: string; isAsker: boolean }> {
-  while (asking !== undefined) {
-    const open = asking
-    if (open.kind === question.kind) return { value: await open.answer, isAsker: false }
-    await open.answer.catch(() => undefined)
+async function answer($: EngineInterface, question: Question, value: string, item?: QueuedAgent): Promise<void> {
+  if (await applyLift($, question, value)) {
+    await resume($, value === 'lift' ? 'subagents allowed for 1 hour, one at a time' : 'ceiling raised')
+    return
   }
-  const answer = (async () => {
-    let resolve: (value: string) => void = () => undefined
-    const answer = new Promise<string>(r => {
-      resolve = r
-    })
-    pick = resolve
-    try {
-      const deadline = (await $.clock.now()) + ASK_MS
-      await $.state.set(ASK, { question, deadline })
-      $.clock.after(ASK_MS, () => resolve(question.fallback))
-      const opened = await $.ui
-        .open({ id: ASK_ID, title: '🧭 Astrolabe · usage', focus: true, closeOnEscape: true, holdToasts: true, rows: question.options.length + 4 })
-        .catch(() => ({ isPlaced: false }))
-      if (!opened.isPlaced) {
-        // Not drawn (a narrow terminal): close it so it never shows up later, and ask in the
-        // engine's dialog. A lift picked after the default went ahead still applies.
-        await $.ui.close({ id: ASK_ID }).catch(() => undefined)
-        let isSettled = false
-        void $.ui.ask(question.text, { options: question.options.map(o => o.label), header: 'Usage' }).then(
-          async label => {
-            const value = question.options.find(o => o.label === label)?.value
-            if (!isSettled) resolve(value ?? question.fallback)
-            else if (value !== undefined) await applyLift($, question, value)
-          },
-          () => resolve(question.fallback),
-        )
-        const value = await answer
-        isSettled = true
-        return value
-      }
-      return await answer
-    } finally {
-      pick = undefined
-      await $.state.set(ASK, {}).catch(() => undefined)
-      await $.ui.close({ id: ASK_ID }).catch(() => undefined)
-    }
-  })()
-  asking = { kind: question.kind, answer }
+  if (value === 'run' && item !== undefined) {
+    await updateUsage($, u => ({ ...u, queue: u.queue.filter(q => q.id !== item.id), passes: [...(u.passes ?? []), item.prompt] }))
+    await $.prompt.submit({ text: runPrompt(item) })
+    return
+  }
+  if (value === 'drop') {
+    await updateUsage($, u => ({ ...u, queue: u.queue.filter(q => q.id !== item?.id), asked: { kind: 'hold', answer: 'drop' } }))
+    return
+  }
+  await updateUsage($, u => (u.asked?.kind === question.kind ? u : { ...u, asked: { kind: question.kind, answer: question.fallback } }))
+}
+
+/** Opens the question from a timer, outside the hook that refused; one at a time. */
+function askLater($: EngineInterface, question: Question, item?: QueuedAgent): void {
+  if (isAsking) return
+  isAsking = true
+  $.clock.after(0, () => {
+    void askNow($, question, item)
+  })
+}
+
+/**
+ * The question itself (015): a focused pane with a Select, or the engine's dialog where the
+ * pane cannot be placed. The pane closes after ASK_MS or on Esc, taking the default; an answer
+ * in the dialog after that still applies.
+ */
+async function askNow($: EngineInterface, question: Question, item?: QueuedAgent): Promise<void> {
+  let resolve: (value: string) => void = () => undefined
+  const picked = new Promise<string>(r => {
+    resolve = r
+  })
+  pick = resolve
   try {
-    return { value: await answer, isAsker: true }
+    const deadline = (await $.clock.now()) + ASK_MS
+    await $.state.set(ASK, { question, deadline })
+    $.clock.after(ASK_MS, () => resolve(TIMED_OUT))
+    const opened = await $.ui
+      .open({ id: ASK_ID, title: '🧭 Astrolabe · usage', focus: true, closeOnEscape: true, holdToasts: true, rows: question.options.length + 4 })
+      .catch(() => ({ isPlaced: false }))
+    let isSettled = false
+    if (!opened.isPlaced) {
+      // Not drawn (a narrow terminal): close it so it never shows up later, and ask in the
+      // engine's dialog, which stays until it is answered.
+      await $.ui.close({ id: ASK_ID }).catch(() => undefined)
+      void $.ui.ask(question.text, { options: question.options.map(o => o.label), header: 'Usage' }).then(
+        async label => {
+          const value = question.options.find(o => o.label === label)?.value
+          if (!isSettled) resolve(value ?? question.fallback)
+          else if (value !== undefined) await answer($, question, value, item)
+        },
+        () => resolve(question.fallback),
+      )
+    }
+    const value = await picked
+    isSettled = true
+    await answer($, question, value === TIMED_OUT ? question.fallback : value, item)
+  } catch (error) {
+    $.ui.log(`astrolabe: ${error instanceof Error ? error.message : String(error)}`, { to: 'debug' })
   } finally {
-    asking = undefined
+    pick = undefined
+    isAsking = false
+    await $.state.set(ASK, {}).catch(() => undefined)
+    await $.ui.close({ id: ASK_ID }).catch(() => undefined)
   }
 }
 
@@ -515,22 +540,21 @@ async function gate($: GateArgs[0], e: GateArgs[1], next: GateArgs[2]): Promise<
     }
     if (decision.cap === 0 || (decision.band === 'throttle' && !isAdmitted)) {
       const input = e as unknown as { description?: string; prompt?: string; subagent_type?: string }
-      // Before a hold queues it, the person picks (015); the default queues as before.
-      if (asks && isInteractive && decision.band === 'hold' && !isSubagentCall) {
-        const remembered = usage.asked?.kind === 'hold' ? usage.asked.answer : undefined
-        const question = holdQuestion(decision, input.description ?? 'subagent', resetClock)
-        const { value: answer, isAsker } = remembered === undefined ? await askOwner($, question) : { value: remembered, isAsker: false }
-        if (remembered === undefined && (answer === 'queue' || answer === 'drop')) {
-          await updateUsage($, u => ({ ...u, asked: { kind: 'hold', answer } }))
-        }
-        if (answer === 'drop') return { deny: dropped(decision) }
-        // "Run this one now" is for the call that asked; the others are asked in turn.
-        if (answer === 'run') return isAsker ? runAgent() : gate($, e, next)
-        // A lift turns the hold into a cap of 1, which the next pass applies to every waiter.
-        if (answer === 'lift') {
-          await applyLift($, question, answer)
-          return gate($, e, next)
-        }
+      // At hold the person is asked (015) after the call is queued, never before: a hook that
+      // waited would run out of time and let the call through (017).
+      const isAsked = asks && isInteractive && decision.band === 'hold' && !isSubagentCall
+      const remembered = isAsked && usage.asked?.kind === 'hold' ? usage.asked.answer : undefined
+      if (isAsked) {
+        // The one call the person let through ("Run this one now"), sent again by Claude.
+        let isPass = false
+        await updateUsage($, u => {
+          const passes = u.passes ?? []
+          const at = passes.indexOf(input.prompt ?? '')
+          isPass = at >= 0
+          return isPass ? { ...u, passes: passes.filter((_, i) => i !== at) } : u
+        })
+        if (isPass) return runAgent()
+        if (remembered === 'drop') return { deny: dropped(decision) }
       }
       let queuedAs = ''
       await updateUsage($, u => {
@@ -550,22 +574,27 @@ async function gate($: GateArgs[0], e: GateArgs[1], next: GateArgs[2]): Promise<
         }
       })
       await armResume($, decision)
-      return { deny: refusal(decision, { queuedAs, inFlight: running, ...(resetClock === undefined ? {} : { resetClock }) }) }
+      const refused = refusal(decision, { queuedAs, inFlight: running, ...(resetClock === undefined ? {} : { resetClock }) })
+      if (isAsked && remembered === undefined) {
+        askLater($, holdQuestion(decision, input.description ?? 'subagent', resetClock), {
+          id: queuedAs,
+          description: input.description ?? 'subagent',
+          prompt: input.prompt ?? '',
+        })
+        return { deny: `${refused}. ${ASKING_NOTE}` }
+      }
+      return { deny: refused }
     }
     return runAgent(isAdmitted)
   }
   // Only the main thread pauses; a subagent's own requests for more subagents are gated above.
   if (isPaused(decision) && !isSubagentCall && !isReadOnlyTool(String(e.tool))) {
-    if (asks && isInteractive) {
-      const remembered = usage.asked?.kind === 'pause' ? usage.asked.answer : undefined
-      const question = pauseQuestion(decision, String(e.tool), resetClock)
-      const answer = remembered ?? (await askOwner($, question)).value
-      if (await applyLift($, question, answer)) return gate($, e, next)
-      if (remembered === undefined) await updateUsage($, u => ({ ...u, asked: { kind: 'pause', answer: 'pause' } }))
-    }
+    const isAsked = asks && isInteractive && usage.asked?.kind !== 'pause'
+    if (isAsked) askLater($, pauseQuestion(decision, String(e.tool), resetClock))
     await updateUsage($, u => (u.paused ? u : { ...u, paused: true }))
     await armResume($, decision)
-    return { deny: refusal(decision, resetClock === undefined ? {} : { resetClock }) }
+    const refused = refusal(decision, resetClock === undefined ? {} : { resetClock })
+    return { deny: isAsked ? `${refused}. ${ASKING_NOTE}` : refused }
   }
   return next(e)
 }
@@ -647,6 +676,8 @@ export const register: Register = (on, options) => {
       if ((asked === 'hold' && decision.band !== 'hold') || (asked === 'pause' && !isPaused(decision))) {
         await updateUsage($, ({ asked: _gone, ...u }) => u)
       }
+      // A pass the person granted at hold is not needed once the hold is gone (017).
+      if (decision.band !== 'hold' && (usage.passes ?? []).length > 0) await updateUsage($, ({ passes: _gone, ...u }) => u)
       const isClear = decision.band === 'ok' || decision.band === 'throttle'
       if (isClear && (usage.queue.length > 0 || usage.paused)) await resume($, `${usageSegment(decision) ?? 'window'} now`)
       else if (!isClear) await armResume($, decision)

@@ -144,6 +144,8 @@ export type UsageState = {
   /** The owner's raised stop and ceiling, for the window it was given for (all windows when absent). */
   override?: { target: number; until: number; kind?: string }
   paused: boolean
+  /** Prompts of queued subagents the person let run once at hold ("Run this one now", 017). */
+  passes?: string[]
   /** The window that entered hold, held down to 75% (016). */
   held?: { kind: string; resetsAt?: string }
   /** Until when the owner let subagents through the hold, one at a time (015). */

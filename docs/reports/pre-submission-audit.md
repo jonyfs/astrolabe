@@ -70,6 +70,10 @@ session that made them.
 - Spec 016 (0.11.0): what the usage-governor skill had and Astrolabe lacked: per-window bands
   and overrides, hysteresis down to 75%, renewed windows, and the governor in the pane.
 
+- Spec 017 (0.11.1): in 0.10.0 and 0.11.0 the governor's question waited inside the tool hook.
+  A hook has 10 seconds, so an unanswered question let the call through. The gate now refuses
+  at once with the cautious default and asks from a timer; the answer acts on the queue.
+
 ## Still open
 
 - **Desktop app images**: Claude Code documents that it raises the band, the spinner and the pane
