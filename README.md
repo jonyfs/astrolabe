@@ -95,6 +95,11 @@ claude plugin marketplace remove astrolabe
 
 ### Install from a local clone
 
+An install read from a folder runs the code on disk, but a session keeps the module it loaded.
+With `autoReload` on (the default), Astrolabe compares the version on disk with its own after
+each turn and runs `/reload-plugins` once when they differ, so a pull or a new release loads by
+itself. The first version with this check needs one `/reload-plugins` of your own.
+
 To try a working copy, add the folder as a marketplace. Claude Code then reads the plugin
 from that folder, so edits show after `/reload-plugins`:
 
@@ -301,6 +306,7 @@ reloads the mod right away.
 | `governUsage` | `true`, `false` | `true` | Usage governance (see [Usage governance](#usage-governance)). Off, the windows still show. |
 | `icons` | `auto`, `nerd`, `emoji`, `ascii` | `auto` | Icons in the footer and the Dashboard. `auto` is Nerd Font glyphs in the terminal and emoji elsewhere. |
 | `language` | `auto`, `en`, `pt-BR`, `es`, `fr` | `auto` | The language of the pane, the Dashboard, the governor's questions, the toasts and `/astrolabe help`. `auto` follows the language you type in, English until a prompt says enough. What Claude reads (refusals, resume prompts) stays in English. |
+| `autoReload` | `true`, `false` | `true` | After a turn, when the Astrolabe on disk is newer than the one running (an install from a local clone, an update), run `/reload-plugins` once so the new version loads. Off, a toast says to run it. |
 | `images` | `auto`, `on`, `off` | `auto` | Draw the Dashboard's usage chart as a picture. `auto` does on kitty and Ghostty outside tmux. |
 | `pullRequest` | `true`, `false` | `false` | Show the branch's open pull request and its checks in the footer, from `gh`. See [The footer in place of a statusline](#the-footer-in-place-of-a-statusline). |
 | `costBudget` | a number of US dollars | `0` | The session's cost budget. Astrolabe toasts once when the cost passes 80% of it and once when it passes it. `0` turns the warning off. |

@@ -1,6 +1,6 @@
 {
   "name": "astrolabe",
-  "version": "0.21.0",
+  "version": "0.22.0",
   "description": "Spec Kit progress and usage governance for Claude Code: a phase rail above the prompt, the next command in the prompt hint, the current task on the spinner, a /astrolabe pane, toasts, update buttons, and a status entry with your usage window.",
   "author": {
     "name": "Jony Santos"
@@ -81,6 +81,12 @@
       "type": "boolean",
       "title": "Ask before holding or pausing",
       "description": "When the governor queues a subagent or pauses Claude, ask you with a list of answers (queue, run now, lift for a while); the cautious default applies at once, and your answer changes it",
+      "default": true
+    },
+    "autoReload": {
+      "type": "boolean",
+      "title": "Reload when a new version lands on disk",
+      "description": "After a turn, when the Astrolabe on disk is newer than the one running (a local clone, an update), run /reload-plugins once; off, a toast says to run it",
       "default": true
     },
     "images": {

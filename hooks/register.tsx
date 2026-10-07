@@ -87,7 +87,7 @@ const helpText = (lang: Lang): string =>
     `  2 ${t(lang, 'tab.tasks').padEnd(10)} ${t(lang, 'help.tasksTab')}`,
     `  3 ${t(lang, 'tab.session').padEnd(10)} ${t(lang, 'help.sessionTab')}`,
     `  4 ${t(lang, 'tab.dashboard').padEnd(10)} ${t(lang, 'help.dashboardTab')}`,
-    `${t(lang, 'help.options')} (preset, flavor, icons, language, checkUpdates, governUsage, askOnLimit, costBudget, pullRequest, images).`,
+    `${t(lang, 'help.options')} (preset, flavor, icons, language, checkUpdates, governUsage, askOnLimit, costBudget, pullRequest, images, autoReload).`,
   ].join('\n')
 const ASK = { plugin: 'astrolabe', key: 'ask' } as const
 const DEFAULT_PANE: PaneState = { tab: 'specs', autoOpened: false }
@@ -102,6 +102,8 @@ const HISTORY_POINTS = 10
 const SESSION = { plugin: 'astrolabe', key: 'session' } as const
 const SERIES_POINTS = 60
 const HISTORY = 'history'
+// The disk version the plugins were last reloaded for (034).
+const RELOADED = 'reloaded'
 const GIT_STATUS = ['git', 'status', '--porcelain=v2', '--branch', '--show-stash']
 // The branch's pull request and its checks (023), opt-in, at most once per five minutes per branch.
 const GH_PR = ['gh', 'pr', 'view', '--json', 'number,statusCheckRollup']
@@ -192,6 +194,34 @@ async function readGit($: EngineInterface, root: string | undefined, branch: str
 }
 
 let prRunning = false
+
+// Whether the plugins reload by themselves when a new version lands on disk (034).
+let autoReload = true
+// The version on disk this module last acted on, so one version reloads at most once (034).
+let actedOn: string | undefined
+
+/** Compares the version in our own plugin.json with the one running; reloads once when they differ (034). */
+async function checkDiskVersion($: EngineInterface): Promise<void> {
+  try {
+    const text = await fsOf($).read(`${$.plugin.root}/.claude-plugin/plugin.json`).catch(() => undefined)
+    if (text === undefined) return
+    const version = (JSON.parse(text) as { version?: unknown }).version
+    if (typeof version !== 'string' || version === VERSION || version === actedOn) return
+    const stored = await $.store.get(RELOADED).catch(() => undefined)
+    if (stored === version) return
+    actedOn = version
+    await $.store.set(RELOADED, version).catch(() => undefined)
+    const lang = currentLang()
+    if (!autoReload) {
+      $.ui.toast(t(lang, 'toast.onDisk', { version, running: VERSION }))
+      return
+    }
+    $.ui.toast(t(lang, 'toast.reloading', { version, running: VERSION }))
+    await $.command.run({ command: 'reload-plugins' })
+  } catch (error) {
+    $.ui.log(`astrolabe: ${error instanceof Error ? error.message : String(error)}`, { to: 'debug' })
+  }
+}
 
 // Whether Claude Code's theme is a light one, read at session start (024): the charts' colors.
 let isLightTheme = false
@@ -958,6 +988,7 @@ export const register: Register = (on, options) => {
   pullRequests = options['pullRequest'] === true
   budget = typeof options['costBudget'] === 'number' && options['costBudget'] > 0 ? options['costBudget'] : 0
   iconsOption = options['icons']
+  autoReload = options['autoReload'] !== false
   imagesOption = options['images']
   languageOption = options['language']
 
@@ -1055,6 +1086,7 @@ export const register: Register = (on, options) => {
       }
       if (held !== undefined) await showStatus($, held.state)
       if (preset.pane === 'auto' && isWide) await openUnasked($)
+      $.clock.after(0, () => void checkDiskVersion($))
       if (checksUpdates) $.clock.after(0, () => void checkUpdates($))
       const ended = now
       lastTurnAt = ended
