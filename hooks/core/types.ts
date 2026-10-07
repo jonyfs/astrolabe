@@ -30,6 +30,8 @@ export type {
   UsageAnswer,
   UsageQuestion,
   AskState,
+  GitState,
+  SessionStats,
   QueuedAgent,
   PaneState,
 } from '../../types'

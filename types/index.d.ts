@@ -116,7 +116,7 @@ export type SpeckitState = {
   activeTasks?: Array<{ id?: string; text: string; isDone: boolean }>
 }
 
-export type PaneTab = 'specs' | 'tasks' | 'session'
+export type PaneTab = 'specs' | 'tasks' | 'session' | 'dashboard'
 
 /** The /astrolabe pane's session state: the tab shown and whether it opened unasked already. */
 export type PaneState = { tab: PaneTab; autoOpened: boolean }
@@ -154,6 +154,26 @@ export type UsageState = {
   asked?: { kind: 'hold' | 'pause'; answer: string }
 }
 
+/** What `git status --porcelain=v2 --branch` said at the end of the last main turn (018). */
+export type GitState = { branch?: string; ahead: number; behind: number; changed: number; conflicts: number }
+
+/** The session's numbers for the footer and the Dashboard (018); bounded, written per turn. */
+export type SessionStats = {
+  startedAt: number
+  turns: number
+  toolCalls: number
+  drifts: number
+  agentsRun: number
+  agentsQueued: number
+  model?: string
+  effort?: string
+  context?: { percent: number }
+  cost?: number
+  git?: GitState
+  /** The binding window's percent per reading, at most 60 points. */
+  series: Array<{ at: number; percent: number }>
+}
+
 /** One answer a usage question offers; `target` is the ceiling a lifting answer sets. */
 export type UsageAnswer = { value: string; label: string; target?: number }
 
@@ -165,6 +185,6 @@ export type AskState = { question?: UsageQuestion; deadline?: number }
 
 declare module 'claude-code' {
   interface PluginState {
-    astrolabe: { speckit: SpeckitState; memo: SessionMemo; pane: PaneState; updates: UpdatesState; usage: UsageState; ask: AskState }
+    astrolabe: { speckit: SpeckitState; memo: SessionMemo; pane: PaneState; updates: UpdatesState; usage: UsageState; ask: AskState; session: SessionStats }
   }
 }

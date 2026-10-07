@@ -10,6 +10,7 @@ export const PANE_TABS: ReadonlyArray<{ tab: PaneTab; label: string; hotkey: str
   { tab: 'specs', label: 'Specs', hotkey: '1' },
   { tab: 'tasks', label: 'Tasks', hotkey: '2' },
   { tab: 'session', label: 'Session', hotkey: '3' },
+  { tab: 'dashboard', label: 'Dashboard', hotkey: '4' },
 ]
 
 export const paneTree = (
@@ -18,6 +19,8 @@ export const paneTree = (
   rows: readonly PaneRow[],
   tokens: Tokens,
   onSelect: (tab: PaneTab) => Promise<void>,
+  /** A body drawn in place of the rows (the Dashboard, 018). */
+  body?: ReturnType<ElementTable<'terminal'>['Box']>,
 ) => (
   <Box flexDirection="column">
     <Box key="astrolabe-pane-tabs" flexDirection="row">
@@ -32,7 +35,7 @@ export const paneTree = (
       ))}
     </Box>
     <Box key="astrolabe-pane-body" flexDirection="column">
-      {rows.map(row => (
+      {body ?? rows.map(row => (
         <Text color={tokens[row.role]} dimColor={row.dim === true} wrap="truncate-end">
           {row.text}
         </Text>

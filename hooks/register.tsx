@@ -44,14 +44,19 @@ import {
   type Question,
 } from './core/governor'
 import { themeOf } from './core/theme'
-import { emptyMemo, type PaneState, type PaneTab, type UpdateId, type UpdateItem, type UpdatesState, type UsageState, type UsageReading, type QueuedAgent } from './core/types'
+import { emptyMemo, type PaneState, type PaneTab, type UpdateId, type UpdateItem, type UpdatesState, type UsageState, type UsageReading, type QueuedAgent, type SessionStats } from './core/types'
 import type { Preset } from './core/presets'
 import type { Fs } from './io/fs-port'
 import { applyFileTouch, applyRead, applyShell, applySkill, type Held, reconcileStart, reconcileTurn } from './io/reconcile'
 import { bandRow, updatesRow } from './surfaces/band'
 import { askTree } from './surfaces/ask'
+import { dashboardTree } from './surfaces/dashboard'
+import { dial, kpiRows, phaseBars, usageChart } from './core/dashboard'
+import { footerText } from './core/footer'
+import { parseGitStatus } from './core/git-status'
+import { iconSet, iconsFor } from './core/icons'
 import { paneTree } from './surfaces/pane'
-import { statusText } from './surfaces/status'
+import { formatStatus } from './core/status-text'
 
 const SPECKIT = { plugin: 'astrolabe', key: 'speckit' } as const
 // The session memo lives apart from what drawings read, so no redraw carries it (spec 009).
@@ -70,6 +75,17 @@ const SKILLS_REFRESH = ['specify', 'init', '--here', '--integration', 'claude', 
 const USAGE = { plugin: 'astrolabe', key: 'usage' } as const
 const DEFAULT_USAGE: UsageState = { readings: [], history: [], inFlight: 0, queue: [], paused: false }
 const HISTORY_POINTS = 10
+const SESSION = { plugin: 'astrolabe', key: 'session' } as const
+const SERIES_POINTS = 60
+const GIT_STATUS = ['git', 'status', '--porcelain=v2', '--branch']
+
+// The session's numbers between writes (018): a tool call costs no state write; they are
+// written at the end of each main turn and at each measure. A reload loses one turn's counts.
+const live = { toolCalls: 0, drifts: 0, agentsRun: 0, agentsQueued: 0, model: undefined as string | undefined, effort: undefined as string | undefined }
+// The footer's room: the last width a drawing saw, less the "⚠ astrolabe: " the terminal adds.
+let columnsSeen = 120
+let surfaceSeen: string | null = 'terminal'
+let iconsOption: unknown = 'auto'
 
 const decisionOf = (usage: UsageState, now: number): Decision =>
   decide(usage.readings, usage.history, usage.override, now, usage.holdLift, usage.held)
@@ -80,12 +96,75 @@ const kindOf = (usage: UsageState, now: number): { kind?: string } => {
   return kind === undefined ? {} : { kind }
 }
 
-/** The status entry: the Spec Kit part, then the highest usage window (spec 008). */
+/** The status entry: the footer of spec 018, the Spec Kit part first (008, 018). */
 async function showStatus($: EngineInterface, state: Held['state']): Promise<void> {
   const usage = (await $.state.get(USAGE)).value ?? DEFAULT_USAGE
-  const segment = usageSegment(decisionOf(usage, await $.clock.now()))
-  const speckit = statusText(state)
-  $.ui.status(segment === undefined ? speckit : `${speckit} · ${segment}`)
+  const stats = (await $.state.get(SESSION)).value
+  const now = await $.clock.now()
+  $.ui.status(
+    footerText({
+      speckit: columns => formatStatus(state, columns),
+      readings: usage.readings,
+      decision: decisionOf(usage, now),
+      ...(stats?.context === undefined ? {} : { context: stats.context }),
+      ...(stats?.model === undefined ? {} : { model: stats.model }),
+      ...(stats?.effort === undefined ? {} : { effort: stats.effort }),
+      ...(stats?.git === undefined ? {} : { git: stats.git }),
+      ...(stats?.cost === undefined ? {} : { cost: stats.cost }),
+      ...(stats === undefined ? {} : { startedAt: stats.startedAt }),
+      now,
+      icons: iconSet(iconsFor(iconsOption, surfaceSeen as never)),
+      columns: Math.max(20, columnsSeen - 14),
+    }),
+  )
+}
+
+/** Writes what the session counted since the last write, merged with `change`, if anything moved. */
+async function flushStats($: EngineInterface, change: (s: SessionStats) => SessionStats = s => s): Promise<void> {
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const { value, version } = await $.state.get(SESSION)
+    const now = await $.clock.now()
+    const before: SessionStats = value ?? { startedAt: now, turns: 0, toolCalls: 0, drifts: 0, agentsRun: 0, agentsQueued: 0, series: [] }
+    const counted: SessionStats = {
+      ...before,
+      toolCalls: before.toolCalls + live.toolCalls,
+      drifts: before.drifts + live.drifts,
+      agentsRun: before.agentsRun + live.agentsRun,
+      agentsQueued: before.agentsQueued + live.agentsQueued,
+      ...(live.model === undefined ? {} : { model: live.model }),
+      ...(live.effort === undefined ? {} : { effort: live.effort }),
+    }
+    const next = change(counted)
+    if (value !== undefined && JSON.stringify(next) === JSON.stringify(value)) return
+    if ((await $.state.set(SESSION, next, { ifVersion: version })).isSet) {
+      live.toolCalls = 0
+      live.drifts = 0
+      live.agentsRun = 0
+      live.agentsQueued = 0
+      return
+    }
+  }
+}
+
+/** One `git status` at the end of a main turn (018 FR-003): no shell, 2 s at most. */
+async function readGit($: EngineInterface, root: string | undefined, branch: string | undefined): Promise<SessionStats['git'] | undefined> {
+  // A branch read from the repository files says there is a repository: no extra check.
+  if (root === undefined || branch === undefined) return undefined
+  try {
+    const run = await $.process.run(GIT_STATUS, { cwd: root, timeoutMs: 2000 })
+    return run.exitCode === 0 ? parseGitStatus(run.stdout) : undefined
+  } catch {
+    return undefined
+  }
+}
+
+/** Notes the model and effort of each main-thread request (018), leaving the request untouched. */
+async function* noteModel($: Parameters<Hook<'turn.step'>>[0], e: Parameters<Hook<'turn.step'>>[1], next: Parameters<Hook<'turn.step'>>[2]) {
+  if (e.agentId === undefined) {
+    live.model = e.model
+    live.effort = e.effort === undefined ? undefined : String(e.effort)
+  }
+  return yield* next(e)
 }
 
 /** Read-modify-write of astrolabe.usage with ifVersion, retried like `guarded`. */
@@ -316,7 +395,10 @@ async function touchFile(
     drift = touched.drift
     return touched.held
   })
-  if (held !== undefined && drift !== undefined && preset.toasts !== 'none') $.ui.toast(drift)
+  if (held !== undefined && drift !== undefined && preset.toasts !== 'none') {
+    live.drifts += 1
+    $.ui.toast(drift)
+  }
 }
 
 /**
@@ -512,6 +594,8 @@ let asks = true
 type GateArgs = Parameters<Hook<'tool.call'>>
 
 async function gate($: GateArgs[0], e: GateArgs[1], next: GateArgs[2]): Promise<Awaited<ReturnType<Hook<'tool.call'>>>> {
+  live.toolCalls += 1
+  if (e.tool === 'Agent' && !governs) live.agentsRun += 1
   if (!governs) return next(e)
   const { usage, decision } = await decisionNow($)
   if (decision.highest === undefined) return next(e)
@@ -520,6 +604,7 @@ async function gate($: GateArgs[0], e: GateArgs[1], next: GateArgs[2]): Promise<
   const isSubagentCall = (e as { agentId?: string }).agentId !== undefined
   // Counted before it runs; `isCounted` when the cap check already counted it.
   const runAgent = async (isCounted = false) => {
+    live.agentsRun += 1
     if (!isCounted) await updateUsage($, u => ({ ...u, inFlight: u.inFlight + 1 }))
     try {
       return await next(e)
@@ -557,6 +642,7 @@ async function gate($: GateArgs[0], e: GateArgs[1], next: GateArgs[2]): Promise<
         if (remembered === 'drop') return { deny: dropped(decision) }
       }
       let queuedAs = ''
+      live.agentsQueued += 1
       await updateUsage($, u => {
         queuedAs = `q${u.queue.length + 1}`
         return {
@@ -608,9 +694,13 @@ export const register: Register = (on, options) => {
   const checksUpdates = options['checkUpdates'] !== false
   governs = options['governUsage'] !== false
   asks = governs && options['askOnLimit'] !== false
+  iconsOption = options['icons']
+
+  on('turn.step', noteModel)
 
   on('session.start', async ($, e, next) => {
     isInteractive = e.isInteractive !== false
+    surfaceSeen = e.surface
     const result = await next(e)
     try {
       await $.command.register({ name: 'astrolabe', description: 'Open the Astrolabe pane: every Spec Kit feature, the open tasks and the session' })
@@ -622,6 +712,7 @@ export const register: Register = (on, options) => {
     await afterReconcile($, preset, await guarded($, previous => reconcileStart(fs, e.cwd, previous, now)))
     // Started on a timer so the session never waits for a process or the network.
     if (checksUpdates) $.clock.after(0, () => void checkUpdates($))
+    await flushStats($)
     return result
   })
 
@@ -631,7 +722,15 @@ export const register: Register = (on, options) => {
       const fs = fsOf($)
       const cwd = await $.session.cwd()
       const now = await $.clock.now()
-      await afterReconcile($, preset, await guarded($, previous => reconcileTurn(fs, cwd, previous, now)))
+      const held = await guarded($, previous => reconcileTurn(fs, cwd, previous, now))
+      await afterReconcile($, preset, held)
+      // The footer's git part (018): counts from git, else the branch from the repository files.
+      const root = held?.state.root
+      const branch = held?.memo.base?.branch
+      const counted = await readGit($, root, branch)
+      const git = counted ?? (branch === undefined ? undefined : { branch, ahead: 0, behind: 0, changed: 0, conflicts: 0 })
+      await flushStats($, ({ git: _old, ...s }) => ({ ...s, turns: s.turns + 1, ...(git === undefined ? {} : { git }) }))
+      if (held !== undefined) await showStatus($, held.state)
       if (preset.pane === 'auto' && isWide) await openUnasked($)
       if (checksUpdates) $.clock.after(0, () => void checkUpdates($))
     }
@@ -668,6 +767,15 @@ export const register: Register = (on, options) => {
         }
       })
       const decision = decisionOf(usage, now)
+      // The footer's context and cost, and the Dashboard's usage series (018).
+      const percent = e.context.percent ?? (e.context.tokens === undefined || e.context.window === 0 ? undefined : (e.context.tokens * 100) / e.context.window)
+      const binding = decision.highest
+      await flushStats($, s => ({
+        ...s,
+        ...(percent === undefined ? {} : { context: { percent } }),
+        ...(e.cost === undefined ? {} : { cost: e.cost.usd }),
+        ...(binding === undefined || binding.renewed === true ? {} : { series: [...s.series, { at: now, percent: binding.percent }].slice(-SERIES_POINTS) }),
+      }))
       const speckit = (await $.state.get(SPECKIT)).value
       if (speckit !== undefined) await showStatus($, speckit)
       if (!governs) return result
@@ -748,6 +856,7 @@ export const register: Register = (on, options) => {
 
   // Drawing reads only $.state (Principle XII); a reconcile's write redraws these sites.
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
+    columnsSeen = e.viewport?.columns ?? columnsSeen
     isWide = e.viewport?.isFullscreen === true && e.viewport.columns >= 144
     if (!preset.band || e.props.hasSurvey) return next(e)
     const { value } = await $.state.get(SPECKIT)
@@ -837,6 +946,36 @@ export const register: Register = (on, options) => {
       const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
       await $.state.set(PANE_STATE, { ...held, tab })
     }
-    return paneTree({ Box, Text, Button }, pane.tab, rows, tokens, select)
+    if (pane.tab !== 'dashboard') return paneTree({ Box, Text, Button }, pane.tab, rows, tokens, select)
+    // The Dashboard (018): numbers from $.state only, charts sized to the pane.
+    const elements = $.ui.resolve(e)
+    const usage = (await $.state.get(USAGE)).value ?? DEFAULT_USAGE
+    const stats = (await $.state.get(SESSION)).value
+    const now = await $.clock.now()
+    const binding = decisionOf(usage, now).highest
+    const activeFeature = state.features.find(f => f.dir === state.active?.dir)
+    const ascii = iconsFor(iconsOption, e.surface) === 'ascii'
+    const chart = stats === undefined ? undefined : usageChart(stats.series, { width: Math.min(columns, 72), height: 7, ...(binding?.resetsAt === undefined ? {} : { resetsAt: binding.resetsAt }), now, tokens })
+    const bars = phaseBars(state.features, Math.min(columns, 60), tokens, activeFeature?.phase)
+    const view = {
+      dial: dial(activeFeature?.phase, tokens),
+      ...(bars === undefined ? {} : { bars }),
+      ...(chart === undefined ? {} : { chart }),
+      chartNote: stats === undefined || stats.series.length === 0 ? 'No usage reading yet.' : columns < 30 ? 'Too narrow for the chart.' : 'Usage over the session, with the projection to the reset.',
+      ...(activeFeature === undefined || activeFeature.total === 0 ? {} : { progress: `${activeFeature.id} ${activeFeature.name}: ${activeFeature.done}/${activeFeature.total} tasks done` }),
+      kpis: stats === undefined ? [] : kpiRows(stats, binding, now),
+    }
+    const body = dashboardTree(
+      {
+        Box: elements.Box,
+        Text: elements.Text,
+        ...('Raster' in elements ? { Raster: elements.Raster } : {}),
+        ...('Svg' in elements ? { Svg: elements.Svg } : {}),
+      },
+      view,
+      tokens,
+      ascii,
+    )
+    return paneTree({ Box, Text, Button }, pane.tab, rows, tokens, select, body)
   })
 }
