@@ -4,10 +4,10 @@ A Claude Code mod that shows where your session is and where it is heading: the
 project, git and model state from a classic status line, live Spec Kit progress, and
 usage-window governance that keeps subagent fan-out under your plan limits.
 
-> **Status: v0.2.0.** Astrolabe draws three things: a band above the prompt with the Spec Kit
-> phase rail, the next command at the end of the prompt hint, and an entry in the status line.
-> The spinner, pane, toasts and usage governance arrive in later releases (see
-> [Roadmap](#roadmap)). Progress is tracked as Spec Kit features under `specs/`.
+> **Status: v0.3.0.** Astrolabe draws four things: a band above the prompt with the Spec Kit
+> phase rail, the next command at the end of the prompt hint, the task in progress on the
+> spinner line, and an entry in the status line. The pane, toasts and usage governance arrive
+> in later releases (see [Roadmap](#roadmap)). Progress is tracked as Spec Kit features under `specs/`.
 
 ## Why "Astrolabe"
 
@@ -172,6 +172,29 @@ The band shows nothing of its own when the project has no Spec Kit, when no feat
 (the prompt hint then names the command to run), or while a survey uses the band. Whatever
 other mods draw there stays.
 
+## What the spinner says
+
+While a turn works on the active feature, the spinner line names the task in progress and how
+long it has been the current one:
+
+```text
+Sauteing… T014 · Write the parser tests in tests/core/x.test.ts · 3m
+```
+
+Claude Code still draws its own word and, after Astrolabe's part, the turn's time and token
+count. Astrolabe only adds the part after the word:
+
+| Part | What it means |
+|---|---|
+| `T014` | The id of the first open task in the active feature's `tasks.md`. |
+| The text | The task's text without the `[P]` and `[US1]` markers or backticks, cut with `…` when the terminal is narrow. The id is never cut. |
+| `3m` | How long this task has been the first open one, counted from when Astrolabe first saw it this session: `45s`, `12m` or `1h 5m`. |
+
+It shows only during a turn that works on the active feature, meaning `/speckit-implement` was
+called or a tool edited a file in the feature's folder during the turn. Other turns keep the
+plain spinner. When Claude Code shows its own message on the spinner (while compacting, for
+example), that message wins.
+
 ## What the prompt hint shows
 
 While the prompt is empty, Astrolabe adds the next Spec Kit command to the end of Claude
@@ -191,7 +214,7 @@ reloads the mod right away.
 
 | Option | Values | Default | What it changes |
 |---|---|---|---|
-| `preset` | `minimal`, `compact`, `full` | `compact` | Where Astrolabe draws. `minimal` keeps only the status entry. `compact` adds the band and the prompt hint. `full` is `compact` for now; it will also open the pane by itself on wide screens and show phase toasts when those arrive. |
+| `preset` | `minimal`, `compact`, `full` | `compact` | Where Astrolabe draws. `minimal` keeps only the status entry. `compact` adds the band, the prompt hint and the spinner narration. `full` is `compact` for now; it will also open the pane by itself on wide screens and show phase toasts when those arrive. |
 | `flavor` | `mocha`, `frappe`, `macchiato`, `latte` | `mocha` | The Catppuccin palette for the band. `latte` is the light one. |
 
 You can also type `/plugin configure astrolabe@astrolabe` in a session, or set them from a
@@ -295,7 +318,6 @@ These are designed and planned, one Spec Kit feature each:
 
 | Release | Adds |
 |---|---|
-| 003 | The spinner names the task being worked on |
 | 004 | The `/astrolabe` pane with Session, Specs, Usage and Agents tabs |
 | 005 | Toasts when a phase finishes and when a task is ticked with no code edited |
 | 006 | Tag-driven releases and the statusline-to-mod tutorial |
