@@ -349,7 +349,13 @@ folder with several Spec Kit projects under it, `other roots` names them, and
 - a line chart of the deciding usage window over the session, 0 to 100%, with a dotted
   projection to the reset at the current burn rate;
 - the session's counts: turns, tool calls, drift alarms, subagents run and queued, context, cost,
-  duration, burn rate in points an hour, and where the window should be at the reset.
+  duration, burn rate in points an hour, and where the window should be at the reset;
+- the slowest task of the active feature, an estimate for its open tasks from the time the ticked
+  ones took, and the tasks and features finished this week, across sessions.
+
+A turn that ticked tasks says so next to its duration (`Baked for 1m 1s · 2 tasks done`). The
+Session tab shows the governor's last three steps: what it asked, what you answered, and when it
+resumed.
 
 In the terminal the charts are drawn cell by cell in the theme's colors; in the Desktop app and
 VS Code they are vector images; with `icons: ascii`, or where neither is drawn, they are plain
@@ -443,7 +449,8 @@ Only files inside the Spec Kit root, the nearest folder above the session's dire
 holds `.specify/`. It never writes a project file. It runs processes and makes one network call
 only for the daily update check (see [Update notices](#update-notices)), and only when you
 click a button does anything get installed. Its own store (the plugin's JSON file under your
-Claude Code configuration folder) keeps only the last update check and the updates you hid.
+Claude Code configuration folder) keeps only the last update check, the updates you hid, and the
+tasks and features finished per week (the last 12 weeks).
 
 | File | Used for |
 |---|---|

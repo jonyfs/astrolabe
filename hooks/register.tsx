@@ -54,6 +54,7 @@ import { bandRow, nextRow, updatesRow } from './surfaces/band'
 import { askTree } from './surfaces/ask'
 import { dashboardTree } from './surfaces/dashboard'
 import { dial, kpiRows, phaseBars, usageChart } from './core/dashboard'
+import { addWeek, estimateLeft, slowest, weekKey, type Weeks } from './core/history'
 import { footerText } from './core/footer'
 import { parseGitStatus } from './core/git-status'
 import { iconSet, iconsFor } from './core/icons'
@@ -98,6 +99,7 @@ const DEFAULT_USAGE: UsageState = { readings: [], history: [], inFlight: 0, queu
 const HISTORY_POINTS = 10
 const SESSION = { plugin: 'astrolabe', key: 'session' } as const
 const SERIES_POINTS = 60
+const HISTORY = 'history'
 const GIT_STATUS = ['git', 'status', '--porcelain=v2', '--branch']
 
 // The session's numbers between writes (018): a tool call costs no state write; they are
@@ -214,6 +216,7 @@ async function resume($: EngineInterface, why: string): Promise<void> {
     const usage = (await $.state.get(USAGE)).value ?? DEFAULT_USAGE
     if (usage.queue.length === 0 && !usage.paused) return
     await updateUsage($, u => ({ ...u, queue: [], paused: false }))
+    await logGovernor($, t(currentLang(), 'log.resumed', { why }))
     await $.prompt.submit({ text: resumePrompt(usage.queue, why) })
   } catch (error) {
     $.ui.log(`astrolabe: ${error instanceof Error ? error.message : String(error)}`, { to: 'debug' })
@@ -287,6 +290,7 @@ async function applyLift($: EngineInterface, question: Question, value: string):
  * prompt through once, then tells Claude to send it again; a lift resumes what waits.
  */
 async function answer($: EngineInterface, question: Question, value: string, item?: QueuedAgent): Promise<void> {
+  await logGovernor($, `→ ${question.options.find(o => o.value === value)?.label ?? value}`)
   if (await applyLift($, question, value)) {
     await resume($, value === 'lift' ? 'subagents allowed for 1 hour, one at a time' : 'ceiling raised')
     return
@@ -307,6 +311,7 @@ async function answer($: EngineInterface, question: Question, value: string, ite
 function askLater($: EngineInterface, question: Question, item?: QueuedAgent): void {
   if (isAsking) return
   isAsking = true
+  void logGovernor($, question.text).catch(() => undefined)
   $.clock.after(0, () => {
     void askNow($, question, item)
   })
@@ -474,6 +479,66 @@ async function suggestNext($: EngineInterface, held: Held | undefined): Promise<
   if (command === undefined || command === lastSuggested || !isInteractive) return
   lastSuggested = command
   await $.prompt.suggest({ text: command }).catch(() => undefined)
+}
+
+const doneOf = (held: Held | undefined) => (held?.state.features ?? []).reduce((n, f) => n + f.done, 0)
+const finishedOf = (held: Held | undefined) => (held?.state.features ?? []).filter(f => f.phase === 'done').length
+
+/**
+ * After a main turn (021): the tasks it ticked, by its duration; how long the task that was
+ * current took once it is done; and this week's counts in $.store, across sessions.
+ */
+async function noteProgress($: EngineInterface, before: Held | undefined, held: Held | undefined, now: number, durationMs: number): Promise<void> {
+  try {
+    const ticked = Math.max(0, doneOf(held) - doneOf(before))
+    const finished = Math.max(0, finishedOf(held) - finishedOf(before))
+    const was = before?.memo.currentTask
+    const isTicked = was !== undefined && held?.memo.currentTask?.id !== was.id && held?.state.activeTasks?.some(task => task.id === was.id && task.isDone) === true
+    if (ticked > 0 || isTicked) {
+      await flushStats($, s => ({
+        ...s,
+        ...(ticked > 0 ? { turnTicks: [...(s.turnTicks ?? []), { ms: durationMs, n: ticked }].slice(-20) } : {}),
+        ...(isTicked ? { taskTimes: [...(s.taskTimes ?? []), { dir: was!.dir, id: was!.id, ms: now - was!.startedAt }].slice(-50) } : {}),
+      }))
+    }
+    if (ticked > 0 || finished > 0) {
+      const stored = await $.store.get(HISTORY)
+      const weeks = typeof stored === 'object' && stored !== null && !Array.isArray(stored) ? (stored as Weeks) : {}
+      const next = addWeek(weeks, weekKey(now), ticked, finished)
+      await $.store.set(HISTORY, next)
+      const week = next[weekKey(now)]
+      if (week !== undefined) await flushStats($, s => ({ ...s, week }))
+    }
+  } catch (error) {
+    $.ui.log(`astrolabe: ${error instanceof Error ? error.message : String(error)}`, { to: 'debug' })
+  }
+}
+
+const minutes = (ms: number) => {
+  const m = Math.max(1, Math.round(ms / 60_000))
+  return m < 60 ? `${m}m` : `${Math.floor(m / 60)}h${String(m % 60).padStart(2, '0')}m`
+}
+
+/** The Dashboard's rows from 021: the slowest task, the estimate for the open tasks, this week. */
+function historyRows(stats: SessionStats, feature: { dir: string; done: number; total: number } | undefined): Array<[string, string]> {
+  const lang = currentLang()
+  const rows: Array<[string, string]> = []
+  const times = stats.taskTimes ?? []
+  if (feature !== undefined) {
+    const slow = slowest(times, feature.dir, 1)[0]
+    if (slow !== undefined) rows.push([t(lang, 'kpi.slowest'), `${slow.id} · ${minutes(slow.ms)}`])
+    const open = feature.total - feature.done
+    const left = estimateLeft(times, feature.dir, open)
+    if (left !== undefined) rows.push([t(lang, 'kpi.estimate'), t(lang, 'kpi.estimateValue', { time: minutes(left), n: open })])
+  }
+  if (stats.week !== undefined) rows.push([t(lang, 'kpi.week'), t(lang, 'kpi.weekValue', { tasks: stats.week.tasks, features: stats.week.features })])
+  return rows
+}
+
+/** One line of the governor's history (021): what it asked, what was answered, when it resumed. */
+async function logGovernor($: EngineInterface, text: string): Promise<void> {
+  const at = await $.clock.now()
+  await updateUsage($, u => ({ ...u, log: [...(u.log ?? []), { at, text }].slice(-20) }))
 }
 
 /** Opens the pane once per session without being asked (preset full, wide fullscreen). */
@@ -778,7 +843,10 @@ export const register: Register = (on, options) => {
     if (preset.band) await suggestNext($, started)
     // Started on a timer so the session never waits for a process or the network.
     if (checksUpdates) $.clock.after(0, () => void checkUpdates($))
-    await flushStats($)
+    // This week's counts from earlier sessions (021), copied into the state the Dashboard reads.
+    const stored = await $.store.get(HISTORY).catch(() => undefined)
+    const week = typeof stored === 'object' && stored !== null ? (stored as Weeks)[weekKey(now)] : undefined
+    await flushStats($, s => (week === undefined ? s : { ...s, week }))
     return result
   })
 
@@ -788,8 +856,13 @@ export const register: Register = (on, options) => {
       const fs = fsOf($)
       const cwd = await $.session.cwd()
       const now = await $.clock.now()
-      const held = await guarded($, previous => reconcileTurn(fs, cwd, previous, now))
+      let before: Held | undefined
+      const held = await guarded($, previous => {
+        before = previous
+        return reconcileTurn(fs, cwd, previous, now)
+      })
       await afterReconcile($, preset, held)
+      await noteProgress($, before, held, now, e.durationMs)
       if (preset.band) await suggestNext($, held)
       // The footer's git part (018): counts from git, else the branch from the repository files.
       const root = held?.state.root
@@ -965,6 +1038,13 @@ export const register: Register = (on, options) => {
     return next({ ...e, props: { ...e.props, tail } })
   })
 
+  // Tasks done next to a turn's duration (021 #44), found by the duration turn.complete reported.
+  on('ui.render', { component: 'TurnDuration' }, async ($, e, next) => {
+    const ticks = (await $.state.get(SESSION)).value?.turnTicks?.find(tick => tick.ms === e.props.durationMs)
+    if (ticks === undefined || !preset.spinner) return next(e)
+    return next({ ...e, props: { ...e.props, word: `${e.props.word} · ${t(currentLang(), 'turn.tasks', { n: ticks.n })}` } })
+  })
+
   on('ui.render', { component: 'Spinner' }, async ($, e, next) => {
     if (!preset.spinner || e.props.message !== null) return next(e)
     const { value } = await $.state.get(SPECKIT)
@@ -1026,6 +1106,11 @@ export const register: Register = (on, options) => {
         : pane.tab === 'session'
           ? [
               ...sessionRows(state, await $.clock.now(), currentLang()),
+              ...((await $.state.get(USAGE)).value?.log ?? []).slice(-3).map((entry, i) => ({
+                key: `governor-log-${i}`,
+                text: `${(i === 0 ? t(currentLang(), 'session.governor') : '').padEnd(14)}${clockOf(new Date(entry.at).toISOString()) ?? ''} ${entry.text}`,
+                role: 'muted' as const,
+              })),
               ...usageRows((await $.state.get(USAGE)).value ?? DEFAULT_USAGE, await $.clock.now()).map(([label, text]) => ({
                 key: `usage-${label}`,
                 text: `${label.padEnd(14)}${text}`,
@@ -1060,7 +1145,7 @@ export const register: Register = (on, options) => {
       ...(chart === undefined ? {} : { chart }),
       chartNote: t(currentLang(), stats === undefined || stats.series.length === 0 ? 'dash.noReading' : columns < 30 ? 'dash.narrow' : 'dash.chartNote'),
       ...(activeFeature === undefined || activeFeature.total === 0 ? {} : { progress: t(currentLang(), 'dash.progress', { id: activeFeature.id, name: activeFeature.name, done: activeFeature.done, total: activeFeature.total }) }),
-      kpis: stats === undefined ? [] : kpiRows(stats, binding, now, currentLang()),
+      kpis: stats === undefined ? [] : [...kpiRows(stats, binding, now, currentLang()), ...historyRows(stats, activeFeature)],
     }
     const body = dashboardTree(
       {

@@ -161,6 +161,8 @@ export type UsageState = {
   /** The owner's raised stop and ceiling, for the window it was given for (all windows when absent). */
   override?: { target: number; until: number; kind?: string }
   paused: boolean
+  /** What the governor did, newest last (021): questions, answers, resumes; at most 20. */
+  log?: Array<{ at: number; text: string }>
   /** Prompts of queued subagents the person let run once at hold ("Run this one now", 017). */
   passes?: string[]
   /** The window that entered hold, held down to 75% (016). */
@@ -187,6 +189,12 @@ export type SessionStats = {
   context?: { percent: number }
   cost?: number
   git?: GitState
+  /** How long each ticked task took, from when it became the current one (021), at most 50. */
+  taskTimes?: Array<{ dir: string; id: string; ms: number }>
+  /** This week's tasks and features done, across sessions (021), copied from $.store for drawing. */
+  week?: { tasks: number; features: number }
+  /** Tasks done in each recent main turn, by the turn's duration (021), at most 20. */
+  turnTicks?: Array<{ ms: number; n: number }>
   /** The person's language guessed from their prompts (019): en, pt-BR, es or fr. */
   language?: string
   /** The binding window's percent per reading, at most 60 points. */
