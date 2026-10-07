@@ -28,7 +28,7 @@ const isWorkingOnActive = (state: SpeckitState, memo: SessionMemo): boolean =>
 
 export const spinnerSuffix = (state: SpeckitState, memo: SessionMemo, now: number, columns?: number): string | undefined => {
   const task = state.currentTask
-  if (!state.present || state.active === undefined || task === undefined || !isWorkingOnActive(state, memo)) return undefined
+  if (!state.present || state.active === undefined || task === undefined || !(state.isWorkingOnActive ?? isWorkingOnActive(state, memo))) return undefined
   const budget = columns === undefined ? DEFAULT_BUDGET : columns - ENGINE_COLUMNS
   const head = task.id === undefined ? '… ' : `… ${task.id} · `
   const tail = task.startedAt === undefined ? '' : ` · ${formatElapsed(now - task.startedAt)}`

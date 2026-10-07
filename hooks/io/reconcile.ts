@@ -76,10 +76,12 @@ const fullTasks = (ticked: readonly Task[], text: string | undefined): Task[] =>
 }
 
 /** A Bash or Agent call: their file changes are invisible, so drift stays quiet this window. */
-export const applyShell = (previous: Held): Held => ({
-  ...previous,
-  memo: { ...previous.memo, window: withShell(windowOf(previous.memo)) },
-})
+export const applyShell = (previous: Held): Held => {
+  const window = windowOf(previous.memo)
+  const next = withShell(window)
+  // Unchanged window: hand back the same object so nothing is written (spec 009, FR-003).
+  return next === window ? previous : { ...previous, memo: { ...previous.memo, window: next } }
+}
 
 /**
  * A file tool call finished. Outside specs/ and .specify/ (inside the root) it is a code
@@ -105,12 +107,15 @@ export const applyFileTouch = async (
   if (location === undefined) {
     if (/^(\.specify|specs)(\/|$)/i.test(relative)) return { held: previous }
     const edit = foldCase ? relative.toLowerCase() : relative
-    return { held: { ...previous, memo: { ...previous.memo, window: withEdit(windowOf(previous.memo), edit) } } }
+    const window = windowOf(previous.memo)
+    const next = withEdit(window, edit)
+    return { held: next === window ? previous : { ...previous, memo: { ...previous.memo, window: next } } }
   }
   const dir = location.dir
-  const memo: SessionMemo = { ...previous.memo, touched: unique([...previous.memo.touched, dir]) }
+  const isTouched = previous.memo.touched.includes(dir)
+  const memo: SessionMemo = isTouched ? previous.memo : { ...previous.memo, touched: [...previous.memo.touched, dir] }
   const snapshot = snapshotFromMemo(memo)
-  if (!isWrite || !TRACKED.has(location.file) || snapshot === undefined) return { held: { ...previous, memo } }
+  if (!isWrite || !TRACKED.has(location.file) || snapshot === undefined) return { held: isTouched ? previous : { ...previous, memo } }
   const fresh = await readFeature(fs, root, dir)
   const others = snapshot.features.filter(f => f.dir !== dir)
   const features = [...others, fresh].sort((a, b) => a.dir.localeCompare(b.dir))

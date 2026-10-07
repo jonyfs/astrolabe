@@ -32,6 +32,8 @@ import { paneTree } from './surfaces/pane'
 import { statusText } from './surfaces/status'
 
 const SPECKIT = { plugin: 'astrolabe', key: 'speckit' } as const
+// The session memo lives apart from what drawings read, so no redraw carries it (spec 009).
+const MEMO = { plugin: 'astrolabe', key: 'memo' } as const
 const PANE_STATE = { plugin: 'astrolabe', key: 'pane' } as const
 const PANE_ID = 'astrolabe'
 const PANE_TITLE = '🧭 Astrolabe'
@@ -116,11 +118,23 @@ const MAX_ATTEMPTS = 5
 async function guarded($: EngineInterface, work: (previous: Held | undefined) => Promise<Held | undefined>): Promise<Held | undefined> {
   try {
     for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
-      const { value, version } = await $.state.get(SPECKIT)
-      const next = await work(value)
+      const { value: memo, version } = await $.state.get(MEMO)
+      const { value: state } = await $.state.get(SPECKIT)
+      const previous = memo === undefined || state === undefined ? undefined : { state, memo }
+      const next = await work(previous)
       if (next === undefined) return undefined
-      const { isSet } = await $.state.set(SPECKIT, next, { ifVersion: version })
-      if (isSet) {
+      // Nothing changed: no write, no redraw (spec 009, FR-003).
+      if (previous !== undefined && next.memo === previous.memo && next.state === previous.state) return previous
+      const written = await $.state.set(MEMO, next.memo, { ifVersion: version })
+      if (written.isSet) {
+        // Two writers can finish out of order: the state carries its memo version, and an
+        // older one never replaces a newer one, so the drawing never lags the memo.
+        const state = { ...next.state, memoVersion: written.version }
+        for (let tries = 0; tries < MAX_ATTEMPTS; tries += 1) {
+          const shown = await $.state.get(SPECKIT)
+          if ((shown.value?.memoVersion ?? -1) >= written.version) break
+          if ((await $.state.set(SPECKIT, state, { ifVersion: shown.version })).isSet) break
+        }
         await showStatus($, next.state)
         return next
       }
@@ -229,7 +243,7 @@ async function checkUpdates($: EngineInterface): Promise<void> {
     const self = await stdoutOf($, ['specify', 'self', 'check'])
     const selfItem = self === undefined ? undefined : parseSelfCheck(self)
     if (selfItem !== undefined) items.push(selfItem)
-    const root = (await $.state.get(SPECKIT)).value?.state.root
+    const root = (await $.state.get(SPECKIT)).value?.root
     if (root !== undefined) {
       const manifest = await $.fs.read(`${root}/.specify/integrations/speckit.manifest.json`).catch(() => undefined)
       const cli = await stdoutOf($, ['specify', 'version'])
@@ -275,7 +289,7 @@ async function runUpdate($: EngineInterface, id: UpdateId): Promise<void> {
         failure = '🧭 could not start /gstack-upgrade'
       })
     } else {
-      const root = (await $.state.get(SPECKIT)).value?.state.root
+      const root = (await $.state.get(SPECKIT)).value?.root
       const argv =
         id === 'specify' ? ['specify', 'self', 'upgrade'] : id === 'astrolabe' ? ['claude', 'plugin', 'update', 'astrolabe'] : SKILLS_REFRESH
       const cwd = id === 'speckit-skills' ? root : undefined
@@ -371,7 +385,7 @@ export const register: Register = (on, options) => {
       }))
       const decision = decide(usage.readings, usage.history, usage.override, now)
       const speckit = (await $.state.get(SPECKIT)).value
-      if (speckit !== undefined) await showStatus($, speckit.state)
+      if (speckit !== undefined) await showStatus($, speckit)
       if (!governs) return result
       const isClear = decision.band === 'ok' || decision.band === 'throttle'
       if (isClear && (usage.queue.length > 0 || usage.paused)) await resume($, `${usageSegment(decision) ?? 'window'} now`)
@@ -465,7 +479,7 @@ export const register: Register = (on, options) => {
     isWide = e.viewport?.isFullscreen === true && e.viewport.columns >= 144
     if (!preset.band || e.props.hasSurvey) return next(e)
     const { value } = await $.state.get(SPECKIT)
-    const segments = value === undefined ? [] : bandSegments(value.state, e.props.bodyColumns)
+    const segments = value === undefined ? [] : bandSegments(value, e.props.bodyColumns)
     const updates = (await $.state.get(UPDATES)).value ?? { items: [] }
     if (segments.length === 0 && updates.items.length === 0) return next(e)
     const { Box, Text, Button } = $.ui.resolve(e)
@@ -486,7 +500,7 @@ export const register: Register = (on, options) => {
   on('ui.render', { component: 'PromptHint' }, async ($, e, next) => {
     if (!preset.hint) return next(e)
     const { value } = await $.state.get(SPECKIT)
-    const ours = value === undefined ? undefined : hintTail(value.state, e.props.isDraft)
+    const ours = value === undefined ? undefined : hintTail(value, e.props.isDraft)
     if (ours === undefined) return next(e)
     const tail = e.props.tail === undefined ? ours : `${e.props.tail} · ${ours}`
     return next({ ...e, props: { ...e.props, tail } })
@@ -496,7 +510,7 @@ export const register: Register = (on, options) => {
     if (!preset.spinner || e.props.message !== null) return next(e)
     const { value } = await $.state.get(SPECKIT)
     if (value === undefined) return next(e)
-    const suffix = spinnerSuffix(value.state, value.memo, await $.clock.now(), e.viewport?.columns)
+    const suffix = spinnerSuffix(value, emptyMemo(), await $.clock.now(), e.viewport?.columns)
     return suffix === undefined ? next(e) : next({ ...e, props: { ...e.props, suffix } })
   })
 
@@ -514,7 +528,7 @@ export const register: Register = (on, options) => {
       }
       await updateUsage($, u => ({ ...u, override: { target: parsed.allow.target, until: now + parsed.allow.ms } }))
       const speckit = (await $.state.get(SPECKIT)).value
-      if (speckit !== undefined) await showStatus($, speckit.state)
+      if (speckit !== undefined) await showStatus($, speckit)
       return { text: `🧭 stop and ceiling raised to ${parsed.allow.target}% until ${clockOf(new Date(now + parsed.allow.ms).toISOString())}; new subagents still wait from 80%` }
     }
     await $.ui.open({ id: PANE_ID, title: PANE_TITLE })
@@ -524,11 +538,11 @@ export const register: Register = (on, options) => {
   on('ui.render', { component: 'Pane', requestId: PANE_ID }, async ($, e) => {
     const { value } = await $.state.get(SPECKIT)
     const pane = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
-    const state = value?.state ?? { present: false, constitution: 'missing' as const, features: [], isAnalyzed: false }
+    const state = value ?? { present: false, constitution: 'missing' as const, features: [], isAnalyzed: false }
     const columns = e.props.bodyColumns
     const rows =
       pane.tab === 'tasks'
-        ? taskRows(state, value?.memo ?? emptyMemo(), Math.max(3, (e.viewport?.rows ?? 24) - 4), columns)
+        ? taskRows(state, emptyMemo(), Math.max(3, (e.viewport?.rows ?? 24) - 4), columns)
         : pane.tab === 'session'
           ? [
               ...sessionRows(state, await $.clock.now()),

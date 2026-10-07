@@ -26,6 +26,8 @@ export type FeatureFiles = {
   spec?: string
   plan: boolean
   tasks?: string
+  /** Set once the texts are compacted for the memo (spec 009), so they are not compacted again. */
+  compact?: true
 }
 
 export type FeatureWarning = 'clarification-after-plan'
@@ -102,6 +104,12 @@ export type SpeckitState = {
   currentTask?: { id?: string; text: string; startedAt?: number }
   isAnalyzed: boolean
   nextCommand?: string
+  /** Whether this turn worked on the active feature (speckit-implement ran, or a tool touched it). */
+  isWorkingOnActive?: boolean
+  /** The memo version this state was derived from; an older state never overwrites a newer one. */
+  memoVersion?: number
+  /** The active feature's tasks, for the pane (the memo stays out of every drawing). */
+  activeTasks?: Array<{ id?: string; text: string; isDone: boolean }>
 }
 
 export type PaneTab = 'specs' | 'tasks' | 'session'
@@ -135,6 +143,6 @@ export type UsageState = {
 
 declare module 'claude-code' {
   interface PluginState {
-    astrolabe: { speckit: { state: SpeckitState; memo: SessionMemo }; pane: PaneState; updates: UpdatesState; usage: UsageState }
+    astrolabe: { speckit: SpeckitState; memo: SessionMemo; pane: PaneState; updates: UpdatesState; usage: UsageState }
   }
 }
