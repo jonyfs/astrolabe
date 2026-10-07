@@ -419,7 +419,10 @@ export const register: Register = (on, options) => {
         await updateUsage($, u => ({ ...u, inFlight: Math.max(0, u.inFlight - 1) }))
       }
     }
-    if (isPaused(decision) && !isReadOnlyTool(String(e.tool))) {
+    // A running subagent is never stopped (SC-001): only the main thread pauses. Its own
+    // requests for more subagents are still gated above.
+    const isSubagentCall = (e as { agentId?: string }).agentId !== undefined
+    if (isPaused(decision) && !isSubagentCall && !isReadOnlyTool(String(e.tool))) {
       await updateUsage($, u => (u.paused ? u : { ...u, paused: true }))
       await armResume($, decision)
       return { deny: refusal(decision, resetClock === undefined ? {} : { resetClock }) }

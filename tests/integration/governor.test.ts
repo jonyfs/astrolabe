@@ -122,3 +122,19 @@ describe('pause and the owner ceiling (US3)', () => {
     expect(session.logs).toEqual([])
   })
 })
+
+describe('running subagents are never stopped (SC-001)', () => {
+  test('at stop, a running subagent keeps its tools; the main thread is paused', async ($, on) => {
+    await setup($ as never, on as never)
+    await measure($ as never, reading(89))
+    const fromSubagent = await $.tool.call({ tool: 'Bash', tool_use_id: 'sb', command: 'npm test', agentId: 'a-1' } as never)
+    expect(isRefused(fromSubagent)).toBe(false)
+    expect(isRefused(await $.tool.call(bash))).toBe(true)
+  })
+  test('a subagent asking for another subagent at hold is still queued', async ($, on) => {
+    await setup($ as never, on as never)
+    await measure($ as never, reading(83))
+    const nested = await $.tool.call({ ...(agent('n1') as object), agentId: 'a-1' } as never)
+    expect(isRefused(nested)).toBe(true)
+  })
+})
