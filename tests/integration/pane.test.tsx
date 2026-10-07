@@ -93,3 +93,19 @@ describe('the pane opens by itself only with full on a wide fullscreen terminal 
     expect(pane.opened).toEqual([])
   })
 })
+
+describe('/astrolabe help (025 #39)', () => {
+  test('lists the commands, the tabs and their keys', async ($, on) => {
+    await setup($ as never, on as never)
+    const ran = (await $.command.run({ command: 'astrolabe', args: 'help', origin: { kind: 'composer' } } as never)) as { text?: string }
+    const text = ran.text ?? ''
+    for (const part of ['/astrolabe', '/astrolabe allow', '/astrolabe revoke', '/astrolabe help', '1 Specs', '2 Tasks', '3 Session', '4 Dashboard', 'Esc']) {
+      expect(text).toContain(part)
+    }
+  })
+  test('an unknown argument points at help', async ($, on) => {
+    await setup($ as never, on as never)
+    const ran = (await $.command.run({ command: 'astrolabe', args: 'bogus', origin: { kind: 'composer' } } as never)) as { text?: string }
+    expect(ran.text).toContain('/astrolabe help')
+  })
+})
