@@ -28,4 +28,12 @@ description: "Task list for 005-toasts-drift"
 
 - [X] T010 README: both toasts with examples, presets that show them, how to turn them off; v0.5.0 notes; roadmap
 - [X] T011 Run validate, tests and tsc
-- [ ] T012 Full review with a stronger model; apply the fixes; mark `status: done`
+## Phase 5: Review fixes (full review, 2026-10-07)
+
+- [X] T013 Drift window per turn: a tick no longer empties the window; at most one drift toast per turn; the window resets at each main `turn.complete` and survives module reloads (amend FR-003); tests for successive ticks and a reload
+- [X] T014 `namedPaths`: a token without a slash needs a known file extension; drop emails, domains and dotted identifiers (`ui.render`, `Node.js`); tests
+- [X] T015 Confirm an Edit's tick from its own `old_string`/`new_string`, so a box ticked in another editor is never blamed on Claude's next edit; fold case on Windows roots; `specs/` files outside feature folders are not code; cap the window at 200 paths; tests
+- [X] T016 Phase toasts: name the active feature's real next command, never toast a feature leaving `abandoned`, validate the stored value, write the store only with `toasts: all` and only when it changed, and skip the second state write when nothing changed; tests
+- [X] T017 Fix the preset descriptions (plugin.json, README options table) and document the root and parallel-batch limits
+
+- [X] T012 Full review with a stronger model; apply the fixes; mark `status: done`

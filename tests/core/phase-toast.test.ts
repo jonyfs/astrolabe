@@ -39,3 +39,13 @@ describe('phaseToasts (FR-001)', () => {
     expect(out.baseline).toEqual({ '001-f001': 'plan', '002-f002': 'tasks', '003-f003': 'implement', '004-f004': 'abandoned' })
   })
 })
+
+describe('review fixes', () => {
+  test('a feature leaving abandoned never toasts', () => {
+    expect(phaseToasts([f('002', 'plan')], { '002-f002': 'abandoned' }, [], true).toasts).toEqual([])
+  })
+  test('the active feature names its real next command', () => {
+    const out = phaseToasts([f('002', 'implement')], { '002-f002': 'tasks' }, [], true, { '002-f002': '/speckit-analyze' })
+    expect(out.toasts[0]?.text).toBe('🧭 002 f002 moved to implement · next: /speckit-analyze')
+  })
+})

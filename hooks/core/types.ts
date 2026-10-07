@@ -25,7 +25,7 @@ export type {
   PaneState,
 } from '../../types'
 
-export const emptyWindow = (): DriftWindow => ({ edits: [], sawShell: false })
+export const emptyWindow = (): DriftWindow => ({ edits: [], sawShell: false, alarmed: false })
 
 export const emptyMemo = (): SessionMemo => ({
   files: {},

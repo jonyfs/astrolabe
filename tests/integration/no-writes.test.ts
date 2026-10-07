@@ -13,7 +13,19 @@ describe('a whole session changes nothing on disk (FR-028, FR-014; 005 FR-002)',
     await $.tool.call({ tool: 'Write', tool_use_id: 'w', file_path: '/proj/src/x.ts', content: 'x' } as never)
     await completeTurn($)
     expect(session.forbidden).toEqual([])
-    expect([...session.store.keys()]).toEqual(['baseline:/proj'])
+    // compact shows no phase toasts, so it keeps no baseline either
+    expect([...session.store.keys()]).toEqual([])
     expect(session.logs).toEqual([])
+  })
+})
+
+describe('with phase toasts on (preset full)', () => {
+  test('$.store holds only the phase baseline', { options: { preset: 'full' } }, async ($, on) => {
+    const session = installTree(on, halfDone.tree, halfDone.cwd)
+    installEngine(on)
+    await startSession($, halfDone.cwd)
+    await completeTurn($)
+    expect(session.forbidden).toEqual([])
+    expect([...session.store.keys()]).toEqual(['baseline:/proj'])
   })
 })

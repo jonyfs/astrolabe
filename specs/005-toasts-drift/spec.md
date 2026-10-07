@@ -1,6 +1,6 @@
 ---
 track: full # quick | full
-status: active # active | done | abandoned
+status: done # active | done | abandoned
 ---
 
 # Feature Specification: Phase toasts and the drift alarm
@@ -62,7 +62,7 @@ The user asked for the flow to run without stopping; each recommended answer was
 
 ### Edge Cases
 
-- Several tasks ticked by one edit: one toast for the first of them, then the window resets.
+- Several tasks ticked in one turn: at most one toast, for the first unjustified tick.
 - An edit of `tasks.md` that unticks: no toast, the window stays.
 - Paths in tool calls are compared relative to the root, case-insensitively on Windows.
 
@@ -74,8 +74,9 @@ The user asked for the flow to run without stopping; each recommended answer was
   reconcile of a session, never for abandoned features, and only with `toasts: all`.
 - **FR-002**: The baseline MUST live in `$.store` under `baseline:<root>` and be updated at
   every reconcile.
-- **FR-003**: The drift window MUST start at session start and at every tick transition, and
-  record code edits (FR clarification) and whether any Bash or Agent call happened.
+- **FR-003**: The drift window MUST cover one main turn (it starts at session start and at each
+  main `turn.complete`, and survives module reloads), record code edits and whether any Bash or
+  Agent call happened, and allow at most one drift toast per turn.
 - **FR-004**: A tick transition is a task that was open in the held `tasks.md` text and is
   ticked in the text re-read after an observed Edit or Write of that file.
 - **FR-005**: On a tick transition with `toasts` other than `none`, the mod MUST toast drift when

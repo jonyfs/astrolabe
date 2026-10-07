@@ -214,7 +214,7 @@ reloads the mod right away.
 
 | Option | Values | Default | What it changes |
 |---|---|---|---|
-| `preset` | `minimal`, `compact`, `full` | `compact` | Where Astrolabe draws. `minimal` keeps only the status entry. `compact` adds the band, the prompt hint and the spinner narration. `full` also opens the `/astrolabe` pane by itself on a wide fullscreen terminal, and shows phase toasts as well as the drift alarm. |
+| `preset` | `minimal`, `compact`, `full` | `compact` | Where Astrolabe draws. `minimal` keeps only the status entry. `compact` adds the band, the prompt hint, the spinner narration and the drift alarm. `full` also opens the `/astrolabe` pane by itself on a wide fullscreen terminal, and shows phase toasts as well as the drift alarm. |
 | `flavor` | `mocha`, `frappe`, `macchiato`, `latte` | `mocha` | The Catppuccin palette for the band. `latte` is the light one. |
 
 You can also type `/plugin configure astrolabe@astrolabe` in a session, or set them from a
@@ -298,10 +298,15 @@ If the task names files, at least one of them has to have been edited, or the to
 🧭 T014 was ticked, but none of its files were edited: tests/core/parser.test.ts
 ```
 
-A code file is any file inside the project that is not under `specs/` or `.specify/`, edited
-with Edit, Write or NotebookEdit, by Claude or by a subagent. The alarm stays quiet when a Bash
-or Agent call happened since the last tick, because the mod cannot see what those changed. A
-box you tick in your own editor never raises it.
+A code file is any file inside the Spec Kit root that is not under `specs/` or `.specify/`,
+edited with Edit, Write or NotebookEdit, by Claude or by a subagent. The check covers one turn:
+any code edit in the turn covers every tick in it, and a turn raises the alarm at most once. It
+stays quiet when a Bash or Agent call happened in the turn, because the mod cannot see what
+those changed. A box you tick in your own editor never raises it.
+
+Two limits to know: edits outside the Spec Kit root (code beside a nested `.specify/` in a
+monorepo) are not seen, and in a batch of parallel tool calls a tick that runs before its code
+edit raises the alarm.
 
 **Phase toast** (preset `full` only). When the files on disk show that a feature moved to a
 later phase, you see it once per session:

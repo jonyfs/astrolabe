@@ -59,3 +59,24 @@ describe('detectDrift (FR-005)', () => {
     expect(withEdit(withEdit(emptyWindow(), 'a.ts'), 'a.ts').edits).toEqual(['a.ts'])
   })
 })
+
+describe('review fixes', () => {
+  test('namedPaths ignores dotted identifiers, domains, emails and dot-names', () => {
+    expect(namedPaths('Hook `ui.render` and fs.read, Node.js, JSON.parse, memo.window, github.com/jonyfs/astrolabe, jony@x.io, .git')).toEqual([])
+    expect(namedPaths('Edit `hooks/register.tsx`, README.md and scripts/run.sh')).toEqual(['hooks/register.tsx', 'README.md', 'scripts/run.sh'])
+  })
+  test('one drift toast per window', () => {
+    const tick = { id: 'T014', text: 'x', isDone: true, line: 1 }
+    expect(detectDrift(tick, { ...emptyWindow(), alarmed: true })).toBeUndefined()
+  })
+  test('case folding on Windows roots', () => {
+    const tick = { id: 'T014', text: 'Edit `src/x.ts`', isDone: true, line: 1 }
+    expect(detectDrift(tick, withEdit(emptyWindow(), 'SRC/X.ts'), true)).toBeUndefined()
+    expect(detectDrift(tick, withEdit(emptyWindow(), 'SRC/X.ts'), false)).toBeDefined()
+  })
+  test('the window keeps at most 200 paths', () => {
+    let w = emptyWindow()
+    for (let i = 0; i < 250; i += 1) w = withEdit(w, `f${i}.ts`)
+    expect(w.edits.length).toBe(200)
+  })
+})

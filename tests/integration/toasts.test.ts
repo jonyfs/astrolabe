@@ -12,6 +12,8 @@ const implementing = (taskText: string) =>
     features: { '002-b': { spec: spec(), plan: true, tasks: `- [x] T001 done\n- [ ] T014 ${taskText}\n- [ ] T015 later\n` } },
   })
 const edit = (id: string, file_path: string) => ({ tool: 'Edit', tool_use_id: id, file_path, old_string: 'a', new_string: 'b' }) as never
+const tickEdit = (id: string, task: string) =>
+  ({ tool: 'Edit', tool_use_id: id, file_path: '/proj/specs/002-b/tasks.md', old_string: `- [ ] ${task}`, new_string: `- [x] ${task}` }) as never
 const tickT014 = (tree: Record<string, string>) => {
   tree['/proj/specs/002-b/tasks.md'] = tree['/proj/specs/002-b/tasks.md']!.replace('- [ ] T014', '- [X] T014')
 }
@@ -60,22 +62,73 @@ describe('the drift alarm (US2)', () => {
     installEngine(on)
     await startSession($, '/proj')
     tickT014(tree)
-    await $.tool.call(edit('e1', '/proj/specs/002-b/tasks.md'))
+    await $.tool.call(tickEdit('e1', 'T014'))
     expect(session.toasts).toEqual(['🧭 T014 was ticked with no code edited since the last tick'])
   })
 
-  test('a code edit before the tick keeps quiet, and the window resets after it', async ($, on) => {
+  test('one batch of work covers every tick of the turn, then the window resets', async ($, on) => {
     const tree = implementing('Write the parser')
     const session = installTree(on, tree, '/proj')
     installEngine(on)
     await startSession($, '/proj')
     await $.tool.call(edit('e1', '/proj/src/parser.ts'))
     tickT014(tree)
-    await $.tool.call(edit('e2', '/proj/specs/002-b/tasks.md'))
-    expect(session.toasts).toEqual([])
+    await $.tool.call(tickEdit('e2', 'T014'))
     tree['/proj/specs/002-b/tasks.md'] = tree['/proj/specs/002-b/tasks.md']!.replace('- [ ] T015', '- [x] T015')
-    await $.tool.call(edit('e3', '/proj/specs/002-b/tasks.md'))
-    expect(session.toasts).toEqual(['🧭 T015 was ticked with no code edited since the last tick'])
+    await $.tool.call(tickEdit('e3', 'T015'))
+    expect(session.toasts).toEqual([])
+    await completeTurn($)
+    tree['/proj/specs/002-b/tasks.md'] = '- [x] T001 done\n- [X] T014 x\n- [x] T015 later\n- [x] T016 more\n- [ ] T017 last\n'
+    await completeTurn($)
+    tree['/proj/specs/002-b/tasks.md'] = tree['/proj/specs/002-b/tasks.md']!.replace('- [ ] T017', '- [x] T017')
+    await $.tool.call(tickEdit('e4', 'T017'))
+    expect(session.toasts).toEqual(['🧭 T017 was ticked with no code edited since the last tick'])
+  })
+
+  test('at most one drift toast per turn', async ($, on) => {
+    const tree = implementing('Write the parser')
+    const session = installTree(on, tree, '/proj')
+    installEngine(on)
+    await startSession($, '/proj')
+    tickT014(tree)
+    await $.tool.call(tickEdit('e1', 'T014'))
+    tree['/proj/specs/002-b/tasks.md'] = tree['/proj/specs/002-b/tasks.md']!.replace('- [ ] T015', '- [x] T015')
+    await $.tool.call(tickEdit('e2', 'T015'))
+    expect(session.toasts.length).toBe(1)
+  })
+
+  test('a reload keeps the window: a Bash call before the reload still counts', async ($, on) => {
+    const tree = implementing('Write the parser')
+    const session = installTree(on, tree, '/proj')
+    installEngine(on)
+    await startSession($, '/proj')
+    await $.tool.call({ tool: 'Bash', tool_use_id: 'b', command: 'npm test' } as never)
+    await startSession($, '/proj')
+    tickT014(tree)
+    await $.tool.call(tickEdit('e', 'T014'))
+    expect(session.toasts).toEqual([])
+  })
+
+  test('a box ticked in another editor is never blamed on a later Edit by Claude', async ($, on) => {
+    const tree = implementing('Write the parser')
+    const session = installTree(on, tree, '/proj')
+    installEngine(on)
+    await startSession($, '/proj')
+    tickT014(tree)
+    tree['/proj/specs/002-b/tasks.md'] += '- [ ] T020 new\n'
+    await $.tool.call({ tool: 'Edit', tool_use_id: 'e', file_path: '/proj/specs/002-b/tasks.md', old_string: '- [ ] T015 later\n', new_string: '- [ ] T015 later\n- [ ] T020 new\n' } as never)
+    expect(session.toasts).toEqual([])
+  })
+
+  test('files in specs/ outside feature folders are not code', async ($, on) => {
+    const tree = implementing('Write the parser')
+    const session = installTree(on, tree, '/proj')
+    installEngine(on)
+    await startSession($, '/proj')
+    await $.tool.call(edit('e1', '/proj/specs/README.md'))
+    tickT014(tree)
+    await $.tool.call(tickEdit('e2', 'T014'))
+    expect(session.toasts.length).toBe(1)
   })
 
   test('a named file that was not edited is named', async ($, on) => {
@@ -85,7 +138,7 @@ describe('the drift alarm (US2)', () => {
     await startSession($, '/proj')
     await $.tool.call(edit('e1', '/proj/src/other.ts'))
     tickT014(tree)
-    await $.tool.call(edit('e2', '/proj/specs/002-b/tasks.md'))
+    await $.tool.call(tickEdit('e2', 'T014'))
     expect(session.toasts).toEqual(['🧭 T014 was ticked, but none of its files were edited: tests/core/parser.test.ts'])
   })
 
@@ -96,7 +149,7 @@ describe('the drift alarm (US2)', () => {
     await startSession($, '/proj')
     await $.tool.call({ tool: 'Bash', tool_use_id: 'b', command: 'npm test' } as never)
     tickT014(tree)
-    await $.tool.call(edit('e', '/proj/specs/002-b/tasks.md'))
+    await $.tool.call(tickEdit('e', 'T014'))
     expect(session.toasts).toEqual([])
   })
 
@@ -107,7 +160,7 @@ describe('the drift alarm (US2)', () => {
     await startSession($, '/proj')
     await $.tool.call({ tool: 'Agent', tool_use_id: 'a', description: 'x', prompt: 'y', subagent_type: 'general-purpose' } as never)
     tickT014(tree)
-    await $.tool.call(edit('e', '/proj/specs/002-b/tasks.md'))
+    await $.tool.call(tickEdit('e', 'T014'))
     expect(session.toasts).toEqual([])
   })
 
@@ -127,7 +180,7 @@ describe('the drift alarm (US2)', () => {
     installEngine(on)
     await startSession($, '/proj')
     tickT014(tree)
-    await $.tool.call(edit('e', '/proj/specs/002-b/tasks.md'))
+    await $.tool.call(tickEdit('e', 'T014'))
     expect(session.toasts).toEqual([])
   })
 })

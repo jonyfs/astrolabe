@@ -23,6 +23,8 @@ export const phaseToasts = (
   baseline: Readonly<Record<string, Phase>>,
   toasted: readonly string[],
   isBaselined: boolean,
+  /** The real next command for a feature (the active one's may be /speckit-analyze). */
+  nextOf: Readonly<Record<string, string>> = {},
 ): { toasts: Toast[]; baseline: Record<string, Phase>; toasted: string[] } => {
   const next: Record<string, Phase> = { ...baseline }
   const toasts: Toast[] = []
@@ -30,14 +32,14 @@ export const phaseToasts = (
   for (const f of features) {
     const before = baseline[f.dir]
     next[f.dir] = f.phase
-    if (!isBaselined || before === undefined || f.phase === 'abandoned') continue
+    if (!isBaselined || before === undefined || before === 'abandoned' || f.phase === 'abandoned') continue
     const key = `${f.dir}:${f.phase}`
     if (ORDER.indexOf(f.phase) <= ORDER.indexOf(before) || seen.includes(key)) continue
     seen.push(key)
     const text =
       f.phase === 'done'
         ? `🧭 ${f.id} ${f.name} is done · next: ${NEXT.done}`
-        : `🧭 ${f.id} ${f.name} moved to ${f.phase} · next: ${NEXT[f.phase]}`
+        : `🧭 ${f.id} ${f.name} moved to ${f.phase} · next: ${nextOf[f.dir] ?? NEXT[f.phase]}`
     toasts.push({ key, text })
   }
   return { toasts, baseline: next, toasted: seen }

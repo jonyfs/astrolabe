@@ -59,32 +59,51 @@ async function guarded($: EngineInterface, work: (previous: Held | undefined) =>
   return undefined
 }
 
-async function touchFile($: EngineInterface, preset: Preset, path: string, isWrite: boolean): Promise<void> {
+async function touchFile(
+  $: EngineInterface,
+  preset: Preset,
+  path: string,
+  isWrite: boolean,
+  change?: { before: string; after: string },
+): Promise<void> {
   const fs = fsOf($)
   const now = await $.clock.now()
   let drift: string | undefined
   const held = await guarded($, async previous => {
     if (previous === undefined) return undefined
-    const touched = await applyFileTouch(fs, previous, path, isWrite, now)
+    const touched = await applyFileTouch(fs, previous, path, isWrite, now, change)
     drift = touched.drift
     return touched.held
   })
   if (held !== undefined && drift !== undefined && preset.toasts !== 'none') $.ui.toast(drift)
 }
 
-/** After a reconcile: compare phases with the stored baseline and toast moves forward (005). */
+const isPhaseRecord = (value: unknown): value is Record<string, Phase> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value) && Object.values(value).every(v => typeof v === 'string')
+
+/**
+ * After a reconcile with `toasts: all`: compare phases with the stored baseline and toast
+ * moves forward (005). Writes the store only when the baseline changed, and the memo only
+ * on the first reconcile of a session or after a toast.
+ */
 async function afterReconcile($: EngineInterface, preset: Preset, held: Held | undefined): Promise<void> {
   const root = held?.state.root
-  if (held === undefined || root === undefined) return
+  if (preset.toasts !== 'all' || held === undefined || root === undefined) return
   try {
     const key = `baseline:${root}`
-    const baseline = ((await $.store.get(key)) ?? {}) as Record<string, Phase>
-    const out = phaseToasts(held.state.features, baseline, held.memo.toasted ?? [], held.memo.baselined === true)
-    await $.store.set(key, out.baseline)
-    if (preset.toasts === 'all') for (const toast of out.toasts) $.ui.toast(toast.text)
-    await guarded($, async previous =>
-      previous === undefined ? undefined : { ...previous, memo: { ...previous.memo, baselined: true, toasted: out.toasted } },
-    )
+    const stored = await $.store.get(key)
+    const baseline = isPhaseRecord(stored) ? stored : {}
+    const active = held.state.active
+    const nextOf = active !== undefined && held.state.nextCommand !== undefined ? { [active.dir]: held.state.nextCommand } : {}
+    const toasted = held.memo.toasted ?? []
+    const out = phaseToasts(held.state.features, baseline, toasted, held.memo.baselined === true, nextOf)
+    if (JSON.stringify(out.baseline) !== JSON.stringify(baseline)) await $.store.set(key, out.baseline)
+    for (const toast of out.toasts) $.ui.toast(toast.text)
+    if (held.memo.baselined !== true || out.toasted.length !== toasted.length) {
+      await guarded($, async previous =>
+        previous === undefined ? undefined : { ...previous, memo: { ...previous.memo, baselined: true, toasted: out.toasted } },
+      )
+    }
   } catch (error) {
     $.ui.log(`astrolabe: ${error instanceof Error ? error.message : String(error)}`, { to: 'debug' })
   }
@@ -156,7 +175,8 @@ export const register: Register = (on, options) => {
 
   on('tool.call', { tool: 'Edit' }, async ($, e, next) => {
     const result = await next(e)
-    await touchFile($, preset, e.file_path, true)
+    // The Edit's own strings say what it ticked, so a box ticked elsewhere is not blamed on it.
+    await touchFile($, preset, e.file_path, true, { before: e.old_string, after: e.new_string })
     return result
   }).catch(($, e, next) => next(e))
 
