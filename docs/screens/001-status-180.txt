@@ -1,4 +1,0 @@
-# Real capture: claude --version 2.1.292, terminal 180 columns, astrolabe 0.1.0 installed
-# from the local folder marketplace, session started in this repository on branch 001-core-state.
-# Lines of other status providers (the user's classic statusLine) are left out.
-  ⚠ astrolabe: ◆ 001 · implement 87%

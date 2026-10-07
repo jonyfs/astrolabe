@@ -1,4 +1,0 @@
-# Real capture: claude 2.1.292, terminal 180 columns, astrolabe 0.7.0 from the local folder marketplace,
-# 25 s after the session started; gstack 1.91.32.0 was installed and 1.91.33.0 available.
-◆ 007 update-notices  constitution ● specify ● clarify ● plan ● tasks ● implement ◐  █████████░ 9/10 90%
-updates: [ gstack 1.91.33.0 ]

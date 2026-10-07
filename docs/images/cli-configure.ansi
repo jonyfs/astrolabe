@@ -1,0 +1,8 @@
+[38;2;166;227;161m$[0m claude plugin configure astrolabe@astrolabe
+Options for astrolabe (astrolabe@astrolabe):
+  ❯ preset — Preset (optional, set)
+  ❯ flavor — Flavor (optional, set)
+  ❯ checkUpdates — Check for updates (optional, not set)
+  ❯ governUsage — Govern usage (optional, not set)
+
+Set values with /plugin configure <plugin> in Claude Code, or pipe a JSON object to `claude plugin configure <plugin> --values-stdin`.

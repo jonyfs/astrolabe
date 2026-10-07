@@ -61,3 +61,14 @@ describe('deriveFeature: identity, front matter, current task and warnings', () 
     expect(deriveFeature({ dir: '002-x', spec: '#', plan: true }).warnings).toEqual([])
   })
 })
+
+describe('clarification markers in code do not count (010 FR-004)', () => {
+  test('a marker quoted in backticks or a code block is documentation, not a question', () => {
+    const quoted = '# Spec\nThe phase is `clarify` while `[NEEDS CLARIFICATION` remains.\n```text\n[NEEDS CLARIFICATION: example]\n```\n'
+    expect(deriveFeature({ dir: '003-x', spec: quoted, plan: false }).phase).toBe('plan')
+    expect(deriveFeature({ dir: '003-x', spec: quoted, plan: true }).warnings).toEqual([])
+  })
+  test('a real marker still counts', () => {
+    expect(deriveFeature({ dir: '003-x', spec: '- FR-1: [NEEDS CLARIFICATION: which provider?]\n', plan: false }).phase).toBe('clarify')
+  })
+})

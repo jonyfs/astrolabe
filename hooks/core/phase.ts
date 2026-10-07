@@ -1,16 +1,15 @@
 // Derives one feature's phase and progress from its files (FR-005). Pure: no $.
+import { hasClarification } from './clarification'
 import { parseFrontMatter } from './front-matter'
 import { currentTaskOf, parseTasks } from './tasks-parser'
 import type { Feature, FeatureFiles, FeatureWarning, FrontMatter, Phase } from './types'
-
-const CLARIFICATION = '[NEEDS CLARIFICATION'
 
 const phaseOf = (files: FeatureFiles, front: FrontMatter, done: number, total: number): Phase => {
   if (front.status === 'abandoned') return 'abandoned'
   if (front.status === 'done') return 'done'
   if (files.spec === undefined) return 'specify'
   if (front.track === 'quick') return 'implement'
-  if (!files.plan && files.spec.includes(CLARIFICATION)) return 'clarify'
+  if (!files.plan && hasClarification(files.spec)) return 'clarify'
   if (!files.plan) return 'plan'
   if (total === 0) return 'tasks'
   if (done < total) return 'implement'
@@ -24,7 +23,7 @@ export const deriveFeature = (files: FeatureFiles): Feature => {
   const done = tasks.filter(t => t.isDone).length
   const total = tasks.length
   const warnings: FeatureWarning[] =
-    files.plan && files.spec !== undefined && files.spec.includes(CLARIFICATION) ? ['clarification-after-plan'] : []
+    files.plan && files.spec !== undefined && hasClarification(files.spec) ? ['clarification-after-plan'] : []
   const currentTask = currentTaskOf(tasks)
   return {
     id: files.dir.slice(0, 3),

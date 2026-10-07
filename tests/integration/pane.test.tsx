@@ -20,7 +20,8 @@ describe('the /astrolabe command (US1)', () => {
     expect(engine.commands).toEqual(['astrolabe'])
     const ran = await $.command.run({ command: 'astrolabe', args: '' } as never)
     expect((ran as { text?: string }).text).toBe('Astrolabe pane opened.')
-    expect(pane.opened).toEqual([{ id: 'astrolabe', title: '🧭 Astrolabe' }])
+    // Typed by the person: focused, so 1, 2 and 3 work at once, and Esc closes it.
+    expect(pane.opened).toEqual([{ id: 'astrolabe', title: '🧭 Astrolabe', focus: true, closeOnEscape: true }])
   })
 })
 

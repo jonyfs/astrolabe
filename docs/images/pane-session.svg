@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="700" height="306" viewBox="0 0 700 306" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="14">
+<rect width="700" height="306" rx="8" fill="#1e1e2e"/>
+<circle cx="16" cy="13" r="5" fill="#f38ba8"/><circle cx="32" cy="13" r="5" fill="#f9e2af"/><circle cx="48" cy="13" r="5" fill="#a6e3a1"/>
+<text x="350" y="17" fill="#a6adc8" font-size="12" text-anchor="middle">/astrolabe pane, session tab</text>
+<rect x="14.0" y="40" width="8.4" height="18" fill="rgb(38,38,38)"/>
+<text x="14.0" y="53" fill="rgb(175,215,255)" xml:space="preserve" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<rect x="22.4" y="40" width="655.2" height="18" fill="rgb(38,38,38)"/>
+<rect x="677.6" y="40" width="8.4" height="18" fill="rgb(38,38,38)"/>
+<text x="677.6" y="53" fill="rgb(148,148,148)" xml:space="preserve" textLength="8.4" lengthAdjust="spacingAndGlyphs">✕</text>
+<rect x="14.0" y="58" width="8.4" height="18" fill="rgb(38,38,38)"/>
+<text x="14.0" y="71" fill="rgb(175,215,255)" xml:space="preserve" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<rect x="22.4" y="58" width="151.2" height="18" fill="rgb(38,38,38)"/>
+<text x="22.4" y="71" fill="#cdd6f4" font-weight="bold" xml:space="preserve" textLength="151.2" lengthAdjust="spacingAndGlyphs">[ Specs ][ Tasks ]</text>
+<rect x="173.6" y="58" width="92.4" height="18" fill="rgb(38,38,38)"/>
+<text x="173.6" y="71" fill="rgb(175,215,255)" font-weight="bold" xml:space="preserve" textLength="92.4" lengthAdjust="spacingAndGlyphs">[ Session ]</text>
+<rect x="14.0" y="76" width="8.4" height="18" fill="rgb(38,38,38)"/>
+<text x="14.0" y="89" fill="rgb(175,215,255)" xml:space="preserve" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<rect x="22.4" y="76" width="512.4" height="18" fill="rgb(38,38,38)"/>
+<text x="22.4" y="89" fill="rgb(215,215,255)" xml:space="preserve" textLength="512.4" lengthAdjust="spacingAndGlyphs">root          /Users/jony/repositorios/ai/astrolabe/docs/demo</text>
+<rect x="14.0" y="94" width="8.4" height="18" fill="rgb(38,38,38)"/>
+<text x="14.0" y="107" fill="rgb(175,215,255)" xml:space="preserve" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<rect x="22.4" y="94" width="184.8" height="18" fill="rgb(38,38,38)"/>
+<text x="22.4" y="107" fill="rgb(215,215,255)" xml:space="preserve" textLength="184.8" lengthAdjust="spacingAndGlyphs">constitution  ratified</text>
+<rect x="14.0" y="112" width="8.4" height="18" fill="rgb(38,38,38)"/>
+<text x="14.0" y="125" fill="rgb(175,215,255)" xml:space="preserve" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<rect x="22.4" y="112" width="260.4" height="18" fill="rgb(38,38,38)"/>
+<text x="22.4" y="125" fill="rgb(215,215,255)" xml:space="preserve" textLength="260.4" lengthAdjust="spacingAndGlyphs">active        002 shopping-cart</text>
+<rect x="14.0" y="130" width="8.4" height="18" fill="rgb(38,38,38)"/>
+<text x="14.0" y="143" fill="rgb(175,215,255)" xml:space="preserve" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<rect x="22.4" y="130" width="218.4" height="18" fill="rgb(38,38,38)"/>
+<text x="22.4" y="143" fill="rgb(215,215,255)" xml:space="preserve" textLength="218.4" lengthAdjust="spacingAndGlyphs">chosen by     feature.json</text>
+<rect x="14.0" y="148" width="8.4" height="18" fill="rgb(38,38,38)"/>
+<text x="14.0" y="161" fill="rgb(175,215,255)" xml:space="preserve" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<rect x="22.4" y="148" width="268.8" height="18" fill="rgb(38,38,38)"/>
+<text x="22.4" y="161" fill="rgb(215,215,255)" xml:space="preserve" textLength="268.8" lengthAdjust="spacingAndGlyphs">next          /speckit-implement</text>
+<rect x="14.0" y="166" width="8.4" height="18" fill="rgb(38,38,38)"/>
+<text x="14.0" y="179" fill="rgb(175,215,255)" xml:space="preserve" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<rect x="22.4" y="166" width="151.2" height="18" fill="rgb(38,38,38)"/>
+<text x="22.4" y="179" fill="rgb(215,215,255)" xml:space="preserve" textLength="151.2" lengthAdjust="spacingAndGlyphs">running       none</text>
+<rect x="14.0" y="184" width="8.4" height="18" fill="rgb(38,38,38)"/>
+<text x="14.0" y="197" fill="rgb(175,215,255)" xml:space="preserve" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<rect x="22.4" y="184" width="134.4" height="18" fill="rgb(38,38,38)"/>
+<text x="22.4" y="197" fill="rgb(215,215,255)" xml:space="preserve" textLength="134.4" lengthAdjust="spacingAndGlyphs">analyzed      no</text>
+<rect x="14.0" y="202" width="8.4" height="18" fill="rgb(38,38,38)"/>
+<text x="14.0" y="215" fill="rgb(175,215,255)" xml:space="preserve" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<rect x="22.4" y="202" width="201.6" height="18" fill="rgb(38,38,38)"/>
+<text x="22.4" y="215" fill="rgb(215,215,255)" xml:space="preserve" textLength="201.6" lengthAdjust="spacingAndGlyphs">current task  T010 · 10s</text>
+<rect x="14.0" y="220" width="8.4" height="18" fill="rgb(38,38,38)"/>
+<text x="14.0" y="233" fill="rgb(175,215,255)" xml:space="preserve" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<rect x="22.4" y="220" width="436.8" height="18" fill="rgb(38,38,38)"/>
+<text x="22.4" y="233" fill="rgb(255,215,175)" xml:space="preserve" textLength="436.8" lengthAdjust="spacingAndGlyphs">update        gstack 1.91.33.0 (installed 1.91.32.0)</text>
+<rect x="14.0" y="238" width="8.4" height="18" fill="rgb(38,38,38)"/>
+<text x="14.0" y="251" fill="rgb(175,215,255)" xml:space="preserve" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<rect x="14.0" y="256" width="8.4" height="18" fill="rgb(38,38,38)"/>
+<text x="14.0" y="269" fill="rgb(175,215,255)" xml:space="preserve" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<rect x="14.0" y="274" width="8.4" height="18" fill="rgb(38,38,38)"/>
+<text x="14.0" y="287" fill="rgb(175,215,255)" xml:space="preserve" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+</svg>

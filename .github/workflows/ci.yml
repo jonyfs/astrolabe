@@ -34,3 +34,5 @@ jobs:
       - name: Test the release version check
         if: runner.os != 'Windows'
         run: sh scripts/test-check-release-version.sh
+      - name: Test the image converter
+        run: node scripts/capture/ansi-to-svg.test.mjs

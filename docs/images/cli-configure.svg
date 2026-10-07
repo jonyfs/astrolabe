@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1154" height="198" viewBox="0 0 1154 198" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="14">
+<rect width="1154" height="198" rx="8" fill="#1e1e2e"/>
+<circle cx="16" cy="13" r="5" fill="#f38ba8"/><circle cx="32" cy="13" r="5" fill="#f9e2af"/><circle cx="48" cy="13" r="5" fill="#a6e3a1"/>
+<text x="577" y="17" fill="#a6adc8" font-size="12" text-anchor="middle">shell</text>
+<text x="14.0" y="53" fill="rgb(166,227,161)" xml:space="preserve" textLength="8.4" lengthAdjust="spacingAndGlyphs">$</text>
+<text x="22.4" y="53" fill="#cdd6f4" xml:space="preserve" textLength="369.6" lengthAdjust="spacingAndGlyphs"> claude plugin configure astrolabe@astrolabe</text>
+<text x="14.0" y="71" fill="#cdd6f4" xml:space="preserve" textLength="369.6" lengthAdjust="spacingAndGlyphs">Options for astrolabe (astrolabe@astrolabe):</text>
+<text x="14.0" y="89" fill="#cdd6f4" xml:space="preserve" textLength="294.0" lengthAdjust="spacingAndGlyphs">  ❯ preset — Preset (optional, set)</text>
+<text x="14.0" y="107" fill="#cdd6f4" xml:space="preserve" textLength="294.0" lengthAdjust="spacingAndGlyphs">  ❯ flavor — Flavor (optional, set)</text>
+<text x="14.0" y="125" fill="#cdd6f4" xml:space="preserve" textLength="470.4" lengthAdjust="spacingAndGlyphs">  ❯ checkUpdates — Check for updates (optional, not set)</text>
+<text x="14.0" y="143" fill="#cdd6f4" xml:space="preserve" textLength="420.0" lengthAdjust="spacingAndGlyphs">  ❯ governUsage — Govern usage (optional, not set)</text>
+<text x="14.0" y="179" fill="#cdd6f4" xml:space="preserve" textLength="1125.6" lengthAdjust="spacingAndGlyphs">Set values with /plugin configure &lt;plugin&gt; in Claude Code, or pipe a JSON object to `claude plugin configure &lt;plugin&gt; --values-stdin`.</text>
+</svg>

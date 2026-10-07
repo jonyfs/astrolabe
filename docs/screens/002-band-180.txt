@@ -1,6 +1,0 @@
-# Real capture: claude 2.1.292, terminal 180 columns, astrolabe 0.2.0 (preset compact) from the local folder
-# marketplace, session in this repository on branch 002-band-hint. Lines of other providers left out.
-# The band sits above the prompt; the hint tail ends the bottom line; the status entry is the ⚠ line.
-◆ 002 band-hint  constitution ● specify ● clarify ● plan ● tasks ● implement ◐  ███████░░░ 14/18 77%
-  ⚠ astrolabe: ◆ 002 · implement 77%
-  ⏵⏵ auto mode on (shift+tab to cycle) · ← 2 agents · next: /speckit-implement · 4 tasks left

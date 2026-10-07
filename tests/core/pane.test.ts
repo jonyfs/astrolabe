@@ -105,3 +105,10 @@ describe('sessionRows', () => {
     ])
   })
 })
+
+describe('taskRows without tasks (010)', () => {
+  test('a feature without tasks says so instead of 0/0 done', () => {
+    const quick = state({ activeTasks: [] })
+    expect(texts(taskRows(quick, emptyMemo(), 10, 80))).toEqual(['No tasks yet: this feature has no tasks.md, or it lists none.'])
+  })
+})
