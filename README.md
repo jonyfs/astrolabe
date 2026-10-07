@@ -505,11 +505,15 @@ repository as the result. Each step pairs the file in one with the file in the o
 ```sh
 claude plugin validate .
 claude plugin test .
+sh scripts/fetch-engine-types.sh          # once: the engine's declarations for the type check
 npx -p typescript@5 tsc -p .
 ```
 
-`scripts/sync-engine-types.sh` refreshes `types/engine/claude-code.d.ts`, the engine's own
-declarations used for the type check, after a Claude Code update.
+The type check needs the declarations Claude Code writes for mods. They are not part of the
+plugin and are not committed: `scripts/fetch-engine-types.sh` downloads them into
+`types/engine/` from this repository's `engine-types-2.1.292` pre-release, and CI does the
+same. After a Claude Code update, `scripts/sync-engine-types.sh` copies the new declarations
+from your machine and prints the `gh release create` line that publishes them.
 
 ### Releasing
 

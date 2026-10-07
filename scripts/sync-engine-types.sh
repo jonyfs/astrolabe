@@ -20,4 +20,7 @@ if [ -z "$src" ] || [ ! -f "$src" ]; then
 fi
 mkdir -p types/engine
 cp "$src" types/engine/claude-code.d.ts
-echo "sync-engine-types: copied $(head -n 1 types/engine/claude-code.d.ts | sed 's#^// ##') from $src"
+version=$(head -n 1 types/engine/claude-code.d.ts | sed -n 's#^// Written by Claude Code \([0-9.]*\)\.$#\1#p')
+echo "sync-engine-types: copied the declarations of Claude Code $version from $src"
+echo "To let CI use them, publish them and pin the version in the workflows:"
+echo "  gh release create engine-types-$version types/engine/claude-code.d.ts --prerelease --title \"Engine declarations for Claude Code $version (development only)\" --notes \"Used only by the CI type check.\""
