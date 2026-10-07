@@ -9,8 +9,9 @@ const MAX_FANOUT = 6
 const PROJECTION_WINDOW_MS = 30 * 60_000
 const READ_ONLY = new Set(['Read', 'Grep', 'Glob', 'LS', 'NotebookRead', 'WebFetch', 'WebSearch', 'TodoWrite', 'Skill'])
 
-const LABELS: Readonly<Record<string, string>> = { five_hour: '5h', seven_day: '7d' }
-const labelOf = (kind: string): string => LABELS[kind] ?? kind.replace(/_/g, ' ')
+/** A window kind, short: `five_hour` is `5h`, `seven_day_opus` is `7d opus` (022 per-model windows). */
+export const labelOf = (kind: string): string =>
+  kind.replace(/^five_hour(_|$)/, '5h$1').replace(/^seven_day(_|$)/, '7d$1').replace(/_/g, ' ')
 
 /** Where the highest window will be at its reset, from the recent burn rate. */
 const projected = (percent: number, resetsAt: string | undefined, history: ReadonlyArray<{ at: number; percent: number }>, now: number) => {
@@ -232,5 +233,24 @@ export const usageRows = (usage: UsageState, now: number): Array<[string, string
         ]
       : []),
     ...(isLift && usage.holdLift !== undefined ? [['lift', `subagents one at a time until ${clock(usage.holdLift)}`] as [string, string]] : []),
+    ...((pace => (pace === undefined ? [] : [['pace', pace] as [string, string]]))(paceRow(usage.readings, usage.history, now))),
   ]
+}
+
+/** Where the deciding window should be at its reset, at the pace of the recent readings (022 #32). */
+export const paceRow = (
+  readings: readonly UsageReading[],
+  history: ReadonlyArray<{ at: number; percent: number }>,
+  now: number,
+  lang: Lang = 'en',
+): string | undefined => {
+  const top = [...readings].sort((a, b) => b.percentUsed - a.percentUsed)[0]
+  const first = history[0]
+  const last = history.at(-1)
+  const reset = top?.resetsAt === undefined ? Number.NaN : Date.parse(top.resetsAt)
+  if (top === undefined || first === undefined || last === undefined || last.at <= first.at || Number.isNaN(reset) || reset <= now) return undefined
+  const rate = (last.percent - first.percent) / (last.at - first.at)
+  if (rate <= 0) return undefined
+  const at = Math.min(100, Math.round(top.percentUsed + rate * (reset - now)))
+  return t(lang, 'pace.value', { window: labelOf(top.kind), p: at, at: clockOf(top.resetsAt) ?? '' })
 }

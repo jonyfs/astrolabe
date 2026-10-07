@@ -199,6 +199,8 @@ export type SessionStats = {
   language?: string
   /** The binding window's percent per reading, at most 60 points. */
   series: Array<{ at: number; percent: number }>
+  /** Warnings already shown this session (022): the cost budget at 80% and 100%, the context window. */
+  warned?: { cost80?: boolean; cost100?: boolean; context?: boolean }
 }
 
 /** One answer a usage question offers; `target` is the ceiling a lifting answer sets. */

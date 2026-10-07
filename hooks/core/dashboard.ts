@@ -1,12 +1,12 @@
 // The Dashboard tab (spec 018): the astrolabe dial, features by phase, usage over the
 // session and the session's KPIs. Charts are cell grids (cells.ts). Pure: no $.
 import { blank, put, write, type Grid } from './cells'
+import { labelOf } from './governor'
 import { t as tr, type Lang } from './i18n'
 import type { Tokens } from './theme'
 import type { Feature, Phase, SessionStats } from './types'
 
 const CYCLE: readonly Phase[] = ['specify', 'clarify', 'plan', 'tasks', 'implement', 'done']
-const LABELS: Readonly<Record<string, string>> = { five_hour: '5h', seven_day: '7d' }
 
 /** Where each step sits around the dial, and the needle that points at it from the centre. */
 const SPOTS: Readonly<Record<string, { needle: string; nx: number; ny: number; side: 'top' | 'left' | 'right' | 'bottom'; y: number }>> = {
@@ -140,7 +140,13 @@ export const kpiRows = (
   const reset = binding?.resetsAt === undefined ? Number.NaN : Date.parse(binding.resetsAt)
   if (binding !== undefined && rate !== undefined && !Number.isNaN(reset) && reset > now) {
     const at = Math.min(100, Math.max(0, binding.percent + (rate * (reset - now)) / 3_600_000))
-    rows.push([tr(lang, 'kpi.atReset'), tr(lang, 'kpi.atResetValue', { window: LABELS[binding.kind] ?? binding.kind, p: Math.round(at) })])
+    rows.push([tr(lang, 'kpi.atReset'), tr(lang, 'kpi.atResetValue', { window: labelOf(binding.kind), p: Math.round(at) })])
   }
   return rows
 }
+
+const BLOCKS = '▁▂▃▄▅▆▇█'
+
+/** A sparkline of percentages, one block per point (022 #25). */
+export const sparkline = (values: readonly number[]): string =>
+  values.map(v => BLOCKS[Math.min(7, Math.max(0, Math.round((Math.max(0, Math.min(100, v)) * 7) / 100)))]).join('')

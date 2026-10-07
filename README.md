@@ -212,6 +212,7 @@ The band is the row directly above the prompt (the first row in the image at the
 | `…` after a mark | `plan ◐…` | A Spec Kit skill for that step is running in this turn. |
 | The bar | `███████░░░` | Ten cells, one per tenth of the tasks ticked, rounded down. It appears once `tasks.md` has tasks. |
 | The count | `9/20 45%` | Ticked tasks, all tasks, and the percentage rounded down. |
+| Sparkline | `▂▃▅▆` | The deciding usage window over its last 12 readings, one block per reading, from 0% (`▁`) to 100% (`█`). It shows once there are 3 readings, on a band of 70 columns or more. |
 | Update buttons | `updates: [ gstack 1.91.33.0 ]` | A second row when something has a newer version. See [Update notices](#update-notices). |
 
 A finished feature shows every mark as `●` and a full bar. An abandoned feature named by
@@ -282,6 +283,7 @@ reloads the mod right away.
 | `governUsage` | `true`, `false` | `true` | Usage governance (see [Usage governance](#usage-governance)). Off, the windows still show. |
 | `icons` | `auto`, `nerd`, `emoji`, `ascii` | `auto` | Icons in the footer and the Dashboard. `auto` is Nerd Font glyphs in the terminal and emoji elsewhere. |
 | `language` | `auto`, `en`, `pt-BR`, `es`, `fr` | `auto` | The language of the pane, the Dashboard, the governor's questions, the toasts and `/astrolabe help`. `auto` follows the language you type in, English until a prompt says enough. What Claude reads (refusals, resume prompts) stays in English. |
+| `costBudget` | a number of US dollars | `0` | The session's cost budget. Astrolabe toasts once when the cost passes 80% of it and once when it passes it. `0` turns the warning off. |
 | `askOnLimit` | `true`, `false` | `true` | Before it holds a subagent or pauses Claude, the governor asks you (see [Asked when it holds or pauses](#asked-when-it-holds-or-pauses)). Off, it holds and pauses without asking. |
 
 You can also type `/plugin configure astrolabe@astrolabe` in a session, or set them from a
@@ -368,8 +370,9 @@ itself on a narrower or non-fullscreen terminal.
 
 ## Toasts
 
-Astrolabe raises two short notices in Claude Code's toast area. Each marks a change, never a
-turn, so they stay rare.
+Astrolabe raises short notices in Claude Code's toast area. Each marks a change, never a
+turn, so they stay rare. The drift alarm and the phase toast follow the preset; the usage
+notices at the end of this section show in every preset.
 
 **Drift alarm** (presets `compact` and `full`). When Claude ticks a task in `tasks.md` but no
 code file was edited in the turn, you see (captured after asking Claude to tick T010 and do
@@ -413,6 +416,23 @@ The first check of a session only records the phases, so a change made between s
 not toast, and two sessions open on the same project each toast on their own. A Spec Kit skill that starts never toasts by itself; only the files count.
 
 To turn the toasts off, pick the `minimal` preset, or `compact` to keep only the drift alarm.
+
+**Usage notices.** Each shows once a session:
+
+```text
+🧭 The session has cost $8.50, 85% of its $10.00 budget
+🧭 The session has cost $10.20, past its $10.00 budget
+🧭 The context window is 86% full: /compact before Claude Code compacts it for you
+🧭 The prompt cache goes cold in about 30 s: the next prompt after that re-reads the whole context
+```
+
+The cost lines need the `costBudget` option. The context line shows at 85%, and once more
+after the context drops below 70% (a `/compact`) and climbs back. The cache line shows 4.5
+minutes after a turn ends with no newer turn, since Claude Code's prompt cache lasts 5 minutes.
+
+When the governor resumes queued work after a window resets, it also sends a phone notice
+through Claude Code's push notifications, if you have them on. Claude Code skips it while you
+are at the terminal.
 
 ## Update notices
 
