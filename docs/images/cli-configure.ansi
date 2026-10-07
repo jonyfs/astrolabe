@@ -1,7 +1,7 @@
 [38;2;166;227;161m$[0m claude plugin configure astrolabe@astrolabe
 Options for astrolabe (astrolabe@astrolabe):
-  ❯ preset — Preset (optional, set)
-  ❯ flavor — Flavor (optional, set)
+  ❯ preset — Preset (optional, not set)
+  ❯ flavor — Flavor (optional, not set)
   ❯ checkUpdates — Check for updates (optional, not set)
   ❯ governUsage — Govern usage (optional, not set)
 
