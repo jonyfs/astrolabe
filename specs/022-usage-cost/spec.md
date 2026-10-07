@@ -7,7 +7,7 @@ status: done # active | done | abandoned
 
 **Created**: 2026-10-07 · **Source**: roadmap 022 in `docs/roadmap.md`, picked by the owner
 
-Done in 0.18.0. Tests: `tests/core/usage-cost.test.ts`, `tests/integration/usage-cost.test.ts`, `tests/integration/usage-spark.test.ts`.
+Done in 0.18.1 (the 0.18.0 tag failed its release check: `version.ts` still said 0.17.0). Tests: `tests/core/usage-cost.test.ts`, `tests/integration/usage-cost.test.ts`, `tests/integration/usage-spark.test.ts`.
 
 ## Tasks
 
