@@ -55,6 +55,20 @@ export const reconcileTurn = async (fs: Fs, cwd: string, previous: Held | undefi
   return held
 }
 
+/**
+ * A Read of one of the active feature's files (014): the turn is working on it, so the
+ * spinner narrates from the first read. No disk read; nothing changes for any other path.
+ */
+export const applyRead = (previous: Held, path: string, now: number): Held => {
+  const root = previous.state.root
+  const active = previous.state.active?.dir
+  if (root === undefined || active === undefined || previous.memo.touched.includes(active)) return previous
+  if (specsLocation(root, path)?.dir !== active) return previous
+  const snapshot = snapshotFromMemo(previous.memo)
+  if (snapshot === undefined) return previous
+  return deriveSpeckitState(snapshot, { ...previous.memo, touched: [...previous.memo.touched, active] }, now)
+}
+
 /** A Skill call: set the running marker or the analyzed flag, then re-derive with no reads (FR-017, FR-018). */
 export const applySkill = (previous: Held, skill: string, now: number): Held => {
   const hint = skillHint(skill)

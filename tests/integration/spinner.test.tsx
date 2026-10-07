@@ -33,6 +33,34 @@ describe('the spinner narrates the current task (US1)', () => {
     })
   }
 
+  test('a Read of the active feature\'s files starts the narration (014)', async ($, on) => {
+    const session = installTree(on, halfDone.tree, halfDone.cwd)
+    installEngine(on)
+    const handed = installRenderEngine(on)
+    await startSession($, halfDone.cwd)
+    await $.tool.call({ tool: 'Read', tool_use_id: 'r', file_path: '/proj/specs/002-band-hint/tasks.md' } as never)
+    expect(await drawSpinner($ as never, handed, 'terminal')).toBe('… T010 · task 10 · 0s')
+    // A second read of the same feature in the turn writes nothing.
+    const afterFirst = { ...session.stateSets }
+    await $.tool.call({ tool: 'Read', tool_use_id: 'r2', file_path: '/proj/specs/002-band-hint/spec.md' } as never)
+    expect(session.stateSets).toEqual(afterFirst)
+    await completeTurn($)
+    expect(await drawSpinner($ as never, handed, 'terminal')).toBeUndefined()
+  })
+
+  test('a Read outside the active feature, or of code, does not narrate nor count as an edit (014)', async ($, on) => {
+    const session = installTree(on, halfDone.tree, halfDone.cwd)
+    installEngine(on)
+    const handed = installRenderEngine(on)
+    await startSession($, halfDone.cwd)
+    const writes = { ...session.stateSets }
+    await $.tool.call({ tool: 'Read', tool_use_id: 'r', file_path: '/proj/src/parser.ts' } as never)
+    await $.tool.call({ tool: 'Read', tool_use_id: 'r2', file_path: '/elsewhere/specs/002-band-hint/tasks.md' } as never)
+    expect(await drawSpinner($ as never, handed, 'terminal')).toBeUndefined()
+    expect(session.stateSets).toEqual(writes)
+    expect(session.held()?.memo.window.edits).toEqual([])
+  })
+
   test('a narrow terminal shortens the text, never the id', async ($, on) => {
     installTree(on, halfDone.tree, halfDone.cwd)
     installEngine(on)

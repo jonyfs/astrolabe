@@ -26,7 +26,7 @@ import { themeOf } from './core/theme'
 import { emptyMemo, type PaneState, type PaneTab, type UpdateId, type UpdateItem, type UpdatesState, type UsageState, type UsageReading } from './core/types'
 import type { Preset } from './core/presets'
 import type { Fs } from './io/fs-port'
-import { applyFileTouch, applyShell, applySkill, type Held, reconcileStart, reconcileTurn } from './io/reconcile'
+import { applyFileTouch, applyRead, applyShell, applySkill, type Held, reconcileStart, reconcileTurn } from './io/reconcile'
 import { bandRow, updatesRow } from './surfaces/band'
 import { paneTree } from './surfaces/pane'
 import { statusText } from './surfaces/status'
@@ -480,6 +480,13 @@ export const register: Register = (on, options) => {
 
   on('tool.call', { tool: 'Agent' }, async ($, e, next) => {
     await guarded($, async previous => (previous === undefined ? undefined : applyShell(previous)))
+    return next(e)
+  }).catch(($, e, next) => next(e))
+
+  // Before the read runs, so the narration shows while the file loads.
+  on('tool.call', { tool: 'Read' }, async ($, e, next) => {
+    const now = await $.clock.now()
+    await guarded($, async previous => (previous === undefined ? undefined : applyRead(previous, e.file_path, now)))
     return next(e)
   }).catch(($, e, next) => next(e))
 
