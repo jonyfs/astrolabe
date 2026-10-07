@@ -10,3 +10,19 @@ export const findRoot = async (fs: Fs, cwd: string): Promise<string | undefined>
   }
   return undefined
 }
+
+const MAX_SCANNED = 40
+
+/**
+ * Other Spec Kit roots right under the session's directory (020c #21): its child folders that
+ * hold `.specify/`, by name, at most 40 looked at. One listing, read at session start only.
+ */
+export const findOtherRoots = async (fs: Fs, cwd: string, root: string | undefined): Promise<string[]> => {
+  const base = normalizePath(cwd)
+  const entries = await fs.list(base).catch(() => [])
+  const dirs = entries.filter(e => e.kind === 'dir' && !e.name.startsWith('.')).slice(0, MAX_SCANNED)
+  const found = await Promise.all(
+    dirs.map(async e => ((await fs.exists(joinPath(base, e.name, '.specify')).catch(() => false)) ? e.name : undefined)),
+  )
+  return found.filter((name): name is string => name !== undefined && joinPath(base, name) !== root).sort()
+}

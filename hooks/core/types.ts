@@ -32,6 +32,7 @@ export type {
   AskState,
   GitState,
   SessionStats,
+  ExtensionHook,
   QueuedAgent,
   PaneState,
 } from '../../types'

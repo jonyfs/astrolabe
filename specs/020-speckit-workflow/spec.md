@@ -1,6 +1,6 @@
 ---
 track: quick # quick | full
-status: active # active | done | abandoned
+status: done # active | done | abandoned
 ---
 
 # Quick spec: Spec Kit workflow, part one (the next command)
@@ -24,4 +24,4 @@ status: active # active | done | abandoned
 - [X] T002 `nextRow` in `hooks/surfaces/band.tsx`; `runNext`, `copyNext`, `suggestNext` and `/astrolabe next` in `hooks/register.tsx`; dictionary entries
 - [X] T003 README and version 0.14.0
 - [X] T004 Part two (0.15.0): #15 open checklist items in the pane, #16 the count of `[NEEDS CLARIFICATION]` markers in the pane, #20 the feature-done toast names `/speckit-converge`, #24 a test task ticked with no test file changed; tests in `tests/core/workflow-signals.test.ts`
-- [ ] T005 Part three: #19 `[P]` tasks suggested as subagents, #21 several Spec Kit roots, #22 Spec Kit extensions
+- [X] T005 Part three (0.16.0): #19 the `[P]` run named in the Tasks tab, #21 other roots listed and `/astrolabe root <folder>`, #22 extension hooks around the next command; tests in `tests/core/extensions.test.ts`, `tests/integration/pane.test.tsx`, `tests/integration/root-changes.test.ts`

@@ -326,14 +326,19 @@ feature is done.
 ![The pane, Tasks tab](docs/images/pane-tasks.svg)
 
 When more tasks are open than the pane has rows, the last line says `+N more`. A feature with
-no `tasks.md` yet says so.
+no `tasks.md` yet says so; a quick spec (`track: quick`) uses the `## Tasks` section of its
+`spec.md` instead. When two or more `[P]` tasks come first among the open ones, a `⇉` line names
+them: they can go to subagents at once.
 
 **3 Session** shows how Astrolabe sees the project right now, and any updates:
 
 ![The pane, Session tab](docs/images/pane-session.svg)
 
 `chosen by` is how the active feature was picked (`feature.json`, `branch` or `latest`).
-`analyzed` says whether `/speckit-analyze` ran in this session.
+`analyzed` says whether `/speckit-analyze` ran in this session. `hooks before` and `hooks after`
+list the Spec Kit extension hooks (`.specify/extensions.yml`) around the next command. In a
+folder with several Spec Kit projects under it, `other roots` names them, and
+`/astrolabe root <folder>` reads one of them as the session's project.
 
 **4 Dashboard** puts the session in numbers and charts:
 

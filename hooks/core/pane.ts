@@ -1,6 +1,7 @@
 // What each tab of the /astrolabe pane says (contracts/pane.md). Pure: no $.
 import { t as tr, type Lang } from './i18n'
 import { formatElapsed, cleanTaskText } from './spinner'
+import { parallelTasks } from './extensions'
 import { parseTasks } from './tasks-parser'
 import type { ThemeRole } from './theme'
 import type { Feature, SessionMemo, SpeckitState } from './types'
@@ -73,6 +74,9 @@ export const taskRows = (state: SpeckitState, memo: SessionMemo, rows: number, c
   const open = tasks.filter(t => !t.isDone)
   const out: PaneRow[] = [{ key: 'count', text: tr(lang, 'pane.count', { done: tasks.length - open.length, total: tasks.length }), role: 'muted' }]
   if (open.length === 0) return [...out, { key: 'all-done', text: tr(lang, 'pane.allTicked'), role: 'done' }]
+  // A run of [P] tasks at the head can go to subagents at once (020c #19).
+  const parallel = parallelTasks(tasks)
+  if (parallel.length > 0) out.push({ key: 'parallel', text: tr(lang, 'pane.parallel', { ids: parallel.join(', ') }), role: 'accent' })
   const room = Math.max(1, rows - 1)
   const shown = open.length <= room ? open : open.slice(0, room - 1)
   for (const [index, t] of shown.entries()) {
@@ -84,7 +88,10 @@ export const taskRows = (state: SpeckitState, memo: SessionMemo, rows: number, c
 }
 
 export const sessionRows = (state: SpeckitState, now: number, lang: Lang = 'en'): PaneRow[] => {
-  if (!state.present) return [noSpeckit(lang)]
+  if (!state.present) {
+    const roots = state.otherRoots === undefined ? [] : [{ key: 'session-other-roots', text: `${tr(lang, 'session.otherRoots').padEnd(14)}${state.otherRoots.join(', ')} (/astrolabe root <folder>)`, role: 'text' as const }]
+    return [noSpeckit(lang), ...roots]
+  }
   const task = state.currentTask
   const none = tr(lang, 'word.none')
   const pairs: Array<[string, string, string]> = [
@@ -103,5 +110,8 @@ export const sessionRows = (state: SpeckitState, now: number, lang: Lang = 'en')
         : `${task.id ?? cleanTaskText(task.text)}${task.startedAt === undefined ? '' : ` · ${formatElapsed(now - task.startedAt)}`}`,
     ],
   ]
+  if (state.otherRoots !== undefined) pairs.push(['other-roots', tr(lang, 'session.otherRoots'), `${state.otherRoots.join(', ')} (/astrolabe root <folder>)`])
+  if (state.nextHooks !== undefined && state.nextHooks.before.length > 0) pairs.push(['hooks-before', tr(lang, 'session.hooksBefore'), state.nextHooks.before.join(', ')])
+  if (state.nextHooks !== undefined && state.nextHooks.after.length > 0) pairs.push(['hooks-after', tr(lang, 'session.hooksAfter'), state.nextHooks.after.join(', ')])
   return pairs.map(([key, label, value]) => ({ key: `session-${key}`, text: `${label.padEnd(14)}${value}`, role: 'text' }))
 }

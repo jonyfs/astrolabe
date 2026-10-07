@@ -3,7 +3,8 @@
 import { checklistCounts } from '../core/clarification'
 import { parseFrontMatter } from '../core/front-matter'
 import { joinPath, normalizePath, specsLocation } from '../core/paths'
-import type { FeatureFiles, FeatureJson, Snapshot } from '../core/types'
+import { parseExtensions } from '../core/extensions'
+import type { ExtensionHook, FeatureFiles, FeatureJson, Snapshot } from '../core/types'
 
 import { type Fs, readOrUndefined, readResult, type ReadResult } from './fs-port'
 import { readBranch } from './git-branch'
@@ -99,7 +100,7 @@ export const readSnapshot = async (
   root: string,
   scope: SnapshotScope,
   previous: Readonly<Record<string, FeatureFiles>> = {},
-  last: { constitution?: string } = {},
+  last: { constitution?: string; extensions?: ExtensionHook[]; otherRoots?: string[] } = {},
 ): Promise<Snapshot> => {
   const [rawFeatureJson, constitutionRead, branch, dirs] = await Promise.all([
     readOrUndefined(fs, joinPath(root, '.specify', 'feature.json')),
@@ -115,11 +116,16 @@ export const readSnapshot = async (
     }),
   )
   const constitution = textOf(constitutionRead, last.constitution)
+  // Extensions change rarely: read with the full snapshot only, kept from the last one otherwise.
+  const extensions =
+    scope === 'full' ? parseExtensions((await readOrUndefined(fs, joinPath(root, '.specify', 'extensions.yml'))) ?? '') : last.extensions
   return {
     root,
     featureJson: parseFeatureJson(root, rawFeatureJson),
     ...(constitution === undefined ? {} : { constitution }),
     ...(branch === undefined ? {} : { branch }),
+    ...(extensions === undefined || extensions.length === 0 ? {} : { extensions }),
+    ...(last.otherRoots === undefined || last.otherRoots.length === 0 ? {} : { otherRoots: last.otherRoots }),
     features,
   }
 }
