@@ -142,15 +142,29 @@ The Spec Kit part and the window that decides always stay.
 
 | A statusline showed | In Astrolabe |
 |---|---|
-| Directory, repository, branch, ahead and behind, changed files | The footer's git part (the directory is the project you opened) |
+| Directory, repository, branch, ahead and behind, changed files, stashes, worktree | The footer's git part (the directory is the project you opened) |
 | Model, effort, context window | The footer |
 | 5-hour and 7-day windows with their resets | The footer, and the governor acts on them |
 | Session cost and duration | The footer |
 | Burn rate and projection | The Dashboard tab |
 | Todo progress, Claude working or idle | The band, the spinner and the Tasks tab |
 | Skills in use | The band and the prompt hint show the running Spec Kit skill |
-| Pull request and last CI run | Left out: they need the network on every turn (planned as an option) |
-| Vim mode, prompt cache timer, rtk savings | Left out |
+| Pull request and last CI run | The footer's git part with the `pullRequest` option on |
+| Prompt cache timer | A toast 30 seconds before the cache goes cold (see [Toasts](#toasts)) |
+| Vim mode, rtk savings | Left out |
+
+The git part reads like this with `icons` set to `ascii`:
+
+```text
+git:023-git-footer ^2 ~3 stash:1 wt:review PR#32 ok
+```
+
+`^2` and `~3` are commits ahead and changed files, `stash:1` is one stash entry, and `wt:review`
+says the checkout is the linked worktree `review`. `PR#32 ok` is the branch's open pull request
+with every check passed; `x` means one failed and `..` that some are still running. The pull
+request part needs the `pullRequest` option and the `gh` command, signed in. Astrolabe asks `gh`
+at most once every five minutes per branch, on a timer after the turn, so a slow network never
+holds the footer. Without `gh`, or with no pull request for the branch, the part is left out.
 
 Icons follow the `icons` option: Nerd Font glyphs in the terminal and emoji in the Desktop app by
 default, or `ascii` for plain characters everywhere. A Nerd Font cannot be detected, so pick
@@ -283,6 +297,7 @@ reloads the mod right away.
 | `governUsage` | `true`, `false` | `true` | Usage governance (see [Usage governance](#usage-governance)). Off, the windows still show. |
 | `icons` | `auto`, `nerd`, `emoji`, `ascii` | `auto` | Icons in the footer and the Dashboard. `auto` is Nerd Font glyphs in the terminal and emoji elsewhere. |
 | `language` | `auto`, `en`, `pt-BR`, `es`, `fr` | `auto` | The language of the pane, the Dashboard, the governor's questions, the toasts and `/astrolabe help`. `auto` follows the language you type in, English until a prompt says enough. What Claude reads (refusals, resume prompts) stays in English. |
+| `pullRequest` | `true`, `false` | `false` | Show the branch's open pull request and its checks in the footer, from `gh`. See [The footer in place of a statusline](#the-footer-in-place-of-a-statusline). |
 | `costBudget` | a number of US dollars | `0` | The session's cost budget. Astrolabe toasts once when the cost passes 80% of it and once when it passes it. `0` turns the warning off. |
 | `askOnLimit` | `true`, `false` | `true` | Before it holds a subagent or pauses Claude, the governor asks you (see [Asked when it holds or pauses](#asked-when-it-holds-or-pauses)). Off, it holds and pauses without asking. |
 

@@ -45,7 +45,7 @@ import {
   type Question,
 } from './core/governor'
 import { themeOf } from './core/theme'
-import { emptyMemo, type PaneState, type PaneTab, type UpdateId, type UpdateItem, type UpdatesState, type UsageState, type UsageReading, type QueuedAgent, type SessionStats } from './core/types'
+import { emptyMemo, type PaneState, type PaneTab, type UpdateId, type UpdateItem, type UpdatesState, type UsageState, type UsageReading, type QueuedAgent, type SessionStats, type GitState, type PullRequest } from './core/types'
 import type { Preset } from './core/presets'
 import type { Fs } from './io/fs-port'
 import { findRoot } from './io/root'
@@ -56,7 +56,7 @@ import { dashboardTree } from './surfaces/dashboard'
 import { dial, kpiRows, phaseBars, sparkline, usageChart } from './core/dashboard'
 import { addWeek, estimateLeft, slowest, weekKey, type Weeks } from './core/history'
 import { footerText } from './core/footer'
-import { parseGitStatus } from './core/git-status'
+import { parseGitStatus, parsePullRequest } from './core/git-status'
 import { iconSet, iconsFor } from './core/icons'
 import { guessLang, langOf, t, type Lang } from './core/i18n'
 import { paneTree } from './surfaces/pane'
@@ -85,7 +85,7 @@ const helpText = (lang: Lang): string =>
     `  2 ${t(lang, 'tab.tasks').padEnd(10)} ${t(lang, 'help.tasksTab')}`,
     `  3 ${t(lang, 'tab.session').padEnd(10)} ${t(lang, 'help.sessionTab')}`,
     `  4 ${t(lang, 'tab.dashboard').padEnd(10)} ${t(lang, 'help.dashboardTab')}`,
-    `${t(lang, 'help.options')} (preset, flavor, icons, language, checkUpdates, governUsage, askOnLimit, costBudget).`,
+    `${t(lang, 'help.options')} (preset, flavor, icons, language, checkUpdates, governUsage, askOnLimit, costBudget, pullRequest).`,
   ].join('\n')
 const ASK = { plugin: 'astrolabe', key: 'ask' } as const
 const DEFAULT_PANE: PaneState = { tab: 'specs', autoOpened: false }
@@ -100,7 +100,10 @@ const HISTORY_POINTS = 10
 const SESSION = { plugin: 'astrolabe', key: 'session' } as const
 const SERIES_POINTS = 60
 const HISTORY = 'history'
-const GIT_STATUS = ['git', 'status', '--porcelain=v2', '--branch']
+const GIT_STATUS = ['git', 'status', '--porcelain=v2', '--branch', '--show-stash']
+// The branch's pull request and its checks (023), opt-in, at most once per five minutes per branch.
+const GH_PR = ['gh', 'pr', 'view', '--json', 'number,statusCheckRollup']
+const PR_TTL_MS = 300_000
 
 // The session's numbers between writes (018): a tool call costs no state write; they are
 // written at the end of each main turn and at each measure. A reload loses one turn's counts.
@@ -186,6 +189,37 @@ async function readGit($: EngineInterface, root: string | undefined, branch: str
   }
 }
 
+let prRunning = false
+
+/** Asks `gh` for the branch's pull request when the cached answer is older than five minutes (023). */
+async function refreshPr($: EngineInterface, root: string, branch: string): Promise<void> {
+  if (prRunning) return
+  prRunning = true
+  try {
+    const now = await $.clock.now()
+    const cached = (await $.state.get(SESSION)).value?.prCache
+    if (cached !== undefined && cached.branch === branch && now - cached.at < PR_TTL_MS) return
+    // gh missing, signed out or no pull request: no part, no error; the next try is in five minutes.
+    const run = await $.process.run(GH_PR, { cwd: root, timeoutMs: 5000 }).catch(() => undefined)
+    const pr = run?.exitCode === 0 ? parsePullRequest(run.stdout) : undefined
+    await flushStats($, s => {
+      const git = s.git?.branch === branch ? withPr(s.git, pr) : s.git
+      return { ...s, prCache: { branch, at: now, ...(pr === undefined ? {} : { pr }) }, ...(git === undefined ? {} : { git }) }
+    })
+    const speckit = (await $.state.get(SPECKIT)).value
+    if (speckit !== undefined) await showStatus($, speckit)
+  } catch (error) {
+    $.ui.log(`astrolabe: ${error instanceof Error ? error.message : String(error)}`, { to: 'debug' })
+  } finally {
+    prRunning = false
+  }
+}
+
+const withPr = (git: GitState, pr: PullRequest | undefined): GitState => {
+  const { pr: _old, ...rest } = git
+  return pr === undefined ? rest : { ...rest, pr }
+}
+
 /** Notes the model and effort of each main-thread request (018), leaving the request untouched. */
 async function* noteModel($: Parameters<Hook<'turn.step'>>[0], e: Parameters<Hook<'turn.step'>>[1], next: Parameters<Hook<'turn.step'>>[2]) {
   if (e.agentId === undefined) {
@@ -256,6 +290,8 @@ async function warnUsage($: EngineInterface, percent: number | undefined, usd: n
   for (const text of toasts) $.ui.toast(text)
 }
 
+// Whether the footer asks gh for the branch's pull request (023), off by default.
+let pullRequests = false
 // The cost budget in USD from the option, 0 for none (022).
 let budget = 0
 // When the last main turn ended; the prompt cache timer fires only if no turn came after it (022 #34).
@@ -846,6 +882,7 @@ export const register: Register = (on, options) => {
   const checksUpdates = options['checkUpdates'] !== false
   governs = options['governUsage'] !== false
   asks = governs && options['askOnLimit'] !== false
+  pullRequests = options['pullRequest'] === true
   budget = typeof options['costBudget'] === 'number' && options['costBudget'] > 0 ? options['costBudget'] : 0
   iconsOption = options['icons']
   languageOption = options['language']
@@ -908,8 +945,17 @@ export const register: Register = (on, options) => {
       const root = held?.state.root
       const branch = held?.memo.base?.branch
       const counted = await readGit($, root, branch)
-      const git = counted ?? (branch === undefined ? undefined : { branch, ahead: 0, behind: 0, changed: 0, conflicts: 0 })
-      await flushStats($, ({ git: _old, ...s }) => ({ ...s, turns: s.turns + 1, ...(git === undefined ? {} : { git }) }))
+      const found = counted ?? (branch === undefined ? undefined : { branch, ahead: 0, behind: 0, changed: 0, conflicts: 0 })
+      const worktree = held?.memo.base?.worktree
+      const git = found === undefined || worktree === undefined ? found : { ...found, worktree }
+      await flushStats($, ({ git: _old, ...s }) => {
+        const cached = s.prCache !== undefined && s.prCache.branch === git?.branch ? s.prCache.pr : undefined
+        return { ...s, turns: s.turns + 1, ...(git === undefined ? {} : { git: withPr(git, cached) }) }
+      })
+      if (pullRequests && root !== undefined && git?.branch !== undefined) {
+        const prBranch = git.branch
+        $.clock.after(0, () => void refreshPr($, root, prBranch))
+      }
       if (held !== undefined) await showStatus($, held.state)
       if (preset.pane === 'auto' && isWide) await openUnasked($)
       if (checksUpdates) $.clock.after(0, () => void checkUpdates($))

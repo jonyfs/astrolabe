@@ -1,5 +1,5 @@
 // Parses `git status --porcelain=v2 --branch` (spec 018). Pure: no $. Never throws.
-import type { GitState } from './types'
+import type { GitState, PullRequest } from './types'
 
 export const parseGitStatus = (out: string): GitState => {
   const state: GitState = { ahead: 0, behind: 0, changed: 0, conflicts: 0 }
@@ -15,8 +15,37 @@ export const parseGitStatus = (out: string): GitState => {
         state.ahead = Number(m[1])
         state.behind = Number(m[2])
       }
+    } else if (line.startsWith('# stash ')) {
+      const n = Number(line.slice(8).trim())
+      if (Number.isInteger(n) && n > 0) state.stashes = n
     } else if (line.startsWith('u ')) state.conflicts += 1
     else if (line.startsWith('1 ') || line.startsWith('2 ') || line.startsWith('? ')) state.changed += 1
   }
   return state
+}
+
+const FAILED = new Set(['FAILURE', 'ERROR', 'CANCELLED', 'TIMED_OUT', 'ACTION_REQUIRED', 'STARTUP_FAILURE'])
+const PASSED = new Set(['SUCCESS', 'NEUTRAL', 'SKIPPED'])
+
+/** Parses `gh pr view --json number,statusCheckRollup` (023). Undefined when it is not that. */
+export const parsePullRequest = (out: string): PullRequest | undefined => {
+  let value: unknown
+  try {
+    value = JSON.parse(out)
+  } catch {
+    return undefined
+  }
+  if (typeof value !== 'object' || value === null) return undefined
+  const { number, statusCheckRollup } = value as { number?: unknown; statusCheckRollup?: unknown }
+  if (typeof number !== 'number') return undefined
+  const checks = Array.isArray(statusCheckRollup) ? statusCheckRollup : []
+  // A check run has a conclusion once completed; a commit status has a state.
+  const results = checks.map(c => {
+    const { conclusion, state } = (typeof c === 'object' && c !== null ? c : {}) as { conclusion?: unknown; state?: unknown }
+    const word = typeof conclusion === 'string' && conclusion !== '' ? conclusion : typeof state === 'string' ? state : ''
+    return FAILED.has(word) || word === 'FAILURE' ? 'fail' : PASSED.has(word) ? 'pass' : 'pending'
+  })
+  const state: PullRequest['checks'] =
+    results.length === 0 ? 'none' : results.includes('fail') ? 'fail' : results.includes('pending') ? 'pending' : 'pass'
+  return { number, checks: state }
 }

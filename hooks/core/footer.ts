@@ -3,7 +3,7 @@
 import { clockOf, decide, labelOf, usageSegment, type Decision } from './governor'
 import type { Icons } from './icons'
 import { t, type Lang } from './i18n'
-import type { GitState, UsageReading } from './types'
+import type { GitState, PullRequest, UsageReading } from './types'
 
 export type FooterInput = {
   /** The Spec Kit part, shortened to fit `columns` when given. */
@@ -44,6 +44,14 @@ const duration = (ms: number): string => {
 
 type Part = { text: string; rank: number }
 
+// An ASCII label ending in ':' is glued to its value (`stash:2`); a glyph takes a space.
+const glued = (icon: string, text: string) => (icon.endsWith(':') ? `${icon}${text}` : withIcon(icon, text))
+const prText = (icons: Icons, pr: PullRequest): string => {
+  const mark = pr.checks === 'pass' ? icons.ciPass : pr.checks === 'fail' ? icons.ciFail : pr.checks === 'pending' ? icons.ciPending : ''
+  const number = icons.pr === 'PR' ? `PR#${pr.number}` : withIcon(icons.pr, `#${pr.number}`)
+  return mark === '' ? number : `${number} ${mark}`
+}
+
 const windowText = (r: UsageReading, now: number, lang: Lang): string => {
   const renewed = r.resetsAt !== undefined && Date.parse(r.resetsAt) <= now
   if (renewed) return `${labelOf(r.kind)} ${t(lang, 'status.renewed')}`
@@ -77,6 +85,9 @@ const parts = (input: FooterInput): Part[] => {
       git.behind > 0 ? `${icons.behind}${git.behind}` : '',
       git.changed > 0 ? (icons.changed.length === 1 && icons.changed.codePointAt(0)! < 0x7f ? `${icons.changed}${git.changed}` : `${icons.changed} ${git.changed}`) : '',
       git.conflicts > 0 ? `${icons.conflict}${git.conflicts}` : '',
+      git.stashes !== undefined && git.stashes > 0 ? glued(icons.stash, String(git.stashes)) : '',
+      git.worktree === undefined ? '' : glued(icons.worktree, git.worktree),
+      git.pr === undefined ? '' : prText(icons, git.pr),
     ].filter(s => s !== '')
     const branch = icons.branch.endsWith(':') ? `${icons.branch}${git.branch}` : withIcon(icons.branch, git.branch)
     out.push({ text: [branch, ...counts].join(' '), rank: 4 })

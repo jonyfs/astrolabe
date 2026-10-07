@@ -69,6 +69,8 @@ export type Snapshot = {
   featureJson: FeatureJson
   constitution?: string
   branch?: string
+  /** The linked worktree's name when the checkout is one (023). */
+  worktree?: string
   features: FeatureFiles[]
   /** Enabled Spec Kit extension hooks, read with the full snapshot (020c). */
   extensions?: ExtensionHook[]
@@ -174,7 +176,22 @@ export type UsageState = {
 }
 
 /** What `git status --porcelain=v2 --branch` said at the end of the last main turn (018). */
-export type GitState = { branch?: string; ahead: number; behind: number; changed: number; conflicts: number }
+export type GitState = {
+  branch?: string
+  ahead: number
+  behind: number
+  changed: number
+  conflicts: number
+  /** Stash entries (023), from the `# stash` header. */
+  stashes?: number
+  /** The linked worktree's name when the checkout is one (023). */
+  worktree?: string
+  /** The branch's open pull request and its checks (023), from `gh`, opt-in. */
+  pr?: PullRequest
+}
+
+/** A pull request and the state of its checks: all passed, one failed, some still running, or none. */
+export type PullRequest = { number: number; checks: 'pass' | 'fail' | 'pending' | 'none' }
 
 /** The session's numbers for the footer and the Dashboard (018); bounded, written per turn. */
 export type SessionStats = {
@@ -201,6 +218,8 @@ export type SessionStats = {
   series: Array<{ at: number; percent: number }>
   /** Warnings already shown this session (022): the cost budget at 80% and 100%, the context window. */
   warned?: { cost80?: boolean; cost100?: boolean; context?: boolean }
+  /** The last `gh pr view` for a branch (023): when it ran and what it found, kept five minutes. */
+  prCache?: { branch: string; at: number; pr?: PullRequest }
 }
 
 /** One answer a usage question offers; `target` is the ceiling a lifting answer sets. */
