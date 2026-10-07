@@ -5,6 +5,7 @@ import { classifyConstitution } from './constitution'
 import { hooksFor } from './extensions'
 import { nextCommand } from './next-command'
 import { deriveFeature } from './phase'
+import { specSummary } from './summary'
 import { parseTasks } from './tasks-parser'
 import type { SessionMemo, Snapshot, SpeckitState } from './types'
 
@@ -48,7 +49,23 @@ export const deriveSpeckitState = (
   }
   const next = nextCommand({ present: true, constitution, isAnalyzed, ...(activeFeature === undefined ? {} : { active: activeFeature }) })
   const activeFiles = active === undefined ? undefined : snapshot.features.find(f => f.dir === active.dir)
-  const activeTasks = activeFiles?.tasks === undefined ? undefined : parseTasks(activeFiles.tasks).map(t => ({ ...(t.id === undefined ? {} : { id: t.id }), text: t.text, isDone: t.isDone }))
+  const activeTasks =
+    activeFiles?.tasks === undefined
+      ? undefined
+      : parseTasks(activeFiles.tasks).map((t, i) => {
+          // Quick specs keep their tasks in spec.md: the line is the one there (024).
+          const line = activeFiles.taskLines?.[i] ?? t.line
+          return { ...(t.id === undefined ? {} : { id: t.id }), text: t.text, isDone: t.isDone, ...(line === undefined ? {} : { line }) }
+        })
+  const activeSummary = activeFiles === undefined ? undefined : activeFiles.compact === true ? activeFiles.summary : activeFiles.spec === undefined ? undefined : specSummary(activeFiles.spec)
+  const activeDocs =
+    activeFiles === undefined
+      ? undefined
+      : ([
+          ...(activeFiles.spec === undefined ? [] : ['spec.md']),
+          ...(activeFiles.plan ? ['plan.md'] : []),
+          ...(activeFiles.tasks === undefined || activeFiles.tasksInSpec === true ? [] : ['tasks.md']),
+        ] as Array<'spec.md' | 'plan.md' | 'tasks.md'>)
   const isWorkingOnActive = active !== undefined && (memo.runningSkill?.step === 'implement' || memo.touched.includes(active.dir))
   const state: SpeckitState = {
     ...base,
@@ -60,6 +77,8 @@ export const deriveSpeckitState = (
     })(),
     isWorkingOnActive,
     ...(activeTasks === undefined ? {} : { activeTasks }),
+    ...(activeSummary === undefined ? {} : { activeSummary }),
+    ...(activeDocs === undefined || activeDocs.length === 0 ? {} : { activeDocs }),
   }
   // The memo keeps compacted files only (spec 009): enough to derive the same state again.
   const files = Object.fromEntries(snapshot.features.map(f => [f.dir, compactFiles(f)]))

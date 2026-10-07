@@ -233,8 +233,9 @@ A finished feature shows every mark as `●` and a full bar. An abandoned featur
 `feature.json` shows `◆ 003 name  abandoned` instead of the rail.
 
 When the band is narrower, it drops detail in this order and never cuts the id: the labels of
-the finished and later steps, then the name, then the bar, then the count, then everything
-but `◆ 002`. In a 100-column terminal it looks like this:
+the finished and later steps, then the name, then the bar. Below that it turns compact: the
+current step and the count (`◆ 002  ◐ implement 14/31 45%`), then the rail alone, then the step
+alone (`◆ 002  ◐ implement`), then `◆ 002`. In a 100-column terminal it looks like this:
 
 ![Astrolabe in a 100-column terminal](docs/images/narrow-100.svg)
 
@@ -292,7 +293,7 @@ reloads the mod right away.
 | Option | Values | Default | What it changes |
 |---|---|---|---|
 | `preset` | `minimal`, `compact`, `full` | `compact` | Where Astrolabe draws. `minimal` keeps only the status entry. `compact` adds the band, the prompt hint, the spinner narration and the drift alarm. `full` also opens the `/astrolabe` pane by itself on a wide fullscreen terminal, and shows phase toasts as well as the drift alarm. |
-| `flavor` | `mocha`, `frappe`, `macchiato`, `latte` | `mocha` | The Catppuccin palette for the band. `latte` is the light one. |
+| `flavor` | `mocha`, `frappe`, `macchiato`, `latte`, `theme` | `mocha` | The Catppuccin palette for the band. `latte` is the light one. `theme` takes Claude Code's own theme colors, so the band and the pane follow your light or dark theme; the Dashboard charts then use `latte` on a light theme and `mocha` on a dark one. |
 | `checkUpdates` | `true`, `false` | `true` | The daily update check and its buttons (see [Update notices](#update-notices)). |
 | `governUsage` | `true`, `false` | `true` | Usage governance (see [Usage governance](#usage-governance)). Off, the windows still show. |
 | `icons` | `auto`, `nerd`, `emoji`, `ascii` | `auto` | Icons in the footer and the Dashboard. `auto` is Nerd Font glyphs in the terminal and emoji elsewhere. |
@@ -338,6 +339,12 @@ the list come warnings: a `~` line when the active feature was guessed because
 before its plan, and a `☐` line with the open items of a feature's `checklists/*.md` until the
 feature is done.
 
+Above the list, a filter field keeps the features whose id or name holds what you type, and the
+active feature's summary shows its title, its first paragraph and its user stories with their
+priority, followed by links to its `spec.md`, `plan.md` and `tasks.md` (only the files that
+exist). In the terminal a link opens the file with ctrl or cmd and a click, as your terminal
+opens `file:` links.
+
 **2 Tasks** lists the active feature's open tasks in file order, after a count:
 
 ![The pane, Tasks tab](docs/images/pane-tasks.svg)
@@ -346,6 +353,10 @@ When more tasks are open than the pane has rows, the last line says `+N more`. A
 no `tasks.md` yet says so; a quick spec (`track: quick`) uses the `## Tasks` section of its
 `spec.md` instead. When two or more `[P]` tasks come first among the open ones, a `⇉` line names
 them: they can go to subagents at once.
+
+Above the count, the last main turn's change to the task list shows as a diff: each box it
+ticked or unticked, with its line number in the file. It stays until a later turn changes the
+list again.
 
 **3 Session** shows how Astrolabe sees the project right now, and any updates:
 
