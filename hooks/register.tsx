@@ -29,6 +29,7 @@ import {
   EXTEND_MS,
   HOLD_LIFT_MS,
   holdQuestion,
+  nextHeld,
   isPaused,
   isReadOnlyTool,
   parseAllow,
@@ -36,6 +37,7 @@ import {
   RAISE_MS,
   refusal,
   resumePrompt,
+  usageRows,
   usageSegment,
   type Decision,
   type Question,
@@ -68,7 +70,14 @@ const USAGE = { plugin: 'astrolabe', key: 'usage' } as const
 const DEFAULT_USAGE: UsageState = { readings: [], history: [], inFlight: 0, queue: [], paused: false }
 const HISTORY_POINTS = 10
 
-const decisionOf = (usage: UsageState, now: number): Decision => decide(usage.readings, usage.history, usage.override, now, usage.holdLift)
+const decisionOf = (usage: UsageState, now: number): Decision =>
+  decide(usage.readings, usage.history, usage.override, now, usage.holdLift, usage.held)
+
+/** The window an override is given for: the one binding now (016); none known, every window. */
+const kindOf = (usage: UsageState, now: number): { kind?: string } => {
+  const kind = decisionOf(usage, now).highest?.kind
+  return kind === undefined ? {} : { kind }
+}
 
 /** The status entry: the Spec Kit part, then the highest usage window (spec 008). */
 async function showStatus($: EngineInterface, state: Held['state']): Promise<void> {
@@ -109,6 +118,22 @@ async function resume($: EngineInterface, why: string): Promise<void> {
 // next reading or refusal arms a new one.
 let resumeAt: number | undefined
 
+/**
+ * At a window's reset: redraw the status (the window renewed), then resume only if no other
+ * window still holds or pauses; otherwise wait for the reset of the one binding now (016).
+ */
+async function afterReset($: EngineInterface, why: string): Promise<void> {
+  try {
+    const { decision } = await decisionNow($)
+    const speckit = (await $.state.get(SPECKIT)).value
+    if (speckit !== undefined) await showStatus($, speckit)
+    if (decision.band === 'ok' || decision.band === 'throttle') await resume($, why)
+    else await armResume($, decision)
+  } catch (error) {
+    $.ui.log(`astrolabe: ${error instanceof Error ? error.message : String(error)}`, { to: 'debug' })
+  }
+}
+
 async function armResume($: EngineInterface, decision: Decision): Promise<void> {
   const reset = decision.highest?.resetsAt === undefined ? Number.NaN : Date.parse(decision.highest.resetsAt)
   if (Number.isNaN(reset) || resumeAt === reset) return
@@ -117,7 +142,7 @@ async function armResume($: EngineInterface, decision: Decision): Promise<void> 
   const why = `${decision.highest?.kind === 'seven_day' ? '7d' : '5h'} reset`
   $.clock.after(wait, () => {
     resumeAt = undefined
-    void resume($, why)
+    void afterReset($, why)
   })
 }
 
@@ -138,7 +163,7 @@ async function applyLift($: EngineInterface, question: Question, value: string):
     value === 'lift' && question.kind === 'hold'
       ? ({ asked: _gone, ...u }) => ({ ...u, holdLift: now + HOLD_LIFT_MS })
       : (value === 'extend' || value === 'raise') && target !== undefined
-        ? ({ asked: _gone, ...u }) => ({ ...u, override: { target, until: now + (value === 'extend' ? EXTEND_MS : RAISE_MS) } })
+        ? ({ asked: _gone, ...u }) => ({ ...u, override: { target, until: now + (value === 'extend' ? EXTEND_MS : RAISE_MS), ...kindOf(u, now) } })
         : undefined
   if (change === undefined) return false
   await updateUsage($, change)
@@ -604,11 +629,15 @@ export const register: Register = (on, options) => {
         ...(r.resetsAt === undefined ? {} : { resetsAt: r.resetsAt }),
       }))
       const top = Math.max(0, ...readings.map(r => r.percentUsed))
-      const usage = await updateUsage($, u => ({
-        ...u,
-        readings,
-        history: readings.length === 0 ? u.history : [...u.history, { at: now, percent: top }].slice(-HISTORY_POINTS),
-      }))
+      const usage = await updateUsage($, ({ held: before, ...u }) => {
+        const held = nextHeld(readings, before, now)
+        return {
+          ...u,
+          readings,
+          history: readings.length === 0 ? u.history : [...u.history, { at: now, percent: top }].slice(-HISTORY_POINTS),
+          ...(held === undefined ? {} : { held }),
+        }
+      })
       const decision = decisionOf(usage, now)
       const speckit = (await $.state.get(SPECKIT)).value
       if (speckit !== undefined) await showStatus($, speckit)
@@ -620,7 +649,7 @@ export const register: Register = (on, options) => {
       }
       const isClear = decision.band === 'ok' || decision.band === 'throttle'
       if (isClear && (usage.queue.length > 0 || usage.paused)) await resume($, `${usageSegment(decision) ?? 'window'} now`)
-      else if (!isClear && usage.queue.length > 0) await armResume($, decision)
+      else if (!isClear) await armResume($, decision)
     } catch (error) {
       $.ui.log(`astrolabe: ${error instanceof Error ? error.message : String(error)}`, { to: 'debug' })
     }
@@ -738,7 +767,7 @@ export const register: Register = (on, options) => {
         await updateUsage($, ({ override: _gone, ...u }) => u)
         return { text: '🧭 usage override revoked: stop at 88%, ceiling at 90%' }
       }
-      await updateUsage($, u => ({ ...u, override: { target: parsed.allow.target, until: now + parsed.allow.ms } }))
+      await updateUsage($, u => ({ ...u, override: { target: parsed.allow.target, until: now + parsed.allow.ms, ...kindOf(u, now) } }))
       const speckit = (await $.state.get(SPECKIT)).value
       if (speckit !== undefined) await showStatus($, speckit)
       return { text: `🧭 stop and ceiling raised to ${parsed.allow.target}% until ${clockOf(new Date(now + parsed.allow.ms).toISOString())}; new subagents still wait from 80%` }
@@ -760,6 +789,11 @@ export const register: Register = (on, options) => {
         : pane.tab === 'session'
           ? [
               ...sessionRows(state, await $.clock.now()),
+              ...usageRows((await $.state.get(USAGE)).value ?? DEFAULT_USAGE, await $.clock.now()).map(([label, text]) => ({
+                key: `usage-${label}`,
+                text: `${label.padEnd(14)}${text}`,
+                role: 'text' as const,
+              })),
               ...((await $.state.get(UPDATES)).value?.items ?? []).map(item => ({
                 key: `update-${item.id}`,
                 text: `${'update'.padEnd(14)}${updateLabel(item, false)} (installed ${item.installed})`,

@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import { decide, holdQuestion, isReadOnlyTool, parseAllow, pauseQuestion, refusal, resumePrompt, usageSegment } from '../../hooks/core/governor'
+import { decide, holdQuestion, isReadOnlyTool, nextHeld, parseAllow, pauseQuestion, refusal, resumePrompt, usageRows, usageSegment } from '../../hooks/core/governor'
 
 const NOW = Date.UTC(2026, 9, 7, 12, 0)
 const IN_2H = new Date(NOW + 2 * 3600_000).toISOString()
@@ -115,5 +115,71 @@ describe('questions before a hold or a pause (015)', () => {
     expect([decide([r(83)], [], undefined, NOW, lift)].map(d => [d.band, d.cap])).toEqual([['throttle', 1]])
     expect(decide([r(83)], [], undefined, NOW, NOW - 1).band).toBe('hold')
     expect(decide([r(89)], [], undefined, NOW, lift).band).toBe('stop')
+  })
+})
+
+describe('parity with the usage-governor skill (016)', () => {
+  const PAST = new Date(NOW - 60_000).toISOString()
+  const held = { kind: 'five_hour', resetsAt: IN_2H }
+
+  test('hysteresis: once held, the same window stays held down to 75%', () => {
+    expect(decide([r(78)], [], undefined, NOW, undefined, held).band).toBe('hold')
+    expect(decide([r(75)], [], undefined, NOW, undefined, held).band).toBe('hold')
+    expect([decide([r(74)], [], undefined, NOW, undefined, held)].map(d => [d.band, d.cap])).toEqual([['throttle', 1]])
+    expect(decide([r(78, 'seven_day')], [], undefined, NOW, undefined, held).band).toBe('throttle')
+  })
+
+  test('the held window is kept from 80% down to 75%, and forgotten below, or once it renews', () => {
+    expect(nextHeld([r(81)], undefined, NOW)).toEqual(held)
+    expect(nextHeld([r(77)], held, NOW)).toEqual(held)
+    expect(nextHeld([r(74)], held, NOW)).toBeUndefined()
+    expect(nextHeld([r(77)], undefined, NOW)).toBeUndefined()
+    const renewed = new Date(NOW + 7 * 24 * 3600_000).toISOString()
+    expect(nextHeld([r(77, 'five_hour', renewed)], held, NOW)).toBeUndefined()
+    expect(nextHeld([r(77, 'five_hour', PAST)], held, NOW)).toBeUndefined()
+  })
+
+  test('an override lifts only the window it was given for', () => {
+    const override = { target: 95, until: NOW + 3600_000, kind: 'seven_day' }
+    expect(decide([r(91), r(92, 'seven_day')], [], override, NOW).band).toBe('ceiling')
+    const d = decide([r(50), r(92, 'seven_day')], [], override, NOW)
+    expect([d.band, d.highest?.kind]).toEqual(['hold', 'seven_day'])
+    expect(decide([r(91)], [], { target: 95, until: NOW + 3600_000 }, NOW).band).toBe('hold')
+  })
+
+  test('the binding window is the one in the highest band, then the fuller one', () => {
+    const override = { target: 95, until: NOW + 3600_000, kind: 'seven_day' }
+    const d = decide([r(89), r(93, 'seven_day')], [], override, NOW)
+    expect([d.band, d.highest?.kind]).toEqual(['stop', 'five_hour'])
+  })
+
+  test('a window past its reset has renewed: unknown, so subagents run one at a time', () => {
+    const d = decide([r(95, 'five_hour', PAST)], [], undefined, NOW)
+    expect([d.band, d.cap, d.highest?.kind]).toEqual(['throttle', 1, 'five_hour'])
+    expect(decide([r(95, 'five_hour', PAST), r(30, 'seven_day')], [], undefined, NOW).cap).toBe(1)
+    expect(decide([r(95, 'five_hour', PAST), r(85, 'seven_day')], [], undefined, NOW).band).toBe('hold')
+    expect(usageSegment(decide([r(95, 'five_hour', PAST)], [], undefined, NOW))).toBe('5h renewed')
+  })
+
+  test('the pane rows: windows, queue, override and lift', () => {
+    const rows = usageRows(
+      {
+        readings: [r(42), r(83, 'seven_day')],
+        history: [],
+        inFlight: 1,
+        queue: [{ id: 'q1', description: 'Review', prompt: 'x' }],
+        override: { target: 95, until: NOW + 3600_000, kind: 'seven_day' },
+        holdLift: NOW + 1800_000,
+        paused: false,
+      },
+      NOW,
+    )
+    expect(rows.map(([label]) => label)).toEqual(['usage', 'subagents', 'queue', 'override', 'lift'])
+    expect(rows[0]?.[1]).toBe('5h 42% · 7d 83%: throttle')
+    expect(rows[1]?.[1]).toBe('1 running, cap 1')
+    expect(rows[2]?.[1]).toBe('1 waiting: q1 Review')
+    expect(rows[3]?.[1]).toMatch(/^ceiling 95% on 7d until \d\d:\d\d$/)
+    expect(rows[4]?.[1]).toMatch(/^subagents one at a time until \d\d:\d\d$/)
+    expect(usageRows({ readings: [], history: [], inFlight: 0, queue: [], paused: false }, NOW)).toEqual([])
   })
 })

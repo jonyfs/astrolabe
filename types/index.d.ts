@@ -141,8 +141,11 @@ export type UsageState = {
   history: Array<{ at: number; percent: number }>
   inFlight: number
   queue: QueuedAgent[]
-  override?: { target: number; until: number }
+  /** The owner's raised stop and ceiling, for the window it was given for (all windows when absent). */
+  override?: { target: number; until: number; kind?: string }
   paused: boolean
+  /** The window that entered hold, held down to 75% (016). */
+  held?: { kind: string; resetsAt?: string }
   /** Until when the owner let subagents through the hold, one at a time (015). */
   holdLift?: number
   /** The answer the owner gave (or the default taken) for the band now in force (015). */
