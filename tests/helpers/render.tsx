@@ -18,9 +18,15 @@ type Mounter = {
 
 /** Registers the engine stand-in; call before the test's first $ call. Returns what the engine was handed. */
 export const installRenderEngine = (on: On) => {
-  const handed: { tail?: string } = {}
+  const handed: { tail?: string; suffix?: string; message?: string | null } = {}
   on('ui.render', ($, e) => {
     const { Box, Text } = $.ui.resolve(e)
+    if (e.component === 'Spinner') {
+      const props = e.props as { word: string; suffix: string; message: string | null }
+      handed.suffix = props.suffix
+      handed.message = props.message
+      return <Text>{`${props.message ?? props.word}${props.suffix}`}</Text>
+    }
     if (e.component === 'PromptHint') {
       handed.tail = (e.props as { tail?: string }).tail
       return <Text>{(e.props as { hint: string }).hint}</Text>
@@ -62,4 +68,25 @@ export const drawHint = async (
   const ui = await $.ui.mount({ plugin: 'astrolabe', surface, component: 'PromptHint', props: { isDraft, isWorking: false, hint: '? for shortcuts' } } as never)
   await ui.unmount()
   return handed.tail
+}
+
+/** Mounts the Spinner and returns the suffix the plugin handed to the engine (undefined if unchanged). */
+export const drawSpinner = async (
+  $: Mounter,
+  handed: { suffix?: string; message?: string | null },
+  surface: RenderSurface,
+  columns?: number,
+  message: string | null = null,
+): Promise<string | undefined> => {
+  handed.suffix = undefined
+  const target = {
+    plugin: 'astrolabe',
+    surface,
+    component: 'Spinner',
+    props: { word: 'Sauteing', message, suffix: '…', mode: 'tool-use' },
+    ...(columns === undefined ? {} : { viewport: { columns, rows: 40 } }),
+  }
+  const ui = await $.ui.mount(target as never)
+  await ui.unmount()
+  return handed.suffix === '…' ? undefined : handed.suffix
 }

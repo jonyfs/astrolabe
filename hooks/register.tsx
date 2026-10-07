@@ -5,6 +5,7 @@ import type { EngineInterface, Register } from 'claude-code'
 import { bandSegments } from './core/band'
 import { hintTail } from './core/hint'
 import { presetOf } from './core/presets'
+import { spinnerSuffix } from './core/spinner'
 import { themeOf } from './core/theme'
 import type { Fs } from './io/fs-port'
 import { applyFileTouch, applySkill, type Held, reconcileStart, reconcileTurn } from './io/reconcile'
@@ -126,5 +127,13 @@ export const register: Register = (on, options) => {
     if (ours === undefined) return next(e)
     const tail = e.props.tail === undefined ? ours : `${e.props.tail} · ${ours}`
     return next({ ...e, props: { ...e.props, tail } })
+  })
+
+  on('ui.render', { component: 'Spinner' }, async ($, e, next) => {
+    if (!preset.spinner || e.props.message !== null) return next(e)
+    const { value } = await $.state.get(SPECKIT)
+    if (value === undefined) return next(e)
+    const suffix = spinnerSuffix(value.state, value.memo, await $.clock.now(), e.viewport?.columns)
+    return suffix === undefined ? next(e) : next({ ...e, props: { ...e.props, suffix } })
   })
 }
