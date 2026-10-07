@@ -125,9 +125,16 @@ async function guarded($: EngineInterface, work: (previous: Held | undefined) =>
       if (next === undefined) return undefined
       // Nothing changed: no write, no redraw (spec 009, FR-003).
       if (previous !== undefined && next.memo === previous.memo && next.state === previous.state) return previous
-      const { isSet } = await $.state.set(MEMO, next.memo, { ifVersion: version })
-      if (isSet) {
-        await $.state.set(SPECKIT, next.state)
+      const written = await $.state.set(MEMO, next.memo, { ifVersion: version })
+      if (written.isSet) {
+        // Two writers can finish out of order: the state carries its memo version, and an
+        // older one never replaces a newer one, so the drawing never lags the memo.
+        const state = { ...next.state, memoVersion: written.version }
+        for (let tries = 0; tries < MAX_ATTEMPTS; tries += 1) {
+          const shown = await $.state.get(SPECKIT)
+          if ((shown.value?.memoVersion ?? -1) >= written.version) break
+          if ((await $.state.set(SPECKIT, state, { ifVersion: shown.version })).isSet) break
+        }
         await showStatus($, next.state)
         return next
       }

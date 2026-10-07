@@ -116,6 +116,8 @@ export type Session = {
   processes: string[]
   /** Every URL the plugin fetched. */
   fetches: string[]
+  /** How many times the plugin wrote each astrolabe.* state key. */
+  stateSets: Record<string, number>
   /** Every plain prompt the plugin submitted. */
   submitted: string[]
   /** Every slash command the plugin ran, as `/name`. */
@@ -225,9 +227,11 @@ export const installTree = (on: On, tree: Tree, cwd: string, seed: Record<string
     return { value: undefined }
   })
   let held: Held | undefined
+  const stateSets: Record<string, number> = {}
   let heldState: Held['state'] | undefined
   let heldMemo: Held['memo'] | undefined
   on('state.set', ($, e, next) => {
+    if (e.plugin === 'astrolabe') stateSets[e.key] = (stateSets[e.key] ?? 0) + 1
     if (e.plugin === 'astrolabe' && e.key === 'speckit') heldState = e.value as Held['state']
     if (e.plugin === 'astrolabe' && e.key === 'memo') heldMemo = e.value as Held['memo']
     held = heldState === undefined || heldMemo === undefined ? undefined : { state: heldState, memo: heldMemo }
@@ -244,7 +248,7 @@ export const installTree = (on: On, tree: Tree, cwd: string, seed: Record<string
     return { value: undefined }
   })
 
-  return { counts, statuses, forbidden, last: () => statuses.at(-1), held: () => held, logs, clock, toasts, store, processes, fetches, prompts, submitted, script }
+  return { counts, statuses, forbidden, last: () => statuses.at(-1), held: () => held, logs, clock, toasts, store, processes, fetches, prompts, submitted, script, stateSets }
 }
 
 /** Answers turn.complete and tool.call beneath the plugin, as the engine would. */

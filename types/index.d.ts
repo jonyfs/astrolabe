@@ -106,6 +106,8 @@ export type SpeckitState = {
   nextCommand?: string
   /** Whether this turn worked on the active feature (speckit-implement ran, or a tool touched it). */
   isWorkingOnActive?: boolean
+  /** The memo version this state was derived from; an older state never overwrites a newer one. */
+  memoVersion?: number
   /** The active feature's tasks, for the pane (the memo stays out of every drawing). */
   activeTasks?: Array<{ id?: string; text: string; isDone: boolean }>
 }

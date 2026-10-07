@@ -41,3 +41,33 @@ describe('concurrent tool calls never lose an update of $.state', () => {
     expect(session.held()?.state.nextCommand).toBe('/speckit-implement')
   })
 })
+
+describe('lean writes (009 FR-002, FR-003)', () => {
+  test('a second Bash call in the same turn writes nothing', async ($, on) => {
+    const session = installTree(on, forty.tree, '/proj')
+    installEngine(on)
+    await startSession($, '/proj')
+    await $.tool.call({ tool: 'Bash', tool_use_id: 'b1', command: 'ls' } as never)
+    const after = { ...session.stateSets }
+    await $.tool.call({ tool: 'Bash', tool_use_id: 'b2', command: 'ls' } as never)
+    await $.tool.call({ tool: 'Edit', tool_use_id: 'e1', file_path: '/proj/src/a.ts', old_string: 'a', new_string: 'b' } as never)
+    const afterEdit = { ...session.stateSets }
+    await $.tool.call({ tool: 'Edit', tool_use_id: 'e2', file_path: '/proj/src/a.ts', old_string: 'b', new_string: 'c' } as never)
+    expect(session.stateSets).toEqual(afterEdit)
+    expect(afterEdit.memo).toBe((after.memo ?? 0) + 1)
+  })
+
+  test('concurrent tasks.md edits leave the drawn state as new as the memo', { timeoutMs: 20_000 }, async ($, on) => {
+    const tree = { ...forty.tree }
+    const session = installTree(on, tree, '/proj')
+    installEngine(on)
+    await startSession($, '/proj')
+    tree['/proj/specs/005-feature-5/tasks.md'] = tasks(1, 1)
+    tree['/proj/specs/007-feature-7/tasks.md'] = tasks(1, 1)
+    const tick = (id: string, dir: string) =>
+      ({ tool: 'Edit', tool_use_id: id, file_path: `/proj/specs/${dir}/tasks.md`, old_string: 'x', new_string: 'y' }) as never
+    await Promise.all([$.tool.call(tick('t5', '005-feature-5')), $.tool.call(tick('t7', '007-feature-7'))])
+    const totals = ['005-feature-5', '007-feature-7'].map(d => session.held()?.state.features.find(f => f.dir === d)?.total)
+    expect(totals).toEqual([2, 2])
+  })
+})
