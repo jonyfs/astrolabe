@@ -65,6 +65,13 @@ The two-step form does the same thing:
 /plugin install astrolabe@astrolabe
 ```
 
+From a shell it is the same two commands (a real capture, on a machine where Astrolabe was not
+installed):
+
+![claude plugin marketplace add and install](docs/images/cli-install.svg)
+
+The four options start unset, which means their defaults (see [Options](#options)).
+
 Installing changes no settings file by itself. Claude Code records the plugin and its
 marketplace in `~/.claude/settings.json` (`enabledPlugins` and `extraKnownMarketplaces`),
 the same as for any plugin, and the mod never writes there.

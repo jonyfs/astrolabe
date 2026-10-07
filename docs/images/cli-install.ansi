@@ -1,0 +1,10 @@
+[38;2;166;227;161m$[0m claude plugin marketplace add jonyfs/astrolabe
+Adding marketplace…SSH not configured, cloning via HTTPS: https://github.com/jonyfs/astrolabe.git
+Refreshing marketplace cache (timeout: 120s)…
+Cloning repository (timeout: 120s): https://github.com/jonyfs/astrolabe.git
+Clone complete, validating marketplace…
+Cleaning up old marketplace cache…
+✔ Successfully added marketplace: astrolabe (declared in user settings)
+[38;2;166;227;161m$[0m claude plugin install astrolabe@astrolabe
+Installing plugin "astrolabe@astrolabe"...✔ Successfully installed plugin: astrolabe@astrolabe (scope: user)
+4 userConfig options not yet set — run /plugin configure astrolabe@astrolabe in Claude Code, or pass --config KEY=VALUE.
