@@ -1,0 +1,17 @@
+{
+  "name": "astrolabe",
+  "owner": { "name": "Jony Santos", "url": "https://github.com/jonyfs" },
+  "metadata": {
+    "description": "Astrolabe, a Claude Code mod that shows live Spec Kit state in the status line."
+  },
+  "plugins": [
+    {
+      "name": "astrolabe",
+      "source": "./",
+      "description": "Live Spec Kit state in the Claude Code status line: active feature, phase and task progress.",
+      "category": "productivity",
+      "homepage": "https://github.com/jonyfs/astrolabe",
+      "license": "MIT"
+    }
+  ]
+}

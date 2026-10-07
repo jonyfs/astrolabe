@@ -1,3 +1,8 @@
+---
+track: full # quick | full
+status: active # active | done | abandoned
+---
+
 # Feature Specification: [FEATURE NAME]
 
 **Feature Branch**: `[###-feature-name]`
