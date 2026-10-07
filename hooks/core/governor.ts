@@ -124,6 +124,10 @@ export const refusal = (d: Decision, ctx: { queuedAs?: string; inFlight?: number
 /** The refusal for a subagent the owner chose to drop (015). */
 export const dropped = (d: Decision): string => `🧭 ${usageText(d)} (${d.band}): dropped at your request; nothing was queued`
 
+/** The prompt that sends one queued subagent again after the person chose to run it now (017). */
+export const runPrompt = (q: QueuedAgent): string =>
+  `The person let one queued subagent run now. Dispatch it again with the Agent tool, with this exact prompt:\n${q.description}: ${q.prompt}`
+
 export const resumePrompt = (queue: readonly QueuedAgent[], usage: string): string =>
   queue.length === 0
     ? `Usage window renewed (${usage}). Continue the work that was paused.`

@@ -244,7 +244,7 @@ reloads the mod right away.
 | `flavor` | `mocha`, `frappe`, `macchiato`, `latte` | `mocha` | The Catppuccin palette for the band. `latte` is the light one. |
 | `checkUpdates` | `true`, `false` | `true` | The daily update check and its buttons (see [Update notices](#update-notices)). |
 | `governUsage` | `true`, `false` | `true` | Usage governance (see [Usage governance](#usage-governance)). Off, the windows still show. |
-| `askOnLimit` | `true`, `false` | `true` | Before it holds a subagent or pauses Claude, the governor asks you (see [Asked before it holds or pauses](#asked-before-it-holds-or-pauses)). Off, it holds and pauses without asking. |
+| `askOnLimit` | `true`, `false` | `true` | Before it holds a subagent or pauses Claude, the governor asks you (see [Asked when it holds or pauses](#asked-when-it-holds-or-pauses)). Off, it holds and pauses without asking. |
 
 You can also type `/plugin configure astrolabe@astrolabe` in a session, or set them from a
 shell. Options you leave out keep their values:
@@ -479,12 +479,14 @@ Claude, a plugin or a script is refused):
 `allow` takes a target from 90 to 99 and a duration from `30m` to `12h`; it lasts until the
 duration ends or the window resets. It lifts only the window that decided when you typed it, so
 lifting the weekly window leaves the 5-hour window's stop and ceiling where they were. It does
-not lift the hold at 80%; the question below does.
+not lift the hold at 80%; the question below can.
 
-### Asked before it holds or pauses
+### Asked when it holds or pauses
 
-Before the governor queues a subagent at hold, or refuses one of Claude's tools at stop or the
-ceiling, it asks you. The question opens in a pane with the keyboard on it. The arrows move
+When the governor queues a subagent at hold, or refuses one of Claude's tools at stop or the
+ceiling, it refuses at once with the cautious answer and then asks you. Claude Code gives a hook
+10 seconds, so the governor never makes Claude wait for you: Claude is told that you are being
+asked and not to retry. The question opens in a pane with the keyboard on it. The arrows move
 between the answers, Enter picks one, and the first answer, the cautious one, is already
 selected:
 
@@ -497,30 +499,37 @@ selected:
 ↑↓ to choose, Enter to pick. Esc or no answer: the default goes ahead at 12:01:00.
 ```
 
-At stop or the ceiling the answers are `Pause until <reset>`, `Continue for 30 more minutes
-(ceiling 91%)` and `Raise the ceiling to 95% for 2 hours`. Each ceiling is at least two points
-above current usage and at most 99%. An answer that cannot raise the ceiling above current
-usage is left out.
+What each answer does:
 
-If you do not answer within a minute, or you press Esc, the first answer goes ahead: the
-subagent is queued, or Claude pauses, as it would without the question. The governor keeps that
-answer, and `Drop this request`, while the band lasts, so it does not ask again for every call.
-It asks again once usage leaves the band and comes back. `Run this one now` covers only the call
-that asked. Other calls that arrive while the question is open wait for it, and each one gets its
-own question afterwards. A lift ends the questions for as long as it lasts: subagents run one at
-a time for the hour, or tools run until the raised ceiling or the 30 minutes or 2 hours end.
+| Answer | What happens |
+|---|---|
+| `Queue it until <reset>` | The subagent stays queued until the window resets. |
+| `Run this one now` | It leaves the queue, and a prompt tells Claude to send it again; that one call goes through. |
+| `Allow subagents for 1 hour, one at a time` | The queue is sent again, and new subagents run one at a time for the hour. |
+| `Drop this request` | It leaves the queue; later subagents are dropped too while the band lasts. |
+| `Pause until <reset>` | Claude stays paused until the window resets. |
+| `Continue for 30 more minutes (ceiling 91%)` | The ceiling is raised for 30 minutes, and a prompt tells Claude to continue. |
+| `Raise the ceiling to 95% for 2 hours` | The same, for 2 hours. |
+
+Each ceiling is at least two points above current usage and at most 99%. An answer that cannot
+raise the ceiling above current usage is left out. A prompt Astrolabe sends waits until Claude's
+current turn ends.
+
+If you do not answer within a minute, or you press Esc, the pane closes and the first answer
+stands. The governor keeps that answer, and `Drop this request`, while the band lasts, so it does
+not ask again for every call; it asks again once usage leaves the band and comes back. Only one
+question is open at a time. Calls that arrive meanwhile are refused with the cautious answer too,
+and the answer you pick covers them through the queue.
 
 The pane needs 144 columns when nobody asked for it. On a narrower terminal the question shows
-in Claude Code's own question dialog instead. After the minute the default goes ahead and the
-dialog may stay open. A lift you pick there afterwards still applies. A late `Run this one now`
-or `Drop this request` does nothing, because that call was already queued.
+in Claude Code's own question dialog instead. That dialog stays open until you answer it, and
+the answer applies whenever you give it.
 
 Claude cannot pick an answer: it comes from your key press. Hooks and plugins you installed run
 with your trust, though, and one that answers Claude Code's question dialog (a `PreToolUse` hook
 on `AskUserQuestion`) could answer the narrow-terminal question for you. A session with no one at
-the prompt (`claude -p`, the SDK) is never asked: it queues and pauses at once. A running
-subagent is never asked about and never stopped. To turn the questions off, set `askOnLimit` to
-`false`.
+the prompt (`claude -p`, the SDK) is never asked. A running subagent is never asked about and
+never stopped. To turn the questions off, set `askOnLimit` to `false`.
 
 `governUsage` and `askOnLimit` are plugin options. Anything that can run `claude plugin
 configure` can change them, including Claude through Bash when you allow that command, so

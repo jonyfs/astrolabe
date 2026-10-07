@@ -3,8 +3,9 @@ import { describe, expect, test } from 'claude-code/testing'
 import { scenario as halfDone } from '../fixtures/half-done'
 import { installEngine, installTree, startSession } from '../helpers/fake-fs'
 
-// Spec 015: before it holds or pauses, the governor asks the person, and goes ahead with the
-// cautious default after a minute.
+// Specs 015 and 017: when the governor holds or pauses, it refuses at once with the cautious
+// default (a hook has 10 s, so it never waits for a person) and asks the person from a timer;
+// the answer then acts on the queue and the pause.
 const NOW = Date.UTC(2026, 9, 7, 12, 0)
 const ASK_ID = 'astrolabe-usage'
 const reading = (percentUsed: number, resetInMs = 3_600_000) => ({ kind: 'five_hour', percentUsed, resetsAt: new Date(NOW + resetInMs).toISOString() })
@@ -80,14 +81,30 @@ const setup = async ($: never, on: never, placed = true, isInteractive = true) =
   else await ($ as unknown as { session: { start: (e: never) => Promise<unknown> } }).session.start({ cwd: '/proj', surface: 'terminal', isInteractive: false } as never)
   return { session, asks, engine }
 }
-const opens = (asks: { opened: Array<{ id: string }> }) => asks.opened.filter(o => o.id === ASK_ID).length
 
-describe('hold: asked before a subagent is queued (FR-001, FR-003)', () => {
-  test('a focused pane lists the answers, the default first; Run this one now lets it through', async ($, on) => {
-    const { asks } = await setup($ as never, on as never)
+const opens = (asks: { opened: Array<{ id: string }> }) => asks.opened.filter(o => o.id === ASK_ID).length
+const pickIn = async ($: never, value: string) => {
+  const ui = await mountAsk($)
+  await ui.select({ key: 'astrolabe-usage-choice', value })
+  await ui.unmount()
+  await flush()
+}
+/** The question opens from a timer once the refused call has returned. */
+const questionOpens = async (session: { clock: { advance: (ms: number) => Promise<unknown> } }, asks: { opened: Array<{ id: string }> }, count = 1) => {
+  for (let i = 0; i < 50 && opens(asks) < count; i += 1) {
+    await session.clock.advance(0)
+    await flush()
+  }
+}
+
+describe('hold: refused at once, then the person is asked (015, 017)', () => {
+  test('the call is refused without waiting for anyone; the pane lists the answers, the default first', async ($, on) => {
+    const { session, asks } = await setup($ as never, on as never)
     await measure($ as never, reading(83))
-    const pending = $.tool.call(agent('a1'))
-    await until(() => asks.opened.some(o => o.id === ASK_ID))
+    const refused = await $.tool.call(agent('a1'))
+    expect(textOf(refused)).toContain('queued as q1')
+    expect(textOf(refused)).toContain('The person is being asked')
+    await questionOpens(session, asks)
     expect(asks.opened.find(o => o.id === ASK_ID)?.focus).toBe(true)
     const ui = await mountAsk($ as never)
     const body = (await ui.find({ key: 'astrolabe-usage-body' }))?.text ?? ''
@@ -97,220 +114,165 @@ describe('hold: asked before a subagent is queued (FR-001, FR-003)', () => {
     for (const label of ['Queue it until', 'Run this one now', 'Allow subagents for 1 hour, one at a time', 'Drop this request']) {
       expect(drawn).toContain(label)
     }
-    await ui.select({ key: 'astrolabe-usage-choice', value: 'run' })
     await ui.unmount()
-    expect(isRefused(await pending)).toBe(false)
+  })
+
+  test('Run this one now: Claude is told to send it again, and that one call goes through once', async ($, on) => {
+    const { session, asks } = await setup($ as never, on as never)
+    await measure($ as never, reading(83))
+    await $.tool.call(agent('a1'))
+    await questionOpens(session, asks)
+    await pickIn($ as never, 'run')
+    expect(session.submitted).toEqual([
+      'The person let one queued subagent run now. Dispatch it again with the Agent tool, with this exact prompt:\njob a1: do a1',
+    ])
+    expect(isRefused(await $.tool.call(agent('a1')))).toBe(false)
+    expect(textOf(await $.tool.call(agent('a1')))).toContain('queued as')
     expect(asks.closed).toContain(ASK_ID)
   })
 
-  test('no answer for a minute: the default queues it, and the next call queues without asking', async ($, on) => {
+  test('no answer for a minute: the pane closes, the default is remembered, and later calls are not asked', async ($, on) => {
     const { session, asks } = await setup($ as never, on as never)
     await measure($ as never, reading(83))
-    const pending = $.tool.call(agent('a1'))
-    await until(() => asks.opened.length > 0)
+    await $.tool.call(agent('a1'))
+    await questionOpens(session, asks)
     await session.clock.advance(60_000)
-    const refused = await pending
-    expect(textOf(refused)).toContain('(hold): new subagents are queued until')
-    expect(textOf(refused)).toContain('queued as q1')
-    expect(textOf(await $.tool.call(agent('a2')))).toContain('queued as q2')
-    expect(asks.opened.filter(o => o.id === ASK_ID).length).toBe(1)
+    await flush()
+    expect(asks.closed).toContain(ASK_ID)
+    const later = await $.tool.call(agent('a2'))
+    expect(textOf(later)).toContain('queued as q2')
+    expect(textOf(later)).not.toContain('The person is being asked')
+    await session.clock.advance(0)
+    await flush()
+    expect(opens(asks)).toBe(1)
   })
 
-  test('Allow subagents for 1 hour: this one and the next run without asking, one at a time', async ($, on) => {
+  test('Allow subagents for 1 hour: the queue is sent again and new subagents run one at a time', async ($, on) => {
     const { session, asks } = await setup($ as never, on as never)
     await measure($ as never, reading(83, 6 * 3_600_000))
-    const pending = $.tool.call(agent('a1'))
-    await until(() => asks.opened.length > 0)
-    const ui = await mountAsk($ as never)
-    await ui.select({ key: 'astrolabe-usage-choice', value: 'lift' })
-    await ui.unmount()
-    expect(isRefused(await pending)).toBe(false)
+    await $.tool.call(agent('a1'))
+    await questionOpens(session, asks)
+    await pickIn($ as never, 'lift')
+    expect(session.submitted[0]).toContain('1. job a1: do a1')
     expect(isRefused(await $.tool.call(agent('a2')))).toBe(false)
     expect(session.last()).toContain('5h 83% throttle')
-    await session.clock.advance(3_600_000)
-    await measure($ as never, reading(83, 6 * 3_600_000))
-    const after = $.tool.call(agent('a3'))
-    await until(() => asks.opened.filter(o => o.id === ASK_ID).length === 2)
-    await session.clock.advance(60_000)
-    expect(isRefused(await after)).toBe(true)
   })
 
-  test('Drop this request: refused, nothing queued, and remembered for the band', async ($, on) => {
+  test('Drop this request: the call leaves the queue, and later calls are dropped while the band lasts', async ($, on) => {
     const { session, asks } = await setup($ as never, on as never)
     await measure($ as never, reading(83, 600_000))
-    const pending = $.tool.call(agent('a1'))
-    await until(() => asks.opened.length > 0)
-    const ui = await mountAsk($ as never)
-    await ui.select({ key: 'astrolabe-usage-choice', value: 'drop' })
-    await ui.unmount()
-    expect(textOf(await pending)).toContain('dropped at your request')
+    await $.tool.call(agent('a1'))
+    await questionOpens(session, asks)
+    await pickIn($ as never, 'drop')
     expect(textOf(await $.tool.call(agent('a2')))).toContain('dropped at your request')
     await session.clock.advance(700_000)
     await session.clock.settle()
     expect(session.submitted).toEqual([])
   })
 
-  test('calls that arrive while the question is open wait for the same answer', async ($, on) => {
-    const { asks } = await setup($ as never, on as never)
+  test('calls at once are all refused at once, and only one question opens', async ($, on) => {
+    const { session, asks } = await setup($ as never, on as never)
     await measure($ as never, reading(83))
-    const first = $.tool.call(agent('a1'))
-    await until(() => asks.opened.length > 0)
-    const second = $.tool.call(agent('a2'))
+    const results = await Promise.all([$.tool.call(agent('a1')), $.tool.call(agent('a2')), $.tool.call(agent('a3'))])
+    expect(results.every(isRefused)).toBe(true)
+    await questionOpens(session, asks)
+    await session.clock.advance(0)
     await flush()
-    const ui = await mountAsk($ as never)
-    await ui.select({ key: 'astrolabe-usage-choice', value: 'queue' })
-    await ui.unmount()
-    expect(textOf(await first)).toContain('queued as q1')
-    expect(textOf(await second)).toContain('queued as q2')
-    expect(asks.opened.filter(o => o.id === ASK_ID).length).toBe(1)
+    expect(opens(asks)).toBe(1)
   })
 
   test('leaving the band clears what was remembered', async ($, on) => {
     const { session, asks } = await setup($ as never, on as never)
     await measure($ as never, reading(83))
-    const pending = $.tool.call(agent('a1'))
-    await until(() => asks.opened.length > 0)
+    await $.tool.call(agent('a1'))
+    await questionOpens(session, asks)
     await session.clock.advance(60_000)
-    await pending
+    await flush()
     await measure($ as never, reading(3))
     await measure($ as never, reading(84))
-    const again = $.tool.call(agent('a2'))
-    await until(() => asks.opened.filter(o => o.id === ASK_ID).length === 2)
-    await session.clock.advance(60_000)
-    expect(isRefused(await again)).toBe(true)
+    await $.tool.call(agent('a2'))
+    await questionOpens(session, asks, 2)
+    expect(opens(asks)).toBe(2)
   })
 })
 
-describe('several calls at once (FR-006)', () => {
-  test('"Run this one now" runs only the call that asked; the other is asked in turn', async ($, on) => {
+describe('stop and ceiling: refused at once, then the person is asked (015, 017)', () => {
+  test('Continue for 30 more minutes raises the ceiling and tells Claude to continue', async ($, on) => {
     const { session, asks } = await setup($ as never, on as never)
-    await measure($ as never, reading(83))
-    const first = $.tool.call(agent('a1'))
-    await until(() => opens(asks) === 1)
-    const second = $.tool.call(agent('a2'))
-    await flush()
+    await measure($ as never, reading(89))
+    const refused = await $.tool.call(bash())
+    expect(textOf(refused)).toContain('(stop): paused until')
+    await questionOpens(session, asks)
     const ui = await mountAsk($ as never)
-    await ui.select({ key: 'astrolabe-usage-choice', value: 'run' })
+    expect((await ui.find({ key: 'astrolabe-usage-body' }))?.text).toContain('Claude wants to run Bash. What now?')
+    await ui.select({ key: 'astrolabe-usage-choice', value: 'extend' })
     await ui.unmount()
-    expect(isRefused(await first)).toBe(false)
-    await until(() => opens(asks) === 2)
-    await session.clock.advance(60_000)
-    expect(textOf(await second)).toContain('queued as q1')
+    await flush()
+    expect(session.submitted[0]).toContain('Continue the work that was paused')
+    expect(isRefused(await $.tool.call(bash('b2')))).toBe(false)
+    expect(session.last()).toContain('5h 89% hold')
   })
 
-  test('a lift lets the calls through one at a time, the rest queue under cap 1', async ($, on) => {
-    const { asks, engine } = await setup($ as never, on as never)
-    await measure($ as never, reading(83))
-    engine.holdAgents()
-    const calls = [$.tool.call(agent('a1')), $.tool.call(agent('a2')), $.tool.call(agent('a3'))]
-    await until(() => opens(asks) === 1)
-    await flush()
-    const ui = await mountAsk($ as never)
-    await ui.select({ key: 'astrolabe-usage-choice', value: 'lift' })
-    await ui.unmount()
-    const later = await Promise.all(calls.slice(1))
-    expect(later.map(textOf).every(t => t.includes('(throttle, cap 1)'))).toBe(true)
-    engine.releaseAgents()
-    expect(isRefused(await calls[0])).toBe(false)
+  test('Pause until the reset (the default) is remembered: later calls are refused without asking', async ($, on) => {
+    const { session, asks } = await setup($ as never, on as never)
+    await measure($ as never, reading(89))
+    await $.tool.call(bash())
+    await questionOpens(session, asks)
+    await pickIn($ as never, 'pause')
+    const later = await $.tool.call(bash('b2'))
+    expect(textOf(later)).toContain('(stop): paused until')
+    expect(textOf(later)).not.toContain('The person is being asked')
     expect(opens(asks)).toBe(1)
   })
 
-  test('a tool at stop never takes the answer of an open hold question', async ($, on) => {
-    const { asks } = await setup($ as never, on as never)
-    await measure($ as never, reading(83))
-    const subagent = $.tool.call(agent('a1'))
-    await until(() => opens(asks) === 1)
-    await measure($ as never, reading(89))
-    const shell = $.tool.call(bash())
-    await flush()
-    let ui = await mountAsk($ as never)
-    await ui.select({ key: 'astrolabe-usage-choice', value: 'lift' })
-    await ui.unmount()
-    await subagent
-    await until(() => opens(asks) === 2)
-    ui = await mountAsk($ as never)
-    expect((await ui.find({ key: 'astrolabe-usage-body' }))?.text).toContain('Claude wants to run Bash')
-    await ui.select({ key: 'astrolabe-usage-choice', value: 'pause' })
-    await ui.unmount()
-    expect(textOf(await shell)).toContain('(stop): paused until')
-  })
-})
-
-describe('no one at the prompt (-p, SDK)', () => {
-  test('queues and pauses at once, without asking', async ($, on) => {
-    const { asks } = await setup($ as never, on as never, true, false)
-    await measure($ as never, reading(83))
-    expect(textOf(await $.tool.call(agent('a1')))).toContain('queued as q1')
-    await measure($ as never, reading(89))
-    expect(textOf(await $.tool.call(bash()))).toContain('(stop): paused until')
-    expect(asks.opened).toEqual([])
-  })
-})
-
-describe('stop and ceiling: asked before the main thread pauses (FR-002)', () => {
-  test('Continue for 30 more minutes raises the ceiling for 30 minutes and lets the tool run', async ($, on) => {
+  test('a running subagent is never asked about, nor stopped', async ($, on) => {
     const { session, asks } = await setup($ as never, on as never)
     await measure($ as never, reading(89))
-    const pending = $.tool.call(bash())
-    await until(() => asks.opened.length > 0)
-    const ui = await mountAsk($ as never)
-    const body = (await ui.find({ key: 'astrolabe-usage-body' }))?.text ?? ''
-    expect(body).toContain('Claude wants to run Bash. What now?')
-    await ui.select({ key: 'astrolabe-usage-choice', value: 'extend' })
-    await ui.unmount()
-    expect(isRefused(await pending)).toBe(false)
-    expect(isRefused(await $.tool.call(bash('b2')))).toBe(false)
-    expect(session.last()).toContain('5h 89% hold')
-    await session.clock.advance(30 * 60_000 + 1)
-    const later = $.tool.call(bash('b3'))
-    await until(() => asks.opened.filter(o => o.id === ASK_ID).length === 2)
-    await session.clock.advance(60_000)
-    expect(isRefused(await later)).toBe(true)
-  })
-
-  test('Pause until the reset (the default) refuses this call and the next ones without asking', async ($, on) => {
-    const { asks } = await setup($ as never, on as never)
-    await measure($ as never, reading(89))
-    const pending = $.tool.call(bash())
-    await until(() => asks.opened.length > 0)
-    const ui = await mountAsk($ as never)
-    await ui.select({ key: 'astrolabe-usage-choice', value: 'pause' })
-    await ui.unmount()
-    expect(textOf(await pending)).toContain('(stop): paused until')
-    expect(textOf(await $.tool.call(bash('b2')))).toContain('(stop): paused until')
-    expect(asks.opened.filter(o => o.id === ASK_ID).length).toBe(1)
-  })
-
-  test('a running subagent is never asked about, nor stopped', async ($, on) => {
-    const { asks } = await setup($ as never, on as never)
-    await measure($ as never, reading(89))
     expect(isRefused(await $.tool.call({ tool: 'Bash', tool_use_id: 'sb', command: 'npm test', agentId: 'a-1' } as never))).toBe(false)
+    await session.clock.advance(0)
+    await flush()
     expect(asks.opened).toEqual([])
   })
 })
 
-describe('narrow terminal: the engine dialog asks instead (FR-003, FR-004)', () => {
-  test('the dialog answer applies; a late lift still applies after the default went ahead', async ($, on) => {
+describe('narrow terminal: the engine dialog asks instead (015, 017)', () => {
+  test('a dialog answer applies whenever it comes, even after the minute', async ($, on) => {
     const { session, asks } = await setup($ as never, on as never, false)
     await measure($ as never, reading(83))
-    const pending = $.tool.call(agent('a1'))
-    await until(() => asks.asked.length > 0)
+    expect(textOf(await $.tool.call(agent('a1')))).toContain('queued as q1')
+    for (let i = 0; i < 50 && asks.asked.length === 0; i += 1) {
+      await session.clock.advance(0)
+      await flush()
+    }
     expect(asks.asked[0]).toContain('(hold): a new subagent, "job a1". What now?')
     await session.clock.advance(60_000)
-    expect(textOf(await pending)).toContain('queued as q1')
+    await flush()
     asks.answer('Allow subagents for 1 hour, one at a time')
     await until(() => session.last()?.includes('throttle') === true)
     expect(isRefused(await $.tool.call(agent('a2')))).toBe(false)
   })
 })
 
-describe('askOnLimit off (FR-008)', () => {
-  test('queues and pauses at once, as before', { options: { askOnLimit: false } }, async ($, on) => {
-    const { asks } = await setup($ as never, on as never)
+describe('no one asked', () => {
+  test('-p or the SDK: refused at once, never asked', async ($, on) => {
+    const { session, asks } = await setup($ as never, on as never, true, false)
     await measure($ as never, reading(83))
     expect(textOf(await $.tool.call(agent('a1')))).toContain('queued as q1')
     await measure($ as never, reading(89))
     expect(textOf(await $.tool.call(bash()))).toContain('(stop): paused until')
+    await session.clock.advance(0)
+    await flush()
+    expect(asks.opened).toEqual([])
+  })
+
+  test('askOnLimit off: queues and pauses as before', { options: { askOnLimit: false } }, async ($, on) => {
+    const { session, asks } = await setup($ as never, on as never)
+    await measure($ as never, reading(83))
+    expect(textOf(await $.tool.call(agent('a1')))).toContain('queued as q1')
+    await measure($ as never, reading(89))
+    expect(textOf(await $.tool.call(bash()))).toContain('(stop): paused until')
+    await session.clock.advance(0)
+    await flush()
     expect(asks.opened).toEqual([])
     expect(asks.asked).toEqual([])
   })
