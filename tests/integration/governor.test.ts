@@ -2,6 +2,7 @@ import { describe, expect, test } from 'claude-code/testing'
 
 import { scenario as halfDone } from '../fixtures/half-done'
 import { completeTurn, installEngine, installTree, startSession } from '../helpers/fake-fs'
+import { installPaneEngine, installRenderEngine, mountPane } from '../helpers/render'
 
 const NOW = Date.UTC(2026, 9, 7, 12, 0)
 const reading = (percentUsed: number, resetInMs = 3_600_000) => ({ kind: 'five_hour', percentUsed, resetsAt: new Date(NOW + resetInMs).toISOString() })
@@ -136,5 +137,59 @@ describe('running subagents are never stopped (SC-001)', () => {
     await measure($ as never, reading(83))
     const nested = await $.tool.call({ ...(agent('n1') as object), agentId: 'a-1' } as never)
     expect(isRefused(nested)).toBe(true)
+  })
+})
+
+describe('parity with the usage-governor skill (016)', () => {
+  const sevenDay = (percentUsed: number) => ({ kind: 'seven_day', percentUsed, resetsAt: new Date(NOW + 5 * 24 * 3600_000).toISOString() })
+
+  test('hysteresis: the queue waits until usage drops below 75%, not 80%', { options: { askOnLimit: false } }, async ($, on) => {
+    const { session } = await setup($ as never, on as never)
+    await measure($ as never, reading(83))
+    await $.tool.call(agent('a1'))
+    await measure($ as never, reading(77))
+    expect(session.submitted).toEqual([])
+    expect(session.last()).toContain('5h 77% hold')
+    await measure($ as never, reading(74))
+    expect(session.submitted[0]).toContain('1. job a1: do a1')
+  })
+
+  test('/astrolabe allow lifts only the window that was full', async ($, on) => {
+    await setup($ as never, on as never)
+    await measure($ as never, reading(91))
+    await $.command.run({ command: 'astrolabe', args: 'allow 95 2h', origin: { kind: 'composer' } } as never)
+    expect(isRefused(await $.tool.call(bash))).toBe(false)
+    await measure($ as never, reading(50), sevenDay(91))
+    expect(isRefused(await $.tool.call(bash))).toBe(true)
+  })
+
+  test('after the reset time, before a new reading, subagents run one at a time', { options: { askOnLimit: false } }, async ($, on) => {
+    const { session, engine } = await setup($ as never, on as never)
+    await measure($ as never, reading(95, 600_000))
+    await session.clock.advance(700_000)
+    expect(session.last()).toContain('5h renewed')
+    engine.holdAgents()
+    const first = $.tool.call(agent('a1'))
+    for (let i = 0; i < 200; i += 1) await Promise.resolve()
+    expect(textOf(await $.tool.call(agent('a2')))).toContain('(throttle, cap 1)')
+    engine.releaseAgents()
+    expect(isRefused(await first)).toBe(false)
+  })
+
+  test('the pane\'s Session tab shows the governor', async ($, on) => {
+    const session = installTree(on, halfDone.tree, '/proj')
+    installEngine(on)
+    installRenderEngine(on as never)
+    installPaneEngine(on as never)
+    await session.clock.set(NOW)
+    await startSession($, '/proj')
+    await measure($ as never, reading(42), sevenDay(83))
+    const ui = await mountPane($ as never, 'terminal')
+    await ui.press('tab-session')
+    const body = await ui.body()
+    expect(body).toContain('usage         5h 42% · 7d 83%: hold')
+    expect(body).toContain('subagents     0 running, cap 0')
+    await ui.unmount()
+    expect(session.logs).toEqual([])
   })
 })

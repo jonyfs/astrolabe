@@ -451,9 +451,15 @@ Astrolabe adds the fuller one to the status entry and acts on it:
 |---|---|---|---|
 | ok | below 60% | up to 6 at once | run |
 | throttle | 60% to 80%, or a burn rate that would reach 80% before the reset | 3 at once below 70%, then 1 | run |
-| hold | 80% or more | you are asked; by default refused and queued | run |
+| hold | 80% or more, and down to 75% in the window that reached 80% | you are asked; by default refused and queued | run |
 | stop | 88% or more | refused and queued | you are asked; by default only read-only tools (Read, Grep, Glob, LS, WebFetch, WebSearch, TodoWrite, Skill) |
 | ceiling | 90% or more | refused and queued | you are asked; by default only read-only tools |
+
+Each window is banded on its own and the one in the highest band decides, then the fuller one.
+Once a window reaches 80%, it stays in hold until it falls below 75%, so usage that moves around
+80% does not hold and release subagents again and again. When a window's reset time passes,
+Astrolabe does not know the new percentage until Claude Code sends the next reading: the status
+entry says `5h renewed` and subagents run one at a time until then.
 
 A refused call tells Claude why and when the window resets, for example
 `🧭 usage 5h 83% (hold): new subagents are queued until 14:00; queued as q1`. When the window
@@ -471,7 +477,8 @@ Claude, a plugin or a script is refused):
 ```
 
 `allow` takes a target from 90 to 99 and a duration from `30m` to `12h`; it lasts until the
-duration ends or the window resets. It does not lift the hold at 80%; the question below does.
+duration ends or the window resets. It lifts only the window that was fullest when you typed it:
+lifting the weekly window leaves the 5-hour window's stop and ceiling where they were. It does not lift the hold at 80%; the question below does.
 
 ### Asked before it holds or pauses
 
@@ -517,6 +524,23 @@ subagent is never asked about and never stopped. To turn the questions off, set 
 Off a subscription (an API key) there are no windows, so nothing is shown or refused. To keep
 the readings but turn the governing off, set `governUsage` to `false`. If this project also
 has the usage-governor skill's hooks installed, they govern too; keep one of the two.
+
+The `/astrolabe` pane's Session tab shows the governor: the windows and the band, the subagents
+running against the cap, the queue, an override and a lift with the time each one ends:
+
+```text
+usage         5h 42% · 7d 83%: hold
+subagents     0 running, cap 0
+queue         1 waiting: q1 Full review
+override      ceiling 95% on 7d until 14:00
+```
+
+Compared with the usage-governor skill, Astrolabe has its bands, caps, burn-rate projection,
+hysteresis, per-window overrides, queue and resume, and asks before it holds or pauses. It leaves
+out what does not fit a mod: thresholds you change in a config file (Claude could change a plugin
+option itself), its own `/usage` probe (Claude Code sends the windows after every turn), a ramp
+for the queue after a reset (one subagent at a time until the next reading does that), a command
+line, an audit log, and Codex and Copilot.
 
 ## Where it works
 

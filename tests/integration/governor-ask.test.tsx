@@ -118,7 +118,7 @@ describe('hold: asked before a subagent is queued (FR-001, FR-003)', () => {
 
   test('Allow subagents for 1 hour: this one and the next run without asking, one at a time', async ($, on) => {
     const { session, asks } = await setup($ as never, on as never)
-    await measure($ as never, reading(83))
+    await measure($ as never, reading(83, 6 * 3_600_000))
     const pending = $.tool.call(agent('a1'))
     await until(() => asks.opened.length > 0)
     const ui = await mountAsk($ as never)
@@ -128,7 +128,7 @@ describe('hold: asked before a subagent is queued (FR-001, FR-003)', () => {
     expect(isRefused(await $.tool.call(agent('a2')))).toBe(false)
     expect(session.last()).toContain('5h 83% throttle')
     await session.clock.advance(3_600_000)
-    await measure($ as never, reading(83))
+    await measure($ as never, reading(83, 6 * 3_600_000))
     const after = $.tool.call(agent('a3'))
     await until(() => asks.opened.filter(o => o.id === ASK_ID).length === 2)
     await session.clock.advance(60_000)

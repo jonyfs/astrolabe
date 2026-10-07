@@ -68,6 +68,9 @@ session that made them.
   in a focused pane (or Claude Code's dialog on a narrow terminal) and goes ahead with the
   cautious default after a minute. `askOnLimit` turns it off; `-p` runs are never asked.
 
+- Spec 016 (0.11.0): what the usage-governor skill had and Astrolabe lacked: per-window bands
+  and overrides, hysteresis down to 75%, renewed windows, and the governor in the pane.
+
 ## Still open
 
 - **Desktop app images**: Claude Code documents that it raises the band, the spinner and the pane
