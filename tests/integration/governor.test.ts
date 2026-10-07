@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'claude-code/testing'
 
 import { scenario as halfDone } from '../fixtures/half-done'
+import { clockOf } from '../../hooks/core/governor'
 import { completeTurn, installEngine, installTree, startSession } from '../helpers/fake-fs'
 import { installPaneEngine, installRenderEngine, mountPane } from '../helpers/render'
 
@@ -33,9 +34,11 @@ describe('windows in the status entry (US1)', () => {
   test('the highest window joins the status entry', async ($, on) => {
     const { session } = await setup($ as never, on as never)
     await measure($ as never, reading(42))
-    expect(session.last()).toBe('◆ 002 · implement 45% · 5h 42%')
+    // The footer (018) carries the window's reset time.
+    const at = clockOf(new Date(NOW + 3_600_000).toISOString())
+    expect(session.last()).toBe(`◆ 002 · implement 45% · 5h 42% (${at})`)
     await measure($ as never, reading(83))
-    expect(session.last()).toBe('◆ 002 · implement 45% · 5h 83% hold')
+    expect(session.last()).toBe(`◆ 002 · implement 45% · 5h 83% hold (${at})`)
   })
   test('no readings: nothing added, nothing refused', async ($, on) => {
     const { session } = await setup($ as never, on as never)

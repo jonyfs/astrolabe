@@ -5,26 +5,26 @@
 
 ## Phase 1: Setup
 
-- [ ] T001 Add `SessionStats`, `GitState` and the `session` key to the contract in `types/index.d.ts`, re-exported from `hooks/core/types.ts`
-- [ ] T002 Add the `icons` option (`auto`, `nerd`, `emoji`, `ascii`; default `auto`) to `.claude-plugin/plugin.json`
+- [X] T001 Add `SessionStats`, `GitState` and the `session` key to the contract in `types/index.d.ts`, re-exported from `hooks/core/types.ts`
+- [X] T002 Add the `icons` option (`auto`, `nerd`, `emoji`, `ascii`; default `auto`) to `.claude-plugin/plugin.json`
 
 ## Phase 2: Foundational
 
-- [ ] T003 [P] Failing tests for the icon sets and `auto` by surface in `tests/core/icons.test.ts`
-- [ ] T004 [P] Failing tests for the cell grid, its Raster encoding, its Svg and its text form in `tests/core/cells.test.ts`
-- [ ] T005 [P] `hooks/core/icons.ts`
-- [ ] T006 [P] `hooks/core/cells.ts`
+- [X] T003 [P] Failing tests for the icon sets and `auto` by surface in `tests/core/icons.test.ts`
+- [X] T004 [P] Failing tests for the cell grid, its Raster encoding, its Svg and its text form in `tests/core/cells.test.ts`
+- [X] T005 [P] `hooks/core/icons.ts`
+- [X] T006 [P] `hooks/core/cells.ts`
 
 ## Phase 3: User Story 1, the footer (P1)
 
 **Independent test**: one turn in a git repository; the status entry carries every part, in order, and drops from the end when narrow.
 
-- [ ] T007 [P] [US1] Failing tests for the porcelain v2 parser (branch, upstream, ahead, behind, changed, conflicts, detached, no upstream) in `tests/core/git-status.test.ts`
-- [ ] T008 [P] [US1] Failing tests for the footer parts, their order, missing data and fitting at 80, 120 and 200 columns in `tests/core/footer.test.ts`
-- [ ] T009 [US1] Failing integration tests in `tests/integration/footer.test.ts`: model and effort from `turn.step`, context and cost from `session.measure`, the git query once per main turn and never while drawing, a failing git leaving the branch, the duration
-- [ ] T010 [P] [US1] `hooks/core/git-status.ts`
-- [ ] T011 [P] [US1] `hooks/core/footer.ts`
-- [ ] T012 [US1] Wiring in `hooks/register.tsx`: the `turn.step` observer, measure fields, the git query at `turn.complete`, the counters, the last width from drawings, `showStatus` through the footer
+- [X] T007 [P] [US1] Failing tests for the porcelain v2 parser (branch, upstream, ahead, behind, changed, conflicts, detached, no upstream) in `tests/core/git-status.test.ts`
+- [X] T008 [P] [US1] Failing tests for the footer parts, their order, missing data and fitting at 80, 120 and 200 columns in `tests/core/footer.test.ts`
+- [X] T009 [US1] Failing integration tests in `tests/integration/footer.test.ts`: model and effort from `turn.step`, context and cost from `session.measure`, the git query once per main turn and never while drawing, a failing git leaving the branch, the duration
+- [X] T010 [P] [US1] `hooks/core/git-status.ts`
+- [X] T011 [P] [US1] `hooks/core/footer.ts`
+- [X] T012 [US1] Wiring in `hooks/register.tsx`: the `turn.step` observer, measure fields, the git query at `turn.complete`, the counters, the last width from drawings, `showStatus` through the footer
 
 ## Phase 4: User Story 2, icons (P2)
 

@@ -51,6 +51,18 @@
       "description": "Keep subagent fan-out under the 5-hour and weekly windows: cap at 60%, hold new subagents from 80%, pause from 88% and resume after the reset",
       "default": true
     },
+    "icons": {
+      "type": "string",
+      "title": "Icons",
+      "description": "Icons in the footer, band and pane: auto (Nerd Font glyphs in the terminal, emoji in the Desktop app and elsewhere), nerd, emoji or ascii",
+      "default": "auto",
+      "options": [
+        "auto",
+        "nerd",
+        "emoji",
+        "ascii"
+      ]
+    },
     "askOnLimit": {
       "type": "boolean",
       "title": "Ask before holding or pausing",
