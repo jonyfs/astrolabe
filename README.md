@@ -332,10 +332,9 @@ later phase, you see it once per session:
 🧭 002 band-hint is done · next: /speckit-specify
 ```
 
-To decide what is new, Astrolabe keeps each feature's last seen phase in its own store (the
-plugin's JSON file under your Claude Code configuration folder), next to the last update
-check. The first check of each session only updates it, so a change made between sessions
-does not toast. A Spec Kit skill that starts never toasts by itself; only the files count.
+To decide what is new, Astrolabe remembers each feature's last seen phase for the session.
+The first check of a session only records the phases, so a change made between sessions does
+not toast, and two sessions open on the same project each toast on their own. A Spec Kit skill that starts never toasts by itself; only the files count.
 
 To turn the toasts off, pick the `minimal` preset, or `compact` to keep only the drift alarm.
 
@@ -373,8 +372,8 @@ then Astrolabe runs no process and makes no network call.
 Only files inside the Spec Kit root, the nearest folder above the session's directory that
 holds `.specify/`. It never writes a project file. It runs processes and makes one network call
 only for the daily update check (see [Update notices](#update-notices)), and only when you
-click a button does anything get installed. Its own store keeps the phase baseline (see
-[Toasts](#toasts)) and the last update check.
+click a button does anything get installed. Its own store (the plugin's JSON file under your
+Claude Code configuration folder) keeps only the last update check and the updates you hid.
 
 | File | Used for |
 |---|---|
@@ -384,6 +383,12 @@ click a button does anything get installed. Its own store keeps the phase baseli
 | `specs/NNN-name/plan.md` | Only whether it exists. |
 | `specs/NNN-name/tasks.md` | The tasks. |
 | `.git/HEAD` (or the `gitdir:` file of a worktree) | The current branch, read as a file. |
+
+A `spec.md` or `tasks.md` that exists but cannot be read (its permissions, or a lock another
+program holds) shows in the `/astrolabe` pane as `! 002: tasks.md exists but could not be read`,
+and Astrolabe tries it again every turn until a read works. If the session read the file
+before, Astrolabe keeps that text, so the phase does not jump back. A constitution that cannot
+be read also keeps its last text, without a pane row.
 
 ### Which feature is active
 

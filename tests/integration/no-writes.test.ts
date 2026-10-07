@@ -4,7 +4,7 @@ import { scenario as halfDone } from '../fixtures/half-done'
 import { completeTurn, installEngine, installTree, startSession } from '../helpers/fake-fs'
 
 describe('a whole session changes nothing on disk (FR-028, FR-014; 005 FR-002)', () => {
-  test('no fs.write, no env.get, and $.store holds only the phase baseline', async ($, on) => {
+  test('no fs.write, no env.get, and nothing in $.store', async ($, on) => {
     const session = installTree(on, halfDone.tree, halfDone.cwd)
     installEngine(on)
     await startSession($, halfDone.cwd)
@@ -13,19 +13,18 @@ describe('a whole session changes nothing on disk (FR-028, FR-014; 005 FR-002)',
     await $.tool.call({ tool: 'Write', tool_use_id: 'w', file_path: '/proj/src/x.ts', content: 'x' } as never)
     await completeTurn($)
     expect(session.forbidden).toEqual([])
-    // compact shows no phase toasts, so it keeps no baseline either
     expect([...session.store.keys()]).toEqual([])
     expect(session.logs).toEqual([])
   })
 })
 
 describe('with phase toasts on (preset full)', () => {
-  test('$.store holds only the phase baseline', { options: { preset: 'full' } }, async ($, on) => {
+  test('$.store stays empty: the phase baseline lives in the session (013)', { options: { preset: 'full' } }, async ($, on) => {
     const session = installTree(on, halfDone.tree, halfDone.cwd)
     installEngine(on)
     await startSession($, halfDone.cwd)
     await completeTurn($)
     expect(session.forbidden).toEqual([])
-    expect([...session.store.keys()]).toEqual(['baseline:/proj'])
+    expect([...session.store.keys()]).toEqual([])
   })
 })

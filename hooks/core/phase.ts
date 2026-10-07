@@ -22,8 +22,11 @@ export const deriveFeature = (files: FeatureFiles): Feature => {
   const tasks = files.tasks === undefined ? [] : parseTasks(files.tasks)
   const done = tasks.filter(t => t.isDone).length
   const total = tasks.length
-  const warnings: FeatureWarning[] =
-    files.plan && files.spec !== undefined && hasClarification(files.spec) ? ['clarification-after-plan'] : []
+  const warnings: FeatureWarning[] = [
+    ...(files.plan && files.spec !== undefined && hasClarification(files.spec) ? ['clarification-after-plan' as const] : []),
+    ...(files.unreadable?.includes('spec.md') === true ? ['unreadable-spec' as const] : []),
+    ...(files.unreadable?.includes('tasks.md') === true ? ['unreadable-tasks' as const] : []),
+  ]
   const currentTask = currentTaskOf(tasks)
   return {
     id: files.dir.slice(0, 3),

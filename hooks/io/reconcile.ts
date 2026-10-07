@@ -27,7 +27,9 @@ export const reconcileStart = async (fs: Fs, cwd: string, previous: Held | undef
     window: previous?.memo.window ?? emptyWindow(),
   }
   if (root === undefined) return deriveSpeckitState({ featureJson: { kind: 'missing' }, features: [] }, memo, now)
-  const snapshot = await readSnapshot(fs, root, 'full')
+  // Same root (a reload): the last read stands in for a file that cannot be read now.
+  const last = previous?.state.root === root ? previous.memo : undefined
+  const snapshot = await readSnapshot(fs, root, 'full', last?.files, last?.base)
   const carried = previous?.memo.currentTask === undefined ? memo : { ...memo, currentTask: previous.memo.currentTask }
   return deriveSpeckitState(snapshot, carried, now)
 }
@@ -40,12 +42,14 @@ export const reconcileTurn = async (fs: Fs, cwd: string, previous: Held | undefi
   if (!(await fs.exists(joinPath(root, '.specify')).catch(() => false))) return reconcileStart(fs, cwd, previous, now)
   const { runningSkill: _skill, ...kept } = previous.memo
   const memo: SessionMemo = { ...kept, touched: [], window: emptyWindow() }
-  const dirs = unique([previous.state.active?.dir, ...previous.memo.touched])
-  const snapshot = await readSnapshot(fs, root, { dirs }, previous.memo.files)
+  // A feature marked unreadable is tried again each turn, so the mark clears once a read works.
+  const marked = Object.values(previous.memo.files).filter(f => f.unreadable !== undefined).map(f => f.dir)
+  const dirs = unique([previous.state.active?.dir, ...previous.memo.touched, ...marked])
+  const snapshot = await readSnapshot(fs, root, { dirs }, previous.memo.files, previous.memo.base)
   let held = deriveSpeckitState(snapshot, memo, now)
   const active = held.state.active?.dir
   if (active !== undefined && !dirs.includes(active) && previous.memo.files[active] !== undefined) {
-    const fresh = await readFeature(fs, root, active)
+    const fresh = await readFeature(fs, root, active, previous.memo.files[active])
     held = deriveSpeckitState({ ...snapshot, features: snapshot.features.map(f => (f.dir === active ? fresh : f)) }, memo, now)
   }
   return held
@@ -116,7 +120,7 @@ export const applyFileTouch = async (
   const memo: SessionMemo = isTouched ? previous.memo : { ...previous.memo, touched: [...previous.memo.touched, dir] }
   const snapshot = snapshotFromMemo(memo)
   if (!isWrite || !TRACKED.has(location.file) || snapshot === undefined) return { held: isTouched ? previous : { ...previous, memo } }
-  const fresh = await readFeature(fs, root, dir)
+  const fresh = await readFeature(fs, root, dir, previous.memo.files[dir])
   const others = snapshot.features.filter(f => f.dir !== dir)
   const features = [...others, fresh].sort((a, b) => a.dir.localeCompare(b.dir))
   const ticked =

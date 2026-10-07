@@ -48,6 +48,11 @@ export const specsRows = (state: SpeckitState, columns: number): PaneRow[] => {
     if (f.warnings.includes('clarification-after-plan')) {
       rows.push({ key: `warning-${f.id}`, text: `! ${f.id}: [NEEDS CLARIFICATION] left after the plan`, role: 'current' })
     }
+    for (const file of ['spec', 'tasks'] as const) {
+      if (f.warnings.includes(`unreadable-${file}`)) {
+        rows.push({ key: `warning-${f.id}-${file}`, text: `! ${f.id}: ${file}.md exists but could not be read`, role: 'current' })
+      }
+    }
   }
   return rows
 }

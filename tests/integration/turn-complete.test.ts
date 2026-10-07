@@ -144,3 +144,42 @@ describe('turn.complete reconciles with the disk (US2)', () => {
   })
 
 })
+
+describe('a file that cannot be read (013)', () => {
+  test('keeps the phase and progress last read, and the pane names the file', async ($, on) => {
+    const tree = { ...halfDone.tree }
+    const session = installTree(on, tree, '/proj')
+    installEngine(on)
+    await startSession($, '/proj')
+    expect(session.last()).toBe('◆ 002 · implement 45%')
+    session.denied.add('/proj/specs/002-band-hint/tasks.md')
+    session.denied.add('/proj/specs/002-band-hint/spec.md')
+    await completeTurn($)
+    expect(session.last()).toBe('◆ 002 · implement 45%')
+    const feature = session.held()?.state.features.find(f => f.dir === '002-band-hint')
+    expect(feature?.warnings).toEqual(['unreadable-spec', 'unreadable-tasks'])
+    session.denied.clear()
+    await completeTurn($)
+    expect(session.held()?.state.features.find(f => f.dir === '002-band-hint')?.warnings).toEqual([])
+  })
+
+  test('a feature that is not active is read again each turn until the read works', async ($, on) => {
+    const tree = project({
+      constitution: RATIFIED,
+      featureJson: featureJson('specs/002-b'),
+      features: { '001-a': { spec: spec(), plan: true, tasks: tasks(2, 0) }, '002-b': { spec: spec() } },
+    })
+    const session = installTree(on, tree, '/proj')
+    session.denied.add('/proj/specs/001-a/spec.md')
+    installEngine(on)
+    await startSession($, '/proj')
+    const first = () => session.held()?.state.features.find(f => f.dir === '001-a')
+    expect(first()?.warnings).toEqual(['unreadable-spec'])
+    await completeTurn($)
+    expect(first()?.warnings).toEqual(['unreadable-spec'])
+    session.denied.clear()
+    await completeTurn($)
+    expect(first()?.warnings).toEqual([])
+    expect(first()?.phase).toBe('done')
+  })
+})

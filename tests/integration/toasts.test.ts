@@ -21,7 +21,7 @@ const tickT014 = (tree: Record<string, string>) => {
 describe('phase toasts (US1)', () => {
   test('full: a later phase confirmed by the disk toasts once', { options: { preset: 'full' } }, async ($, on) => {
     const tree = planOnly()
-    const session = installTree(on, tree, '/proj', { 'baseline:/proj': { '002-b': 'plan' } })
+    const session = installTree(on, tree, '/proj')
     installEngine(on)
     await startSession($, '/proj')
     expect(session.toasts).toEqual([])
@@ -30,7 +30,19 @@ describe('phase toasts (US1)', () => {
     expect(session.toasts).toEqual(['🧭 002 b moved to tasks · next: /speckit-tasks'])
     await completeTurn($)
     expect(session.toasts.length).toBe(1)
+  })
+
+  test('full: the baseline is the session\'s own, never in $.store (013)', { options: { preset: 'full' } }, async ($, on) => {
+    const tree = planOnly()
+    // Another session on the same root once stored a later phase; it must not hide this move.
+    const session = installTree(on, tree, '/proj', { 'baseline:/proj': { '002-b': 'tasks' } })
+    installEngine(on)
+    await startSession($, '/proj')
+    tree['/proj/specs/002-b/plan.md'] = '# Plan\n'
+    await completeTurn($)
+    expect(session.toasts).toEqual(['🧭 002 b moved to tasks · next: /speckit-tasks'])
     expect(session.store.get('baseline:/proj')).toEqual({ '002-b': 'tasks' })
+    expect([...session.store.keys()]).toEqual(['baseline:/proj'])
   })
 
   test('full: a skill hint alone never toasts', { options: { preset: 'full' } }, async ($, on) => {
@@ -45,7 +57,7 @@ describe('phase toasts (US1)', () => {
   for (const preset of ['compact', 'minimal'] as const) {
     test(`${preset}: no phase toast`, { options: { preset } }, async ($, on) => {
       const tree = planOnly()
-      const session = installTree(on, tree, '/proj', { 'baseline:/proj': { '002-b': 'plan' } })
+      const session = installTree(on, tree, '/proj')
       installEngine(on)
       await startSession($, '/proj')
       tree['/proj/specs/002-b/plan.md'] = '# Plan\n'

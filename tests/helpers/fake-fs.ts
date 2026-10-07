@@ -124,6 +124,8 @@ export type Session = {
   prompts: string[]
   /** Script process.run answers and http.fetch answers for a test. */
   script: { processes: ProcessScript; http: Record<string, { status: number; text: string }>; env: Record<string, string> }
+  /** Tree paths that exist but whose read rejects (EACCES), as a permission error would. */
+  denied: Set<string>
   /** Every toast the plugin raised, in order. */
   toasts: string[]
   /** The plugin's $.store, in memory. */
@@ -142,8 +144,9 @@ export const installTree = (on: On, tree: Tree, cwd: string, seed: Record<string
   // is matched by dropping that drive again.
   const isPosixTree = Object.keys(tree).every(key => key.startsWith('/'))
   const toTree = (path: string) => (isPosixTree ? normalizePath(path).replace(/^[a-z]:(?=\/)/, '') : path)
+  const denied = new Set<string>()
   const fs: Fs = {
-    read: path => rawFs.read(toTree(path)),
+    read: path => (denied.has(toTree(path)) ? Promise.reject(new Error(`EACCES: ${toTree(path)}`)) : rawFs.read(toTree(path))),
     list: path => rawFs.list(toTree(path)),
     exists: path => rawFs.exists(toTree(path)),
   }
@@ -250,7 +253,7 @@ export const installTree = (on: On, tree: Tree, cwd: string, seed: Record<string
     return { value: undefined }
   })
 
-  return { counts, statuses, forbidden, last: () => statuses.at(-1), held: () => held, logs, clock, toasts, store, processes, fetches, prompts, submitted, script, stateSets }
+  return { counts, statuses, forbidden, last: () => statuses.at(-1), held: () => held, logs, clock, toasts, store, processes, fetches, prompts, submitted, script, stateSets, denied }
 }
 
 /** Answers turn.complete and tool.call beneath the plugin, as the engine would. */

@@ -59,11 +59,12 @@ describe('readSnapshot (full)', () => {
     expect(snap.features).toEqual([])
     expect(snap.featureJson).toEqual({ kind: 'missing' })
   })
-  test('a read that rejects counts as a missing file', async () => {
+  test('a read that rejects for a file that is gone counts as missing', async () => {
     const { fs } = treeFs(tree)
-    const failing = { ...fs, read: (p: string) => (p.endsWith('tasks.md') ? Promise.reject(new Error('EACCES')) : fs.read(p)) }
-    const snap = await readSnapshot(failing, '/proj', 'full')
+    const gone = { ...fs, read: (p: string) => (p.endsWith('tasks.md') ? Promise.reject(new Error('ENOENT')) : fs.read(p)), exists: async (p: string) => !p.endsWith('tasks.md') && fs.exists(p) }
+    const snap = await readSnapshot(gone, '/proj', 'full')
     expect(snap.features[1]?.tasks).toBeUndefined()
+    expect(snap.features[1]?.unreadable).toBeUndefined()
   })
 })
 
@@ -152,5 +153,48 @@ describe('readSnapshot: symlinked feature folders', () => {
       },
     }
     expect((await readSnapshot(dangling, '/proj', 'full')).features.map(f => f.dir)).toEqual(['001-a'])
+  })
+})
+
+describe('readSnapshot: a file that exists but cannot be read (013)', () => {
+  const tree = project({
+    constitution: RATIFIED,
+    featureJson: featureJson('specs/002-b'),
+    features: { '002-b': { spec: spec(), plan: true, tasks: tasks(1, 1) } },
+  })
+  const failing = (fs: ReturnType<typeof treeFs>['fs'], name: string) => ({
+    ...fs,
+    read: (p: string) => (p.endsWith(name) ? Promise.reject(new Error('EACCES')) : fs.read(p)),
+  })
+
+  test('is marked unreadable, not missing', async () => {
+    const { fs } = treeFs(tree)
+    const snap = await readSnapshot(failing(fs, 'tasks.md'), '/proj', 'full')
+    expect(snap.features[0]?.tasks).toBeUndefined()
+    expect(snap.features[0]?.unreadable).toEqual(['tasks.md'])
+    expect(snap.features[0]?.spec).toBeDefined()
+  })
+
+  test('keeps the last text read, so the phase does not go back', async () => {
+    const { fs } = treeFs(tree)
+    const first = await readSnapshot(fs, '/proj', 'full')
+    const previous = Object.fromEntries(first.features.map(f => [f.dir, f]))
+    const snap = await readSnapshot(failing(fs, 'spec.md'), '/proj', { dirs: ['002-b'] }, previous)
+    expect(snap.features[0]?.spec).toBe(first.features[0]?.spec)
+    expect(snap.features[0]?.unreadable).toEqual(['spec.md'])
+  })
+
+  test('a constitution that cannot be read keeps the last one', async () => {
+    const { fs } = treeFs(tree)
+    const snap = await readSnapshot(failing(fs, 'constitution.md'), '/proj', 'full', {}, { constitution: RATIFIED })
+    expect(snap.constitution).toBe(RATIFIED)
+  })
+
+  test('a readable file clears the mark', async () => {
+    const { fs } = treeFs(tree)
+    const bad = await readSnapshot(failing(fs, 'tasks.md'), '/proj', 'full')
+    const previous = Object.fromEntries(bad.features.map(f => [f.dir, f]))
+    const snap = await readSnapshot(fs, '/proj', { dirs: ['002-b'] }, previous)
+    expect(snap.features[0]?.unreadable).toBeUndefined()
   })
 })
