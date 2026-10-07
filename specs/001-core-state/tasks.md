@@ -128,7 +128,7 @@ install shows the entry.
 - [X] T046 Performance check: assert in `tests/integration/turn-complete.test.ts` that one `turn.complete` on the forty-features fixture stays within the read budget, and time `claude plugin test .`
 - [X] T047 Install locally through the folder marketplace (quickstart.md) and confirm the entry appears and `~/.claude/settings.json` is unchanged
 - [X] T048 Capture the real status line from `claude --plugin-dir .` in tmux at 100 and 180 columns into `docs/screens/001-status-100.txt` and `docs/screens/001-status-180.txt` (Quality Gate 4), and reference them from the README
-- [ ] T049 Mark `status: done` in `specs/001-core-state/spec.md` front matter once every task is ticked and the review is clean
+- [X] T049 Mark `status: done` in `specs/001-core-state/spec.md` front matter once every task is ticked and the review is clean
 
 ## Phase 9: Review fixes (full review, 2026-10-07)
 

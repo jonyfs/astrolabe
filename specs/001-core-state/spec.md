@@ -1,6 +1,6 @@
 ---
 track: full
-status: active
+status: done
 ---
 
 # Feature Specification: Core Spec Kit state and first installable release
