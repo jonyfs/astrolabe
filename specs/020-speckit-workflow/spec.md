@@ -23,4 +23,5 @@ status: active # active | done | abandoned
 - [X] T001 Failing tests in `tests/integration/next-command.test.tsx`; stubs for `prompt.suggest` and `ui.copy` in the test helper
 - [X] T002 `nextRow` in `hooks/surfaces/band.tsx`; `runNext`, `copyNext`, `suggestNext` and `/astrolabe next` in `hooks/register.tsx`; dictionary entries
 - [X] T003 README and version 0.14.0
-- [ ] T004 Part two: #15 checklists, #16 `[NEEDS CLARIFICATION]` list, #19 `[P]` tasks, #20 feature-done toast, #21 several roots, #22 extensions, #24 a tick with no test changed
+- [X] T004 Part two (0.15.0): #15 open checklist items in the pane, #16 the count of `[NEEDS CLARIFICATION]` markers in the pane, #20 the feature-done toast names `/speckit-converge`, #24 a test task ticked with no test file changed; tests in `tests/core/workflow-signals.test.ts`
+- [ ] T005 Part three: #19 `[P]` tasks suggested as subagents, #21 several Spec Kit roots, #22 Spec Kit extensions

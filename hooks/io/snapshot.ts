@@ -1,5 +1,6 @@
 // Reads the files the state model needs into a Snapshot. Never throws: a missing file is
 // left out, and a file that exists but cannot be read keeps the last text read (013).
+import { checklistCounts } from '../core/clarification'
 import { joinPath, normalizePath, specsLocation } from '../core/paths'
 import type { FeatureFiles, FeatureJson, Snapshot } from '../core/types'
 
@@ -34,10 +35,11 @@ const textOf = (result: ReadResult, last: string | undefined): string | undefine
 /** One feature's files. `previous` is the last read of it, kept for a file that cannot be read. */
 export const readFeature = async (fs: Fs, root: string, dir: string, previous?: FeatureFiles): Promise<FeatureFiles> => {
   const base = joinPath(root, 'specs', dir)
-  const [specRead, plan, tasksRead] = await Promise.all([
+  const [specRead, plan, tasksRead, checklists] = await Promise.all([
     readResult(fs, joinPath(base, 'spec.md')),
     fs.exists(joinPath(base, 'plan.md')).catch(() => false),
     readResult(fs, joinPath(base, 'tasks.md')),
+    readChecklists(fs, joinPath(base, 'checklists')),
   ])
   const spec = textOf(specRead, previous?.spec)
   const tasks = textOf(tasksRead, previous?.tasks)
@@ -48,7 +50,16 @@ export const readFeature = async (fs: Fs, root: string, dir: string, previous?: 
     plan,
     ...(tasks === undefined ? {} : { tasks }),
     ...(unreadable.length === 0 ? {} : { unreadable }),
+    ...(checklists === undefined ? {} : { checklist: checklists }),
   }
+}
+
+/** The open and total items of a feature's `checklists/*.md`; undefined without that folder. */
+const readChecklists = async (fs: Fs, dir: string): Promise<{ open: number; total: number } | undefined> => {
+  const entries = await fs.list(dir).catch(() => undefined)
+  if (entries === undefined) return undefined
+  const texts = await Promise.all(entries.filter(e => e.kind === 'file' && e.name.endsWith('.md')).map(e => readOrUndefined(fs, joinPath(dir, e.name))))
+  return checklistCounts(texts.filter((t): t is string => t !== undefined))
 }
 
 const listFeatureDirs = async (fs: Fs, root: string): Promise<string[]> => {

@@ -316,8 +316,10 @@ switch tabs right away, and Esc closes it. Later, focus it again with a click or
 
 `▸` marks the active feature. `●` is done, `◐` in progress, and `○` abandoned (drawn dim). Under
 the list come warnings: a `~` line when the active feature was guessed because
-`.specify/feature.json` is broken, and a `!` line for a spec that still has
-`[NEEDS CLARIFICATION` after its plan exists.
+`.specify/feature.json` is broken, a `!` line for a spec that still has
+`[NEEDS CLARIFICATION` after its plan exists, a `?` line with how many markers a spec still has
+before its plan, and a `☐` line with the open items of a feature's `checklists/*.md` until the
+feature is done.
 
 **2 Tasks** lists the active feature's open tasks in file order, after a count:
 
@@ -368,6 +370,13 @@ If the task names files, at least one of them has to have been edited, or the to
 
 ```text
 🧭 T014 was ticked, but none of its files were edited: tests/core/parser.test.ts
+```
+
+A task about tests that names no file, ticked while code changed but no test file did, raises
+one too:
+
+```text
+🧭 T009 was ticked, but no test file changed
 ```
 
 A code file is any file inside the Spec Kit root that is not under `specs/` or `.specify/`,

@@ -28,7 +28,8 @@ session that made them.
 
 - Tests: 318 pass on Ubuntu, macOS and Windows (CI); `claude plugin validate` and `tsc` clean.
 - Reads per turn on a 40-feature project: the active feature's `spec.md` and `tasks.md`,
-  `feature.json`, the constitution, one listing, 4 `exists` checks (tested exactly on the
+  `feature.json`, the constitution, two listings (`specs/` and the feature's `checklists/`, since
+  0.15.0), 4 `exists` checks (tested exactly on the
   fixture). Since 0.9.1 each missing `spec.md`, `tasks.md` or constitution costs one more
   `exists` after the failed read, to tell it from a file that cannot be read.
 - Deriving 100 features with 200 tasks each: about 30 ms in the test engine, and only at

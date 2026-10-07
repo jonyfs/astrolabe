@@ -78,5 +78,9 @@ export const detectDrift = (task: Task, window: DriftWindow, foldCase = false, l
     const isEdited = named.some(p => window.edits.some(e => matches(e, p, foldCase)))
     return isEdited ? undefined : t(lang, 'toast.driftNamed', { task: nameOf(task), files: named.join(', ') })
   }
-  return window.edits.length === 0 ? t(lang, 'toast.drift', { task: nameOf(task) }) : undefined
+  if (window.edits.length === 0) return t(lang, 'toast.drift', { task: nameOf(task) })
+  // A task about tests, ticked with code edited but no test file (020b #24).
+  const isTestTask = /\btests?\b/i.test(task.text)
+  const isTestFile = (path: string) => /(^|\/)(tests?|__tests__|spec)\/|\.(test|spec)\.[a-z0-9]+$/i.test(path)
+  return isTestTask && !window.edits.some(isTestFile) ? t(lang, 'toast.noTest', { task: nameOf(task) }) : undefined
 }

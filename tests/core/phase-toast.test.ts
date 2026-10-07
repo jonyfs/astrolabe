@@ -18,7 +18,7 @@ describe('phaseToasts (FR-001)', () => {
   })
   test('done has its own text', () => {
     expect(phaseToasts([f('002', 'done')], { '002-f002': 'implement' }, [], true).toasts[0]?.text).toBe(
-      '🧭 002 f002 is done · next: /speckit-specify',
+      '🧭 002 f002 is done · next: /speckit-specify · check first: /speckit-converge',
     )
   })
   test('the next command per phase', () => {

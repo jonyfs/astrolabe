@@ -26,6 +26,8 @@ export type FeatureFiles = {
   spec?: string
   plan: boolean
   tasks?: string
+  /** Open and total items across `checklists/*.md` (020b). */
+  checklist?: { open: number; total: number }
   /** Files that exist but whose read failed; their text, if any, is the last one read (013). */
   unreadable?: Array<'spec.md' | 'tasks.md'>
   /** Set once the texts are compacted for the memo (spec 009), so they are not compacted again. */
@@ -46,6 +48,10 @@ export type Feature = {
   total: number
   currentTask?: { id?: string; text: string }
   warnings: FeatureWarning[]
+  /** `[NEEDS CLARIFICATION` markers left in the spec (020b). */
+  clarifications?: number
+  /** Open and total checklist items (020b). */
+  checklist?: { open: number; total: number }
 }
 
 export type FeatureJson =

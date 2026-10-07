@@ -123,7 +123,8 @@ describe('turn.complete reconciles with the disk (US2)', () => {
       ],
       // .specify/ still there, the active plan.md, and the .git walk up to /
       exists: 4,
-      lists: 1,
+      // the specs/ listing, and the active feature's checklists/ folder (020b)
+      lists: 2,
     })
     expect(session.logs).toEqual([])
   })
@@ -140,7 +141,7 @@ describe('turn.complete reconciles with the disk (US2)', () => {
       '/proj/specs/040-feature-40/spec.md',
       '/proj/specs/040-feature-40/tasks.md',
     ])
-    expect([used.exists, used.lists]).toEqual([3, 1])
+    expect([used.exists, used.lists]).toEqual([3, 2])
   })
 
 })

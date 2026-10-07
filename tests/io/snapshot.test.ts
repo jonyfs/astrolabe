@@ -102,7 +102,8 @@ describe('readSnapshot (partial, FR-016)', () => {
     const touched = ['040-feature-40', '007-feature-7']
     const snap = await readSnapshot(fs, '/proj', { dirs: touched }, previous)
     expect(snap.features.length).toBe(40)
-    expect(counts.list).toBe(1)
+    // the specs/ listing, and one checklists/ listing per touched feature (020b)
+    expect(counts.list).toBe(3)
     // feature.json, constitution, plus spec.md and tasks.md per touched feature
     expect(counts.read).toBe(2 + 2 * touched.length)
     // plan.md per touched feature (no .git in this fixture: the branch walk is counted separately)
