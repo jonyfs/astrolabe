@@ -42,7 +42,7 @@ below was accepted as given.
 ### User Story 1 - See every phase at a glance above the prompt (Priority: P1)
 
 A developer in a Spec Kit project sees a band above the prompt, for example
-`◆ 002 band-hint  constitution ● specify ● clarify ● plan ● tasks ● implement ◐  ██████░░░░ 14/31 45%`.
+`◆ 002 band-hint  constitution ● specify ● clarify ● plan ● tasks ● implement ◐  ████░░░░░░ 14/31 45%`.
 Finished steps are filled, the current one is half filled, later ones are empty.
 
 **Why this priority**: The rail is the differentiator of the design and the band is the

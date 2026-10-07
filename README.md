@@ -4,10 +4,10 @@ A Claude Code mod that shows where your session is and where it is heading: the
 project, git and model state from a classic status line, live Spec Kit progress, and
 usage-window governance that keeps subagent fan-out under your plan limits.
 
-> **Status: v0.1.0.** This first release draws one thing, the Spec Kit entry in the status
-> line, described below. The band, prompt hint, spinner, pane, toasts, presets and usage
-> governance arrive in later releases (see [Roadmap](#roadmap)). Progress is tracked as Spec
-> Kit features under `specs/`.
+> **Status: v0.2.0.** Astrolabe draws three things: a band above the prompt with the Spec Kit
+> phase rail, the next command at the end of the prompt hint, and an entry in the status line.
+> The spinner, pane, toasts and usage governance arrive in later releases (see
+> [Roadmap](#roadmap)). Progress is tracked as Spec Kit features under `specs/`.
 
 ## Why "Astrolabe"
 
@@ -139,6 +139,72 @@ when the next turn ends. While a turn runs, an edit or write by Claude to `spec.
 A project with 40 features costs one full read per session and a handful of file reads per
 turn.
 
+## What the band shows
+
+The band is the row directly above the prompt. A real capture at 180 columns
+([docs/screens/002-band-180.txt](docs/screens/002-band-180.txt)):
+
+```text
+◆ 002 band-hint  constitution ● specify ● clarify ● plan ● tasks ● implement ◐  ███████░░░ 14/18 77%
+```
+
+| Part | Example | What it means |
+|---|---|---|
+| Id and name | `◆ 002 band-hint` | The active feature, from `specs/002-band-hint/`. A `~` before the id means the feature was guessed, as in the status entry. |
+| The rail | `constitution ● specify ● … implement ◐` | The six Spec Kit steps in order. `●` is finished, `◐` is the step the feature is in now, `○` is still ahead. The constitution is `●` once it is ratified; while it is missing or still the template it is `◐` and every later step is `○`. |
+| `…` after a mark | `plan ◐…` | A Spec Kit skill for that step is running in this turn. |
+| The bar | `███████░░░` | Ten cells, one per tenth of the tasks ticked, rounded down. It appears once `tasks.md` has tasks. |
+| The count | `14/18 77%` | Ticked tasks, all tasks, and the percentage rounded down. |
+
+A finished feature shows every mark as `●` and a full bar. An abandoned feature named by
+`feature.json` shows `◆ 003 name  abandoned` instead of the rail.
+
+When the band is narrower, it drops detail in this order and never cuts the id: the labels of
+the finished and later steps, then the name, then the bar, then the count, then everything
+but `◆ 002`. In a 100-column terminal it looks like this
+([docs/screens/002-band-100.txt](docs/screens/002-band-100.txt)):
+
+```text
+◆ 002 band-hint  ● ● ● ● ● implement ◐  ███████░░░ 14/18 77%
+```
+
+The band shows nothing of its own when the project has no Spec Kit, when no feature is active
+(the prompt hint then names the command to run), or while a survey uses the band. Whatever
+other mods draw there stays.
+
+## What the prompt hint shows
+
+While the prompt is empty, Astrolabe adds the next Spec Kit command to the end of Claude
+Code's hint line, after whatever is already there:
+
+```text
+⏵⏵ auto mode on (shift+tab to cycle) · next: /speckit-implement · 4 tasks left
+```
+
+The command is the one in the [Phases](#phases) table. In the implement phase it also counts
+the tasks left. It disappears as soon as you type.
+
+## Options
+
+Two options appear in Claude Code's config menu (`/config`, then Astrolabe). Changing one
+reloads the mod right away.
+
+| Option | Values | Default | What it changes |
+|---|---|---|---|
+| `preset` | `minimal`, `compact`, `full` | `compact` | Where Astrolabe draws. `minimal` keeps only the status entry. `compact` adds the band and the prompt hint. `full` is `compact` for now; it will also open the pane by itself on wide screens and show phase toasts when those arrive. |
+| `flavor` | `mocha`, `frappe`, `macchiato`, `latte` | `mocha` | The Catppuccin palette for the band. `latte` is the light one. |
+
+You can also type `/plugin configure astrolabe@astrolabe` in a session, or set them from a
+shell. Options you leave out keep their values:
+
+```sh
+claude plugin configure astrolabe@astrolabe                      # show the current values
+echo '{"preset":"minimal","flavor":"latte"}' | claude plugin configure astrolabe@astrolabe --values-stdin
+```
+
+Colors are sent as hex values. On a terminal without truecolor, Claude Code decides how close a
+color it can show.
+
 ## What Astrolabe reads
 
 Only files inside the Spec Kit root, the nearest folder above the session's directory that
@@ -229,7 +295,6 @@ These are designed and planned, one Spec Kit feature each:
 
 | Release | Adds |
 |---|---|
-| 002 | The band above the prompt with the phase rail, the prompt hint with the next command, presets (`minimal`, `compact`, `full`) and Catppuccin flavors |
 | 003 | The spinner names the task being worked on |
 | 004 | The `/astrolabe` pane with Session, Specs, Usage and Agents tabs |
 | 005 | Toasts when a phase finishes and when a task is ticked with no code edited |
