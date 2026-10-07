@@ -72,3 +72,11 @@ describe('clarification markers in code do not count (010 FR-004)', () => {
     expect(deriveFeature({ dir: '003-x', spec: '- FR-1: [NEEDS CLARIFICATION: which provider?]\n', plan: false }).phase).toBe('clarify')
   })
 })
+
+describe('quick spec progress (021 fix)', () => {
+  test('a quick spec with its own tasks shows them, and done follows its status', () => {
+    const spec = '---\ntrack: quick\nstatus: active\n---\n'
+    const f = deriveFeature({ dir: '012-q', spec, plan: false, tasks: '- [x] T001 a\n- [ ] T002 b\n' })
+    expect([f.phase, f.done, f.total]).toEqual(['implement', 1, 2])
+  })
+})

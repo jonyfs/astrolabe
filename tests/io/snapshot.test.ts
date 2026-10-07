@@ -199,3 +199,18 @@ describe('readSnapshot: a file that exists but cannot be read (013)', () => {
     expect(snap.features[0]?.unreadable).toBeUndefined()
   })
 })
+
+describe('quick specs keep their tasks in spec.md (021 fix)', () => {
+  const quick = (status: string) => `---\ntrack: quick\nstatus: ${status}\n---\n\n# Quick spec\n\n## Tasks\n\n- [X] T001 one\n- [ ] T002 two\n- [ ] T003 three\n\n## Notes\n\n- [ ] not a task: outside the Tasks section\n`
+  test('without tasks.md, the Tasks section of a quick spec is the task list', async () => {
+    const { fs } = treeFs(project({ features: { '012-q': { spec: quick('active') } } }))
+    const snap = await readSnapshot(fs, '/proj', 'full')
+    expect(snap.features[0]?.tasks).toBe('- [X] T001 one\n- [ ] T002 two\n- [ ] T003 three\n')
+  })
+  test('a tasks.md wins; a full spec keeps its section to itself', async () => {
+    const both = treeFs(project({ features: { '012-q': { spec: quick('active'), tasks: '- [ ] T009 real\n' } } }))
+    expect((await readSnapshot(both.fs, '/proj', 'full')).features[0]?.tasks).toBe('- [ ] T009 real\n')
+    const full = treeFs(project({ features: { '013-f': { spec: '# Spec\n\n## Tasks\n\n- [ ] T001 x\n' } } }))
+    expect((await readSnapshot(full.fs, '/proj', 'full')).features[0]?.tasks).toBeUndefined()
+  })
+})

@@ -1,9 +1,9 @@
 ---
 track: quick # quick | full
-status: done # active | done | abandoned
+status: active # active | done | abandoned
 ---
 
-# Quick spec: `/astrolabe help`
+# Quick spec: Commands and keys
 
 **Created**: 2026-10-07 · **Source**: roadmap #39; the owner typed `/astrolabe help` and got only the usage line
 
@@ -20,3 +20,8 @@ status: done # active | done | abandoned
 - [X] T001 Failing tests in `tests/integration/pane.test.tsx`
 - [X] T002 `HELP` and the `help` branch in `hooks/register.tsx`
 - [X] T003 README and version 0.12.1
+- [ ] T004 #41 A keyboard shortcut for the pane
+- [ ] T005 #42 A rich `/astrolabe status` (CommandOutput render)
+- [ ] T006 #43 The Edit row names the task it ticked (ToolUse render)
+- [ ] T007 #47 A first-run tour
+- [ ] T008 #48 A text-only accessible mode

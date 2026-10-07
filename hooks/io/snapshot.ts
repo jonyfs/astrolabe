@@ -1,6 +1,7 @@
 // Reads the files the state model needs into a Snapshot. Never throws: a missing file is
 // left out, and a file that exists but cannot be read keeps the last text read (013).
 import { checklistCounts } from '../core/clarification'
+import { parseFrontMatter } from '../core/front-matter'
 import { joinPath, normalizePath, specsLocation } from '../core/paths'
 import type { FeatureFiles, FeatureJson, Snapshot } from '../core/types'
 
@@ -42,7 +43,8 @@ export const readFeature = async (fs: Fs, root: string, dir: string, previous?: 
     readChecklists(fs, joinPath(base, 'checklists')),
   ])
   const spec = textOf(specRead, previous?.spec)
-  const tasks = textOf(tasksRead, previous?.tasks)
+  // A quick spec keeps its tasks in its own `## Tasks` section when there is no tasks.md (021).
+  const tasks = textOf(tasksRead, previous?.tasks) ?? quickTasks(spec)
   const unreadable = [...('unreadable' in specRead ? ['spec.md' as const] : []), ...('unreadable' in tasksRead ? ['tasks.md' as const] : [])]
   return {
     dir,
@@ -52,6 +54,17 @@ export const readFeature = async (fs: Fs, root: string, dir: string, previous?: 
     ...(unreadable.length === 0 ? {} : { unreadable }),
     ...(checklists === undefined ? {} : { checklist: checklists }),
   }
+}
+
+/** The checkbox lines of a quick spec's `## Tasks` section; undefined for any other spec. */
+const quickTasks = (spec: string | undefined): string | undefined => {
+  if (spec === undefined || parseFrontMatter(spec).track !== 'quick') return undefined
+  const lines = spec.split(/\r?\n/)
+  const start = lines.findIndex(l => /^##\s+Tasks\s*$/i.test(l))
+  if (start < 0) return undefined
+  const end = lines.findIndex((l, i) => i > start && /^#{1,2}\s/.test(l))
+  const items = lines.slice(start + 1, end < 0 ? undefined : end).filter(l => /^\s*[-*+]\s+\[[ xX]\]/.test(l))
+  return items.length === 0 ? undefined : `${items.join('\n')}\n`
 }
 
 /** The open and total items of a feature's `checklists/*.md`; undefined without that folder. */
