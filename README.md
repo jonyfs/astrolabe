@@ -216,7 +216,8 @@ count. Astrolabe only adds the part after the word:
 | `1s` | How long this task has been the first open one, counted from when Astrolabe first saw it this session: `45s`, `12m` or `1h 5m`. |
 
 It shows only during a turn that works on the active feature, meaning `/speckit-implement` was
-called or a tool edited a file in the feature's folder during the turn. Other turns keep the
+called, or Claude read or edited a file in the feature's folder during the turn. A read counts
+from the moment it starts, so the narration shows early in a short turn. Other turns keep the
 plain spinner. When Claude Code shows its own message on the spinner (while compacting, for
 example), that message wins.
 

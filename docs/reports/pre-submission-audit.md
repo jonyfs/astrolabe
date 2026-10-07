@@ -67,8 +67,8 @@ session that made them.
 - **Desktop app images**: Claude Code documents that it raises the band, the spinner and the pane
   in the Desktop app's Code tab, but no capture from the app exists. It needs the app open on
   `docs/demo/`.
-- **Spinner narration starts late**: it shows only after `/speckit-implement` runs or a tool
-  touches the feature in the turn, so in a short turn it appears for a second or two.
+- ~~Spinner narration starts late~~: done in spec 014 (0.9.2). A Read of the active feature's
+  files now starts it, before the read runs; it costs no disk read and one state write per turn.
 - **Two governors in this repository**: the usage-governor skill's hooks in
   `.claude/settings.local.json` and Astrolabe both gate tool calls here. Keep one.
 - ~~Smaller items from the 001 and 005 reviews~~: done in spec 013 (0.9.1). A file that exists
