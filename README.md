@@ -296,7 +296,7 @@ The current values, from a shell:
 
 ## The /astrolabe pane
 
-Type `/astrolabe` to open a pane with four tabs. In a fullscreen terminal it docks at the
+Type `/astrolabe` to open a pane with four tabs (`/astrolabe help` lists every command and key). In a fullscreen terminal it docks at the
 right; otherwise it sits above the prompt. It opens with the keyboard on it, so `1` to `4`
 switch tabs right away, and Esc closes it. Later, focus it again with a click or
 `ctrl+x tab`. The tab you pick stays for the session.

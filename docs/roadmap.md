@@ -25,3 +25,4 @@ Added by the owner on 2026-10-07, after the list:
 | 029 | Humanize option | An option that adds a short, revised version of the humanizer rules to Claude's system prompt (`prompt.compose`), so everything Claude writes in the project follows them. |
 | 030 | Model and effort per skill | A table of the best model and effort for each gstack and Spec Kit skill, shown in a tab; in `auto` mode a `turn.step` hook sends the request with that model and effort while the skill runs. |
 | 031 | Terse mode | An option that adds a terse-answer section to the system prompt (levels `lite` and `full`), so Claude writes only what is needed. |
+| 032 | Pull requests tab | A pane tab with the open pull requests, their labels, review state and CI checks (running, passed, failed); a row opens in the browser, and buttons approve, update the branch from its base, and merge when GitHub allows it. Reads through `gh` on a timer and on demand, never while drawing. |

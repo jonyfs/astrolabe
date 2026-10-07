@@ -65,6 +65,20 @@ const PANE_STATE = { plugin: 'astrolabe', key: 'pane' } as const
 const PANE_ID = 'astrolabe'
 const PANE_TITLE = '🧭 Astrolabe'
 const ASK_ID = 'astrolabe-usage'
+// /astrolabe help (025, roadmap #39): the commands, the pane's tabs and their keys.
+const HELP = [
+  'Astrolabe commands:',
+  '  /astrolabe                  open the pane (focused; Esc closes it)',
+  '  /astrolabe help             this list',
+  '  /astrolabe allow <90-99> <30m-12h>   raise stop and the ceiling for the window that decides (typed by you)',
+  '  /astrolabe revoke           end that raise',
+  'Pane tabs (press the number while the pane has the keyboard; ctrl+x tab focuses it):',
+  '  1 Specs      every feature, its phase and progress',
+  '  2 Tasks      the active feature\'s open tasks',
+  '  3 Session    how Astrolabe sees the project, the governor and updates',
+  '  4 Dashboard  the dial, phases, the usage chart and the session\'s numbers',
+  'Options: /config, then Astrolabe (preset, flavor, icons, checkUpdates, governUsage, askOnLimit).',
+].join('\n')
 const ASK = { plugin: 'astrolabe', key: 'ask' } as const
 const DEFAULT_PANE: PaneState = { tab: 'specs', autoOpened: false }
 const UPDATES = { plugin: 'astrolabe', key: 'updates' } as const
@@ -897,9 +911,10 @@ export const register: Register = (on, options) => {
 
   on('command.run', { command: 'astrolabe' }, async ($, e) => {
     const args = e.args.trim()
+    if (args === 'help') return { text: HELP }
     if (args !== '') {
       const parsed = parseAllow(args)
-      if (parsed === undefined) return { text: 'Usage: /astrolabe, /astrolabe allow <90-99> <30m-12h>, /astrolabe revoke' }
+      if (parsed === undefined) return { text: `Unknown: /astrolabe ${args}. Type /astrolabe help for the commands.` }
       // Only the person at the terminal may move the ceiling (spec 008, FR-006).
       if (e.origin?.kind !== 'composer') return { text: '🧭 only you can change the usage ceiling: type the command yourself' }
       const now = await $.clock.now()
