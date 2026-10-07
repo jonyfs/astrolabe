@@ -62,3 +62,20 @@ describe('labels', () => {
     expect(updateLabel({ id: 'speckit-skills', installed: '1', latest: '2' }, true)).toBe('confirm: rewrite .claude/skills/speckit-*')
   })
 })
+
+import { fitUpdateButtons } from '../../hooks/core/updates'
+
+describe('fitUpdateButtons (band width)', () => {
+  const labels = ['gstack 1.91.33.0', 'specify 1.2.0', 'Spec Kit skills 1.2.0', 'astrolabe 0.9.0']
+  test('all fit on a wide band', () => {
+    expect(fitUpdateButtons(labels, 200)).toEqual({ shown: 4, more: 0 })
+  })
+  test('a narrow band keeps what fits and counts the rest', () => {
+    // "updates: " (9) + "[ gstack 1.91.33.0 ]" (20) + "[ specify 1.2.0 ]" (17) + " +2" (3) = 49
+    expect(fitUpdateButtons(labels, 49)).toEqual({ shown: 2, more: 2 })
+    expect(fitUpdateButtons(labels, 48)).toEqual({ shown: 1, more: 3 })
+  })
+  test('at least one button shows, so the row stays usable', () => {
+    expect(fitUpdateButtons(labels, 10)).toEqual({ shown: 1, more: 3 })
+  })
+})

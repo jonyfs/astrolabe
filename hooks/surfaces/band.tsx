@@ -4,6 +4,7 @@ import type { ElementTable } from 'claude-code'
 
 import type { Segment } from '../core/band'
 import type { Tokens } from '../core/theme'
+import { fitUpdateButtons } from '../core/updates'
 
 export const bandRow = (
   { Box, Text }: Pick<ElementTable<'terminal' | 'desktop'>, 'Box' | 'Text'>,
@@ -25,11 +26,16 @@ export const updatesRow = (
   buttons: ReadonlyArray<{ key: string; label: string }>,
   tokens: Tokens,
   onPress: (key: string) => Promise<void>,
-) => (
-  <Box key="astrolabe-updates" flexDirection="row">
-    <Text color={tokens.muted}>updates: </Text>
-    {buttons.map(b => (
-      <Button key={b.key} label={b.label} onPress={() => onPress(b.key)} />
-    ))}
-  </Box>
-)
+  columns: number,
+) => {
+  const { shown, more } = fitUpdateButtons(buttons.map(b => b.label), columns)
+  return (
+    <Box key="astrolabe-updates" flexDirection="row">
+      <Text color={tokens.muted}>updates: </Text>
+      {buttons.slice(0, shown).map(b => (
+        <Button key={b.key} label={b.label} onPress={() => onPress(b.key)} />
+      ))}
+      {more > 0 && <Text color={tokens.muted}>{` +${more}`}</Text>}
+    </Box>
+  )
+}
