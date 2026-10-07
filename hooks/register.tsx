@@ -2,8 +2,13 @@
 // The engine follows $ only into functions declared in this file, so every $ call lives here.
 import type { EngineInterface, Register } from 'claude-code'
 
+import { bandSegments } from './core/band'
+import { hintTail } from './core/hint'
+import { presetOf } from './core/presets'
+import { themeOf } from './core/theme'
 import type { Fs } from './io/fs-port'
 import { applyFileTouch, applySkill, type Held, reconcileStart, reconcileTurn } from './io/reconcile'
+import { bandRow } from './surfaces/band'
 import { statusText } from './surfaces/status'
 
 const SPECKIT = { plugin: 'astrolabe', key: 'speckit' } as const
@@ -49,7 +54,10 @@ async function touchFile($: EngineInterface, path: string, isWrite: boolean): Pr
   await guarded($, async previous => (previous === undefined ? undefined : applyFileTouch(fs, previous, path, isWrite, now)))
 }
 
-export const register: Register = on => {
+export const register: Register = (on, options) => {
+  const preset = presetOf(options)
+  const tokens = themeOf(options)
+
   on('session.start', async ($, e, next) => {
     const result = await next(e)
     const fs = fsOf($)
@@ -95,4 +103,28 @@ export const register: Register = on => {
     await touchFile($, e.notebook_path, false)
     return result
   }).catch(($, e, next) => next(e))
+
+  // Drawing reads only $.state (Principle XII); a reconcile's write redraws these sites.
+  on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
+    if (!preset.band || e.props.hasSurvey) return next(e)
+    const { value } = await $.state.get(SPECKIT)
+    const segments = value === undefined ? [] : bandSegments(value.state, e.props.bodyColumns)
+    if (segments.length === 0) return next(e)
+    const { Box, Text } = $.ui.resolve(e)
+    return (
+      <Box flexDirection="column">
+        {bandRow({ Box, Text }, segments, tokens)}
+        {await next(e)}
+      </Box>
+    )
+  })
+
+  on('ui.render', { component: 'PromptHint' }, async ($, e, next) => {
+    if (!preset.hint) return next(e)
+    const { value } = await $.state.get(SPECKIT)
+    const ours = value === undefined ? undefined : hintTail(value.state, e.props.isDraft)
+    if (ours === undefined) return next(e)
+    const tail = e.props.tail === undefined ? ours : `${e.props.tail} · ${ours}`
+    return next({ ...e, props: { ...e.props, tail } })
+  })
 }

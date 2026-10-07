@@ -1,11 +1,43 @@
 {
   "name": "astrolabe",
-  "version": "0.1.0",
-  "description": "Live Spec Kit state in the Claude Code status line: active feature, phase and task progress.",
-  "author": { "name": "Jony Santos" },
+  "version": "0.2.0",
+  "description": "Live Spec Kit state in Claude Code: a phase rail above the prompt, the next command in the prompt hint, and a status line entry.",
+  "author": {
+    "name": "Jony Santos"
+  },
   "homepage": "https://github.com/jonyfs/astrolabe",
   "repository": "https://github.com/jonyfs/astrolabe",
   "license": "MIT",
-  "keywords": ["mod", "status", "spec-kit", "statusline"],
-  "types": "./types/index.d.ts"
+  "keywords": [
+    "mod",
+    "status",
+    "spec-kit",
+    "statusline"
+  ],
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "preset": {
+      "type": "string",
+      "title": "Preset",
+      "description": "Where Astrolabe draws: minimal (status line only), compact (status, band and hint) or full (compact plus the pane and toasts as they arrive)",
+      "default": "compact",
+      "options": [
+        "minimal",
+        "compact",
+        "full"
+      ]
+    },
+    "flavor": {
+      "type": "string",
+      "title": "Flavor",
+      "description": "Catppuccin flavor for the band colors",
+      "default": "mocha",
+      "options": [
+        "mocha",
+        "frappe",
+        "macchiato",
+        "latte"
+      ]
+    }
+  }
 }
