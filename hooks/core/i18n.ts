@@ -5,6 +5,9 @@ export const LANGS = ['en', 'pt-BR', 'es', 'fr'] as const
 export type Lang = (typeof LANGS)[number]
 
 const EN = {
+  'pane.questions': '? {id}: {n} [NEEDS CLARIFICATION] markers to answer (/speckit-clarify)',
+  'pane.checklist': '☐ {id}: {open} of {total} checklist items open',
+  'toast.noTest': '🧭 {task} was ticked, but no test file changed',
   'next.copy': 'copy',
   'next.copied': 'Copied {cmd}',
   'next.none': 'No next command here: Spec Kit is not set up, or nothing is open.',
@@ -73,7 +76,7 @@ const EN = {
   'ask.raise': 'Raise the ceiling to {n}% for 2 hours',
   'ask.theReset': 'the reset',
   'ask.footer': '↑↓ to choose, Enter to pick. Esc or no answer: the default goes ahead at {at}.',
-  'toast.done': '🧭 {id} {name} is done · next: {next}',
+  'toast.done': '🧭 {id} {name} is done · next: {next} · check first: /speckit-converge',
   'toast.moved': '🧭 {id} {name} moved to {phase} · next: {next}',
   'toast.driftNamed': '🧭 {task} was ticked, but none of its files were edited: {files}',
   'toast.drift': '🧭 {task} was ticked with no code edited since the last tick',
@@ -100,6 +103,9 @@ export type TextKey = keyof typeof EN
 type Dictionary = Readonly<Record<TextKey, string>>
 
 const PT_BR: Dictionary = {
+  'pane.questions': '? {id}: {n} marcadores [NEEDS CLARIFICATION] para responder (/speckit-clarify)',
+  'pane.checklist': '☐ {id}: {open} de {total} itens de checklist em aberto',
+  'toast.noTest': '🧭 {task} foi marcada, mas nenhum arquivo de teste mudou',
   'next.copy': 'copiar',
   'next.copied': '{cmd} copiado',
   'next.none': 'Nenhum próximo comando aqui: o Spec Kit não está configurado, ou não há nada aberto.',
@@ -168,7 +174,7 @@ const PT_BR: Dictionary = {
   'ask.raise': 'Subir o teto para {n}% por 2 horas',
   'ask.theReset': 'o reset',
   'ask.footer': '↑↓ escolhe, Enter confirma. Esc ou sem resposta: o padrão segue às {at}.',
-  'toast.done': '🧭 {id} {name} está concluída · próximo: {next}',
+  'toast.done': '🧭 {id} {name} está concluída · próximo: {next} · confira antes: /speckit-converge',
   'toast.moved': '🧭 {id} {name} passou para {phase} · próximo: {next}',
   'toast.driftNamed': '🧭 {task} foi marcada, mas nenhum dos arquivos dela foi editado: {files}',
   'toast.drift': '🧭 {task} foi marcada sem nenhum código editado desde a última marcação',
@@ -192,6 +198,9 @@ const PT_BR: Dictionary = {
 }
 
 const ES: Dictionary = {
+  'pane.questions': '? {id}: {n} marcadores [NEEDS CLARIFICATION] por responder (/speckit-clarify)',
+  'pane.checklist': '☐ {id}: {open} de {total} ítems de checklist abiertos',
+  'toast.noTest': '🧭 {task} se marcó, pero ningún archivo de prueba cambió',
   'next.copy': 'copiar',
   'next.copied': '{cmd} copiado',
   'next.none': 'No hay un siguiente comando aquí: Spec Kit no está configurado, o no hay nada abierto.',
@@ -260,7 +269,7 @@ const ES: Dictionary = {
   'ask.raise': 'Subir el techo a {n}% por 2 horas',
   'ask.theReset': 'el reinicio',
   'ask.footer': '↑↓ para elegir, Enter para confirmar. Esc o sin respuesta: sigue el valor por defecto a las {at}.',
-  'toast.done': '🧭 {id} {name} está terminada · siguiente: {next}',
+  'toast.done': '🧭 {id} {name} está terminada · siguiente: {next} · revisa antes: /speckit-converge',
   'toast.moved': '🧭 {id} {name} pasó a {phase} · siguiente: {next}',
   'toast.driftNamed': '🧭 {task} se marcó, pero ninguno de sus archivos se editó: {files}',
   'toast.drift': '🧭 {task} se marcó sin código editado desde la última marca',
@@ -284,6 +293,9 @@ const ES: Dictionary = {
 }
 
 const FR: Dictionary = {
+  'pane.questions': '? {id} : {n} marqueurs [NEEDS CLARIFICATION] à traiter (/speckit-clarify)',
+  'pane.checklist': '☐ {id} : {open} éléments de checklist ouverts sur {total}',
+  'toast.noTest': "🧭 {task} a été cochée, mais aucun fichier de test n'a changé",
   'next.copy': 'copier',
   'next.copied': '{cmd} copié',
   'next.none': "Pas de commande suivante ici : Spec Kit n'est pas configuré, ou rien n'est ouvert.",
@@ -352,7 +364,7 @@ const FR: Dictionary = {
   'ask.raise': 'Monter le plafond à {n} % pendant 2 heures',
   'ask.theReset': 'la remise à zéro',
   'ask.footer': '↑↓ pour choisir, Entrée pour valider. Échap ou sans réponse : le choix par défaut part à {at}.',
-  'toast.done': '🧭 {id} {name} est terminée · suivant : {next}',
+  'toast.done': '🧭 {id} {name} est terminée · suivant : {next} · vérifiez avant : /speckit-converge',
   'toast.moved': '🧭 {id} {name} est passée à {phase} · suivant : {next}',
   'toast.driftNamed': "🧭 {task} a été cochée, mais aucun de ses fichiers n'a été modifié : {files}",
   'toast.drift': '🧭 {task} a été cochée sans code modifié depuis la dernière coche',

@@ -1,5 +1,5 @@
 // Derives one feature's phase and progress from its files (FR-005). Pure: no $.
-import { hasClarification } from './clarification'
+import { clarificationCount, hasClarification } from './clarification'
 import { parseFrontMatter } from './front-matter'
 import { currentTaskOf, parseTasks } from './tasks-parser'
 import type { Feature, FeatureFiles, FeatureWarning, FrontMatter, Phase } from './types'
@@ -39,5 +39,7 @@ export const deriveFeature = (files: FeatureFiles): Feature => {
     total,
     ...(currentTask === undefined ? {} : { currentTask }),
     warnings,
+    ...(files.spec === undefined || clarificationCount(files.spec) === 0 ? {} : { clarifications: clarificationCount(files.spec) }),
+    ...(files.checklist === undefined || files.checklist.total === 0 ? {} : { checklist: files.checklist }),
   }
 }

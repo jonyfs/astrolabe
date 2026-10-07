@@ -1,6 +1,6 @@
 // What the session memo keeps of each file (spec 009): only what derivation reads, so the
 // memo stays small however large the specs are. Pure: no $.
-import { hasClarification } from './clarification'
+import { clarificationCount } from './clarification'
 import { classifyConstitution } from './constitution'
 import { parseTasks } from './tasks-parser'
 import type { FeatureFiles } from './types'
@@ -12,7 +12,8 @@ export const compactSpec = (text: string): string => {
   const lines = text.split(/\r?\n/)
   const end = lines[0]?.trim() === '---' ? lines.findIndex((l, i) => i > 0 && l.trimEnd() === '---') : -1
   const front = end > 0 ? `${lines.slice(0, end + 1).join('\n')}\n` : ''
-  return hasClarification(text) ? `${front}${CLARIFICATION}]\n` : front
+  // One marker line per marker, so the count survives (020b).
+  return `${front}${`${CLARIFICATION}]\n`.repeat(clarificationCount(text))}`
 }
 
 /** The task lines alone, re-written in one canonical form. */
@@ -36,5 +37,6 @@ export const compactFiles = (files: FeatureFiles): FeatureFiles =>
         ...(files.spec === undefined ? {} : { spec: compactSpec(files.spec) }),
         ...(files.tasks === undefined ? {} : { tasks: compactTasks(files.tasks) }),
         ...(files.unreadable === undefined ? {} : { unreadable: files.unreadable }),
+        ...(files.checklist === undefined ? {} : { checklist: files.checklist }),
         compact: true,
       }

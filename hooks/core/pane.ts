@@ -49,6 +49,12 @@ export const specsRows = (state: SpeckitState, columns: number, lang: Lang = 'en
     if (f.warnings.includes('clarification-after-plan')) {
       rows.push({ key: `warning-${f.id}`, text: tr(lang, 'pane.clarifyLeft', { id: f.id }), role: 'current' })
     }
+    if (f.clarifications !== undefined && !f.warnings.includes('clarification-after-plan')) {
+      rows.push({ key: `questions-${f.id}`, text: tr(lang, 'pane.questions', { id: f.id, n: f.clarifications }), role: 'current' })
+    }
+    if (f.checklist !== undefined && f.checklist.open > 0 && f.phase !== 'done' && f.phase !== 'abandoned') {
+      rows.push({ key: `checklist-${f.id}`, text: tr(lang, 'pane.checklist', { id: f.id, open: f.checklist.open, total: f.checklist.total }), role: 'current' })
+    }
     for (const file of ['spec', 'tasks'] as const) {
       if (f.warnings.includes(`unreadable-${file}`)) {
         rows.push({ key: `warning-${f.id}-${file}`, text: tr(lang, 'pane.unreadable', { id: f.id, file: `${file}.md` }), role: 'current' })
