@@ -235,7 +235,7 @@ the tasks left. It disappears as soon as you type.
 
 ## Options
 
-Four options appear in Claude Code's config menu (`/config`, then Astrolabe). Changing one
+Five options appear in Claude Code's config menu (`/config`, then Astrolabe). Changing one
 reloads the mod right away.
 
 | Option | Values | Default | What it changes |
@@ -244,6 +244,7 @@ reloads the mod right away.
 | `flavor` | `mocha`, `frappe`, `macchiato`, `latte` | `mocha` | The Catppuccin palette for the band. `latte` is the light one. |
 | `checkUpdates` | `true`, `false` | `true` | The daily update check and its buttons (see [Update notices](#update-notices)). |
 | `governUsage` | `true`, `false` | `true` | Usage governance (see [Usage governance](#usage-governance)). Off, the windows still show. |
+| `askOnLimit` | `true`, `false` | `true` | Before it holds a subagent or pauses Claude, the governor asks you (see [Asked before it holds or pauses](#asked-before-it-holds-or-pauses)). Off, it holds and pauses without asking. |
 
 You can also type `/plugin configure astrolabe@astrolabe` in a session, or set them from a
 shell. Options you leave out keep their values:
@@ -450,9 +451,9 @@ Astrolabe adds the fuller one to the status entry and acts on it:
 |---|---|---|---|
 | ok | below 60% | up to 6 at once | run |
 | throttle | 60% to 80%, or a burn rate that would reach 80% before the reset | 3 at once below 70%, then 1 | run |
-| hold | 80% or more | refused and queued | run |
-| stop | 88% or more | refused and queued | only read-only tools (Read, Grep, Glob, LS, WebFetch, WebSearch, TodoWrite, Skill) |
-| ceiling | 90% or more | refused and queued | only read-only tools |
+| hold | 80% or more | you are asked; by default refused and queued | run |
+| stop | 88% or more | refused and queued | you are asked; by default only read-only tools (Read, Grep, Glob, LS, WebFetch, WebSearch, TodoWrite, Skill) |
+| ceiling | 90% or more | refused and queued | you are asked; by default only read-only tools |
 
 A refused call tells Claude why and when the window resets, for example
 `🧭 usage 5h 83% (hold): new subagents are queued until 14:00; queued as q1`. When the window
@@ -470,7 +471,48 @@ Claude, a plugin or a script is refused):
 ```
 
 `allow` takes a target from 90 to 99 and a duration from `30m` to `12h`; it lasts until the
-duration ends or the window resets. New subagents still wait from 80%.
+duration ends or the window resets. It does not lift the hold at 80%; the question below does.
+
+### Asked before it holds or pauses
+
+Before the governor queues a subagent at hold, or refuses one of Claude's tools at stop or the
+ceiling, it asks you. The question opens in a pane with the keyboard on it. The arrows move
+between the answers, Enter picks one, and the first answer, the cautious one, is already
+selected:
+
+```text
+🧭 usage 7d 83% (hold): a new subagent, "Full review". What now?
+❯ Queue it until Mon 07:00
+  Run this one now
+  Allow subagents for 1 hour, one at a time
+  Drop this request
+↑↓ to choose, Enter to pick. Esc or no answer: the default goes ahead at 12:01:00.
+```
+
+At stop or the ceiling the answers are `Pause until <reset>`, `Continue for 30 more minutes
+(ceiling 91%)` and `Raise the ceiling to 95% for 2 hours`. Each ceiling is at least two points
+above current usage and at most 99%. An answer that cannot raise the ceiling above current
+usage is left out.
+
+If you do not answer within a minute, or you press Esc, the first answer goes ahead: the
+subagent is queued, or Claude pauses, as it would without the question. The governor keeps that
+answer, and `Drop this request`, while the band lasts, so it does not ask again for every call.
+It asks again once usage leaves the band and comes back. `Run this one now` covers only the call
+that asked. Other calls that arrive while the question is open wait for it, and each one gets its
+own question afterwards. A lift ends the questions for as long as it lasts: subagents run one at
+a time for the hour, or tools run until the raised ceiling or the 30 minutes or 2 hours end.
+
+The pane needs 144 columns when nobody asked for it. On a narrower terminal the question shows
+in Claude Code's own question dialog instead. After the minute the default goes ahead and the
+dialog may stay open. A lift you pick there afterwards still applies. A late `Run this one now`
+or `Drop this request` does nothing, because that call was already queued.
+
+Claude cannot pick an answer: it comes from your key press. Hooks and plugins you installed run
+with your trust, though, and one that answers Claude Code's question dialog (a `PreToolUse` hook
+on `AskUserQuestion`) could answer the narrow-terminal question for you. A session with no one at
+the prompt (`claude -p`, the SDK) is never asked: it queues and pauses at once. A running
+subagent is never asked about and never stopped. To turn the questions off, set `askOnLimit` to
+`false`.
 
 Off a subscription (an API key) there are no windows, so nothing is shown or refused. To keep
 the readings but turn the governing off, set `governUsage` to `false`. If this project also
