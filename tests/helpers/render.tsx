@@ -27,6 +27,7 @@ export const installRenderEngine = (on: On) => {
       handed.message = props.message
       return <Text>{`${props.message ?? props.word}${props.suffix}`}</Text>
     }
+    if (e.component === 'TurnDuration') return <Text>{(e.props as { word: string }).word}</Text>
     if (e.component === 'PromptHint') {
       handed.tail = (e.props as { tail?: string }).tail
       return <Text>{(e.props as { hint: string }).hint}</Text>

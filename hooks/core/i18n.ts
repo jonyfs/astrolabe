@@ -5,6 +5,14 @@ export const LANGS = ['en', 'pt-BR', 'es', 'fr'] as const
 export type Lang = (typeof LANGS)[number]
 
 const EN = {
+  'kpi.slowest': 'slowest task',
+  'kpi.estimate': 'estimate',
+  'kpi.estimateValue': 'about {time} for {n} open tasks',
+  'kpi.week': 'this week',
+  'kpi.weekValue': '{tasks} tasks, {features} features done',
+  'session.governor': 'governor',
+  'turn.tasks': '{n} tasks done',
+  'log.resumed': 'resumed: {why}',
   'session.otherRoots': 'other roots',
   'root.switched': 'Spec Kit root: {root}',
   'root.none': 'No .specify/ at {path} or above it.',
@@ -110,6 +118,14 @@ export type TextKey = keyof typeof EN
 type Dictionary = Readonly<Record<TextKey, string>>
 
 const PT_BR: Dictionary = {
+  'kpi.slowest': 'tarefa mais lenta',
+  'kpi.estimate': 'previsão',
+  'kpi.estimateValue': 'cerca de {time} para {n} tarefas abertas',
+  'kpi.week': 'esta semana',
+  'kpi.weekValue': '{tasks} tarefas, {features} features concluídas',
+  'session.governor': 'governor',
+  'turn.tasks': '{n} tarefas feitas',
+  'log.resumed': 'retomado: {why}',
   'session.otherRoots': 'outros roots',
   'root.switched': 'Root do Spec Kit: {root}',
   'root.none': 'Nenhum .specify/ em {path} nem acima.',
@@ -212,6 +228,14 @@ const PT_BR: Dictionary = {
 }
 
 const ES: Dictionary = {
+  'kpi.slowest': 'tarea más lenta',
+  'kpi.estimate': 'estimación',
+  'kpi.estimateValue': 'unos {time} para {n} tareas abiertas',
+  'kpi.week': 'esta semana',
+  'kpi.weekValue': '{tasks} tareas, {features} features terminadas',
+  'session.governor': 'governor',
+  'turn.tasks': '{n} tareas hechas',
+  'log.resumed': 'reanudado: {why}',
   'session.otherRoots': 'otras raíces',
   'root.switched': 'Raíz de Spec Kit: {root}',
   'root.none': 'No hay .specify/ en {path} ni más arriba.',
@@ -314,6 +338,14 @@ const ES: Dictionary = {
 }
 
 const FR: Dictionary = {
+  'kpi.slowest': 'tâche la plus lente',
+  'kpi.estimate': 'estimation',
+  'kpi.estimateValue': 'environ {time} pour {n} tâches ouvertes',
+  'kpi.week': 'cette semaine',
+  'kpi.weekValue': '{tasks} tâches, {features} features terminées',
+  'session.governor': 'governor',
+  'turn.tasks': '{n} tâches faites',
+  'log.resumed': 'repris : {why}',
   'session.otherRoots': 'autres racines',
   'root.switched': 'Racine Spec Kit : {root}',
   'root.none': 'Aucun .specify/ dans {path} ni au-dessus.',
