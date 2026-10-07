@@ -26,11 +26,13 @@ export type FeatureFiles = {
   spec?: string
   plan: boolean
   tasks?: string
+  /** Files that exist but whose read failed; their text, if any, is the last one read (013). */
+  unreadable?: Array<'spec.md' | 'tasks.md'>
   /** Set once the texts are compacted for the memo (spec 009), so they are not compacted again. */
   compact?: true
 }
 
-export type FeatureWarning = 'clarification-after-plan'
+export type FeatureWarning = 'clarification-after-plan' | 'unreadable-spec' | 'unreadable-tasks'
 
 export type Feature = {
   id: string
@@ -86,6 +88,8 @@ export type SessionMemo = {
   toasted: string[]
   /** Whether this session's first reconcile set the phase baseline yet. */
   baselined: boolean
+  /** Each feature's phase at the last reconcile, to toast moves forward (005; per session since 013). */
+  baseline?: Record<string, Phase>
 }
 
 /** One main turn's work: code files edited, any Bash or Agent call, and whether drift was toasted. */

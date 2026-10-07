@@ -112,3 +112,10 @@ describe('taskRows without tasks (010)', () => {
     expect(texts(taskRows(quick, emptyMemo(), 10, 80))).toEqual(['No tasks yet: this feature has no tasks.md, or it lists none.'])
   })
 })
+
+describe('specsRows: unreadable files (013)', () => {
+  test('a file that exists but cannot be read is named', () => {
+    const rows = specsRows(state({ features: [f('002', 'band-hint', 'implement', 9, 20, ['unreadable-tasks'])] }), 80)
+    expect(texts(rows)).toContain('! 002: tasks.md exists but could not be read')
+  })
+})

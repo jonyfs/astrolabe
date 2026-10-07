@@ -23,7 +23,7 @@ import {
 import { VERSION } from './core/version'
 import { clockOf, decide, isPaused, isReadOnlyTool, parseAllow, refusal, resumePrompt, usageSegment, type Decision } from './core/governor'
 import { themeOf } from './core/theme'
-import { emptyMemo, type PaneState, type PaneTab, type Phase, type UpdateId, type UpdateItem, type UpdatesState, type UsageState, type UsageReading } from './core/types'
+import { emptyMemo, type PaneState, type PaneTab, type UpdateId, type UpdateItem, type UpdatesState, type UsageState, type UsageReading } from './core/types'
 import type { Preset } from './core/presets'
 import type { Fs } from './io/fs-port'
 import { applyFileTouch, applyShell, applySkill, type Held, reconcileStart, reconcileTurn } from './io/reconcile'
@@ -165,30 +165,26 @@ async function touchFile(
   if (held !== undefined && drift !== undefined && preset.toasts !== 'none') $.ui.toast(drift)
 }
 
-const isPhaseRecord = (value: unknown): value is Record<string, Phase> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value) && Object.values(value).every(v => typeof v === 'string')
-
 /**
- * After a reconcile with `toasts: all`: compare phases with the stored baseline and toast
- * moves forward (005). Writes the store only when the baseline changed, and the memo only
- * on the first reconcile of a session or after a toast.
+ * After a reconcile with `toasts: all`: compare phases with this session's baseline and
+ * toast moves forward (005). The baseline lives in the session memo (013), so two sessions
+ * on one project never hide each other's toasts. Writes the memo only when it changed.
  */
 async function afterReconcile($: EngineInterface, preset: Preset, held: Held | undefined): Promise<void> {
-  const root = held?.state.root
-  if (preset.toasts !== 'all' || held === undefined || root === undefined) return
+  if (preset.toasts !== 'all' || held === undefined || held.state.root === undefined) return
   try {
-    const key = `baseline:${root}`
-    const stored = await $.store.get(key)
-    const baseline = isPhaseRecord(stored) ? stored : {}
+    const baseline = held.memo.baseline ?? {}
     const active = held.state.active
     const nextOf = active !== undefined && held.state.nextCommand !== undefined ? { [active.dir]: held.state.nextCommand } : {}
     const toasted = held.memo.toasted ?? []
     const out = phaseToasts(held.state.features, baseline, toasted, held.memo.baselined === true, nextOf)
-    if (JSON.stringify(out.baseline) !== JSON.stringify(baseline)) await $.store.set(key, out.baseline)
     for (const toast of out.toasts) $.ui.toast(toast.text)
-    if (held.memo.baselined !== true || out.toasted.length !== toasted.length) {
+    const isSame = held.memo.baselined === true && out.toasted.length === toasted.length && JSON.stringify(out.baseline) === JSON.stringify(baseline)
+    if (!isSame) {
       await guarded($, async previous =>
-        previous === undefined ? undefined : { ...previous, memo: { ...previous.memo, baselined: true, toasted: out.toasted } },
+        previous === undefined
+          ? undefined
+          : { ...previous, memo: { ...previous.memo, baselined: true, toasted: out.toasted, baseline: out.baseline } },
       )
     }
   } catch (error) {

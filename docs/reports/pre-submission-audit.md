@@ -28,7 +28,9 @@ session that made them.
 
 - Tests: 318 pass on Ubuntu, macOS and Windows (CI); `claude plugin validate` and `tsc` clean.
 - Reads per turn on a 40-feature project: the active feature's `spec.md` and `tasks.md`,
-  `feature.json`, the constitution, one listing, 4 `exists` checks (tested exactly).
+  `feature.json`, the constitution, one listing, 4 `exists` checks (tested exactly on the
+  fixture). Since 0.9.1 each missing `spec.md`, `tasks.md` or constitution costs one more
+  `exists` after the failed read, to tell it from a file that cannot be read.
 - Deriving 100 features with 200 tasks each: about 30 ms in the test engine, and only at
   session start.
 - Network: one request a day (GitHub releases API), off with `checkUpdates: false`.
@@ -69,7 +71,8 @@ session that made them.
   touches the feature in the turn, so in a short turn it appears for a second or two.
 - **Two governors in this repository**: the usage-governor skill's hooks in
   `.claude/settings.local.json` and Astrolabe both gate tool calls here. Keep one.
-- Smaller items from the 001 and 005 reviews: an unreadable file counts as missing, and two
-  sessions on one root share a baseline. (Stale features are now dropped from the baseline.)
+- ~~Smaller items from the 001 and 005 reviews~~: done in spec 013 (0.9.1). A file that exists
+  but cannot be read keeps its last text and is named in the pane; the phase baseline lives in
+  the session, so `$.store` holds only the update check.
 - ~~The constitution's Principle V gave a wrong reason for not reading `SPECIFY_FEATURE`~~:
   amended to 1.0.1 (wording only).

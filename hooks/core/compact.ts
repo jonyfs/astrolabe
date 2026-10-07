@@ -35,5 +35,6 @@ export const compactFiles = (files: FeatureFiles): FeatureFiles =>
         plan: files.plan,
         ...(files.spec === undefined ? {} : { spec: compactSpec(files.spec) }),
         ...(files.tasks === undefined ? {} : { tasks: compactTasks(files.tasks) }),
+        ...(files.unreadable === undefined ? {} : { unreadable: files.unreadable }),
         compact: true,
       }

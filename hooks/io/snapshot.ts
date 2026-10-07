@@ -1,9 +1,9 @@
-// Reads the files the state model needs into a Snapshot. Never throws: a file that
-// cannot be read counts as missing.
+// Reads the files the state model needs into a Snapshot. Never throws: a missing file is
+// left out, and a file that exists but cannot be read keeps the last text read (013).
 import { joinPath, normalizePath, specsLocation } from '../core/paths'
 import type { FeatureFiles, FeatureJson, Snapshot } from '../core/types'
 
-import { type Fs, readOrUndefined } from './fs-port'
+import { type Fs, readOrUndefined, readResult, type ReadResult } from './fs-port'
 import { readBranch } from './git-branch'
 
 const FEATURE_DIR = /^\d{3}-.+$/
@@ -27,14 +27,28 @@ const parseFeatureJson = (root: string, raw: string | undefined): FeatureJson =>
   return { kind: 'ok', dir: location !== undefined && location.file === '' ? location.dir : normalizePath(dir.trim()) }
 }
 
-export const readFeature = async (fs: Fs, root: string, dir: string): Promise<FeatureFiles> => {
+/** The text read, else the last one kept when the file exists but could not be read. */
+const textOf = (result: ReadResult, last: string | undefined): string | undefined =>
+  'text' in result ? result.text : 'unreadable' in result ? last : undefined
+
+/** One feature's files. `previous` is the last read of it, kept for a file that cannot be read. */
+export const readFeature = async (fs: Fs, root: string, dir: string, previous?: FeatureFiles): Promise<FeatureFiles> => {
   const base = joinPath(root, 'specs', dir)
-  const [spec, plan, tasks] = await Promise.all([
-    readOrUndefined(fs, joinPath(base, 'spec.md')),
+  const [specRead, plan, tasksRead] = await Promise.all([
+    readResult(fs, joinPath(base, 'spec.md')),
     fs.exists(joinPath(base, 'plan.md')).catch(() => false),
-    readOrUndefined(fs, joinPath(base, 'tasks.md')),
+    readResult(fs, joinPath(base, 'tasks.md')),
   ])
-  return { dir, ...(spec === undefined ? {} : { spec }), plan, ...(tasks === undefined ? {} : { tasks }) }
+  const spec = textOf(specRead, previous?.spec)
+  const tasks = textOf(tasksRead, previous?.tasks)
+  const unreadable = [...('unreadable' in specRead ? ['spec.md' as const] : []), ...('unreadable' in tasksRead ? ['tasks.md' as const] : [])]
+  return {
+    dir,
+    ...(spec === undefined ? {} : { spec }),
+    plan,
+    ...(tasks === undefined ? {} : { tasks }),
+    ...(unreadable.length === 0 ? {} : { unreadable }),
+  }
 }
 
 const listFeatureDirs = async (fs: Fs, root: string): Promise<string[]> => {
@@ -53,16 +67,19 @@ const listFeatureDirs = async (fs: Fs, root: string): Promise<string[]> => {
 /**
  * `full` reads every feature. A `{ dirs }` scope re-reads only those features and
  * any feature `previous` does not hold, reusing `previous` for the rest (FR-016).
+ * `last` is the previous snapshot's base, whose constitution stands in for one that
+ * cannot be read.
  */
 export const readSnapshot = async (
   fs: Fs,
   root: string,
   scope: SnapshotScope,
   previous: Readonly<Record<string, FeatureFiles>> = {},
+  last: { constitution?: string } = {},
 ): Promise<Snapshot> => {
-  const [rawFeatureJson, constitution, branch, dirs] = await Promise.all([
+  const [rawFeatureJson, constitutionRead, branch, dirs] = await Promise.all([
     readOrUndefined(fs, joinPath(root, '.specify', 'feature.json')),
-    readOrUndefined(fs, joinPath(root, '.specify', 'memory', 'constitution.md')),
+    readResult(fs, joinPath(root, '.specify', 'memory', 'constitution.md')),
     readBranch(fs, root).catch(() => undefined),
     listFeatureDirs(fs, root),
   ])
@@ -70,9 +87,10 @@ export const readSnapshot = async (
   const features = await Promise.all(
     dirs.map(dir => {
       const cached = previous[dir]
-      return fresh.has(dir) || cached === undefined ? readFeature(fs, root, dir) : Promise.resolve(cached)
+      return fresh.has(dir) || cached === undefined ? readFeature(fs, root, dir, cached) : Promise.resolve(cached)
     }),
   )
+  const constitution = textOf(constitutionRead, last.constitution)
   return {
     root,
     featureJson: parseFeatureJson(root, rawFeatureJson),
