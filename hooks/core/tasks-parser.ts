@@ -8,20 +8,29 @@ const ID = /^\**(T\d+)\**(?=\s|$)/
 export const parseTasks = (text: string): Task[] => {
   const tasks: Task[] = []
   let isFenced = false
-  text.split(/\r?\n/).forEach((raw, index) => {
-    if (FENCE.test(raw)) {
+  let hasId = false
+  const lines = text.split('\n')
+  for (let index = 0; index < lines.length; index += 1) {
+    const raw = lines[index] ?? ''
+    // Cheap filters first: most lines hold neither a fence nor a checkbox.
+    if ((raw.includes('```') || raw.includes('~~~')) && FENCE.test(raw)) {
       isFenced = !isFenced
-      return
+      continue
     }
-    if (isFenced) return
-    const match = CHECKBOX.exec(raw)
-    if (!match) return
+    if (isFenced || !raw.includes('[')) continue
+    const match = CHECKBOX.exec(raw.endsWith('\r') ? raw.slice(0, -1) : raw)
+    if (!match) continue
     const rest = (match[2] ?? '').trim()
-    const id = ID.exec(rest)?.[1]
-    const body = id === undefined ? rest : rest.replace(ID, '').trim()
-    tasks.push({ ...(id === undefined ? {} : { id }), text: body, isDone: match[1] !== ' ', line: index + 1 })
-  })
-  return tasks.some(t => t.id !== undefined) ? tasks.filter(t => t.id !== undefined) : tasks
+    const idMatch = rest.startsWith('T') || rest.startsWith('*') ? ID.exec(rest) : null
+    const isDone = match[1] !== ' '
+    if (idMatch === null) {
+      tasks.push({ text: rest, isDone, line: index + 1 })
+    } else {
+      hasId = true
+      tasks.push({ id: idMatch[1] ?? '', text: rest.slice(idMatch[0].length).trim(), isDone, line: index + 1 })
+    }
+  }
+  return hasId ? tasks.filter(t => t.id !== undefined) : tasks
 }
 
 export const currentTaskOf = (tasks: readonly Task[]): { id?: string; text: string } | undefined => {

@@ -123,11 +123,11 @@ install shows the entry.
 
 ## Phase 8: Polish & cross-cutting
 
-- [ ] T044 Update `README.md` per FR-030: install lines and what follows, the status entry and each of its states, the Spec Kit layout read (front matter, active-feature order), that `SPECIFY_FEATURE` and `SPECIFY_FEATURE_DIRECTORY` are ignored, where it draws nothing, update and uninstall, troubleshooting (`claude --debug`, the dim refusal lines), and what v0.1.0 does not draw yet
-- [ ] T045 Run `claude plugin validate .`, `claude plugin test .` and `npx -p typescript@5 tsc -p .`; fix every failure
-- [ ] T046 Performance check: assert in `tests/integration/turn-complete.test.ts` that one `turn.complete` on the forty-features fixture stays within the read budget, and time `claude plugin test .`
-- [ ] T047 Install locally through the folder marketplace (quickstart.md) and confirm the entry appears and `~/.claude/settings.json` is unchanged
-- [ ] T048 Capture the real status line from `claude --plugin-dir .` in tmux at 100 and 180 columns into `docs/screens/001-status-100.txt` and `docs/screens/001-status-180.txt` (Quality Gate 4), and reference them from the README
+- [X] T044 Update `README.md` per FR-030: install lines and what follows, the status entry and each of its states, the Spec Kit layout read (front matter, active-feature order), that `SPECIFY_FEATURE` and `SPECIFY_FEATURE_DIRECTORY` are ignored, where it draws nothing, update and uninstall, troubleshooting (`claude --debug`, the dim refusal lines), and what v0.1.0 does not draw yet
+- [X] T045 Run `claude plugin validate .`, `claude plugin test .` and `npx -p typescript@5 tsc -p .`; fix every failure
+- [X] T046 Performance check: assert in `tests/integration/turn-complete.test.ts` that one `turn.complete` on the forty-features fixture stays within the read budget, and time `claude plugin test .`
+- [X] T047 Install locally through the folder marketplace (quickstart.md) and confirm the entry appears and `~/.claude/settings.json` is unchanged
+- [X] T048 Capture the real status line from `claude --plugin-dir .` in tmux at 100 and 180 columns into `docs/screens/001-status-100.txt` and `docs/screens/001-status-180.txt` (Quality Gate 4), and reference them from the README
 - [ ] T049 Mark `status: done` in `specs/001-core-state/spec.md` front matter once every task is ticked and the review is clean
 
 ## Dependencies & execution order
