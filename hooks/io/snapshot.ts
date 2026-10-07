@@ -7,7 +7,7 @@ import { parseExtensions } from '../core/extensions'
 import type { ExtensionHook, FeatureFiles, FeatureJson, Snapshot } from '../core/types'
 
 import { type Fs, readOrUndefined, readResult, type ReadResult } from './fs-port'
-import { readBranch } from './git-branch'
+import { readHead } from './git-branch'
 
 const FEATURE_DIR = /^\d{3}-.+$/
 
@@ -102,10 +102,10 @@ export const readSnapshot = async (
   previous: Readonly<Record<string, FeatureFiles>> = {},
   last: { constitution?: string; extensions?: ExtensionHook[]; otherRoots?: string[] } = {},
 ): Promise<Snapshot> => {
-  const [rawFeatureJson, constitutionRead, branch, dirs] = await Promise.all([
+  const [rawFeatureJson, constitutionRead, head, dirs] = await Promise.all([
     readOrUndefined(fs, joinPath(root, '.specify', 'feature.json')),
     readResult(fs, joinPath(root, '.specify', 'memory', 'constitution.md')),
-    readBranch(fs, root).catch(() => undefined),
+    readHead(fs, root).catch(() => ({}) as { branch?: string; worktree?: string }),
     listFeatureDirs(fs, root),
   ])
   const fresh = new Set(scope === 'full' ? dirs : scope.dirs)
@@ -123,7 +123,8 @@ export const readSnapshot = async (
     root,
     featureJson: parseFeatureJson(root, rawFeatureJson),
     ...(constitution === undefined ? {} : { constitution }),
-    ...(branch === undefined ? {} : { branch }),
+    ...(head.branch === undefined ? {} : { branch: head.branch }),
+    ...(head.worktree === undefined ? {} : { worktree: head.worktree }),
     ...(extensions === undefined || extensions.length === 0 ? {} : { extensions }),
     ...(last.otherRoots === undefined || last.otherRoots.length === 0 ? {} : { otherRoots: last.otherRoots }),
     features,

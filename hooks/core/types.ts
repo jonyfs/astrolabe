@@ -13,6 +13,7 @@ export type {
   Feature,
   FeatureJson,
   Snapshot,
+  PullRequest,
   ActiveSource,
   ActiveWarning,
   Active,

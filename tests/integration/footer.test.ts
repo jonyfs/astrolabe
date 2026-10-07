@@ -5,7 +5,7 @@ import { completeTurn, installEngine, installTree, startSession } from '../helpe
 
 // Spec 018 US1: the status entry is the footer that replaces the statusline.
 const NOW = Date.UTC(2026, 9, 7, 12, 0)
-const GIT = 'git status --porcelain=v2 --branch'
+const GIT = 'git status --porcelain=v2 --branch --show-stash'
 const PORCELAIN = '# branch.oid abc1234\n# branch.head main\n# branch.upstream origin/main\n# branch.ab +2 -0\n1 .M N... 1 1 1 a b x.ts\n? y.ts\n'
 const measure = ($: never, extra: Record<string, unknown> = {}) =>
   ($ as unknown as { session: { measure: (e: never) => Promise<unknown> } }).session.measure({
