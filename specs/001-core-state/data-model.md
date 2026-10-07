@@ -1,6 +1,6 @@
 # Data model: Core Spec Kit state
 
-Types live in `hooks/core/types.ts`. Every value is plain JSON data so it can sit in
+Types are declared in `types/index.d.ts` (the self-contained `$.state` contract) and re-exported by `hooks/core/types.ts`. Every value is plain JSON data so it can sit in
 `$.state`.
 
 ## Phase

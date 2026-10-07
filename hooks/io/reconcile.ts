@@ -1,6 +1,6 @@
 // Turns "what happened" into a fresh { state, memo }: reads what the moment calls
 // for (FR-015, FR-016, FR-019) and derives the rest. No $: register.tsx passes an Fs.
-import { featureDirOf, specsLocation } from '../core/paths'
+import { joinPath, specsLocation } from '../core/paths'
 import { skillHint } from '../core/skill-hints'
 import { deriveSpeckitState, snapshotFromMemo } from '../core/speckit'
 import { emptyMemo, type SessionMemo, type SpeckitState } from '../core/types'
@@ -27,6 +27,8 @@ export const reconcileStart = async (fs: Fs, cwd: string, previous: Held | undef
 export const reconcileTurn = async (fs: Fs, cwd: string, previous: Held | undefined, now: number): Promise<Held> => {
   if (previous === undefined || previous.state.root === undefined) return reconcileStart(fs, cwd, previous, now)
   const root = previous.state.root
+  // One check per turn: a root whose .specify/ is gone is looked for again from scratch.
+  if (!(await fs.exists(joinPath(root, '.specify')).catch(() => false))) return reconcileStart(fs, cwd, previous, now)
   const { runningSkill: _skill, ...kept } = previous.memo
   const memo: SessionMemo = { ...kept, touched: [] }
   const dirs = unique([previous.state.active?.dir, ...previous.memo.touched])
@@ -69,8 +71,8 @@ export const applyFileTouch = async (
   const root = previous.state.root
   if (root === undefined) return previous
   const location = specsLocation(root, path)
-  const dir = location?.dir ?? featureDirOf(root, path)
-  if (location === undefined || dir === undefined) return previous
+  if (location === undefined) return previous
+  const dir = location.dir
   const memo: SessionMemo = { ...previous.memo, touched: unique([...previous.memo.touched, dir]) }
   const snapshot = snapshotFromMemo(memo)
   if (!isWrite || !TRACKED.has(location.file) || snapshot === undefined) return { ...previous, memo }

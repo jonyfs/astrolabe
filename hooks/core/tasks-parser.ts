@@ -3,21 +3,24 @@ import type { Task } from './types'
 
 const CHECKBOX = /^\s*[-*]\s+\[( |x|X)\]\s+(.*)$/
 const FENCE = /^\s*(```|~~~)/
-const ID = /^\**(T\d+)\**(?=\s|$)/
+const ID = /^\**(T\d+)\**[:.]?(?=\s|$)/
 
 export const parseTasks = (text: string): Task[] => {
   const tasks: Task[] = []
-  let isFenced = false
+  let fence: string | undefined
   let hasId = false
   const lines = text.split('\n')
   for (let index = 0; index < lines.length; index += 1) {
     const raw = lines[index] ?? ''
     // Cheap filters first: most lines hold neither a fence nor a checkbox.
-    if ((raw.includes('```') || raw.includes('~~~')) && FENCE.test(raw)) {
-      isFenced = !isFenced
-      continue
+    if (raw.includes('```') || raw.includes('~~~')) {
+      const marker = FENCE.exec(raw)?.[1]
+      if (marker !== undefined && (fence === undefined || fence === marker)) {
+        fence = fence === undefined ? marker : undefined
+        continue
+      }
     }
-    if (isFenced || !raw.includes('[')) continue
+    if (fence !== undefined || !raw.includes('[')) continue
     const match = CHECKBOX.exec(raw.endsWith('\r') ? raw.slice(0, -1) : raw)
     if (!match) continue
     const rest = (match[2] ?? '').trim()

@@ -37,3 +37,9 @@ describe('the front matter block the spec template emits (FR-026)', () => {
     expect(parseFrontMatter(header)).toEqual({ track: 'full', status: 'active' })
   })
 })
+
+describe('front matter written by Windows editors', () => {
+  test('a UTF-8 byte order mark before --- is ignored', () => {
+    expect(parseFrontMatter('\uFEFF---\r\nstatus: done\r\n---\r\n# Spec\r\n')).toEqual({ status: 'done' })
+  })
+})

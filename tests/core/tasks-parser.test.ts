@@ -59,3 +59,18 @@ describe('currentTaskOf', () => {
     expect(currentTaskOf(parseTasks('- [x] T001 a\n'))).toBeUndefined()
   })
 })
+
+describe('parseTasks: hand-edited files', () => {
+  test('an id followed by a colon or a period is still an id', () => {
+    const tasks = parseTasks('- [ ] T001: a\n- [ ] T002. b\n- [ ] T003 c\n')
+    expect(tasks.map(t => [t.id, t.text])).toEqual([
+      ['T001', 'a'],
+      ['T002', 'b'],
+      ['T003', 'c'],
+    ])
+  })
+  test('a fence closes only with its own marker', () => {
+    const tasks = parseTasks('- [ ] T001 a\n```md\n~~~\n- [ ] T998 still inside\n```\n- [ ] T002 b\n')
+    expect(tasks.map(t => t.id)).toEqual(['T001', 'T002'])
+  })
+})

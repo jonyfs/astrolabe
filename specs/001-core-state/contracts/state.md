@@ -3,8 +3,9 @@
 ## `types/index.d.ts`
 
 ```ts
-import type { SpeckitState, SessionMemo } from '../hooks/core/types'
-
+// Self-contained: the engine refuses a contract with imports. The state model's types
+// (Phase, Feature, SessionMemo, SpeckitState, ...) are declared and exported in this
+// file, and hooks/core/types.ts re-exports them.
 declare module 'claude-code' {
   interface PluginState {
     astrolabe: { speckit: { state: SpeckitState; memo: SessionMemo } }

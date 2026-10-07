@@ -95,7 +95,7 @@ Each part, from left to right:
 |---|---|---|
 | `⚠ astrolabe:` | | Drawn by Claude Code, not by the mod. It marks a line that a mod wrote, and it names the mod. |
 | `◆` | | The Spec Kit marker. Every Astrolabe entry starts with it. |
-| Feature id | `001` | The three-digit number of the active feature, from its folder name `specs/001-core-state/`. The id is never cut, however narrow the terminal. |
+| Feature id | `001` | The three-digit number of the active feature, from its folder name `specs/001-core-state/`. Every entry is at most 68 characters with the `⚠ astrolabe:` prefix, so it fits whole at 80 columns and wider. |
 | `~` before the id | `~002` | The feature was guessed. `.specify/feature.json` exists but is broken or points at a folder that is not there, so Astrolabe fell back to the git branch or the newest open feature. Fix or delete `feature.json` and the `~` goes away. |
 | Phase | `implement` | The first Spec Kit step this feature has not finished. See [Phases](#phases). |
 | Percentage | `87%` | Ticked tasks out of all tasks in the feature's `tasks.md`, rounded down. 43 of 49 is `87%`. It appears only once `tasks.md` has tasks. |
@@ -108,7 +108,8 @@ The other entries you may see:
 | `◆ no Spec Kit` | No folder from the session's directory up to the filesystem root holds a `.specify/` directory. Nothing else is read. |
 | `◆ no active feature · next: /speckit-specify` | Spec Kit is set up, but every feature is done or abandoned, or there are none yet. The command after `next:` is the one to run. |
 | `◆ no active feature · next: /speckit-constitution` | Same, and the constitution is missing or still the unfilled template. |
-| `◆ 003 · abandoned` | `feature.json` names a feature whose spec says `status: abandoned`. |
+| `◆ 003 · abandoned` | `feature.json` names a feature whose spec says `status: abandoned`. A percentage follows when it has tasks (`◆ 003 · abandoned 40%`). |
+| `◆ 001 · done 100%` | `feature.json` names a finished feature. Run `/speckit-specify` for the next one. |
 
 ### Phases
 

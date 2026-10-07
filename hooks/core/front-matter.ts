@@ -15,7 +15,8 @@ const valueOf = (raw: string): string =>
 
 export const parseFrontMatter = (text: string): FrontMatter => {
   const lines = text.split(/\r?\n/)
-  if (lines[0]?.trimEnd() !== '---') return {}
+  // trim() also drops a UTF-8 byte order mark, which Windows editors often write.
+  if (lines[0]?.trim() !== '---') return {}
   const end = lines.findIndex((line, i) => i > 0 && line.trimEnd() === '---')
   if (end < 0) return {}
   const result: FrontMatter = {}

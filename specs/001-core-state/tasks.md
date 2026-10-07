@@ -130,6 +130,19 @@ install shows the entry.
 - [X] T048 Capture the real status line from `claude --plugin-dir .` in tmux at 100 and 180 columns into `docs/screens/001-status-100.txt` and `docs/screens/001-status-180.txt` (Quality Gate 4), and reference them from the README
 - [ ] T049 Mark `status: done` in `specs/001-core-state/spec.md` front matter once every task is ticked and the review is clean
 
+## Phase 9: Review fixes (full review, 2026-10-07)
+
+- [X] T050 Write a failing regression test in `tests/integration/concurrency.test.ts`: two concurrent `Edit` calls under `005-feature-5` and `007-feature-7` keep both dirs in `memo.touched`, and a concurrent `speckit-analyze` keeps the analyzed flag; then make `guarded` in `hooks/register.tsx` write with `ifVersion` and retry from a fresh read (at most 5 attempts)
+- [X] T051 Replace the wall-clock assertion in `tests/core/performance.test.ts` with a warm-up run and a 500 ms per-run ceiling, keeping the correctness check
+- [X] T052 Make the SC-005 check in `tests/integration/turn-complete.test.ts` exact: the read paths of one turn, the `exists` count, and a variant with `.git/HEAD`
+- [X] T053 Re-check `<root>/.specify` once per turn in `hooks/io/reconcile.ts` and fall back to a full start when it is gone; integration tests for Spec Kit appearing and disappearing mid-session
+- [X] T054 Pin `@anthropic-ai/claude-code@2.1.292` in `.github/workflows/ci.yml` and move to `actions/checkout@v5` and `actions/setup-node@v5`
+- [X] T055 Record the Principle XIV deferrals (tag gate, unpinned marketplace source) in the plan's Complexity Tracking
+- [X] T056 Read front matter after a UTF-8 BOM in `hooks/core/front-matter.ts`
+- [X] T057 Accept `T001:` and `T001.` ids in `hooks/core/tasks-parser.ts`, and close a fence only with its own marker
+- [X] T058 Set the running-skill marker only for main-thread `Skill` calls in `hooks/register.tsx`
+- [X] T059 Fix README and spec artifact drift found by the review (done/abandoned entries with a percentage, the width guarantee, the contract direction, the spec header status)
+
 ## Dependencies & execution order
 
 - Setup (T001 to T004) first; Foundational (T005 to T008) blocks every story.

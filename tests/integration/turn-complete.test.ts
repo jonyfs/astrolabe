@@ -95,17 +95,52 @@ describe('turn.complete reconciles with the disk (US2)', () => {
     expect(session.last()).toBe('◆ 002 · implement 45%')
   })
 
-  test('performance: one turn on 40 features stays within the read budget (SC-005)', async ($, on) => {
+  const budget = async (
+    $: Parameters<typeof completeTurn>[0] & Parameters<typeof startSession>[0],
+    session: ReturnType<typeof installTree>,
+  ) => {
+    await startSession($, '/proj')
+    const reads = session.counts.reads.length
+    const exists = session.counts.exists
+    const lists = session.counts.list
+    await completeTurn($)
+    return {
+      reads: session.counts.reads.slice(reads).sort(),
+      exists: session.counts.exists - exists,
+      lists: session.counts.list - lists,
+    }
+  }
+
+  test('performance: one turn on 40 features reads exactly the active feature (SC-005)', async ($, on) => {
     const session = installTree(on, forty.tree, '/proj')
     installEngine(on)
-    await startSession($, '/proj')
-    const before = { ...session.counts, reads: [...session.counts.reads] }
-    await completeTurn($)
-    const reads = session.counts.read - before.read
-    const lists = session.counts.list - before.list
-    // feature.json + constitution + the active feature's spec.md and tasks.md (+ at most two for git HEAD)
-    expect(reads <= 6).toBe(true)
-    expect(lists).toBe(1)
+    expect(await budget($, session)).toEqual({
+      reads: [
+        '/proj/.specify/feature.json',
+        '/proj/.specify/memory/constitution.md',
+        '/proj/specs/040-feature-40/spec.md',
+        '/proj/specs/040-feature-40/tasks.md',
+      ],
+      // .specify/ still there, the active plan.md, and the .git walk up to /
+      exists: 4,
+      lists: 1,
+    })
     expect(session.logs).toEqual([])
   })
+
+  test('performance: with a git checkout the turn adds the HEAD read', async ($, on) => {
+    const session = installTree(on, { ...forty.tree, '/proj/.git/HEAD': 'ref: refs/heads/main\n' }, '/proj')
+    installEngine(on)
+    const used = await budget($, session)
+    expect(used.reads).toEqual([
+      '/proj/.git',
+      '/proj/.git/HEAD',
+      '/proj/.specify/feature.json',
+      '/proj/.specify/memory/constitution.md',
+      '/proj/specs/040-feature-40/spec.md',
+      '/proj/specs/040-feature-40/tasks.md',
+    ])
+    expect([used.exists, used.lists]).toEqual([3, 1])
+  })
+
 })

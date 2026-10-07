@@ -9,7 +9,7 @@ status: active
 
 **Created**: 2026-10-07
 
-**Status**: Draft
+**Status**: Implemented, review fixes applied
 
 **Input**: User description: "001-core-state — use the 'State model' section and the
 001-core-state roadmap entry of the office-hours design doc
