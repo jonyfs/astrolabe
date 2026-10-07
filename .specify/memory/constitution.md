@@ -1,5 +1,14 @@
 <!--
-Sync Impact Report
+Sync Impact Report (1.0.1)
+- Version change: 1.0.0 → 1.0.1 (PATCH: wording only)
+- Modified principles: V. Disk Is the Truth, Events Are Hints. The rule is unchanged
+  (SPECIFY_FEATURE and SPECIFY_FEATURE_DIRECTORY are not read); its reason is corrected.
+  Claude Code 2.1.292 does offer `$.env.get`; those variables are set in the shells Claude
+  runs, not in Claude Code's own process, so reading them would not tell the active feature.
+- Templates: no change needed.
+- Source: pre-submission audit, docs/reports/pre-submission-audit.md.
+
+Sync Impact Report (1.0.0)
 - Version change: template (unversioned) → 1.0.0
 - Modified principles: none (first ratification; all template placeholders replaced)
 - Added principles:
@@ -105,8 +114,9 @@ that contradicts it. The active feature is resolved in this order: `.specify/fea
 when it names an existing directory, then the git branch when it matches a
 `specs/NNN-<name>/` directory, then the highest-numbered feature that is neither done nor
 abandoned. A malformed or dangling `feature.json` is reported to the user, never silently
-trusted. `SPECIFY_FEATURE` and `SPECIFY_FEATURE_DIRECTORY` are not read, because the
-module has no access to environment variables. A spec's front matter
+trusted. `SPECIFY_FEATURE` and `SPECIFY_FEATURE_DIRECTORY` are not read: Spec Kit sets
+them in the shells Claude runs, not in Claude Code's own process, so they do not say which
+feature is active. A spec's front matter
 (`track: quick|full`, `status: active|done|abandoned`) overrides phase inference when
 present.
 
@@ -237,4 +247,4 @@ Amendments are made only through `/speckit-constitution`, with a written rationa
 Sync Impact Report. Versioning: MAJOR for removing or redefining a principle, MINOR for
 adding a principle or section or materially expanding one, PATCH for wording only.
 
-**Version**: 1.0.0 | **Ratified**: 2026-10-07 | **Last Amended**: 2026-10-07
+**Version**: 1.0.1 | **Ratified**: 2026-10-07 | **Last Amended**: 2026-10-07

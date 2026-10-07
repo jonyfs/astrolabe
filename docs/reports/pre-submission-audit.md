@@ -71,6 +71,5 @@ session that made them.
   `.claude/settings.local.json` and Astrolabe both gate tool calls here. Keep one.
 - Smaller items from the 001 and 005 reviews: an unreadable file counts as missing, and two
   sessions on one root share a baseline. (Stale features are now dropped from the baseline.)
-- The constitution's Principle V says the module cannot read environment variables; Claude Code
-  2.1.292 offers `$.env.get`. The rule it supports still holds (`SPECIFY_FEATURE` is not read),
-  but the stated reason needs a PATCH amendment through `/speckit-constitution`.
+- ~~The constitution's Principle V gave a wrong reason for not reading `SPECIFY_FEATURE`~~:
+  amended to 1.0.1 (wording only).
