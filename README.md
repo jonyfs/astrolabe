@@ -440,14 +440,14 @@ block to new specs.
 ## Usage governance
 
 Claude Code tells the mod how full your 5-hour and weekly windows are after every turn.
-Astrolabe adds the fuller one to the status entry and acts on it:
+Astrolabe adds the window that decides to the status entry and acts on it:
 
 ```text
 ⚠ astrolabe: ◆ 002 · implement 45% · 5h 42%
 ⚠ astrolabe: ◆ 002 · implement 45% · 5h 83% hold
 ```
 
-| Band | Highest window | New subagents (`Agent` calls) | Other tools |
+| Band | Window | New subagents (`Agent` calls) | Other tools |
 |---|---|---|---|
 | ok | below 60% | up to 6 at once | run |
 | throttle | 60% to 80%, or a burn rate that would reach 80% before the reset | 3 at once below 70%, then 1 | run |
@@ -463,7 +463,7 @@ entry says `5h renewed` and subagents run one at a time until then.
 
 A refused call tells Claude why and when the window resets, for example
 `🧭 usage 5h 83% (hold): new subagents are queued until 14:00; queued as q1`. When the window
-resets, or a new reading falls below 80%, Astrolabe sends one prompt that lists the queued
+resets, or a new reading takes it out of hold, Astrolabe sends one prompt that lists the queued
 subagents so Claude dispatches them again, and a paused session continues. A running subagent
 is never stopped. The cap counts subagents running in the foreground; one started in the
 background returns at once and is not counted.
@@ -477,8 +477,9 @@ Claude, a plugin or a script is refused):
 ```
 
 `allow` takes a target from 90 to 99 and a duration from `30m` to `12h`; it lasts until the
-duration ends or the window resets. It lifts only the window that was fullest when you typed it:
-lifting the weekly window leaves the 5-hour window's stop and ceiling where they were. It does not lift the hold at 80%; the question below does.
+duration ends or the window resets. It lifts only the window that decided when you typed it, so
+lifting the weekly window leaves the 5-hour window's stop and ceiling where they were. It does
+not lift the hold at 80%; the question below does.
 
 ### Asked before it holds or pauses
 
@@ -521,6 +522,10 @@ the prompt (`claude -p`, the SDK) is never asked: it queues and pauses at once. 
 subagent is never asked about and never stopped. To turn the questions off, set `askOnLimit` to
 `false`.
 
+`governUsage` and `askOnLimit` are plugin options. Anything that can run `claude plugin
+configure` can change them, including Claude through Bash when you allow that command, so
+review such a call before you approve it.
+
 Off a subscription (an API key) there are no windows, so nothing is shown or refused. To keep
 the readings but turn the governing off, set `governUsage` to `false`. If this project also
 has the usage-governor skill's hooks installed, they govern too; keep one of the two.
@@ -535,12 +540,15 @@ queue         1 waiting: q1 Full review
 override      ceiling 95% on 7d until 14:00
 ```
 
-Compared with the usage-governor skill, Astrolabe has its bands, caps, burn-rate projection,
-hysteresis, per-window overrides, queue and resume, and asks before it holds or pauses. It leaves
-out what does not fit a mod: thresholds you change in a config file (Claude could change a plugin
-option itself), its own `/usage` probe (Claude Code sends the windows after every turn), a ramp
-for the queue after a reset (one subagent at a time until the next reading does that), a command
-line, an audit log, and Codex and Copilot.
+Astrolabe has the usage-governor skill's bands, caps, burn-rate projection, hysteresis,
+per-window overrides, queue and resume, and it asks before it holds or pauses. It leaves out what
+does not fit a mod:
+
+- thresholds in a config file: the mod's options are plugin options, which anything that can run
+  `claude plugin configure` can change;
+- its own `/usage` probe: Claude Code sends the windows after every turn;
+- a ramp for the queue after a reset: one subagent at a time until the next reading does that;
+- a command line, an audit log, and Codex and Copilot.
 
 ## Where it works
 

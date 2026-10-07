@@ -111,7 +111,7 @@ export const isReadOnlyTool = (name: string): boolean => READ_ONLY.has(name)
 export const isPaused = (d: Decision): boolean => d.band === 'stop' || d.band === 'ceiling'
 
 export const refusal = (d: Decision, ctx: { queuedAs?: string; inFlight?: number; resetClock?: string }): string => {
-  const usage = d.highest === undefined ? 'usage' : `usage ${labelOf(d.highest.kind)} ${Math.round(d.highest.percent)}%`
+  const usage = usageText(d)
   const until = ctx.resetClock === undefined ? 'the reset' : ctx.resetClock
   if (isPaused(d)) return `🧭 ${usage} (${d.band}): paused until ${until}; only read-only tools run`
   if (d.band === 'throttle') {
@@ -153,7 +153,11 @@ export const EXTEND_MS = 30 * 60_000
 export const RAISE_MS = 2 * 3_600_000
 
 const usageText = (d: Decision): string =>
-  d.highest === undefined ? 'usage' : `usage ${labelOf(d.highest.kind)} ${Math.round(d.highest.percent)}%`
+  d.highest === undefined
+    ? 'usage'
+    : d.highest.renewed === true
+      ? `usage ${labelOf(d.highest.kind)} renewed`
+      : `usage ${labelOf(d.highest.kind)} ${Math.round(d.highest.percent)}%`
 
 /** A ceiling at least `floor`, two points above usage, at most 99; undefined when that is not above usage. */
 const ceilingFor = (percent: number, floor: number): number | undefined => {

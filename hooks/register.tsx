@@ -118,6 +118,22 @@ async function resume($: EngineInterface, why: string): Promise<void> {
 // next reading or refusal arms a new one.
 let resumeAt: number | undefined
 
+/**
+ * At a window's reset: redraw the status (the window renewed), then resume only if no other
+ * window still holds or pauses; otherwise wait for the reset of the one binding now (016).
+ */
+async function afterReset($: EngineInterface, why: string): Promise<void> {
+  try {
+    const { decision } = await decisionNow($)
+    const speckit = (await $.state.get(SPECKIT)).value
+    if (speckit !== undefined) await showStatus($, speckit)
+    if (decision.band === 'ok' || decision.band === 'throttle') await resume($, why)
+    else await armResume($, decision)
+  } catch (error) {
+    $.ui.log(`astrolabe: ${error instanceof Error ? error.message : String(error)}`, { to: 'debug' })
+  }
+}
+
 async function armResume($: EngineInterface, decision: Decision): Promise<void> {
   const reset = decision.highest?.resetsAt === undefined ? Number.NaN : Date.parse(decision.highest.resetsAt)
   if (Number.isNaN(reset) || resumeAt === reset) return
@@ -126,12 +142,7 @@ async function armResume($: EngineInterface, decision: Decision): Promise<void> 
   const why = `${decision.highest?.kind === 'seven_day' ? '7d' : '5h'} reset`
   $.clock.after(wait, () => {
     resumeAt = undefined
-    void resume($, why)
-    // The window renewed: the status entry says so until the next reading (016).
-    void $.state
-      .get(SPECKIT)
-      .then(({ value }) => (value === undefined ? undefined : showStatus($, value)))
-      .catch(() => undefined)
+    void afterReset($, why)
   })
 }
 

@@ -176,6 +176,29 @@ describe('parity with the usage-governor skill (016)', () => {
     expect(isRefused(await first)).toBe(false)
   })
 
+  test('a reset resumes nothing while another window still pauses', { options: { askOnLimit: false } }, async ($, on) => {
+    const { session } = await setup($ as never, on as never)
+    await measure($ as never, reading(91, 600_000), sevenDay(89))
+    expect(textOf(await $.tool.call(agent('a1')))).toContain('(ceiling): paused until')
+    await session.clock.advance(700_000)
+    await session.clock.settle()
+    expect(session.submitted).toEqual([])
+    expect(session.last()).toContain('7d 89% stop')
+    expect(textOf(await $.tool.call(bash))).toContain('usage 7d 89% (stop): paused until')
+  })
+
+  test('a refusal names a renewed window, not its stale percentage', { options: { askOnLimit: false } }, async ($, on) => {
+    const { session, engine } = await setup($ as never, on as never)
+    await measure($ as never, reading(95, 600_000))
+    await session.clock.advance(700_000)
+    engine.holdAgents()
+    const first = $.tool.call(agent('a1'))
+    for (let i = 0; i < 200; i += 1) await Promise.resolve()
+    expect(textOf(await $.tool.call(agent('a2')))).toContain('usage 5h renewed (throttle, cap 1)')
+    engine.releaseAgents()
+    await first
+  })
+
   test('the pane\'s Session tab shows the governor', async ($, on) => {
     const session = installTree(on, halfDone.tree, '/proj')
     installEngine(on)
