@@ -39,8 +39,13 @@ export const readFeature = async (fs: Fs, root: string, dir: string): Promise<Fe
 
 const listFeatureDirs = async (fs: Fs, root: string): Promise<string[]> => {
   const entries = await fs.list(joinPath(root, 'specs')).catch(() => [])
-  return entries
-    .filter(e => e.kind === 'dir' && FEATURE_DIR.test(e.name))
+  const named = entries.filter(e => FEATURE_DIR.test(e.name))
+  // $.fs.list reports a symbolic link as `other`; a link that leads somewhere is a feature too.
+  const linked = await Promise.all(
+    named.map(async e => e.kind === 'dir' || (e.kind === 'other' && e.isLink === true && (await fs.exists(joinPath(root, 'specs', e.name)).catch(() => false)))),
+  )
+  return named
+    .filter((_, i) => linked[i] === true)
     .map(e => e.name)
     .sort((a, b) => a.slice(0, 3).localeCompare(b.slice(0, 3)) || a.localeCompare(b))
 }

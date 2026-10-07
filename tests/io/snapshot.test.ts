@@ -125,3 +125,32 @@ describe('readSnapshot (partial, FR-016)', () => {
     expect(fresh.features[39]?.tasks).toBe('- [X] T001 a\n')
   })
 })
+
+describe('readSnapshot: symlinked feature folders', () => {
+  test('a feature folder listed as a link is read like a folder', async () => {
+    const { fs } = treeFs(project({ features: { '001-a': { spec: spec() } } }))
+    const linked = {
+      ...fs,
+      list: async (p: string) => {
+        const entries = await fs.list(p)
+        return p.endsWith('/specs') ? [...entries, { name: '002-linked', kind: 'other' as const, isLink: true }] : entries
+      },
+      exists: async (p: string) => (p.includes('002-linked') ? p.endsWith('002-linked') || p.endsWith('spec.md') : fs.exists(p)),
+      read: async (p: string) => (p.endsWith('002-linked/spec.md') ? '# Linked\n' : fs.read(p)),
+    }
+    const snap = await readSnapshot(linked, '/proj', 'full')
+    expect(snap.features.map(f => f.dir)).toEqual(['001-a', '002-linked'])
+    expect(snap.features[1]?.spec).toBe('# Linked\n')
+  })
+  test('a link to nothing is ignored', async () => {
+    const { fs } = treeFs(project({ features: { '001-a': { spec: spec() } } }))
+    const dangling = {
+      ...fs,
+      list: async (p: string) => {
+        const entries = await fs.list(p)
+        return p.endsWith('/specs') ? [...entries, { name: '003-gone', kind: 'other' as const, isLink: true }] : entries
+      },
+    }
+    expect((await readSnapshot(dangling, '/proj', 'full')).features.map(f => f.dir)).toEqual(['001-a'])
+  })
+})
