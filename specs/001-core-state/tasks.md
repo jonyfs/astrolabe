@@ -82,12 +82,12 @@ from tool calls never outlive a reconcile.
 **Independent Test**: tick a box in the fixture tree without a tool call, complete a turn,
 see the new percentage.
 
-- [ ] T028 [P] [US2] Write failing tests in `tests/core/skill-hints.test.ts`: the six mapped skills give their step, `speckit-analyze` gives the analyze flag, `speckit-checklist`, `speckit-converge`, `speckit-taskstoissues`, `specjedi-plan` and any other name give `undefined`
-- [ ] T029 [US2] Implement `hooks/core/skill-hints.ts` until T028 passes
-- [ ] T030 [US2] Write failing tests in `tests/io/snapshot.test.ts` for the partial scope: `readSnapshot(fs, root, { dirs }, previous)` re-reads `feature.json`, the constitution, the `specs/` listing and only the named dirs, reusing `previous` for the rest; on a 40-feature fixture (`tests/fixtures/forty-features/index.ts`) the read counter is at most `4 + 3k` and `list` is called once
-- [ ] T031 [US2] Extend `hooks/io/snapshot.ts` with the partial scope until T030 passes
-- [ ] T032 [US2] Write failing integration test `tests/integration/turn-complete.test.ts`: (a) a box ticked in the tree between `session.start` and `$.turn.complete` changes the entry; (b) a `Skill` `speckit-plan` call shows the running suffix and the next `turn.complete` with no `plan.md` clears it and keeps phase `plan`; (c) a `speckit-analyze` call at 0 done turns the next command from `/speckit-analyze` to `/speckit-implement`; (d) an `Edit` of `specs/002-*/tasks.md` re-reads that file when the call completes; (e) an `Edit` under another feature's dir makes the next `turn.complete` re-read that dir; (f) the current task's `startedAt` stays the same across reconciles while its id is unchanged and moves to the clock's time when the id changes (FR-010)
-- [ ] T033 [US2] Implement the `tool.call` hooks (`Skill`, `Edit`, `Write`, `NotebookEdit`; always `next(e)` first and never throwing) and the `turn.complete` hook in `hooks/register.tsx` until T032 passes
+- [X] T028 [P] [US2] Write failing tests in `tests/core/skill-hints.test.ts`: the six mapped skills give their step, `speckit-analyze` gives the analyze flag, `speckit-checklist`, `speckit-converge`, `speckit-taskstoissues`, `specjedi-plan` and any other name give `undefined`
+- [X] T029 [US2] Implement `hooks/core/skill-hints.ts` until T028 passes
+- [X] T030 [US2] Write failing tests in `tests/io/snapshot.test.ts` for the partial scope: `readSnapshot(fs, root, { dirs }, previous)` re-reads `feature.json`, the constitution, the `specs/` listing and only the named dirs, reusing `previous` for the rest; on a 40-feature fixture (`tests/fixtures/forty-features/index.ts`) the read counter is at most `4 + 3k` and `list` is called once
+- [X] T031 [US2] Extend `hooks/io/snapshot.ts` with the partial scope until T030 passes
+- [X] T032 [US2] Write failing integration test `tests/integration/turn-complete.test.ts`: (a) a box ticked in the tree between `session.start` and `$.turn.complete` changes the entry; (b) a `Skill` `speckit-plan` call shows the running suffix and the next `turn.complete` with no `plan.md` clears it and keeps phase `plan`; (c) a `speckit-analyze` call at 0 done turns the next command from `/speckit-analyze` to `/speckit-implement`; (d) an `Edit` of `specs/002-*/tasks.md` re-reads that file when the call completes; (e) an `Edit` under another feature's dir makes the next `turn.complete` re-read that dir; (f) the current task's `startedAt` stays the same across reconciles while its id is unchanged and moves to the clock's time when the id changes (FR-010)
+- [X] T033 [US2] Implement the `tool.call` hooks (`Skill`, `Edit`, `Write`, `NotebookEdit`; always `next(e)` first and never throwing) and the `turn.complete` hook in `hooks/register.tsx` until T032 passes
 
 **Checkpoint**: US1 and US2 both pass.
 
@@ -97,11 +97,11 @@ see the new percentage.
 
 **Independent Test**: each resolution fixture gives the expected feature and source.
 
-- [ ] T034 [P] [US3] Create fixtures `tests/fixtures/{feature-json-valid,feature-json-dangling,feature-json-malformed,branch-match,branch-worktree,latest-fallback,subdirectory-cwd,windows-paths}/index.ts`
-- [ ] T035 [US3] Write failing tests in `tests/io/git-branch.test.ts`: `.git` directory with `ref: refs/heads/003-spinner-narration`; `.git` file with `gitdir:` absolute and relative pointers; detached SHA gives `undefined`; missing `.git` gives `undefined`; `.git` found above the Spec Kit root
-- [ ] T036 [US3] Implement `hooks/io/git-branch.ts` and call it from `readSnapshot` until T035 passes
-- [ ] T037 [US3] Write failing tests in `tests/core/active.test.ts` for FR-011 and FR-013 over the T034 fixtures: valid `feature.json`; branch match (only when `feature.json` is missing or rejected); worktree branch; latest skips `done` and `abandoned`; dangling and malformed set the warning; `feature_directory` spelled absolute, `./specs/…` or with backslashes resolves the same
-- [ ] T038 [US3] Complete `hooks/core/active.ts` until T037 passes, and add an integration case to `tests/integration/session-start.test.ts` that the dangling fixture records `◆ ~002 · …`
+- [X] T034 [P] [US3] Create fixtures `tests/fixtures/{feature-json-valid,feature-json-dangling,feature-json-malformed,branch-match,branch-worktree,latest-fallback,subdirectory-cwd,windows-paths}/index.ts`
+- [X] T035 [US3] Write failing tests in `tests/io/git-branch.test.ts`: `.git` directory with `ref: refs/heads/003-spinner-narration`; `.git` file with `gitdir:` absolute and relative pointers; detached SHA gives `undefined`; missing `.git` gives `undefined`; `.git` found above the Spec Kit root
+- [X] T036 [US3] Implement `hooks/io/git-branch.ts` and call it from `readSnapshot` until T035 passes
+- [X] T037 [US3] Write failing tests in `tests/core/active.test.ts` for FR-011 and FR-013 over the T034 fixtures: valid `feature.json`; branch match (only when `feature.json` is missing or rejected); worktree branch; latest skips `done` and `abandoned`; dangling and malformed set the warning; `feature_directory` spelled absolute, `./specs/…` or with backslashes resolves the same
+- [X] T038 [US3] Complete `hooks/core/active.ts` until T037 passes, and add an integration case to `tests/integration/session-start.test.ts` that the dangling fixture records `◆ ~002 · …`
 
 **Checkpoint**: all P1 stories pass.
 
@@ -112,14 +112,14 @@ see the new percentage.
 **Independent Test**: `claude plugin validate .` reads both manifests; local marketplace
 install shows the entry.
 
-- [ ] T039 [US4] Create `.claude-plugin/marketplace.json` (`name: astrolabe`, `owner: { name: "Jony Santos" }`, `plugins: [{ name: "astrolabe", source: "./", description }]`) and confirm `claude plugin validate .` reads it
-- [ ] T040 [P] [US4] Write a failing test in `tests/integration/no-writes.test.ts` that a full session (start, tool calls, turn complete) never raises `fs.write` (the test hook fails the test if called) never calls `$.store.set`, and never raises `env.get` (FR-014)
-- [ ] T041 [P] [US4] Create `.github/workflows/ci.yml`: on `pull_request` and pushes to `main`, a matrix of `ubuntu-latest`, `macos-latest`, `windows-latest` that sets up Node, runs `npm install -g @anthropic-ai/claude-code`, `claude plugin validate .`, `claude plugin test .` and `npx -p typescript@5 tsc -p .`
+- [X] T039 [US4] Create `.claude-plugin/marketplace.json` (`name: astrolabe`, `owner: { name: "Jony Santos" }`, `plugins: [{ name: "astrolabe", source: "./", description }]`) and confirm `claude plugin validate .` reads it
+- [X] T040 [P] [US4] Write a failing test in `tests/integration/no-writes.test.ts` that a full session (start, tool calls, turn complete) never raises `fs.write` (the test hook fails the test if called) never calls `$.store.set`, and never raises `env.get` (FR-014)
+- [X] T041 [P] [US4] Create `.github/workflows/ci.yml`: on `pull_request` and pushes to `main`, a matrix of `ubuntu-latest`, `macos-latest`, `windows-latest` that sets up Node, runs `npm install -g @anthropic-ai/claude-code`, `claude plugin validate .`, `claude plugin test .` and `npx -p typescript@5 tsc -p .`
 
 ## Phase 7: User Story 5 - New specs carry front matter (P3)
 
-- [ ] T042 [US5] Add front matter (`track: full`, `status: active`, each with a one-line comment of allowed values) to the top of `.specify/templates/spec-template.md`
-- [ ] T043 [P] [US5] Create fixtures `tests/fixtures/{front-matter-done,front-matter-quick,front-matter-abandoned}/index.ts` and add their cases to `tests/core/speckit.test.ts` (half-ticked `status: done` is `done`; `track: quick` with spec only is `implement`; abandoned is never active by fallback)
+- [X] T042 [US5] Add front matter (`track: full`, `status: active`, each with a one-line comment of allowed values) to the top of `.specify/templates/spec-template.md`
+- [X] T043 [P] [US5] Create fixtures `tests/fixtures/{front-matter-done,front-matter-quick,front-matter-abandoned}/index.ts` and add their cases to `tests/core/speckit.test.ts` (half-ticked `status: done` is `done`; `track: quick` with spec only is `implement`; abandoned is never active by fallback)
 
 ## Phase 8: Polish & cross-cutting
 

@@ -22,6 +22,12 @@ describe('normalizePath', () => {
     expect(normalizePath('/proj//specs/./002-x')).toBe('/proj/specs/002-x')
     expect(normalizePath('./specs/002-x')).toBe('specs/002-x')
   })
+  test('resolves .. segments without climbing above a root', () => {
+    expect(normalizePath('/w/a/../main/.git')).toBe('/w/main/.git')
+    expect(normalizePath('/../x')).toBe('/x')
+    expect(normalizePath('c:/a/../../b')).toBe('c:/b')
+    expect(normalizePath('../x/../y')).toBe('../y')
+  })
   test('lowercases only the drive letter', () => {
     expect(normalizePath('D:/Work/Proj')).toBe('d:/Work/Proj')
   })

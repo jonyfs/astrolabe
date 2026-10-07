@@ -167,7 +167,7 @@ export const installTree = (on: On, tree: Tree, cwd: string): Session => {
 /** Answers turn.complete and tool.call beneath the plugin, as the engine would. */
 export const installEngine = (on: On) => {
   on('turn.complete', () => ({ text: '' }))
-  on('tool.call', () => ({ text: 'ok', isError: false }) as never)
+  on('tool.call', () => ({ result: { text: 'ok' } }) as never)
 }
 
 let turn = 0

@@ -15,6 +15,9 @@ import { scenario as planWithoutTasks } from '../fixtures/plan-without-tasks'
 import { scenario as specOnly } from '../fixtures/spec-only'
 import { scenario as templateConstitution } from '../fixtures/template-constitution'
 import { scenario as uppercaseX } from '../fixtures/uppercase-x'
+import { scenario as frontMatterAbandoned } from '../fixtures/front-matter-abandoned'
+import { scenario as frontMatterDone } from '../fixtures/front-matter-done'
+import { scenario as frontMatterQuick } from '../fixtures/front-matter-quick'
 import { treeFs } from '../helpers/fake-fs'
 
 describe('deriveSpeckitState over the US1 fixtures', () => {
@@ -32,6 +35,11 @@ describe('deriveSpeckitState over the US1 fixtures', () => {
   for (const [name, s] of Object.entries(all)) {
     test(name, () => checkScenario(name, s))
   }
+})
+
+describe('front matter overrides inference (US5)', () => {
+  const all: Record<string, Scenario> = { frontMatterDone, frontMatterQuick, frontMatterAbandoned }
+  for (const [name, s] of Object.entries(all)) test(name, () => checkScenario(name, s))
 })
 
 describe('deriveSpeckitState: session memo', () => {

@@ -3,11 +3,19 @@
 const DRIVE_ROOT = /^[a-z]:\/$/
 const FEATURE_DIR = /^\d{3}-.+$/
 
-/** Forward slashes, no `.` segments, no repeated or trailing slash, lowercase drive letter. */
+/** Forward slashes, `.` and `..` resolved, no repeated or trailing slash, lowercase drive letter. */
 export const normalizePath = (path: string): string => {
   let p = path.replace(/\\/g, '/').replace(/^([A-Za-z]):/, (_, d: string) => `${d.toLowerCase()}:`)
   const isAbsolute = p.startsWith('/')
-  const parts = p.split('/').filter((part, i) => part !== '' && !(part === '.' && (i > 0 || !isAbsolute)))
+  const parts: string[] = []
+  for (const part of p.split('/')) {
+    if (part === '' || part === '.') continue
+    const last = parts.at(-1)
+    const isDrive = parts.length === 1 && /^[a-z]:$/.test(last ?? '')
+    if (part === '..' && last !== undefined && last !== '..' && !isDrive) parts.pop()
+    else if (part === '..' && (isAbsolute || isDrive)) continue
+    else parts.push(part)
+  }
   p = (isAbsolute ? '/' : '') + parts.join('/')
   if (/^[a-z]:$/.test(p)) p += '/'
   return p === '' ? '.' : p

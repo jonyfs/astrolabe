@@ -39,6 +39,7 @@ async function touchFile($: EngineInterface, path: string, isWrite: boolean): Pr
   })
 }
 
+// A tool.call hook here never refuses a call: its .catch replays or runs the call as asked.
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     const result = await next(e)
@@ -60,23 +61,23 @@ export const register: Register = on => {
       return previous === undefined ? undefined : applySkill(previous, e.skill, await $.clock.now())
     })
     return next(e)
-  })
+  }).catch(($, e, next) => next(e))
 
   on('tool.call', { tool: 'Edit' }, async ($, e, next) => {
     const result = await next(e)
     await touchFile($, e.file_path, true)
     return result
-  })
+  }).catch(($, e, next) => next(e))
 
   on('tool.call', { tool: 'Write' }, async ($, e, next) => {
     const result = await next(e)
     await touchFile($, e.file_path, true)
     return result
-  })
+  }).catch(($, e, next) => next(e))
 
   on('tool.call', { tool: 'NotebookEdit' }, async ($, e, next) => {
     const result = await next(e)
     await touchFile($, e.notebook_path, false)
     return result
-  })
+  }).catch(($, e, next) => next(e))
 }

@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
 
+import { scenario as dangling } from '../fixtures/feature-json-dangling'
 import { scenario as halfDone } from '../fixtures/half-done'
 import { scenario as noSpeckit } from '../fixtures/no-speckit'
 import { installEngine, installTree, startSession } from '../helpers/fake-fs'
@@ -33,5 +34,11 @@ describe('session.start draws the status entry from disk', () => {
     installEngine(on)
     await startSession($, halfDone.cwd)
     expect(session.last()).toBe('◆ 002 · specify')
+  })
+  test('a dangling feature.json marks the guessed feature with ~', async ($, on) => {
+    const session = installTree(on, dangling.tree, dangling.cwd)
+    installEngine(on)
+    await startSession($, dangling.cwd)
+    expect(session.last()).toBe('◆ ~003 · implement 25%')
   })
 })

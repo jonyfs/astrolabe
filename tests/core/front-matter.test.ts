@@ -30,3 +30,10 @@ describe('parseFrontMatter', () => {
     expect(parseFrontMatter('')).toEqual({})
   })
 })
+
+describe('the front matter block the spec template emits (FR-026)', () => {
+  test('parses to track full and status active', () => {
+    const header = '---\ntrack: full # quick | full\nstatus: active # active | done | abandoned\n---\n\n# Feature Specification: [FEATURE NAME]\n'
+    expect(parseFrontMatter(header)).toEqual({ track: 'full', status: 'active' })
+  })
+})
