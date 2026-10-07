@@ -1,0 +1,68 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>mod-status wireframe</title>
+<style>
+/* Rough wireframe: grayscale, monospace, thin borders. Not the final palette. */
+body{font:13px/1.45 ui-monospace,Menlo,monospace;background:#fafafa;color:#222;margin:24px}
+h2{font:600 14px system-ui;margin:28px 0 6px}
+p.note{font:12px system-ui;color:#666;margin:0 0 8px;max-width:900px}
+.term{border:1px solid #999;background:#fff;padding:10px 12px;white-space:pre;overflow:hidden}
+.dim{color:#999}.b{font-weight:700}.box{border:1px solid #bbb;border-radius:8px;padding:2px 8px;display:inline-block}
+.row{display:flex;gap:0}.main{flex:1;border-right:1px dashed #bbb;padding-right:10px}.side{width:330px;padding-left:10px}
+.hint{color:#777}.sel{background:#eee}
+</style></head><body>
+
+<!-- STATE 1: narrow terminal (100 cols), preset "compact", speckit-implement running.
+     Hierarchy: 1) phase rail + progress (band), 2) spinner narrates current task, 3) next command (PromptHint), 4) status entry -->
+<h2>1. Narrow terminal (100 cols) · compact preset · /speckit-implement running</h2>
+<p class="note">Band = phase rail + progress bar. The spinner narrates the current task (read from tasks.md). PromptHint shows the next command. The status entry sits at the bottom. No pane, because the terminal is under 144 columns.</p>
+<div class="term">  ⏺ Edit(src/core/derive.ts)
+    ⎿  Updated with 14 additions
+
+<span class="b">✻ T014 · writing failing test for tasks.md parser…</span> <span class="dim">(42s · esc to interrupt)</span>
+
+<span class="box">◆ 002-band-hint   constitution ● specify ● clarify ● plan ● tasks ● <span class="b">implement ◐</span>   ██████░░░░ 14/31 45%</span>
+╭──────────────────────────────────────────────────────────────────────────────────────────╮
+│ &gt;                                                                                        │
+╰──────────────────────────────────────────────────────────────────────────────────────────╯
+  <span class="hint">next: /speckit-implement (17 tasks left) · ctrl+x tab focuses band</span>
+  <span class="dim">mod-status · 002-band-hint · implement 45%</span></div>
+
+<!-- STATE 2: wide terminal (180 cols), fullscreen, preset "full": pane docked with tabs -->
+<h2>2. Wide terminal (180 cols) · full preset · /mod-status pane docked</h2>
+<p class="note">The pane opens unasked (the terminal is past 144 columns). Tabs Specs | Tasks | Session. The Specs tab lists every feature with its phase and percentage. Hotkeys 1, 2 and 3 switch tabs.</p>
+<div class="row"><div class="term main">  ⏺ Bash(claude plugin test .)
+    ⎿  12 passed
+
+<span class="b">✻ T015 · implementing minimal parser…</span> <span class="dim">(8s)</span>
+
+<span class="box">◆ 002-band-hint  ● ● ● ● ● <span class="b">◐</span>  ██████▌░░░ 15/31 48%</span>
+╭────────────────────────────────────────────────╮
+│ &gt;                                              │
+╰────────────────────────────────────────────────╯
+  <span class="hint">next: /speckit-implement</span></div>
+<div class="term side">╭─ mod-status ──────────────────── [x] ╮
+ <span class="b">[1 Specs]</span>  2 Tasks   3 Session
+
+ <span class="dim">FEATURE           PHASE       PROG</span>
+ 001-core-state    <span class="dim">done</span>       ██████ 100%
+ <span class="sel b">002-band-hint     implement  ███░░░  48%</span>
+ 003-spinner       tasks      ░░░░░░   0%
+ 004-pane          plan       ·
+ 005-toasts-drift  specify    ·
+ 006-tutorial      —          ·
+
+ <span class="dim">active: .specify/feature.json</span>
+ <span class="dim">updated 2s ago (turn.complete)</span>
+╰──────────────────────────────────────╯</div></div>
+
+<!-- STATE 3: edge cases: no speckit, drift alarm toast, minimal preset -->
+<h2>3. Edge cases: no Spec Kit · drift alarm · minimal preset</h2>
+<p class="note">Without `.specify/` the band disappears (the hook returns next(e)) and only the status entry shows. Drift: a task was ticked with no code edited, and a toast appears at the top right. The minimal preset shows only the status entry.</p>
+<div class="term">                                                         <span class="box">⚠ T016 ticked, no file edited</span>
+
+╭──────────────────────────────────────────────╮
+│ &gt;                                            │
+╰──────────────────────────────────────────────╯
+  <span class="dim">mod-status · no Spec Kit in this project</span>          <span class="dim">← no .specify/ : band hidden</span>
+  <span class="dim">◆ 002 · implement 52%</span>                            <span class="dim">← minimal preset: status only</span></div>
+</body></html>

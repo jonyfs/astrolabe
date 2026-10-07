@@ -1,0 +1,120 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Design study: statusline as a mod</title>
+<style>
+/* Design study. Same font (FiraCode Nerd Font Mono), same glyphs and same Catppuccin mocha
+   palette as jonyfs/statusline (src/theme.js, src/render.js). Everything drawn with characters a
+   mod can emit: Text with color/backgroundColor, Box borders "round". */
+:root{--crust:#11111b;--mantle:#181825;--base:#1e1e2e;--s0:#313244;--s1:#45475a;--s2:#585b70;--ov:#6c7086;--text:#cdd6f4;--sub:#a6adc8;
+--red:#f38ba8;--peach:#fab387;--yellow:#f9e2af;--green:#a6e3a1;--teal:#94e2d5;--sapphire:#74c7ec;--blue:#89b4fa;--lavender:#b4befe;--mauve:#cba6f7;--pink:#f5c2e7}
+body{margin:0;background:#0b0b12;color:var(--text);font:14px/1.0 system-ui,-apple-system,sans-serif;padding:20px}
+h2{font:600 15px system-ui;margin:26px 0 4px;color:#fff}
+p.n{font:12.5px/1.45 system-ui;color:#9aa0b8;margin:0 0 8px;max-width:1180px}
+.t{background:var(--base);border-radius:10px;padding:12px 14px;font-family:"FiraCode Nerd Font Mono","FiraCode Nerd Font",monospace;font-size:13.5px;line-height:1.55;white-space:pre;overflow:hidden;border:1px solid #2a2b3c}
+.row{display:block;height:21px}
+.c{padding:0}.sep{}
+.dim{color:var(--ov)}.sub{color:var(--sub)}.b{font-weight:700}
+.prompt{border:1px solid var(--s2);border-radius:8px;padding:2px 8px;color:var(--text);margin:6px 0 4px}
+.split{display:flex;gap:0}.main{flex:1;min-width:0}.side{width:430px;border-left:1px solid var(--s1);padding-left:12px;margin-left:12px}
+.card{border:1px solid var(--s1);border-radius:9px;padding:4px 10px}
+.toast{position:relative;float:right;border:1px solid var(--s2);border-radius:8px;padding:2px 10px;margin-top:-4px}
+.legend{font:12px system-ui;color:#9aa0b8;margin-top:6px}
+</style></head><body>
+
+<h2>A · "Full" preset band: the statusline, redrawn natively above the prompt</h2>
+<p class="n">Same three lines as jonyfs/statusline (line 1 place and git, line 2 activity, line 3 model and limits), same priorities and dropping rules. New: a Spec Kit chip on line 2 and a governor chip on line 3. The band owns the Powerline look; the status line under the prompt keeps one compact summary for the moments the band is hidden.</p>
+<div class="t" id="A"></div>
+
+<h2>B · "Compact" preset: one Powerline row plus the Spec Kit phase rail</h2>
+<p class="n">For 100-column splits. Lowest-priority chips drop first (vim, repo, linesChanged, duration…); essential chips shorten their variants before they drop. The rail shows the active feature's phases; the spinner narrates the running task.</p>
+<div class="t" id="B"></div>
+
+<h2>C · "Full" preset at 180 columns: band + docked pane with Session · Specs · Usage · Agents tabs</h2>
+<p class="n">The Usage tab is the usage-governor rebuilt inside the mod: bands per window (ok · throttle · hold · stop · ceiling), cap, queue, burn-rate projection, override. Numbers come from <code>session.measure</code> / <code>$.session.usage()</code>, not from a <code>claude -p /usage</code> probe.</p>
+<div class="t split"><div class="main" id="C1"></div><div class="side" id="C2"></div></div>
+
+<h2>D · Governor states, as the band's line 3 chip and as toasts</h2>
+<p class="n">The chip changes colour with the band. A denied subagent dispatch raises a toast and the model receives the plain-text reason, exactly as usage-governor's PreToolUse hook does today, but through the mod's <code>tool.call</code> deny.</p>
+<div class="t" id="D"></div>
+
+<h2>E · Minimal preset and degraded states</h2>
+<div class="t" id="E"></div>
+
+<script>
+const P={crust:'#11111b',base:'#1e1e2e',s1:'#45475a',s2:'#585b70',text:'#cdd6f4',red:'#f38ba8',peach:'#fab387',yellow:'#f9e2af',green:'#a6e3a1',teal:'#94e2d5',sapphire:'#74c7ec',blue:'#89b4fa',lavender:'#b4befe',mauve:'#cba6f7',pink:'#f5c2e7',ov:'#6c7086'};
+const G=c=>String.fromCodePoint(c);
+const I={dir:G(0xF413),from:G(0xF004D),branch:G(0xF418),mod:G(0xF459),add:G(0xF457),push:G(0xF40A),pull:G(0xF409),pr:G(0xF407),ci:G(0xF42E),skills:G(0xF0431),todo:G(0xF4A0),work:G(0xF08EA),idle:G(0xF0176),vim:G(0xE62B),model:G(0xF06A9),effort:G(0xF0E7),ctx:G(0xF035B),h5:G(0xF051B),d7:G(0xF455),burn:G(0xF0238),cache:G(0xF050F),dur:G(0xF252),rtk:G(0xE7A8),alert:G(0xF421),lock:G(0xF097F),throt:G(0xF0996),ok:G(0xF42E),shield:G(0xF099E),spec:G(0xF0AE2),arrow:G(0xE0B0),thin:G(0xE0B1)};
+const dark=new Set(['s1','s2']);
+function row(chips){ // chips: [role, text]
+  let h='';chips.forEach(([r,t],i)=>{const bg=P[r],fg=dark.has(r)?P.text:P.crust;
+    h+=`<span style="background:${bg};color:${fg}"> ${t} </span>`;
+    const nx=chips[i+1];h+=`<span style="color:${bg};background:${nx?P[nx[0]]:'transparent'}">${I.arrow}</span>`;});
+  return `<span class="row">${h}</span>`;}
+const txt=(s,cls='')=>`<span class="row ${cls}">${s}</span>`;
+const col=(c,s)=>`<span style="color:${c}">${s}</span>`;
+const bar=(pct,w,c)=>{const f=Math.round(pct/100*w);return col(c,'█'.repeat(f))+col(P.s2,'─'.repeat(w-f));};
+const rail=(steps,cur)=>steps.map((s,i)=>i<cur?col(P.green,'● ')+col(P.text,s):i===cur?col(P.yellow,'◐ ')+`<b style="color:${P.yellow}">${s}</b>`:col(P.ov,'○ '+s)).join(col(P.ov,'  '));
+const STEPS=['constitution','specify','clarify','plan','tasks','implement'];
+
+// A
+document.getElementById('A').innerHTML=
+ txt(col(P.ov,'  ⎿  Updated hooks/core/speckit.ts with 14 additions'))+
+ txt(`<b style="color:${P.peach}">✻ T014 · writing failing test for tasks.md parser…</b> `+col(P.ov,'(42s · esc to interrupt)'))+txt('')+
+ row([['s1',I.dir+' mod-status'],['s2','jonyfs/mod-status'],['lavender',I.branch+' 002-band-hint'],['mauve',I.mod+' 4  '+I.add+' 1  '+I.push+' 2'],['blue',I.pr+' PR #12 open'],['green',I.ci+' CI']])+
+ row([['green',I.skills+' speckit-implement, dataviz'],['sapphire',I.todo+' T014 (13/31)'],['mauve',I.spec+' 002 implement ▮▮▮▮▯▯ 45%'],['green',I.work+' working']])+
+ row([['red',I.model+' Opus 5.5'],['peach',I.effort+' high'],['green',I.ctx+' Context 26%'],['green',I.h5+' 5h 42% · 2h09m'],['sapphire',I.d7+' 7d 61% · Thu'],['peach',I.burn+' 9%/h'],['teal',I.ok+' gov ok · cap 6'],['mauve',I.rtk+' rtk 81%']])+
+ `<div class="prompt">&gt; </div>`+
+ txt(col(P.ov,'  next: /speckit-implement · 17 tasks left')+col(P.ov,'                                  ')+col(P.s2,'◆ 002 · implement 45% · 5h 42%'));
+
+// B
+document.getElementById('B').innerHTML=
+ txt(`<b style="color:${P.peach}">✻ T014 · writing failing test for tasks.md parser…</b> `+col(P.ov,'(42s)'))+txt('')+
+ row([['s1',I.dir+' mod-status'],['lavender',I.branch+' 002-band-hint'],['red',I.model+' Opus 5.5'],['green',I.ctx+' 26%'],['green',I.h5+' 42%▵ 2h09m'],['sapphire',I.d7+' 61%'],['teal',I.ok+' cap 6']])+
+ txt('  '+col(P.mauve,I.spec+' 002-band-hint  ')+rail(STEPS,5)+'   '+bar(45,14,P.green)+col(P.text,' 14/31'))+
+ `<div class="prompt" style="width:620px">&gt; </div>`+txt(col(P.ov,'  next: /speckit-implement'));
+
+// C
+document.getElementById('C1').innerHTML=
+ txt(col(P.ov,'  ⎿  12 passed'))+txt(`<b style="color:${P.peach}">✻ T015 · implementing minimal parser…</b> `+col(P.ov,'(8s)'))+txt('')+
+ row([['s1',I.dir+' mod-status'],['lavender',I.branch+' 002-band-hint'],['mauve',I.mod+' 4'],['blue',I.pr+' #12']])+
+ row([['red',I.model+' Opus 5.5'],['green',I.ctx+' 31%'],['yellow',I.h5+' 71%▵ 1h20m'],['yellow',I.throt+' gov throttle · cap 1']])+
+ txt('  '+col(P.mauve,I.spec+' 002 ')+rail(STEPS,5).replace(/constitution|specify|clarify|plan|tasks/g,'')+' '+bar(48,10,P.green)+' 15/31')+
+ `<div class="prompt">&gt; </div>`+txt(col(P.ov,'  next: /speckit-implement'));
+document.getElementById('C2').innerHTML=
+ txt(col(P.ov,'╭─ ')+'<b>mod-status</b>'+col(P.ov,' ──────────────────────────── [x] ╮'))+
+ txt(' 1 Session   2 Specs   <b style="background:'+P.s1+'"> 3 Usage </b>   4 Agents')+txt('')+
+ txt(' '+col(P.yellow,I.throt+' THROTTLE')+col(P.sub,' · binding window 5h'))+txt('')+
+ txt(' '+I.h5+' 5h   '+bar(71,20,P.yellow)+' 71%▵  resets 16:10')+
+ txt(' '+I.d7+' 7d   '+bar(61,20,P.yellow)+' 61%   Thu 18:00')+
+ txt(' '+I.model+' Fable '+bar(12,19,P.green)+' 12%')+txt('')+
+ txt(' '+I.burn+' burn 9%/h  → 80% in ~38m'+col(P.red,'  (before reset)'))+
+ txt(' cap 1 · '+I.model+' 1 running · '+I.lock+' queue 2')+
+ txt(col(P.ov,'   q_3f9a12c0  Agent "review parser"   12m ago'))+
+ txt(col(P.ov,'   q_77b10d2e  Workflow "fan-out QA"    4m ago'))+txt('')+
+ txt(' ceiling 90% · override: '+col(P.ov,'none'))+
+ txt(col(P.ov,' type  /mod-status allow 95 2h  to lift'))+
+ txt(col(P.ov,'╰──────────────────────────────────────────╯'));
+
+// D
+const govRow=(r,icon,label)=>row([['red',I.model+' Opus 5.5'],['green',I.ctx+' 26%'],[r,I.h5+' 5h '+label[0]],[r,icon+' '+label[1]]]);
+document.getElementById('D').innerHTML=
+ govRow('green',I.ok,['42% · 2h09m','gov ok · cap 6'])+
+ govRow('yellow',I.throt,['71%▵ · 1h20m','gov throttle · cap 1'])+
+ govRow('peach',I.alert,['82%▵ · 1h29m','gov hold · queue 3'])+
+ govRow('red',I.alert,['88%▴ · 41m','gov STOP · resumes ≈14:07'])+
+ govRow('red',I.alert,['90%▴ · 33m','CEILING 90% · /mod-status allow 95 2h'])+
+ govRow('mauve',I.shield,['91% · 30m','override → 95% until 14:05'])+txt('')+
+ `<div class="card" style="display:inline-block">`+col(P.peach,I.alert)+' agent queued <b>q_3f9a12c0</b> · 5h 82%▵ · resume ≈14:07 '+`</div>`+
+ txt(col(P.ov,'  model reads: "subagent dispatch denied and QUEUED as q_3f9a12c0 (5h 82% >= 80%, resets 14:05 local). Do NOT retry…"'));
+
+// E
+document.getElementById('E').innerHTML=
+ txt(col(P.ov,'minimal: only the status line under the prompt'))+`<div class="prompt" style="width:560px">&gt; </div>`+
+ txt('  '+col(P.mauve,'◆ 002 · implement 45%')+col(P.ov,' · ')+col(P.green,I.ctx+' 26%')+col(P.ov,' · ')+col(P.green,I.h5+' 42%')+col(P.ov,' · ')+col(P.teal,'gov ok'))+txt('')+
+ txt(col(P.ov,'no Spec Kit in this project: the Spec Kit chip and rail disappear, everything else stays'))+
+ row([['s1',I.dir+' notes'],['lavender',I.branch+' main'],['red',I.model+' Sonnet 5.5'],['green',I.ctx+' 8%']])+txt('')+
+ txt(col(P.ov,'no Nerd Font (ascii: true): the statusline\'s narrow Unicode fallbacks'))+
+ txt(col(P.text,'  ⌂ mod-status ▸ ⎇ 002-band-hint ▸ ◊ Opus 5.5 ▸ ⊞ 26% ▸ ◷ 42% ▸ ✓ gov ok'))+txt('')+
+ txt(col(P.ov,'no rate-limit reading yet (API key account or first turn): governor chip says so and fails open'))+
+ row([['red',I.model+' Opus 5.5'],['green',I.ctx+' 0%'],['s2',I.alert+' gov inactive · no plan limits']]);
+</script>
+</body></html>
