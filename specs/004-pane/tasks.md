@@ -27,4 +27,4 @@ description: "Task list for 004-pane"
 
 - [X] T009 README: the command, each tab with an example, hotkeys, the unasked-open rule; v0.4.0 notes; roadmap
 - [X] T010 Run validate, tests and tsc; capture the pane in tmux into `docs/screens/004-pane-*.txt`
-- [ ] T011 Full review with a stronger model; apply the fixes; mark `status: done`
+- [X] T011 Full review with a stronger model: skipped at the owner's request on 2026-10-07 (usage limits blocked subagents); merged and released without it. `status: done`

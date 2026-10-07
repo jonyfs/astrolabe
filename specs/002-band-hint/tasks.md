@@ -39,7 +39,7 @@ description: "Task list for 002-band-hint"
 - [X] T015 Update `README.md` (FR-012): the band part by part, the hint, both options with values and defaults and how to change them in `/config`, the truecolor note; update the roadmap and the status note for v0.2.0; humanize the prose
 - [X] T016 Capture the real band and hint from `claude` in tmux at 100 and 180 columns into `docs/screens/002-band-100.txt` and `docs/screens/002-band-180.txt`
 - [X] T017 Run `claude plugin validate .`, `claude plugin test .`, `npx -p typescript@5 tsc -p .`; fix every failure
-- [ ] T018 Full review with a stronger model; apply the fixes; mark `status: done`
+- [X] T018 Full review with a stronger model: skipped at the owner's request on 2026-10-07 (usage limits blocked subagents); merged and released without it. `status: done`
 
 ## Dependencies
 

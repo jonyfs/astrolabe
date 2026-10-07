@@ -1,6 +1,6 @@
 ---
 track: full # quick | full
-status: active # active | done | abandoned
+status: done # active | done | abandoned
 ---
 
 # Feature Specification: Tag-driven releases and the statusline-to-mod tutorial

@@ -27,4 +27,4 @@ description: "Task list for 008-usage-governance"
 
 - [X] T009 README: replace the roadmap's usage section with the shipped behavior; option; owner command; note about the project's usage-governor skill; v0.8.0
 - [X] T010 Run validate, tests, tsc and the release script check
-- [ ] T011 Full review with a stronger model; apply the fixes; mark `status: done`
+- [X] T011 Full review with a stronger model: skipped at the owner's request on 2026-10-07 (usage limits blocked subagents); merged and released without it. `status: done`
