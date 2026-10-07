@@ -4,7 +4,7 @@ A Claude Code mod that shows where your session is and where it is heading: the
 project, git and model state from a classic status line, live Spec Kit progress, and
 usage-window governance that keeps subagent fan-out under your plan limits.
 
-> **Status: v0.5.0.** Astrolabe draws a band above the prompt with the Spec Kit phase rail,
+> **Status: v0.6.0.** Astrolabe draws a band above the prompt with the Spec Kit phase rail,
 > the next command at the end of the prompt hint, the task in progress on the spinner line, an
 > entry in the status line, a pane you open with `/astrolabe`, and two kinds of toast. Usage
 > governance arrives in a later release (see [Roadmap](#roadmap)). Progress is tracked as Spec Kit features under `specs/`.
@@ -414,7 +414,6 @@ These are designed and planned, one Spec Kit feature each:
 
 | Release | Adds |
 |---|---|
-| 006 | Tag-driven releases and the statusline-to-mod tutorial |
 | 007 | Once a day, clickable notices when gstack, the Spec Kit CLI or Astrolabe has an update |
 
 Usage governance (the bands below, from the usage-governor skill) also lands in a later
@@ -432,6 +431,12 @@ The design study shows the planned presets and states. It is a design drawing, n
 capture of the mod: [docs/design/study.html](docs/design/study.html) (rendered:
 [docs/design/study.png](docs/design/study.png)).
 
+## From a statusline to a mod
+
+[docs/tutorial/README.md](docs/tutorial/README.md) teaches, in eight steps, how to turn a
+classic `statusLine` command into a mod, with jonyfs/statusline as the worked example and this
+repository as the result. Each step pairs the file in one with the file in the other.
+
 ## Development
 
 ```sh
@@ -442,6 +447,26 @@ npx -p typescript@5 tsc -p .
 
 `scripts/sync-engine-types.sh` refreshes `types/engine/claude-code.d.ts`, the engine's own
 declarations used for the type check, after a Claude Code update.
+
+### Releasing
+
+A release comes only from a tag `vX.Y.Z` equal to `plugin.json`'s `version`. Bump the version
+in a pull request, merge it, then tag `main`:
+
+```sh
+sh scripts/check-release-version.sh v0.6.0   # the same check the release workflow runs
+git tag -a v0.6.0 -m "Astrolabe v0.6.0"
+git push origin v0.6.0
+```
+
+The release workflow checks the tag against `plugin.json`, runs validation, tests and the type
+check again on Ubuntu, macOS and Windows, and creates the GitHub release with generated notes.
+A tag that does not match never produces a release.
+
+Installs follow `main`: the repository is its own marketplace, and `main` changes only through
+reviewed pull requests and tagged releases.
+
+### Process
 
 Every change starts as a Spec Kit feature under `specs/` and goes through
 `/speckit-specify`, `/speckit-clarify`, `/speckit-plan`, `/speckit-tasks`,
