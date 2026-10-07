@@ -21,8 +21,9 @@ import {
   updateLabel,
 } from './core/updates'
 import { VERSION } from './core/version'
+import { clockOf, decide, isPaused, isReadOnlyTool, parseAllow, refusal, resumePrompt, usageSegment, type Decision } from './core/governor'
 import { themeOf } from './core/theme'
-import { emptyMemo, type PaneState, type PaneTab, type Phase, type UpdateId, type UpdateItem, type UpdatesState } from './core/types'
+import { emptyMemo, type PaneState, type PaneTab, type Phase, type UpdateId, type UpdateItem, type UpdatesState, type UsageState, type UsageReading } from './core/types'
 import type { Preset } from './core/presets'
 import type { Fs } from './io/fs-port'
 import { applyFileTouch, applyShell, applySkill, type Held, reconcileStart, reconcileTurn } from './io/reconcile'
@@ -40,6 +41,60 @@ const UPDATES_STORE = 'updates'
 const RELEASES_URL = 'https://api.github.com/repos/jonyfs/astrolabe/releases/latest'
 const GSTACK_CHECK = ['sh', '-c', '"$HOME/.claude/skills/gstack/bin/gstack-update-check"']
 const SKILLS_REFRESH = ['specify', 'init', '--here', '--integration', 'claude', '--force']
+const USAGE = { plugin: 'astrolabe', key: 'usage' } as const
+const DEFAULT_USAGE: UsageState = { readings: [], history: [], inFlight: 0, queue: [], paused: false }
+const HISTORY_POINTS = 10
+
+/** The status entry: the Spec Kit part, then the highest usage window (spec 008). */
+async function showStatus($: EngineInterface, state: Held['state']): Promise<void> {
+  const usage = (await $.state.get(USAGE)).value ?? DEFAULT_USAGE
+  const segment = usageSegment(decide(usage.readings, usage.history, usage.override, await $.clock.now()))
+  const speckit = statusText(state)
+  $.ui.status(segment === undefined ? speckit : `${speckit} · ${segment}`)
+}
+
+/** Read-modify-write of astrolabe.usage with ifVersion, retried like `guarded`. */
+async function updateUsage($: EngineInterface, change: (usage: UsageState) => UsageState): Promise<UsageState> {
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const { value, version } = await $.state.get(USAGE)
+    const next = change(value ?? DEFAULT_USAGE)
+    if ((await $.state.set(USAGE, next, { ifVersion: version })).isSet) return next
+  }
+  return (await $.state.get(USAGE)).value ?? DEFAULT_USAGE
+}
+
+async function decisionNow($: EngineInterface): Promise<{ usage: UsageState; decision: Decision }> {
+  const usage = (await $.state.get(USAGE)).value ?? DEFAULT_USAGE
+  return { usage, decision: decide(usage.readings, usage.history, usage.override, await $.clock.now()) }
+}
+
+/** Submits one resume prompt for what the pause or the hold left waiting, then clears it. */
+async function resume($: EngineInterface, why: string): Promise<void> {
+  try {
+    const usage = (await $.state.get(USAGE)).value ?? DEFAULT_USAGE
+    if (usage.queue.length === 0 && !usage.paused) return
+    await updateUsage($, u => ({ ...u, queue: [], paused: false }))
+    await $.prompt.submit({ text: resumePrompt(usage.queue, why) })
+  } catch (error) {
+    $.ui.log(`astrolabe: ${error instanceof Error ? error.message : String(error)}`, { to: 'debug' })
+  }
+}
+
+// One resume timer at a time. A reload drops timers and this variable together, and the
+// next reading or refusal arms a new one.
+let resumeAt: number | undefined
+
+async function armResume($: EngineInterface, decision: Decision): Promise<void> {
+  const reset = decision.highest?.resetsAt === undefined ? Number.NaN : Date.parse(decision.highest.resetsAt)
+  if (Number.isNaN(reset) || resumeAt === reset) return
+  resumeAt = reset
+  const wait = Math.max(0, reset - (await $.clock.now())) + 1000
+  const why = `${decision.highest?.kind === 'seven_day' ? '7d' : '5h'} reset`
+  $.clock.after(wait, () => {
+    resumeAt = undefined
+    void resume($, why)
+  })
+}
 
 function fsOf($: EngineInterface): Fs {
   return {
@@ -66,7 +121,7 @@ async function guarded($: EngineInterface, work: (previous: Held | undefined) =>
       if (next === undefined) return undefined
       const { isSet } = await $.state.set(SPECKIT, next, { ifVersion: version })
       if (isSet) {
-        $.ui.status(statusText(next.state))
+        await showStatus($, next.state)
         return next
       }
     }
@@ -259,6 +314,7 @@ export const register: Register = (on, options) => {
   // never opens unasked below that (Principle VII); session.start reports no width.
   let isWide = false
   const checksUpdates = options['checkUpdates'] !== false
+  const governs = options['governUsage'] !== false
 
   on('session.start', async ($, e, next) => {
     const result = await next(e)
@@ -293,6 +349,80 @@ export const register: Register = (on, options) => {
     if (e.agentId === undefined) {
       const now = await $.clock.now()
       await guarded($, async previous => (previous === undefined ? undefined : applySkill(previous, e.skill, now)))
+    }
+    return next(e)
+  }).catch(($, e, next) => next(e))
+
+  // Usage governance (spec 008): readings arrive after each turn and when a window moves.
+  on('session.measure', async ($, e, next) => {
+    const result = await next(e)
+    try {
+      const now = await $.clock.now()
+      const readings: UsageReading[] = e.rateLimits.map(r => ({
+        kind: r.kind,
+        percentUsed: r.percentUsed,
+        ...(r.resetsAt === undefined ? {} : { resetsAt: r.resetsAt }),
+      }))
+      const top = Math.max(0, ...readings.map(r => r.percentUsed))
+      const usage = await updateUsage($, u => ({
+        ...u,
+        readings,
+        history: readings.length === 0 ? u.history : [...u.history, { at: now, percent: top }].slice(-HISTORY_POINTS),
+      }))
+      const decision = decide(usage.readings, usage.history, usage.override, now)
+      const speckit = (await $.state.get(SPECKIT)).value
+      if (speckit !== undefined) await showStatus($, speckit.state)
+      if (!governs) return result
+      const isClear = decision.band === 'ok' || decision.band === 'throttle'
+      if (isClear && (usage.queue.length > 0 || usage.paused)) await resume($, `${usageSegment(decision) ?? 'window'} now`)
+      else if (!isClear && usage.queue.length > 0) await armResume($, decision)
+    } catch (error) {
+      $.ui.log(`astrolabe: ${error instanceof Error ? error.message : String(error)}`, { to: 'debug' })
+    }
+    return result
+  })
+
+  // Gates every tool call while usage is high. A failure here never refuses: it passes.
+  on('tool.call', async ($, e, next) => {
+    if (!governs) return next(e)
+    const { usage, decision } = await decisionNow($)
+    if (decision.highest === undefined) return next(e)
+    const resetClock = clockOf(decision.highest.resetsAt)
+    if (e.tool === 'Agent') {
+      const isOverCap = decision.band === 'throttle' && usage.inFlight >= decision.cap
+      if (decision.cap === 0 || isOverCap) {
+        const input = e as unknown as { description?: string; prompt?: string; subagent_type?: string }
+        let queuedAs = ''
+        await updateUsage($, u => {
+          queuedAs = `q${u.queue.length + 1}`
+          return {
+            ...u,
+            paused: u.paused || isPaused(decision),
+            queue: [
+              ...u.queue,
+              {
+                id: queuedAs,
+                description: input.description ?? 'subagent',
+                prompt: input.prompt ?? '',
+                ...(input.subagent_type === undefined ? {} : { subagentType: input.subagent_type }),
+              },
+            ],
+          }
+        })
+        await armResume($, decision)
+        return { deny: refusal(decision, { queuedAs, inFlight: usage.inFlight, ...(resetClock === undefined ? {} : { resetClock }) }) }
+      }
+      await updateUsage($, u => ({ ...u, inFlight: u.inFlight + 1 }))
+      try {
+        return await next(e)
+      } finally {
+        await updateUsage($, u => ({ ...u, inFlight: Math.max(0, u.inFlight - 1) }))
+      }
+    }
+    if (isPaused(decision) && !isReadOnlyTool(String(e.tool))) {
+      await updateUsage($, u => (u.paused ? u : { ...u, paused: true }))
+      await armResume($, decision)
+      return { deny: refusal(decision, resetClock === undefined ? {} : { resetClock }) }
     }
     return next(e)
   }).catch(($, e, next) => next(e))
@@ -367,7 +497,23 @@ export const register: Register = (on, options) => {
     return suffix === undefined ? next(e) : next({ ...e, props: { ...e.props, suffix } })
   })
 
-  on('command.run', { command: 'astrolabe' }, async $ => {
+  on('command.run', { command: 'astrolabe' }, async ($, e) => {
+    const args = e.args.trim()
+    if (args !== '') {
+      const parsed = parseAllow(args)
+      if (parsed === undefined) return { text: 'Usage: /astrolabe, /astrolabe allow <90-99> <30m-12h>, /astrolabe revoke' }
+      // Only the person at the terminal may move the ceiling (spec 008, FR-006).
+      if (e.origin?.kind !== 'composer') return { text: '🧭 only you can change the usage ceiling: type the command yourself' }
+      const now = await $.clock.now()
+      if ('revoke' in parsed) {
+        await updateUsage($, ({ override: _gone, ...u }) => u)
+        return { text: '🧭 usage override revoked: stop at 88%, ceiling at 90%' }
+      }
+      await updateUsage($, u => ({ ...u, override: { target: parsed.allow.target, until: now + parsed.allow.ms } }))
+      const speckit = (await $.state.get(SPECKIT)).value
+      if (speckit !== undefined) await showStatus($, speckit.state)
+      return { text: `🧭 stop and ceiling raised to ${parsed.allow.target}% until ${clockOf(new Date(now + parsed.allow.ms).toISOString())}; new subagents still wait from 80%` }
+    }
     await $.ui.open({ id: PANE_ID, title: PANE_TITLE })
     return { text: 'Astrolabe pane opened.' }
   })
