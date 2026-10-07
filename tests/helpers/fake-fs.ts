@@ -123,7 +123,7 @@ export type Session = {
   /** Every slash command the plugin ran, as `/name`. */
   prompts: string[]
   /** Script process.run answers and http.fetch answers for a test. */
-  script: { processes: ProcessScript; http: Record<string, { status: number; text: string }> }
+  script: { processes: ProcessScript; http: Record<string, { status: number; text: string }>; env: Record<string, string> }
   /** Every toast the plugin raised, in order. */
   toasts: string[]
   /** The plugin's $.store, in memory. */
@@ -149,6 +149,7 @@ export const installTree = (on: On, tree: Tree, cwd: string, seed: Record<string
   }
   const statuses: Array<string | undefined> = []
   const forbidden: string[] = []
+  const script: Session['script'] = { processes: {}, http: {}, env: {} }
   const logs: string[] = []
   const toasts: string[] = []
   const store = new Map<string, unknown>(Object.entries(seed))
@@ -196,7 +197,6 @@ export const installTree = (on: On, tree: Tree, cwd: string, seed: Record<string
   const fetches: string[] = []
   const prompts: string[] = []
   const submitted: string[] = []
-  const script: Session['script'] = { processes: {}, http: {} }
   on('process.run', ($, e) => {
     const line = e.argv.join(' ')
     processes.push(line)
@@ -222,7 +222,9 @@ export const installTree = (on: On, tree: Tree, cwd: string, seed: Record<string
     toasts.push(e.text)
     return { value: undefined }
   })
+  // Only the home directory may be read (to find gstack); anything else is a test failure.
   on('env.get', ($, e) => {
+    if (e.name === 'HOME' || e.name === 'USERPROFILE') return { value: script.env[e.name] }
     forbidden.push(`env.get ${e.name}`)
     return { value: undefined }
   })
