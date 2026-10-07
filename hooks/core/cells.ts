@@ -25,16 +25,22 @@ const DEFAULT = 0x01000000
 const rgb = (hex: string | undefined): number => (hex === undefined || !/^#[0-9a-f]{6}$/i.test(hex) ? DEFAULT : Number.parseInt(hex.slice(1), 16))
 const B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
 
-const base64 = (bytes: Uint8Array): string => {
-  let out = ''
-  for (let i = 0; i < bytes.length; i += 3) {
-    const a = bytes[i] ?? 0
-    const b = bytes[i + 1]
-    const c = bytes[i + 2]
-    const n = (a << 16) | ((b ?? 0) << 8) | (c ?? 0)
-    out += B64[(n >> 18) & 63]! + B64[(n >> 12) & 63]! + (b === undefined ? '=' : B64[(n >> 6) & 63]!) + (c === undefined ? '=' : B64[n & 63]!)
+export const base64 = (bytes: Uint8Array): string => {
+  // Built in chunks, so a picture's few hundred kilobytes never grow one string a byte at a time.
+  const chunks: string[] = []
+  for (let start = 0; start < bytes.length; start += 3 * 4096) {
+    let out = ''
+    const end = Math.min(bytes.length, start + 3 * 4096)
+    for (let i = start; i < end; i += 3) {
+      const a = bytes[i] ?? 0
+      const b = i + 1 < end ? bytes[i + 1] : undefined
+      const c = i + 2 < end ? bytes[i + 2] : undefined
+      const n = (a << 16) | ((b ?? 0) << 8) | (c ?? 0)
+      out += B64[(n >> 18) & 63]! + B64[(n >> 12) & 63]! + (b === undefined ? '=' : B64[(n >> 6) & 63]!) + (c === undefined ? '=' : B64[n & 63]!)
+    }
+    chunks.push(out)
   }
-  return out
+  return chunks.join('')
 }
 
 /** RasterProps.cells: standard base64 of little-endian u32 triplets [codePoint, fg, bg], row-major. */

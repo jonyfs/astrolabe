@@ -242,6 +242,8 @@ export const installTree = (on: On, tree: Tree, cwd: string, seed: Record<string
   // Only the home directory may be read (to find gstack); anything else is a test failure.
   on('env.get', ($, e) => {
     if (e.name === 'HOME' || e.name === 'USERPROFILE') return { value: script.env[e.name] }
+    // The terminal's own variables, read to tell whether it draws pictures (024).
+    if (['KITTY_WINDOW_ID', 'TERM', 'TERM_PROGRAM', 'TMUX'].includes(e.name)) return { value: script.env[e.name] }
     forbidden.push(`env.get ${e.name}`)
     return { value: undefined }
   })

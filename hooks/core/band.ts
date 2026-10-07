@@ -1,6 +1,7 @@
 // Lays out the band above the prompt (contracts/band.md). Pure: no $.
 // Returns segments, each with the theme role that colors it; the surface turns them
 // into elements. The first form that fits `columns` wins; an id is never cut.
+import { t, type Lang } from './i18n'
 import type { ThemeRole } from './theme'
 import type { Feature, Phase, SpeckitState, Step } from './types'
 
@@ -93,4 +94,20 @@ export const bandSegments = (state: SpeckitState, columns: number): Segment[] =>
     ]
   }
   return forms.find(form => width(form) <= columns) ?? []
+}
+
+/** The hover card of each rail step (024 #10): what the step is for and how many features are in it. */
+export const stepCards = (features: readonly Feature[], lang: Lang = 'en'): Array<{ step: Step; text: string }> =>
+  STEPS.map(step => {
+    const n = features.filter(f => f.phase === step).length
+    const about = t(lang, `card.${step}`)
+    if (step === 'constitution') return { step, text: `${step}: ${about}` }
+    const count = n === 0 ? t(lang, 'card.none') : n === 1 ? t(lang, 'card.one') : t(lang, 'card.many', { n })
+    return { step, text: `${step}: ${about} · ${count}` }
+  })
+
+/** The rail step a segment belongs to, by its key (`label-plan`, `mark-plan`, `running-plan`). */
+export const stepOf = (segment: Segment): Step | undefined => {
+  const m = /^(?:label|mark|running)-(.+)$/.exec(segment.key)
+  return m !== null && (STEPS as readonly string[]).includes(m[1]!) ? (m[1] as Step) : undefined
 }

@@ -2,7 +2,7 @@
 // The engine follows $ only into functions declared in this file, so every $ call lives here.
 import type { EngineInterface, Hook, Register, RenderNode } from 'claude-code'
 
-import { bandSegments } from './core/band'
+import { bandSegments, stepCards } from './core/band'
 import { hintTail } from './core/hint'
 import { phaseToasts } from './core/phase-toast'
 import { sessionRows, specsRows, taskRows } from './core/pane'
@@ -46,6 +46,7 @@ import {
 } from './core/governor'
 import { FLAVORS, isThemeKeys, themeOf } from './core/theme'
 import { tasksDiff } from './core/summary'
+import { chartImage, dialFrames, imagesFor } from './core/pixels'
 import { emptyMemo, type PaneState, type PaneTab, type UpdateId, type UpdateItem, type UpdatesState, type UsageState, type UsageReading, type QueuedAgent, type SessionStats, type GitState, type PullRequest, type SpeckitState } from './core/types'
 import type { Preset } from './core/presets'
 import type { Fs } from './io/fs-port'
@@ -86,7 +87,7 @@ const helpText = (lang: Lang): string =>
     `  2 ${t(lang, 'tab.tasks').padEnd(10)} ${t(lang, 'help.tasksTab')}`,
     `  3 ${t(lang, 'tab.session').padEnd(10)} ${t(lang, 'help.sessionTab')}`,
     `  4 ${t(lang, 'tab.dashboard').padEnd(10)} ${t(lang, 'help.dashboardTab')}`,
-    `${t(lang, 'help.options')} (preset, flavor, icons, language, checkUpdates, governUsage, askOnLimit, costBudget, pullRequest).`,
+    `${t(lang, 'help.options')} (preset, flavor, icons, language, checkUpdates, governUsage, askOnLimit, costBudget, pullRequest, images).`,
   ].join('\n')
 const ASK = { plugin: 'astrolabe', key: 'ask' } as const
 const DEFAULT_PANE: PaneState = { tab: 'specs', autoOpened: false }
@@ -194,6 +195,9 @@ let prRunning = false
 
 // Whether Claude Code's theme is a light one, read at session start (024): the charts' colors.
 let isLightTheme = false
+// Whether the terminal draws pictures (024 #5), from the images option and its variables.
+let isImageTerminal = false
+let pictureCache: { key: string; picture: { rgba: string; width: number; height: number } } | undefined
 // The active tasks at the end of the last main turn, to diff the next one against (024).
 let turnTasks: { dir: string; tasks: NonNullable<SpeckitState['activeTasks']> } | undefined
 
@@ -357,6 +361,8 @@ async function warnUsage($: EngineInterface, percent: number | undefined, usd: n
   for (const text of toasts) $.ui.toast(text)
 }
 
+// The images option (024): auto, on or off.
+let imagesOption: unknown
 // Whether the footer asks gh for the branch's pull request (023), off by default.
 let pullRequests = false
 // The cost budget in USD from the option, 0 for none (022).
@@ -952,6 +958,7 @@ export const register: Register = (on, options) => {
   pullRequests = options['pullRequest'] === true
   budget = typeof options['costBudget'] === 'number' && options['costBudget'] > 0 ? options['costBudget'] : 0
   iconsOption = options['icons']
+  imagesOption = options['images']
   languageOption = options['language']
 
   // The person's language (019): guessed from what they type, kept for the session.
@@ -986,6 +993,20 @@ export const register: Register = (on, options) => {
     await afterReconcile($, preset, started)
     // The baseline for the next turn's tasks diff, and the theme's lightness for the charts (024).
     turnTasks = started?.state.active === undefined || started.state.activeTasks === undefined ? undefined : { dir: started.state.active.dir, tasks: started.state.activeTasks }
+    try {
+      const option = imagesOption
+      isImageTerminal =
+        option === 'on' ||
+        (option !== 'off' &&
+          imagesFor(option, {
+            KITTY_WINDOW_ID: await $.env.get('KITTY_WINDOW_ID'),
+            TERM: await $.env.get('TERM'),
+            TERM_PROGRAM: await $.env.get('TERM_PROGRAM'),
+            TMUX: await $.env.get('TMUX'),
+          }))
+    } catch {
+      isImageTerminal = false
+    }
     try {
       const theme = (await $.config.list()).find(row => row.key === 'theme')
       isLightTheme = typeof theme?.value === 'string' && theme.value.startsWith('light')
@@ -1186,7 +1207,7 @@ export const register: Register = (on, options) => {
     const press = (key: string) => runUpdate($, key.replace(/^update-/, '') as UpdateId)
     return (
       <Box flexDirection="column">
-        {segments.length > 0 && bandRow({ Box, Text }, segments, tokens)}
+        {segments.length > 0 && bandRow({ Box, Text }, segments, tokens, stepCards(value?.features ?? [], currentLang()))}
         {command !== undefined &&
           nextRow(
             { Box, Text, Button },
@@ -1318,8 +1339,18 @@ export const register: Register = (on, options) => {
     const rgb = isThemeKeys(tokens) ? (isLightTheme ? FLAVORS.latte : FLAVORS.mocha) : tokens
     const chart = stats === undefined ? undefined : usageChart(stats.series, { width: Math.min(columns, 72), height: 7, ...(binding?.resetsAt === undefined ? {} : { resetsAt: binding.resetsAt }), now, tokens: rgb })
     const bars = phaseBars(state.features, Math.min(columns, 60), rgb, activeFeature?.phase)
+    const pictures = isImageTerminal && e.surface === 'terminal' && !ascii && stats !== undefined && chart !== undefined
+    // The picture is redrawn only when the readings, the size, the reset or the minute change.
+    const pictureKey = pictures ? `${stats.series.length}:${stats.series.at(-1)?.at}:${chart.columns}x${chart.rows}:${binding?.resetsAt}:${Math.floor(now / 60_000)}:${rgb.accent}` : ''
+    if (pictures && pictureCache?.key !== pictureKey) {
+      const made = chartImage(stats.series, { columns: chart.columns, rows: chart.rows, now, ...(binding?.resetsAt === undefined ? {} : { resetsAt: binding.resetsAt }), tokens: rgb })
+      pictureCache = made === undefined ? undefined : { key: pictureKey, picture: made }
+    }
+    const picture = pictures ? pictureCache?.picture : undefined
     const view = {
       dial: dial(activeFeature?.phase, rgb),
+      dialFrames: dialFrames(activeFeature?.phase, rgb),
+      ...(picture === undefined || chart === undefined ? {} : { chartImage: { ...picture, columns: chart.columns, rows: chart.rows, alt: t(currentLang(), 'dash.chartImage') } }),
       ...(bars === undefined ? {} : { bars }),
       ...(chart === undefined ? {} : { chart }),
       chartNote: t(currentLang(), stats === undefined || stats.series.length === 0 ? 'dash.noReading' : columns < 30 ? 'dash.narrow' : 'dash.chartNote'),
@@ -1332,6 +1363,8 @@ export const register: Register = (on, options) => {
         Text: elements.Text,
         ...('Raster' in elements ? { Raster: elements.Raster } : {}),
         ...('Svg' in elements ? { Svg: elements.Svg } : {}),
+        ...('Image' in elements ? { Image: elements.Image } : {}),
+        ...('Client' in elements ? { Client: elements.Client } : {}),
       },
       view,
       tokens,

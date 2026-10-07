@@ -229,6 +229,9 @@ The band is the row directly above the prompt (the first row in the image at the
 | Sparkline | `▂▃▅▆` | The deciding usage window over its last 12 readings, one block per reading, from 0% (`▁`) to 100% (`█`). It shows once there are 3 readings, on a band of 70 columns or more. |
 | Update buttons | `updates: [ gstack 1.91.33.0 ]` | A second row when something has a newer version. See [Update notices](#update-notices). |
 
+With the pointer on a step of the rail, a card under the band says what the step is for and how
+many features are in it (`plan: the technical plan, research and data model · 2 features here`).
+
 A finished feature shows every mark as `●` and a full bar. An abandoned feature named by
 `feature.json` shows `◆ 003 name  abandoned` instead of the rail.
 
@@ -298,6 +301,7 @@ reloads the mod right away.
 | `governUsage` | `true`, `false` | `true` | Usage governance (see [Usage governance](#usage-governance)). Off, the windows still show. |
 | `icons` | `auto`, `nerd`, `emoji`, `ascii` | `auto` | Icons in the footer and the Dashboard. `auto` is Nerd Font glyphs in the terminal and emoji elsewhere. |
 | `language` | `auto`, `en`, `pt-BR`, `es`, `fr` | `auto` | The language of the pane, the Dashboard, the governor's questions, the toasts and `/astrolabe help`. `auto` follows the language you type in, English until a prompt says enough. What Claude reads (refusals, resume prompts) stays in English. |
+| `images` | `auto`, `on`, `off` | `auto` | Draw the Dashboard's usage chart as a picture. `auto` does on kitty and Ghostty outside tmux. |
 | `pullRequest` | `true`, `false` | `false` | Show the branch's open pull request and its checks in the footer, from `gh`. See [The footer in place of a statusline](#the-footer-in-place-of-a-statusline). |
 | `costBudget` | a number of US dollars | `0` | The session's cost budget. Astrolabe toasts once when the cost passes 80% of it and once when it passes it. `0` turns the warning off. |
 | `askOnLimit` | `true`, `false` | `true` | Before it holds a subagent or pauses Claude, the governor asks you (see [Asked when it holds or pauses](#asked-when-it-holds-or-pauses)). Off, it holds and pauses without asking. |
@@ -384,6 +388,11 @@ folder with several Spec Kit projects under it, `other roots` names them, and
 A turn that ticked tasks says so next to its duration (`Baked for 1m 1s · 2 tasks done`). The
 Session tab shows the governor's last three steps: what it asked, what you answered, and when it
 resumed.
+
+The dial sweeps its needle from the first step to the active one when the tab opens, then
+holds still. On kitty and Ghostty (outside tmux) the usage chart is a picture, with dashed
+lines for the projection; the `images` option turns that `on` for other terminals that show
+pictures (iTerm2, WezTerm) or `off`.
 
 In the terminal the charts are drawn cell by cell in the theme's colors; in the Desktop app and
 VS Code they are vector images; with `icons: ascii`, or where neither is drawn, they are plain

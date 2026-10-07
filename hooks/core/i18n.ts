@@ -5,6 +5,16 @@ export const LANGS = ['en', 'pt-BR', 'es', 'fr'] as const
 export type Lang = (typeof LANGS)[number]
 
 const EN = {
+  'card.constitution': 'the rules every other step checks',
+  'card.specify': 'what to build and why, by user story',
+  'card.clarify': 'questions that settle what the spec leaves open',
+  'card.plan': 'the technical plan, research and data model',
+  'card.tasks': 'the ordered task list by user story',
+  'card.implement': 'the tasks, done test first',
+  'card.none': 'none here',
+  'card.one': '1 feature here',
+  'card.many': '{n} features here',
+  'dash.chartImage': 'usage over the session, 0 to 100%, dashed: the projection to the reset',
   'pane.filter': 'filter features',
   'pace.label': 'pace',
   'pace.value': 'at this pace {window} reaches about {p}% by {at}',
@@ -126,6 +136,16 @@ export type TextKey = keyof typeof EN
 type Dictionary = Readonly<Record<TextKey, string>>
 
 const PT_BR: Dictionary = {
+  'card.constitution': 'as regras que todo passo confere',
+  'card.specify': 'o que construir e por quê, por história de usuário',
+  'card.clarify': 'perguntas que resolvem o que a spec deixa em aberto',
+  'card.plan': 'o plano técnico, a pesquisa e o modelo de dados',
+  'card.tasks': 'a lista ordenada de tarefas por história',
+  'card.implement': 'as tarefas, com o teste primeiro',
+  'card.none': 'nenhuma aqui',
+  'card.one': '1 feature aqui',
+  'card.many': '{n} features aqui',
+  'dash.chartImage': 'uso ao longo da sessão, de 0 a 100%, tracejado: a projeção até o reset',
   'pane.filter': 'filtrar features',
   'pace.label': 'ritmo',
   'pace.value': 'neste ritmo {window} chega a cerca de {p}% às {at}',
@@ -244,6 +264,16 @@ const PT_BR: Dictionary = {
 }
 
 const ES: Dictionary = {
+  'card.constitution': 'las reglas que revisa cada paso',
+  'card.specify': 'qué construir y por qué, por historia de usuario',
+  'card.clarify': 'preguntas que resuelven lo que la spec deja abierto',
+  'card.plan': 'el plan técnico, la investigación y el modelo de datos',
+  'card.tasks': 'la lista ordenada de tareas por historia',
+  'card.implement': 'las tareas, con la prueba primero',
+  'card.none': 'ninguna aquí',
+  'card.one': '1 feature aquí',
+  'card.many': '{n} features aquí',
+  'dash.chartImage': 'uso durante la sesión, de 0 a 100%, discontinua: la proyección hasta el reinicio',
   'pane.filter': 'filtrar features',
   'pace.label': 'ritmo',
   'pace.value': 'a este ritmo {window} llega a cerca de {p}% a las {at}',
@@ -362,6 +392,16 @@ const ES: Dictionary = {
 }
 
 const FR: Dictionary = {
+  'card.constitution': 'les règles que chaque étape vérifie',
+  'card.specify': 'quoi construire et pourquoi, par user story',
+  'card.clarify': 'les questions qui règlent ce que la spec laisse ouvert',
+  'card.plan': 'le plan technique, la recherche et le modèle de données',
+  'card.tasks': 'la liste ordonnée des tâches par story',
+  'card.implement': 'les tâches, test d’abord',
+  'card.none': 'aucune ici',
+  'card.one': '1 feature ici',
+  'card.many': '{n} features ici',
+  'dash.chartImage': 'l’usage pendant la session, de 0 à 100 %, en tirets : la projection jusqu’au reset',
   'pane.filter': 'filtrer les features',
   'pace.label': 'rythme',
   'pace.value': 'à ce rythme {window} atteint environ {p} % à {at}',

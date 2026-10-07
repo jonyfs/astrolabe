@@ -2,7 +2,7 @@
 // register.tsx, so it resolves the element table there and passes it in.
 import type { ElementTable } from 'claude-code'
 
-import type { Segment } from '../core/band'
+import { stepOf, type Segment } from '../core/band'
 import type { Tokens } from '../core/theme'
 import { fitUpdateButtons } from '../core/updates'
 
@@ -10,15 +10,41 @@ export const bandRow = (
   { Box, Text }: Pick<ElementTable<'terminal' | 'desktop'>, 'Box' | 'Text'>,
   segments: readonly Segment[],
   tokens: Tokens,
-) => (
-  <Box key="astrolabe-band" flexDirection="row">
-    {segments.map(segment => (
-      <Text color={tokens[segment.role]} wrap="truncate-end">
-        {segment.text}
-      </Text>
-    ))}
-  </Box>
-)
+  /** One card per rail step, shown while the pointer is on that step (024 #10). */
+  cards: ReadonlyArray<{ step: string; text: string }> = [],
+) => {
+  const steps = new Set(segments.map(stepOf).filter(s => s !== undefined))
+  const row = (
+    <Box key="astrolabe-band" flexDirection="row">
+      {segments.map(segment => {
+        const step = stepOf(segment)
+        return step === undefined ? (
+          <Text color={tokens[segment.role]} wrap="truncate-end">
+            {segment.text}
+          </Text>
+        ) : (
+          <Text color={tokens[segment.role]} wrap="truncate-end" hover={{ scope: `astrolabe-step-${step}`, bold: true, underline: true }}>
+            {segment.text}
+          </Text>
+        )
+      })}
+    </Box>
+  )
+  const shown = cards.filter(card => steps.has(card.step as never))
+  if (shown.length === 0) return row
+  return (
+    <Box flexDirection="column">
+      {row}
+      {shown.map(card => (
+        <Box display="none" hover={{ scope: `astrolabe-step-${card.step}`, display: 'flex' }}>
+          <Text color={tokens.muted} wrap="truncate-end">
+            {card.text}
+          </Text>
+        </Box>
+      ))}
+    </Box>
+  )
+}
 
 /** The second band row (spec 007): one Button per available update. */
 export const updatesRow = (

@@ -1,6 +1,6 @@
 {
   "name": "astrolabe",
-  "version": "0.20.0",
+  "version": "0.21.0",
   "description": "Spec Kit progress and usage governance for Claude Code: a phase rail above the prompt, the next command in the prompt hint, the current task on the spinner, a /astrolabe pane, toasts, update buttons, and a status entry with your usage window.",
   "author": {
     "name": "Jony Santos"
@@ -82,6 +82,13 @@
       "title": "Ask before holding or pausing",
       "description": "When the governor queues a subagent or pauses Claude, ask you with a list of answers (queue, run now, lift for a while); the cautious default applies at once, and your answer changes it",
       "default": true
+    },
+    "images": {
+      "type": "string",
+      "title": "Pictures in the Dashboard",
+      "description": "Draw the usage chart as a picture: auto on kitty and Ghostty outside tmux, on for any terminal that shows pictures (iTerm2, WezTerm), off for cell charts",
+      "default": "auto",
+      "options": ["auto", "on", "off"]
     },
     "pullRequest": {
       "type": "boolean",
