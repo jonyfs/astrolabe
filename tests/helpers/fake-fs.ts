@@ -103,7 +103,17 @@ export type Session = {
  * plugin did. Register before the test's first call on $.
  */
 export const installTree = (on: On, tree: Tree, cwd: string): Session => {
-  const { fs, counts } = treeFs(tree)
+  const { fs: rawFs, counts } = treeFs(tree)
+  // On a Windows host the engine resolves a POSIX path such as /proj/x against the
+  // current drive (D:\proj\x) before a hook sees it. A tree written with POSIX roots
+  // is matched by dropping that drive again.
+  const isPosixTree = Object.keys(tree).every(key => key.startsWith('/'))
+  const toTree = (path: string) => (isPosixTree ? normalizePath(path).replace(/^[a-z]:(?=\/)/, '') : path)
+  const fs: Fs = {
+    read: path => rawFs.read(toTree(path)),
+    list: path => rawFs.list(toTree(path)),
+    exists: path => rawFs.exists(toTree(path)),
+  }
   const statuses: Array<string | undefined> = []
   const forbidden: string[] = []
   const logs: string[] = []
@@ -129,7 +139,7 @@ export const installTree = (on: On, tree: Tree, cwd: string): Session => {
   on('fs.stat', async ($, e) => {
     counts.stat += 1
     const index = indexTree(tree)
-    const p = normalizePath(e.path)
+    const p = normalizePath(toTree(e.path))
     const kind = index.files.has(p) ? 'file' : index.dirs.has(p) ? 'dir' : undefined
     return kind === undefined ? deny : { value: { kind, size: 0, mtimeMs: 0, isLink: false } }
   })
