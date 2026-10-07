@@ -7,6 +7,21 @@ export type ThemeRole = (typeof ROLES)[number]
 export type Tokens = Readonly<Record<ThemeRole, string>>
 export type FlavorName = 'mocha' | 'frappe' | 'macchiato' | 'latte'
 
+/** Claude Code's own theme keys (024 #11): a tree that names them follows light and dark. */
+export const THEME_TOKENS: Tokens = {
+  accent: 'claude',
+  text: 'text',
+  muted: 'subtle',
+  done: 'success',
+  current: 'warning',
+  pending: 'inactive',
+  barFill: 'suggestion',
+  barEmpty: 'subtle',
+}
+
+/** Whether the tokens are theme keys, which a Raster or an Svg cannot take: they need RGB. */
+export const isThemeKeys = (tokens: Tokens): boolean => !tokens.accent.startsWith('#')
+
 export const FLAVORS: Readonly<Record<FlavorName, Tokens>> = {
   mocha: {
     accent: '#cba6f7',
@@ -52,5 +67,6 @@ export const FLAVORS: Readonly<Record<FlavorName, Tokens>> = {
 
 export const themeOf = (options: Readonly<Record<string, unknown>>): Tokens => {
   const name = options['flavor']
+  if (name === 'theme') return THEME_TOKENS
   return typeof name === 'string' && name in FLAVORS ? FLAVORS[name as FlavorName] : FLAVORS.mocha
 }

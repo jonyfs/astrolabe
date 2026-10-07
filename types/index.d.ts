@@ -32,6 +32,12 @@ export type FeatureFiles = {
   unreadable?: Array<'spec.md' | 'tasks.md'>
   /** Set once the texts are compacted for the memo (spec 009), so they are not compacted again. */
   compact?: true
+  /** The spec's summary for the pane (024), kept when the spec text is compacted. */
+  summary?: string
+  /** Each task's line in its file (024), kept when the tasks are compacted. */
+  taskLines?: number[]
+  /** The tasks came from a quick spec's `## Tasks` section: there is no tasks.md (024). */
+  tasksInSpec?: true
 }
 
 export type FeatureWarning = 'clarification-after-plan' | 'unreadable-spec' | 'unreadable-tasks'
@@ -132,13 +138,17 @@ export type SpeckitState = {
   /** Extension hooks before and after the next command (020c). */
   nextHooks?: { before: string[]; after: string[] }
   /** The active feature's tasks, for the pane (the memo stays out of every drawing). */
-  activeTasks?: Array<{ id?: string; text: string; isDone: boolean }>
+  activeTasks?: Array<{ id?: string; text: string; isDone: boolean; line?: number }>
+  /** The active spec's summary as markdown (024). */
+  activeSummary?: string
+  /** The active feature's files that exist, for the pane's links (024). */
+  activeDocs?: Array<'spec.md' | 'plan.md' | 'tasks.md'>
 }
 
 export type PaneTab = 'specs' | 'tasks' | 'session' | 'dashboard'
 
 /** The /astrolabe pane's session state: the tab shown and whether it opened unasked already. */
-export type PaneState = { tab: PaneTab; autoOpened: boolean }
+export type PaneState = { tab: PaneTab; autoOpened: boolean; filter?: string }
 
 export type UpdateId = 'gstack' | 'specify' | 'speckit-skills' | 'astrolabe'
 
@@ -220,6 +230,8 @@ export type SessionStats = {
   warned?: { cost80?: boolean; cost100?: boolean; context?: boolean }
   /** The last `gh pr view` for a branch (023): when it ran and what it found, kept five minutes. */
   prCache?: { branch: string; at: number; pr?: PullRequest }
+  /** The last main turn's change to the active tasks, as unified-diff hunks (024). */
+  tasksDiff?: { dir: string; file: 'tasks.md' | 'spec.md'; text: string }
 }
 
 /** One answer a usage question offers; `target` is the ceiling a lifting answer sets. */

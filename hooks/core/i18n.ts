@@ -5,6 +5,7 @@ export const LANGS = ['en', 'pt-BR', 'es', 'fr'] as const
 export type Lang = (typeof LANGS)[number]
 
 const EN = {
+  'pane.filter': 'filter features',
   'pace.label': 'pace',
   'pace.value': 'at this pace {window} reaches about {p}% by {at}',
   'toast.cost80': '🧭 The session has cost ${cost}, {p}% of its ${budget} budget',
@@ -125,6 +126,7 @@ export type TextKey = keyof typeof EN
 type Dictionary = Readonly<Record<TextKey, string>>
 
 const PT_BR: Dictionary = {
+  'pane.filter': 'filtrar features',
   'pace.label': 'ritmo',
   'pace.value': 'neste ritmo {window} chega a cerca de {p}% às {at}',
   'toast.cost80': '🧭 A sessão já custou ${cost}, {p}% do orçamento de ${budget}',
@@ -242,6 +244,7 @@ const PT_BR: Dictionary = {
 }
 
 const ES: Dictionary = {
+  'pane.filter': 'filtrar features',
   'pace.label': 'ritmo',
   'pace.value': 'a este ritmo {window} llega a cerca de {p}% a las {at}',
   'toast.cost80': '🧭 La sesión ya costó ${cost}, el {p}% de su presupuesto de ${budget}',
@@ -359,6 +362,7 @@ const ES: Dictionary = {
 }
 
 const FR: Dictionary = {
+  'pane.filter': 'filtrer les features',
   'pace.label': 'rythme',
   'pace.value': 'à ce rythme {window} atteint environ {p} % à {at}',
   'toast.cost80': '🧭 La session a coûté ${cost}, {p} % de son budget de ${budget}',

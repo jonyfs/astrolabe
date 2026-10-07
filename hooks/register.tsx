@@ -1,6 +1,6 @@
 // Wires engine events to the io layer, the core and the status surface. No business logic.
 // The engine follows $ only into functions declared in this file, so every $ call lives here.
-import type { EngineInterface, Hook, Register } from 'claude-code'
+import type { EngineInterface, Hook, Register, RenderNode } from 'claude-code'
 
 import { bandSegments } from './core/band'
 import { hintTail } from './core/hint'
@@ -44,8 +44,9 @@ import {
   type Decision,
   type Question,
 } from './core/governor'
-import { themeOf } from './core/theme'
-import { emptyMemo, type PaneState, type PaneTab, type UpdateId, type UpdateItem, type UpdatesState, type UsageState, type UsageReading, type QueuedAgent, type SessionStats, type GitState, type PullRequest } from './core/types'
+import { FLAVORS, isThemeKeys, themeOf } from './core/theme'
+import { tasksDiff } from './core/summary'
+import { emptyMemo, type PaneState, type PaneTab, type UpdateId, type UpdateItem, type UpdatesState, type UsageState, type UsageReading, type QueuedAgent, type SessionStats, type GitState, type PullRequest, type SpeckitState } from './core/types'
 import type { Preset } from './core/presets'
 import type { Fs } from './io/fs-port'
 import { findRoot } from './io/root'
@@ -190,6 +191,72 @@ async function readGit($: EngineInterface, root: string | undefined, branch: str
 }
 
 let prRunning = false
+
+// Whether Claude Code's theme is a light one, read at session start (024): the charts' colors.
+let isLightTheme = false
+// The active tasks at the end of the last main turn, to diff the next one against (024).
+let turnTasks: { dir: string; tasks: NonNullable<SpeckitState['activeTasks']> } | undefined
+
+/** Keeps the features whose id or name holds the filter (024 #49). */
+const filtered = (state: SpeckitState, filter: string | undefined): SpeckitState => {
+  const words = (filter ?? '').trim().toLowerCase()
+  return words === '' ? state : { ...state, features: state.features.filter(f => `${f.id} ${f.name}`.toLowerCase().includes(words)) }
+}
+
+const fileUrl = (path: string): string => `file://${path.startsWith('/') ? '' : '/'}${encodeURI(path)}`
+
+/**
+ * What the Specs and Tasks tabs draw above their rows (024): the filter and the active spec's
+ * summary with links to its files, or the last turn's tasks diff. Only elements the surface has.
+ */
+function paneHeader(
+  $: Parameters<Hook<'ui.render'>>[0],
+  e: Parameters<Hook<'ui.render'>>[1],
+  pane: PaneState,
+  state: SpeckitState,
+  stats: SessionStats | undefined,
+): RenderNode[] {
+  const elements = $.ui.resolve(e)
+  const Input = 'Input' in elements ? elements.Input : undefined
+  const Markdown = 'Markdown' in elements ? elements.Markdown : undefined
+  const Code = 'Code' in elements ? elements.Code : undefined
+  const active = state.active
+  if (pane.tab === 'specs') {
+    const out: RenderNode[] = []
+    if (Input !== undefined) {
+      // Each keystroke filters; Enter keeps the text the same way.
+      const setFilter = async (value: string) => {
+        const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
+        await $.state.set(PANE_STATE, { ...held, filter: value })
+      }
+      out.push(
+        <Input key="astrolabe-filter" placeholder={t(currentLang(), 'pane.filter')} value={pane.filter ?? ''} onInput={setFilter} onSubmit={setFilter} />,
+      )
+    }
+    if (Markdown !== undefined && active !== undefined && state.activeSummary !== undefined && state.root !== undefined) {
+      const links = (state.activeDocs ?? []).map(file => `[${file}](${fileUrl(`${state.root}/specs/${active.dir}/${file}`)})`).join(' · ')
+      out.push(<Markdown key="astrolabe-summary" text={links === '' ? state.activeSummary : `${state.activeSummary}\n\n${links}`} />)
+    }
+    return out
+  }
+  if (pane.tab === 'tasks' && Code !== undefined && stats?.tasksDiff !== undefined && stats.tasksDiff.dir === active?.dir) {
+    return [<Code source={stats.tasksDiff.text} format="diff" path={stats.tasksDiff.file} />]
+  }
+  return []
+}
+
+/** Notes the turn's change to the active tasks as diff hunks for the Tasks tab (024 #8). */
+async function noteTasksDiff($: EngineInterface, state: SpeckitState | undefined): Promise<void> {
+  const dir = state?.active?.dir
+  const tasks = state?.activeTasks
+  const before = turnTasks
+  turnTasks = dir === undefined || tasks === undefined ? undefined : { dir, tasks }
+  if (before === undefined || dir === undefined || tasks === undefined || before.dir !== dir) return
+  const text = tasksDiff(before.tasks, tasks)
+  if (text === undefined) return
+  const file = state?.activeDocs?.includes('tasks.md') === true ? 'tasks.md' : 'spec.md'
+  await flushStats($, s => ({ ...s, tasksDiff: { dir, file, text } }))
+}
 
 /** Asks `gh` for the branch's pull request when the cached answer is older than five minutes (023). */
 async function refreshPr($: EngineInterface, root: string, branch: string): Promise<void> {
@@ -917,6 +984,14 @@ export const register: Register = (on, options) => {
     const now = await $.clock.now()
     const started = await guarded($, previous => reconcileStart(fs, e.cwd, previous, now))
     await afterReconcile($, preset, started)
+    // The baseline for the next turn's tasks diff, and the theme's lightness for the charts (024).
+    turnTasks = started?.state.active === undefined || started.state.activeTasks === undefined ? undefined : { dir: started.state.active.dir, tasks: started.state.activeTasks }
+    try {
+      const theme = (await $.config.list()).find(row => row.key === 'theme')
+      isLightTheme = typeof theme?.value === 'string' && theme.value.startsWith('light')
+    } catch {
+      isLightTheme = false
+    }
     if (preset.band) await suggestNext($, started)
     // Started on a timer so the session never waits for a process or the network.
     if (checksUpdates) $.clock.after(0, () => void checkUpdates($))
@@ -940,6 +1015,7 @@ export const register: Register = (on, options) => {
       })
       await afterReconcile($, preset, held)
       await noteProgress($, before, held, now, e.durationMs)
+      await noteTasksDiff($, held?.state)
       if (preset.band) await suggestNext($, held)
       // The footer's git part (018): counts from git, else the branch from the repository files.
       const root = held?.state.root
@@ -1220,13 +1296,16 @@ export const register: Register = (on, options) => {
                 role: 'current' as const,
               })),
             ]
-          : specsRows(state, columns, currentLang())
+          : specsRows(filtered(state, pane.filter), columns, currentLang())
     const { Box, Text, Button } = $.ui.resolve(e)
     const select = async (tab: PaneTab) => {
       const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
       await $.state.set(PANE_STATE, { ...held, tab })
     }
-    if (pane.tab !== 'dashboard') return paneTree({ Box, Text, Button }, pane.tab, rows, tokens, select, undefined, currentLang())
+    if (pane.tab !== 'dashboard') {
+      const header = paneHeader($, e, pane, state, (await $.state.get(SESSION)).value)
+      return paneTree({ Box, Text, Button }, pane.tab, rows, tokens, select, undefined, currentLang(), header)
+    }
     // The Dashboard (018): numbers from $.state only, charts sized to the pane.
     const elements = $.ui.resolve(e)
     const usage = (await $.state.get(USAGE)).value ?? DEFAULT_USAGE
@@ -1235,10 +1314,12 @@ export const register: Register = (on, options) => {
     const binding = decisionOf(usage, now).highest
     const activeFeature = state.features.find(f => f.dir === state.active?.dir)
     const ascii = iconsFor(iconsOption, e.surface) === 'ascii'
-    const chart = stats === undefined ? undefined : usageChart(stats.series, { width: Math.min(columns, 72), height: 7, ...(binding?.resetsAt === undefined ? {} : { resetsAt: binding.resetsAt }), now, tokens })
-    const bars = phaseBars(state.features, Math.min(columns, 60), tokens, activeFeature?.phase)
+    // A Raster and an Svg take RGB: with the theme flavor, the Catppuccin flavor for light or dark (024).
+    const rgb = isThemeKeys(tokens) ? (isLightTheme ? FLAVORS.latte : FLAVORS.mocha) : tokens
+    const chart = stats === undefined ? undefined : usageChart(stats.series, { width: Math.min(columns, 72), height: 7, ...(binding?.resetsAt === undefined ? {} : { resetsAt: binding.resetsAt }), now, tokens: rgb })
+    const bars = phaseBars(state.features, Math.min(columns, 60), rgb, activeFeature?.phase)
     const view = {
-      dial: dial(activeFeature?.phase, tokens),
+      dial: dial(activeFeature?.phase, rgb),
       ...(bars === undefined ? {} : { bars }),
       ...(chart === undefined ? {} : { chart }),
       chartNote: t(currentLang(), stats === undefined || stats.series.length === 0 ? 'dash.noReading' : columns < 30 ? 'dash.narrow' : 'dash.chartNote'),

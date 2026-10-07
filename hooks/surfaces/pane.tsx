@@ -1,6 +1,6 @@
 // The /astrolabe pane: a tab bar and the rows of the current tab. The engine follows $
 // only inside register.tsx, so it passes the element table and the press handler in.
-import type { ElementTable } from 'claude-code'
+import type { ElementTable, RenderNode } from 'claude-code'
 
 import type { PaneRow } from '../core/pane'
 import { t, type Lang, type TextKey } from '../core/i18n'
@@ -23,6 +23,8 @@ export const paneTree = (
   /** A body drawn in place of the rows (the Dashboard, 018). */
   body?: ReturnType<ElementTable<'terminal'>['Box']>,
   lang: Lang = 'en',
+  /** Drawn above the rows: the filter, the summary, the diff (024). */
+  header: readonly RenderNode[] = [],
 ) => (
   <Box flexDirection="column">
     <Box key="astrolabe-pane-tabs" flexDirection="row">
@@ -37,6 +39,7 @@ export const paneTree = (
       ))}
     </Box>
     <Box key="astrolabe-pane-body" flexDirection="column">
+      {header}
       {body ?? rows.map(row => (
         <Text color={tokens[row.role]} dimColor={row.dim === true} wrap="truncate-end">
           {row.text}

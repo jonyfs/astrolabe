@@ -2,6 +2,7 @@
 // memo stays small however large the specs are. Pure: no $.
 import { clarificationCount } from './clarification'
 import { classifyConstitution } from './constitution'
+import { specSummary } from './summary'
 import { parseTasks } from './tasks-parser'
 import type { FeatureFiles } from './types'
 
@@ -38,5 +39,8 @@ export const compactFiles = (files: FeatureFiles): FeatureFiles =>
         ...(files.tasks === undefined ? {} : { tasks: compactTasks(files.tasks) }),
         ...(files.unreadable === undefined ? {} : { unreadable: files.unreadable }),
         ...(files.checklist === undefined ? {} : { checklist: files.checklist }),
+        ...((summary => (summary === undefined ? {} : { summary }))(files.spec === undefined ? undefined : specSummary(files.spec))),
+        ...(files.tasks === undefined ? {} : { taskLines: files.taskLines ?? parseTasks(files.tasks).map(t => t.line) }),
+        ...(files.tasksInSpec === undefined ? {} : { tasksInSpec: files.tasksInSpec }),
         compact: true,
       }

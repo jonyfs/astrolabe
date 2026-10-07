@@ -71,8 +71,9 @@ describe('width degradation (FR-006)', () => {
     expect(at(s, 99)).toBe('◆ 002 band-hint  ● ● ● ● ● implement ◐  ████░░░░░░ 14/31 45%')
     expect(at(s, 59)).toBe('◆ 002  ● ● ● ● ● implement ◐  ████░░░░░░ 14/31 45%')
     expect(at(s, 49)).toBe('◆ 002  ● ● ● ● ● implement ◐ 14/31 45%')
-    expect(at(s, 37)).toBe('◆ 002  ● ● ● ● ● implement ◐')
-    expect(at(s, 27)).toBe('◆ 002')
+    expect(at(s, 37)).toBe('◆ 002  ◐ implement 14/31 45%')
+    expect(at(s, 27)).toBe('◆ 002  ◐ implement')
+    expect(at(s, 17)).toBe('◆ 002')
     expect(at(s, 4)).toBe('')
   })
   test('at a 100-column terminal (95 body columns) the labels go first', () => {

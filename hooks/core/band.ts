@@ -46,6 +46,12 @@ const rail = (state: SpeckitState, feature: Feature, allLabels: boolean): Segmen
   return out
 }
 
+const step = (feature: Feature): Segment => ({
+  key: 'step',
+  text: `${feature.phase === 'done' ? '●' : '◐'} ${feature.phase}`,
+  role: feature.phase === 'done' ? 'done' : 'current',
+})
+
 const progress = (feature: Feature, withBar: boolean): Segment[] => {
   if (feature.total === 0) return []
   const filled = Math.floor((feature.done * BAR_CELLS) / feature.total)
@@ -79,7 +85,10 @@ export const bandSegments = (state: SpeckitState, columns: number): Segment[] =>
       [id, ...name, lead, ...rail(state, feature, false), ...progress(feature, true)],
       [id, lead, ...rail(state, feature, false), ...progress(feature, true)],
       [id, lead, ...rail(state, feature, false), ...progress(feature, false)],
+      // The compact band (024 #12): the current step and the count, which say more than the rail alone.
+      [id, lead, step(feature), ...progress(feature, false)],
       [id, lead, ...rail(state, feature, false)],
+      [id, lead, step(feature)],
       [id],
     ]
   }
