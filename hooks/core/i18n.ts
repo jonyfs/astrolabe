@@ -5,6 +5,8 @@ export const LANGS = ['en', 'pt-BR', 'es', 'fr'] as const
 export type Lang = (typeof LANGS)[number]
 
 const EN = {
+  'toast.reloading': '🧭 Astrolabe {version} is on disk (running {running}): reloading the plugins',
+  'toast.onDisk': '🧭 Astrolabe {version} is on disk (running {running}): run /reload-plugins to load it',
   'card.constitution': 'the rules every other step checks',
   'card.specify': 'what to build and why, by user story',
   'card.clarify': 'questions that settle what the spec leaves open',
@@ -136,6 +138,8 @@ export type TextKey = keyof typeof EN
 type Dictionary = Readonly<Record<TextKey, string>>
 
 const PT_BR: Dictionary = {
+  'toast.reloading': '🧭 O Astrolabe {version} está no disco (rodando {running}): recarregando os plugins',
+  'toast.onDisk': '🧭 O Astrolabe {version} está no disco (rodando {running}): rode /reload-plugins para carregá-lo',
   'card.constitution': 'as regras que todo passo confere',
   'card.specify': 'o que construir e por quê, por história de usuário',
   'card.clarify': 'perguntas que resolvem o que a spec deixa em aberto',
@@ -264,6 +268,8 @@ const PT_BR: Dictionary = {
 }
 
 const ES: Dictionary = {
+  'toast.reloading': '🧭 Astrolabe {version} está en disco (en uso {running}): recargando los plugins',
+  'toast.onDisk': '🧭 Astrolabe {version} está en disco (en uso {running}): ejecuta /reload-plugins para cargarlo',
   'card.constitution': 'las reglas que revisa cada paso',
   'card.specify': 'qué construir y por qué, por historia de usuario',
   'card.clarify': 'preguntas que resuelven lo que la spec deja abierto',
@@ -392,6 +398,8 @@ const ES: Dictionary = {
 }
 
 const FR: Dictionary = {
+  'toast.reloading': '🧭 Astrolabe {version} est sur le disque (en cours {running}) : rechargement des plugins',
+  'toast.onDisk': '🧭 Astrolabe {version} est sur le disque (en cours {running}) : lancez /reload-plugins pour le charger',
   'card.constitution': 'les règles que chaque étape vérifie',
   'card.specify': 'quoi construire et pourquoi, par user story',
   'card.clarify': 'les questions qui règlent ce que la spec laisse ouvert',
