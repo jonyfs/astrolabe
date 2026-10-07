@@ -1,2 +1,7 @@
 # Local copy of the usage-governor skill, kept as a reference for the port (not published yet)
 /.claude/skills/usage-governor/
+# Declarations the engine lays beside a loaded mod; the vendored copy is types/engine/
+/.claude-plugin/types/
+/tsconfig.tsbuildinfo
+node_modules/
+.DS_Store

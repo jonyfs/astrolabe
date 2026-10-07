@@ -23,19 +23,19 @@ it is the first visible slice.
 
 **Purpose**: plugin skeleton, type checking and the test harness.
 
-- [ ] T001 Create `.claude-plugin/plugin.json` (`name: astrolabe`, `version: 0.1.0`, description, `author` `{ name: "Jony Santos" }`, `repository: https://github.com/jonyfs/astrolabe`, `license: MIT`, `types: ./types/index.d.ts`) and `hooks/hooks.json` (`{ "modules": ["./register.tsx"] }`)
-- [ ] T002 [P] Create `scripts/sync-engine-types.sh` that copies the engine-written declarations into `types/engine/claude-code.d.ts`, run it, and add `.claude-plugin/types/` to `.gitignore`
-- [ ] T003 [P] Create `tsconfig.json` with the engine's recommended options (`target es2023`, `lib es2023`, `types []`, `module esnext`, `moduleResolution bundler`, `strict`, `noUncheckedIndexedAccess`, `noEmit`, `skipLibCheck`, `jsx react`, `jsxFactory h`, `jsxFragmentFactory Fragment`), `include: ["types", "hooks", "tests"]`
-- [ ] T004 Create a minimal `hooks/register.tsx` exporting `register: Register` that registers nothing yet, and confirm `claude plugin validate .` passes
+- [X] T001 Create `.claude-plugin/plugin.json` (`name: astrolabe`, `version: 0.1.0`, description, `author` `{ name: "Jony Santos" }`, `repository: https://github.com/jonyfs/astrolabe`, `license: MIT`, `types: ./types/index.d.ts`) and `hooks/hooks.json` (`{ "modules": ["./register.tsx"] }`)
+- [X] T002 [P] Create `scripts/sync-engine-types.sh` that copies the engine-written declarations into `types/engine/claude-code.d.ts`, run it, and add `.claude-plugin/types/` to `.gitignore`
+- [X] T003 [P] Create `tsconfig.json` with the engine's recommended options (`target es2023`, `lib es2023`, `types []`, `module esnext`, `moduleResolution bundler`, `strict`, `noUncheckedIndexedAccess`, `noEmit`, `skipLibCheck`, `jsx react`, `jsxFactory h`, `jsxFragmentFactory Fragment`), `include: ["types", "hooks", "tests"]`
+- [X] T004 Create a minimal `hooks/register.tsx` exporting `register: Register` that registers nothing yet, and confirm `claude plugin validate .` passes
 
 ## Phase 2: Foundational
 
 **Purpose**: types, path helpers, the `Fs` port and the fake file system every story uses.
 
-- [ ] T005 Write `hooks/core/types.ts` with `Phase`, `Step`, `Task`, `FeatureFiles`, `Feature`, `Snapshot`, `Active`, `ActiveWarning`, `SessionMemo`, `SpeckitState` exactly as in data-model.md, and `types/index.d.ts` declaring `PluginState['astrolabe'] = { speckit: { state: SpeckitState; memo: SessionMemo } }` per contracts/state.md
-- [ ] T006 [P] Write failing tests in `tests/core/paths.test.ts`: `normalizePath` turns backslashes into `/`, drops a trailing slash, lowercases a drive letter; `featureDirOf(root, path)` returns `specs/002-x` for absolute, relative and Windows-style paths (`C:\\proj\\specs\\002-x\\tasks.md` with root `c:/proj`, any letter case) and `undefined` outside `specs/NNN-*`; `joinPath` and `parentDir` handle `/` and `C:/` roots
-- [ ] T007 Implement `hooks/core/paths.ts` until T006 passes
-- [ ] T008 [P] Write `hooks/io/fs-port.ts` (`Fs` type: `read`, `list`, `exists`) and `tests/helpers/fake-fs.ts`: `treeFs(tree)` returning an `Fs` over a `Record<string, string>` with read counters, and `installTree(on, tree, cwd)` registering test hooks for `fs.read`, `fs.list`, `fs.exists`, `fs.stat`, `session.cwd`, `session.start` and `ui.status` that answer `{ value }` or `{ deny: 'ENOENT' }` and record every status text
+- [X] T005 Write `hooks/core/types.ts` with `Phase`, `Step`, `Task`, `FeatureFiles`, `Feature`, `Snapshot`, `Active`, `ActiveWarning`, `SessionMemo`, `SpeckitState` exactly as in data-model.md, and `types/index.d.ts` declaring `PluginState['astrolabe'] = { speckit: { state: SpeckitState; memo: SessionMemo } }` per contracts/state.md
+- [X] T006 [P] Write failing tests in `tests/core/paths.test.ts`: `normalizePath` turns backslashes into `/`, drops a trailing slash, lowercases a drive letter; `featureDirOf(root, path)` returns `specs/002-x` for absolute, relative and Windows-style paths (`C:\\proj\\specs\\002-x\\tasks.md` with root `c:/proj`, any letter case) and `undefined` outside `specs/NNN-*`; `joinPath` and `parentDir` handle `/` and `C:/` roots
+- [X] T007 Implement `hooks/core/paths.ts` until T006 passes
+- [X] T008 [P] Write `hooks/io/fs-port.ts` (`Fs` type: `read`, `list`, `exists`) and `tests/helpers/fake-fs.ts`: `treeFs(tree)` returning an `Fs` over a `Record<string, string>` with read counters, and `installTree(on, tree, cwd)` registering test hooks for `fs.read`, `fs.list`, `fs.exists`, `fs.stat`, `session.cwd`, `session.start` and `ui.status` that answer `{ value }` or `{ deny: 'ENOENT' }` and record every status text
 
 **Checkpoint**: `claude plugin test .` runs and the path tests pass.
 
@@ -49,28 +49,28 @@ from a valid `feature.json`.
 
 ### Tests for User Story 1
 
-- [ ] T009 [P] [US1] Write failing tests in `tests/core/tasks-parser.test.ts`: a line is a task when it matches `^\s*[-*]\s+\[( |x|X)\]\s+`; `[x]` and `[X]` are done; indented checkboxes count; `[]` and `[ x]` are not tasks; when any task has a `T\d+` id, tasks without one are dropped; `line` is 1-based; first unticked task is the current task
-- [ ] T010 [P] [US1] Write failing tests in `tests/core/front-matter.test.ts`: recognized only when line 1 is exactly `---` and a later line is exactly `---`; reads `track` (`quick`, `full`) and `status` (`active`, `done`, `abandoned`) with optional quotes and spaces; ignores unknown keys and values; no front matter returns `{}`
-- [ ] T011 [P] [US1] Write failing tests in `tests/core/constitution.test.ts`: `undefined` is `missing`; text containing a token matching `\[[A-Z][A-Z0-9_]+\]` is `template`; otherwise `ratified`
-- [ ] T012 [P] [US1] Write failing tests in `tests/core/phase.test.ts` covering every row of the FR-005 table in order, including `track: quick` without plan, `[NEEDS CLARIFICATION` without plan, zero tasks, 100% with `status: active`, and the `clarification-after-plan` warning
-- [ ] T013 [P] [US1] Write failing tests in `tests/core/status-text.test.ts` for every row of contracts/status-entry.md (`◆ no Spec Kit`, `◆ no active feature · next: /speckit-specify`, `◆ 002 · implement 45%`, `◆ 002 · plan`, `◆ ~002 · implement 45%`, running-skill suffix) and the width degradation order at budgets 80, 100, 144, 200 and narrow values (never cutting an id)
-- [ ] T014 [P] [US1] Write failing tests in `tests/core/next-command.test.ts` for every row of the FR-021 table
+- [X] T009 [P] [US1] Write failing tests in `tests/core/tasks-parser.test.ts`: a line is a task when it matches `^\s*[-*]\s+\[( |x|X)\]\s+`; `[x]` and `[X]` are done; indented checkboxes count; `[]` and `[ x]` are not tasks; when any task has a `T\d+` id, tasks without one are dropped; `line` is 1-based; first unticked task is the current task
+- [X] T010 [P] [US1] Write failing tests in `tests/core/front-matter.test.ts`: recognized only when line 1 is exactly `---` and a later line is exactly `---`; reads `track` (`quick`, `full`) and `status` (`active`, `done`, `abandoned`) with optional quotes and spaces; ignores unknown keys and values; no front matter returns `{}`
+- [X] T011 [P] [US1] Write failing tests in `tests/core/constitution.test.ts`: `undefined` is `missing`; text containing a token matching `\[[A-Z][A-Z0-9_]+\]` is `template`; otherwise `ratified`
+- [X] T012 [P] [US1] Write failing tests in `tests/core/phase.test.ts` covering every row of the FR-005 table in order, including `track: quick` without plan, `[NEEDS CLARIFICATION` without plan, zero tasks, 100% with `status: active`, and the `clarification-after-plan` warning
+- [X] T013 [P] [US1] Write failing tests in `tests/core/status-text.test.ts` for every row of contracts/status-entry.md (`◆ no Spec Kit`, `◆ no active feature · next: /speckit-specify`, `◆ 002 · implement 45%`, `◆ 002 · plan`, `◆ ~002 · implement 45%`, running-skill suffix) and the width degradation order at budgets 80, 100, 144, 200 and narrow values (never cutting an id)
+- [X] T014 [P] [US1] Write failing tests in `tests/core/next-command.test.ts` for every row of the FR-021 table
 
 ### Implementation for User Story 1
 
-- [ ] T015 [P] [US1] Implement `hooks/core/tasks-parser.ts` until T009 passes
-- [ ] T016 [P] [US1] Implement `hooks/core/front-matter.ts` until T010 passes
-- [ ] T017 [P] [US1] Implement `hooks/core/constitution.ts` until T011 passes
-- [ ] T018 [US1] Implement `hooks/core/phase.ts` (`derivePhase`) until T012 passes
-- [ ] T019 [P] [US1] Implement `hooks/core/next-command.ts` until T014 passes
-- [ ] T020 [US1] Implement `hooks/core/status-text.ts` (`formatStatus`) until T013 passes
-- [ ] T021 [P] [US1] Create fixtures `tests/fixtures/{no-speckit,template-constitution,spec-only,clarify-pending,plan-without-tasks,half-done,all-done,malformed-checkbox,uppercase-x}/index.ts`, each exporting `{ cwd, tree, expected }`
-- [ ] T022 [US1] Write failing tests in `tests/io/snapshot.test.ts` using `treeFs`: `findRoot` walks up to the nearest `.specify/` and stops at the filesystem root; `readSnapshot(fs, root, 'full')` lists only `^\d{3}-.+` dirs sorted by id, reads `spec.md` and `tasks.md`, checks `plan.md` with `exists`, and treats a rejected read as missing
-- [ ] T023 [US1] Implement `hooks/io/root.ts` and `hooks/io/snapshot.ts` until T022 passes
-- [ ] T024 [US1] Write failing tests in `tests/core/speckit.test.ts`: `deriveSpeckitState` over each US1 fixture's snapshot gives the expected constitution, features, phases, done/total, active (from `feature.json`), current task and next command
-- [ ] T025 [US1] Implement `hooks/core/speckit.ts` (with a first `hooks/core/active.ts` covering the `feature.json` rule only) until T024 passes
-- [ ] T026 [US1] Write failing integration test `tests/integration/session-start.test.ts`: with `installTree`, `$.session.start` on the half-done fixture records `◆ 002 · implement 45%`; on `no-speckit` records `◆ no Spec Kit`; a fixture whose every read is denied still records a non-empty entry
-- [ ] T027 [US1] Implement `hooks/surfaces/status.ts` and the `session.start` hook in `hooks/register.tsx` (find root, full snapshot, derive, `$.state.set` of `astrolabe.speckit`, show status; every failure caught and shown as the smaller entry) until T026 passes
+- [X] T015 [P] [US1] Implement `hooks/core/tasks-parser.ts` until T009 passes
+- [X] T016 [P] [US1] Implement `hooks/core/front-matter.ts` until T010 passes
+- [X] T017 [P] [US1] Implement `hooks/core/constitution.ts` until T011 passes
+- [X] T018 [US1] Implement `hooks/core/phase.ts` (`derivePhase`) until T012 passes
+- [X] T019 [P] [US1] Implement `hooks/core/next-command.ts` until T014 passes
+- [X] T020 [US1] Implement `hooks/core/status-text.ts` (`formatStatus`) until T013 passes
+- [X] T021 [P] [US1] Create fixtures `tests/fixtures/{no-speckit,template-constitution,spec-only,clarify-pending,plan-without-tasks,half-done,all-done,malformed-checkbox,uppercase-x}/index.ts`, each exporting `{ cwd, tree, expected }`
+- [X] T022 [US1] Write failing tests in `tests/io/snapshot.test.ts` using `treeFs`: `findRoot` walks up to the nearest `.specify/` and stops at the filesystem root; `readSnapshot(fs, root, 'full')` lists only `^\d{3}-.+` dirs sorted by id, reads `spec.md` and `tasks.md`, checks `plan.md` with `exists`, and treats a rejected read as missing
+- [X] T023 [US1] Implement `hooks/io/root.ts` and `hooks/io/snapshot.ts` until T022 passes
+- [X] T024 [US1] Write failing tests in `tests/core/speckit.test.ts`: `deriveSpeckitState` over each US1 fixture's snapshot gives the expected constitution, features, phases, done/total, active (from `feature.json`), current task and next command
+- [X] T025 [US1] Implement `hooks/core/speckit.ts` (with a first `hooks/core/active.ts` covering the `feature.json` rule only) until T024 passes
+- [X] T026 [US1] Write failing integration test `tests/integration/session-start.test.ts`: with `installTree`, `$.session.start` on the half-done fixture records `◆ 002 · implement 45%`; on `no-speckit` records `◆ no Spec Kit`; a fixture whose every read is denied still records a non-empty entry
+- [X] T027 [US1] Implement `hooks/surfaces/status.ts` and the `session.start` hook in `hooks/register.tsx` (find root, full snapshot, derive, `$.state.set` of `astrolabe.speckit`, show status; every failure caught and shown as the smaller entry) until T026 passes
 
 **Checkpoint**: US1 works alone; `claude --plugin-dir .` shows the entry in this repository.
 

@@ -1,0 +1,11 @@
+{
+  "name": "astrolabe",
+  "version": "0.1.0",
+  "description": "Live Spec Kit state in the Claude Code status line: active feature, phase and task progress.",
+  "author": { "name": "Jony Santos" },
+  "homepage": "https://github.com/jonyfs/astrolabe",
+  "repository": "https://github.com/jonyfs/astrolabe",
+  "license": "MIT",
+  "keywords": ["mod", "status", "spec-kit", "statusline"],
+  "types": "./types/index.d.ts"
+}
