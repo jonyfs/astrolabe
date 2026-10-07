@@ -44,3 +44,21 @@ export const updatesRow = (
     </Box>
   )
 }
+
+/** The next Spec Kit command (020a): a button that runs it and, when there is room, one that copies it. */
+export const nextRow = (
+  { Box, Text, Button }: Pick<ElementTable<'terminal' | 'desktop'>, 'Box' | 'Text' | 'Button'>,
+  command: string,
+  tokens: Tokens,
+  onRun: () => Promise<void>,
+  onCopy: (surface: string) => Promise<void>,
+  columns: number,
+  labels: { next: string; copy: string },
+) => (
+  <Box key="astrolabe-next" flexDirection="row">
+    <Text color={tokens.muted}>{`${labels.next}: `}</Text>
+    <Button key="next-run" label={`▶ ${command}`} onPress={() => onRun()} />
+    {columns >= 60 && <Text> </Text>}
+    {columns >= 60 && <Button key="next-copy" label={labels.copy} onPress={press => onCopy(press.surface)} />}
+  </Box>
+)
