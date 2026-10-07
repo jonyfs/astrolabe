@@ -1,6 +1,6 @@
 {
   "name": "astrolabe",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "Live Spec Kit state in Claude Code: a phase rail above the prompt, the next command in the prompt hint, and a status line entry.",
   "author": {
     "name": "Jony Santos"
@@ -43,6 +43,12 @@
       "type": "boolean",
       "title": "Check for updates",
       "description": "Once a day, check gstack, the Spec Kit CLI, this project's Spec Kit skills and Astrolabe for updates (one GitHub API call), and offer a button to install each",
+      "default": true
+    },
+    "governUsage": {
+      "type": "boolean",
+      "title": "Govern usage",
+      "description": "Keep subagent fan-out under the 5-hour and weekly windows: cap at 60%, hold new subagents from 80%, pause from 88% and resume after the reset",
       "default": true
     }
   }

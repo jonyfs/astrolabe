@@ -4,10 +4,11 @@ A Claude Code mod that shows where your session is and where it is heading: the
 project, git and model state from a classic status line, live Spec Kit progress, and
 usage-window governance that keeps subagent fan-out under your plan limits.
 
-> **Status: v0.7.0.** Astrolabe draws a band above the prompt with the Spec Kit phase rail,
+> **Status: v0.8.0.** Astrolabe draws a band above the prompt with the Spec Kit phase rail,
 > the next command at the end of the prompt hint, the task in progress on the spinner line, an
-> entry in the status line, a pane you open with `/astrolabe`, two kinds of toast, and buttons
-> that install updates. Usage
+> entry in the status line, a pane you open with `/astrolabe`, two kinds of toast, buttons
+> that install updates, and usage governance that keeps subagent fan-out under your plan's
+> 5-hour and weekly windows. Usage
 > governance arrives in a later release (see [Roadmap](#roadmap)). Progress is tracked as Spec Kit features under `specs/`.
 
 ## Why "Astrolabe"
@@ -96,7 +97,7 @@ Each part, from left to right:
 |---|---|---|
 | `⚠ astrolabe:` | | Drawn by Claude Code, not by the mod. It marks a line that a mod wrote, and it names the mod. |
 | `◆` | | The Spec Kit marker. Every Astrolabe entry starts with it. |
-| Feature id | `001` | The three-digit number of the active feature, from its folder name `specs/001-core-state/`. Every entry is at most 68 characters with the `⚠ astrolabe:` prefix, so it fits whole at 80 columns and wider. |
+| Feature id | `001` | The three-digit number of the active feature, from its folder name `specs/001-core-state/`. The Spec Kit part is at most 68 characters with the `⚠ astrolabe:` prefix, and the usage part adds at most 18 more, so it fits whole at 100 columns and wider; Claude Code cuts what does not fit. |
 | `~` before the id | `~002` | The feature was guessed. `.specify/feature.json` exists but is broken or points at a folder that is not there, so Astrolabe fell back to the git branch or the newest open feature. Fix or delete `feature.json` and the `~` goes away. |
 | Phase | `implement` | The first Spec Kit step this feature has not finished. See [Phases](#phases). |
 | Percentage | `87%` | Ticked tasks out of all tasks in the feature's `tasks.md`, rounded down. 43 of 49 is `87%`. It appears only once `tasks.md` has tasks. |
@@ -111,6 +112,7 @@ The other entries you may see:
 | `◆ no active feature · next: /speckit-constitution` | Same, and the constitution is missing or still the unfilled template. |
 | `◆ 003 · abandoned` | `feature.json` names a feature whose spec says `status: abandoned`. A percentage follows when it has tasks (`◆ 003 · abandoned 40%`). |
 | `◆ 001 · done 100%` | `feature.json` names a finished feature. Run `/speckit-specify` for the next one. |
+| `… · 5h 42%` | The fuller usage window, with its band when it is not ok (`5h 83% hold`). See [Usage governance](#usage-governance). |
 
 ### Phases
 
@@ -210,7 +212,7 @@ the tasks left. It disappears as soon as you type.
 
 ## Options
 
-Three options appear in Claude Code's config menu (`/config`, then Astrolabe). Changing one
+Four options appear in Claude Code's config menu (`/config`, then Astrolabe). Changing one
 reloads the mod right away.
 
 | Option | Values | Default | What it changes |
@@ -218,6 +220,7 @@ reloads the mod right away.
 | `preset` | `minimal`, `compact`, `full` | `compact` | Where Astrolabe draws. `minimal` keeps only the status entry. `compact` adds the band, the prompt hint, the spinner narration and the drift alarm. `full` also opens the `/astrolabe` pane by itself on a wide fullscreen terminal, and shows phase toasts as well as the drift alarm. |
 | `flavor` | `mocha`, `frappe`, `macchiato`, `latte` | `mocha` | The Catppuccin palette for the band. `latte` is the light one. |
 | `checkUpdates` | `true`, `false` | `true` | The daily update check and its buttons (see [Update notices](#update-notices)). |
+| `governUsage` | `true`, `false` | `true` | Usage governance (see [Usage governance](#usage-governance)). Off, the windows still show. |
 
 You can also type `/plugin configure astrolabe@astrolabe` in a session, or set them from a
 shell. Options you leave out keep their values:
@@ -439,22 +442,45 @@ classic status line command configured, both show.
   debug log as a line starting with `astrolabe:`. While a plugin folder is hot-reloaded, the
   transcript also shows a dim line when a hook was skipped.
 
-## Roadmap
+## Usage governance
 
-Every feature of the original design is shipped. Next comes usage governance, ported from the
-usage-governor skill, as its own Spec Kit feature, with these bands:
+Claude Code tells the mod how full your 5-hour and weekly windows are after every turn.
+Astrolabe adds the fuller one to the status entry and acts on it:
 
-| Band | Highest window | What happens to new subagent dispatches |
-|---|---|---|
-| ok | below 60% | up to 6 at once |
-| throttle | 60% to 80%, or on pace to cross 80% before the reset | cap of 3, then 1 |
-| hold | 80% or more | denied and queued |
-| stop | 88% or more | denied and queued; the session pauses and resumes at the reset |
-| ceiling | 90% or more | only read-only tools until the owner lifts it |
+```text
+⚠ astrolabe: ◆ 002 · implement 45% · 5h 42%
+⚠ astrolabe: ◆ 002 · implement 45% · 5h 83% hold
+```
 
-The design study shows the planned presets and states. It is a design drawing, not a
-capture of the mod: [docs/design/study.html](docs/design/study.html) (rendered:
-[docs/design/study.png](docs/design/study.png)).
+| Band | Highest window | New subagents (`Agent` calls) | Other tools |
+|---|---|---|---|
+| ok | below 60% | up to 6 at once | run |
+| throttle | 60% to 80%, or a burn rate that would reach 80% before the reset | 3 at once below 70%, then 1 | run |
+| hold | 80% or more | refused and queued | run |
+| stop | 88% or more | refused and queued | only read-only tools (Read, Grep, Glob, LS, WebFetch, WebSearch, TodoWrite, Skill) |
+| ceiling | 90% or more | refused and queued | only read-only tools |
+
+A refused call tells Claude why and when the window resets, for example
+`🧭 usage 5h 83% (hold): new subagents are queued until 14:00; queued as q1`. When the window
+resets, or a new reading falls below 80%, Astrolabe sends one prompt that lists the queued
+subagents so Claude dispatches them again, and a paused session continues. A running subagent
+is never stopped. The cap counts subagents running in the foreground; one started in the
+background returns at once and is not counted.
+
+Only you can lift stop and the ceiling, by typing the command yourself (a command sent by
+Claude, a plugin or a script is refused):
+
+```text
+/astrolabe allow 95 2h
+/astrolabe revoke
+```
+
+`allow` takes a target from 90 to 99 and a duration from `30m` to `12h`; it lasts until the
+duration ends or the window resets. New subagents still wait from 80%.
+
+Off a subscription (an API key) there are no windows, so nothing is shown or refused. To keep
+the readings but turn the governing off, set `governUsage` to `false`. If this project also
+has the usage-governor skill's hooks installed, they govern too; keep one of the two.
 
 ## From a statusline to a mod
 

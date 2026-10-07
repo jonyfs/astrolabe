@@ -117,8 +117,24 @@ export type UpdateItem = { id: UpdateId; installed: string; latest: string }
 /** What the band and pane draw about updates; `confirming` arms the skills refresh. */
 export type UpdatesState = { items: UpdateItem[]; confirming?: UpdateId; running?: UpdateId }
 
+/** One usage window as session.measure reports it. */
+export type UsageReading = { kind: string; percentUsed: number; resetsAt?: string }
+
+/** A subagent dispatch refused while usage is high, to re-dispatch after the reset. */
+export type QueuedAgent = { id: string; description: string; prompt: string; subagentType?: string }
+
+/** Usage governance (spec 008). `override` is the owner's raised stop and ceiling. */
+export type UsageState = {
+  readings: UsageReading[]
+  history: Array<{ at: number; percent: number }>
+  inFlight: number
+  queue: QueuedAgent[]
+  override?: { target: number; until: number }
+  paused: boolean
+}
+
 declare module 'claude-code' {
   interface PluginState {
-    astrolabe: { speckit: { state: SpeckitState; memo: SessionMemo }; pane: PaneState; updates: UpdatesState }
+    astrolabe: { speckit: { state: SpeckitState; memo: SessionMemo }; pane: PaneState; updates: UpdatesState; usage: UsageState }
   }
 }

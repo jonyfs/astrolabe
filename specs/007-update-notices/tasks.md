@@ -26,4 +26,4 @@ description: "Task list for 007-update-notices"
 
 - [X] T008 README: the checks, the network call, each button, `checkUpdates`; v0.7.0 notes; remove 007 from the roadmap
 - [X] T009 Run validate, tests and tsc
-- [ ] T010 Full review with a stronger model; apply the fixes; mark `status: done`
+- [X] T010 Full review with a stronger model: skipped at the owner's request on 2026-10-07 (usage limits blocked subagents); merged and released without it. `status: done`

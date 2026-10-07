@@ -102,6 +102,8 @@ export type Session = {
   processes: string[]
   /** Every URL the plugin fetched. */
   fetches: string[]
+  /** Every plain prompt the plugin submitted. */
+  submitted: string[]
   /** Every slash command the plugin ran, as `/name`. */
   prompts: string[]
   /** Script process.run answers and http.fetch answers for a test. */
@@ -177,6 +179,7 @@ export const installTree = (on: On, tree: Tree, cwd: string, seed: Record<string
   const processes: string[] = []
   const fetches: string[] = []
   const prompts: string[] = []
+  const submitted: string[] = []
   const script: Session['script'] = { processes: {}, http: {} }
   on('process.run', ($, e) => {
     const line = e.argv.join(' ')
@@ -190,6 +193,10 @@ export const installTree = (on: On, tree: Tree, cwd: string, seed: Record<string
     const answer = script.http[e.url]
     if (answer === undefined) return { deny: 'offline' }
     return { value: { status: answer.status, ok: answer.status < 400, headers: {}, text: answer.text } } as never
+  })
+  on('prompt.submit', ($, e) => {
+    submitted.push(e.text)
+    return { text: e.text } as never
   })
   on('command.run', ($, e) => {
     prompts.push(`/${e.command}`)
@@ -219,7 +226,7 @@ export const installTree = (on: On, tree: Tree, cwd: string, seed: Record<string
     return { value: undefined }
   })
 
-  return { counts, statuses, forbidden, last: () => statuses.at(-1), held: () => held, logs, clock, toasts, store, processes, fetches, prompts, script }
+  return { counts, statuses, forbidden, last: () => statuses.at(-1), held: () => held, logs, clock, toasts, store, processes, fetches, prompts, submitted, script }
 }
 
 /** Answers turn.complete and tool.call beneath the plugin, as the engine would. */
@@ -230,8 +237,24 @@ export const installEngine = (on: On) => {
     return { value: undefined } as never
   })
   on('turn.complete', () => ({ text: '' }))
-  on('tool.call', () => ({ result: { text: 'ok' } }) as never)
-  return { commands }
+  on('session.measure', ($, e) => ({ changed: e.changed }) as never)
+  // Agent calls can be held in flight to exercise the fan-out cap.
+  const held: Array<() => void> = []
+  let holdAgents = false
+  on('tool.call', async ($, e) => {
+    if (e.tool === 'Agent' && holdAgents) await new Promise<void>(resolve => held.push(resolve))
+    return { result: { text: 'ok' } } as never
+  })
+  return {
+    commands,
+    holdAgents: () => {
+      holdAgents = true
+    },
+    releaseAgents: () => {
+      holdAgents = false
+      for (const resolve of held.splice(0)) resolve()
+    },
+  }
 }
 
 let turn = 0

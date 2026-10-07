@@ -13,13 +13,13 @@ const allBehind = (session: Session) => {
   session.script.processes[GSTACK] = { stdout: 'UPGRADE_AVAILABLE 1.91.32.0 1.91.33.0\n' }
   session.script.processes['specify self check'] = { stdout: 'Update available: 1.1.1 -> 1.2.0\n' }
   session.script.processes['specify version'] = { stdout: '│  CLI Version    1.2.0  │\n' }
-  session.script.http[RELEASES] = { status: 200, text: '{"tag_name":"v0.8.0"}' }
+  session.script.http[RELEASES] = { status: 200, text: '{"tag_name":"v0.9.0"}' }
 }
 const allCurrent = (session: Session) => {
   session.script.processes[GSTACK] = { stdout: '' }
   session.script.processes['specify self check'] = { stdout: 'Up to date: 1.1.1\n' }
   session.script.processes['specify version'] = { stdout: '│  CLI Version    1.1.1  │\n' }
-  session.script.http[RELEASES] = { status: 200, text: '{"tag_name":"v0.7.0"}' }
+  session.script.http[RELEASES] = { status: 200, text: '{"tag_name":"v0.8.0"}' }
 }
 
 const start = async ($: never, on: never, seed: Record<string, unknown> = {}) => {
@@ -47,7 +47,7 @@ describe('update checks (US1)', () => {
     expect(JSON.stringify(band.tree)).toContain('gstack 1.91.33.0')
     expect(JSON.stringify(band.tree)).toContain('specify 1.2.0')
     expect(JSON.stringify(band.tree)).toContain('Spec Kit skills 1.2.0')
-    expect(JSON.stringify(band.tree)).toContain('astrolabe 0.8.0')
+    expect(JSON.stringify(band.tree)).toContain('astrolabe 0.9.0')
     const stored = session.store.get('updates') as { checkedOn: string; items: unknown[] }
     expect(stored.items.length).toBe(4)
     await startSession($ as never, '/proj')
@@ -144,6 +144,6 @@ describe('one click installs (US2)', () => {
     await go()
     session.script.processes['claude plugin update astrolabe'] = { stdout: 'updated' }
     await press($ as never, 'update-astrolabe')
-    expect(session.toasts).toEqual(['🧭 Astrolabe updated to 0.8.0; run /reload-plugins'])
+    expect(session.toasts).toEqual(['🧭 Astrolabe updated to 0.9.0; run /reload-plugins'])
   })
 })

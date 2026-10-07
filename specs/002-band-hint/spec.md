@@ -1,6 +1,6 @@
 ---
 track: full # quick | full
-status: active # active | done | abandoned
+status: done # active | done | abandoned
 ---
 
 # Feature Specification: Band, prompt hint, presets and themes

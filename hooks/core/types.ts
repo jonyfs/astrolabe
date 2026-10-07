@@ -25,6 +25,9 @@ export type {
   UpdateId,
   UpdateItem,
   UpdatesState,
+  UsageReading,
+  UsageState,
+  QueuedAgent,
   PaneState,
 } from '../../types'
 

@@ -22,4 +22,4 @@ description: "Task list for 006-release-tutorial"
 
 - [X] T007 README: link the tutorial; a "Releasing" section; bump `plugin.json` to `0.6.0`
 - [X] T008 Run validate, tests, tsc and the script test
-- [ ] T009 Full review with a stronger model; apply the fixes; mark `status: done`
+- [X] T009 Full review with a stronger model: skipped at the owner's request on 2026-10-07 (usage limits blocked subagents); merged and released without it. `status: done`
