@@ -60,6 +60,9 @@ export type FeatureJson =
   /** `dir` is the directory name under specs/ (`002-band-hint`), or a path outside it. */
   | { kind: 'ok'; dir: string }
 
+/** An enabled hook of `.specify/extensions.yml` (020c). */
+export type ExtensionHook = { event: string; command: string; optional: boolean }
+
 export type Snapshot = {
   /** Directory that holds `.specify/`; undefined means Spec Kit is not present. */
   root?: string
@@ -67,6 +70,10 @@ export type Snapshot = {
   constitution?: string
   branch?: string
   features: FeatureFiles[]
+  /** Enabled Spec Kit extension hooks, read with the full snapshot (020c). */
+  extensions?: ExtensionHook[]
+  /** Other Spec Kit roots under the session's directory (020c). */
+  otherRoots?: string[]
 }
 
 export type ActiveSource = 'feature.json' | 'branch' | 'latest'
@@ -118,6 +125,10 @@ export type SpeckitState = {
   isWorkingOnActive?: boolean
   /** The memo version this state was derived from; an older state never overwrites a newer one. */
   memoVersion?: number
+  /** Other Spec Kit roots under the session's directory, by folder name (020c). */
+  otherRoots?: string[]
+  /** Extension hooks before and after the next command (020c). */
+  nextHooks?: { before: string[]; after: string[] }
   /** The active feature's tasks, for the pane (the memo stays out of every drawing). */
   activeTasks?: Array<{ id?: string; text: string; isDone: boolean }>
 }

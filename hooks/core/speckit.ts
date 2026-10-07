@@ -2,6 +2,7 @@
 import { resolveActive } from './active'
 import { compactConstitution, compactFiles } from './compact'
 import { classifyConstitution } from './constitution'
+import { hooksFor } from './extensions'
 import { nextCommand } from './next-command'
 import { deriveFeature } from './phase'
 import { parseTasks } from './tasks-parser'
@@ -15,7 +16,7 @@ export const deriveSpeckitState = (
   if (snapshot.root === undefined) {
     const { currentTask: _none, base: _base, ...kept } = memo
     return {
-      state: { present: false, constitution: 'missing', features: [], isAnalyzed: false },
+      state: { present: false, constitution: 'missing', features: [], isAnalyzed: false, ...(snapshot.otherRoots === undefined ? {} : { otherRoots: snapshot.otherRoots }) },
       memo: { ...kept, files: {} },
     }
   }
@@ -52,6 +53,11 @@ export const deriveSpeckitState = (
   const state: SpeckitState = {
     ...base,
     ...(next === undefined ? {} : { nextCommand: next }),
+    ...(snapshot.otherRoots === undefined ? {} : { otherRoots: snapshot.otherRoots }),
+    ...(() => {
+      const hooks = hooksFor(snapshot.extensions ?? [], next)
+      return hooks.before.length + hooks.after.length === 0 ? {} : { nextHooks: hooks }
+    })(),
     isWorkingOnActive,
     ...(activeTasks === undefined ? {} : { activeTasks }),
   }

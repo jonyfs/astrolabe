@@ -26,3 +26,28 @@ describe('Spec Kit appearing or disappearing mid-session', () => {
     expect(session.last()).toBe('◆ no Spec Kit')
   })
 })
+
+describe('several Spec Kit roots (020c #21)', () => {
+  test('roots under the folder are listed; /astrolabe root switches to one', async ($, on) => {
+    const tree = {
+      '/mono/README.md': 'x',
+      '/mono/web/.specify/': '',
+      '/mono/web/specs/001-ui/spec.md': '# Spec\n',
+      '/mono/api/.specify/': '',
+      '/mono/api/specs/001-auth/spec.md': '# Spec\n',
+      '/mono/api/specs/001-auth/plan.md': '# Plan\n',
+      '/mono/docs/x.md': 'x',
+    }
+    const session = installTree(on, tree, '/mono')
+    installEngine(on)
+    await startSession($, '/mono')
+    expect(session.held()?.state.present).toBe(false)
+    expect(session.held()?.state.otherRoots).toEqual(['api', 'web'])
+    const ran = (await $.command.run({ command: 'astrolabe', args: 'root api', origin: { kind: 'composer' } } as never)) as { text?: string }
+    expect(ran.text).toContain('/mono/api')
+    expect(session.held()?.state.root).toBe('/mono/api')
+    expect(session.last()).toContain('001 · tasks')
+    const bad = (await $.command.run({ command: 'astrolabe', args: 'root nope', origin: { kind: 'composer' } } as never)) as { text?: string }
+    expect(bad.text).toContain('No .specify/')
+  })
+})

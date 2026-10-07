@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
 
+import { featureJson, project, RATIFIED, spec } from '../fixtures/build'
 import { scenario as halfDone } from '../fixtures/half-done'
 import { scenario as noSpeckit } from '../fixtures/no-speckit'
 import { installEngine, installTree, startSession } from '../helpers/fake-fs'
@@ -107,5 +108,28 @@ describe('/astrolabe help (025 #39)', () => {
     await setup($ as never, on as never)
     const ran = (await $.command.run({ command: 'astrolabe', args: 'bogus', origin: { kind: 'composer' } } as never)) as { text?: string }
     expect(ran.text).toContain('/astrolabe help')
+  })
+})
+
+describe('extensions and parallel tasks (020c)', () => {
+  test('the Session tab names the hooks around the next command; Tasks names the [P] run', async ($, on) => {
+    const tree = project({
+      constitution: RATIFIED,
+      featureJson: featureJson('specs/002-b'),
+      features: { '002-b': { spec: spec(), plan: true, tasks: '- [x] T001 a\n- [ ] T002 [P] b\n- [ ] T003 [P] c\n- [ ] T004 d\n' } },
+      extra: { '.specify/extensions.yml': 'hooks:\n  after_implement:\n  - extension: git\n    command: speckit.git.commit\n    enabled: true\n    optional: true\n' },
+    })
+    const session = installTree(on, tree, '/proj')
+    installEngine(on)
+    installRenderEngine(on)
+    installPaneEngine(on)
+    await startSession($ as never, '/proj')
+    const ui = await mountPane($ as never, 'terminal')
+    await ui.press('tab-tasks')
+    expect(await ui.body()).toContain('⇉ T002, T003 can run in parallel as subagents')
+    await ui.press('tab-session')
+    expect(await ui.body()).toContain('hooks after   /speckit-git-commit (optional)')
+    await ui.unmount()
+    expect(session.logs).toEqual([])
   })
 })

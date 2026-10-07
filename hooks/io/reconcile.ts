@@ -9,7 +9,7 @@ import { deriveSpeckitState, snapshotFromMemo } from '../core/speckit'
 import { emptyMemo, emptyWindow, type DriftWindow, type SessionMemo, type SpeckitState, type Task } from '../core/types'
 
 import type { Fs } from './fs-port'
-import { findRoot } from './root'
+import { findOtherRoots, findRoot } from './root'
 import { readFeature, readSnapshot } from './snapshot'
 
 export type Held = { state: SpeckitState; memo: SessionMemo }
@@ -27,10 +27,14 @@ export const reconcileStart = async (fs: Fs, cwd: string, previous: Held | undef
     toasted: previous?.memo.toasted ?? [],
     window: previous?.memo.window ?? emptyWindow(),
   }
-  if (root === undefined) return deriveSpeckitState({ featureJson: { kind: 'missing' }, features: [] }, memo, now)
+  const otherRoots = await findOtherRoots(fs, cwd, root)
+  if (root === undefined) {
+    return deriveSpeckitState({ featureJson: { kind: 'missing' }, features: [], ...(otherRoots.length === 0 ? {} : { otherRoots }) }, memo, now)
+  }
   // Same root (a reload): the last read stands in for a file that cannot be read now.
   const last = previous?.state.root === root ? previous.memo : undefined
-  const snapshot = await readSnapshot(fs, root, 'full', last?.files, last?.base)
+  const read = await readSnapshot(fs, root, 'full', last?.files, last?.base)
+  const snapshot = otherRoots.length === 0 ? read : { ...read, otherRoots }
   const carried = previous?.memo.currentTask === undefined ? memo : { ...memo, currentTask: previous.memo.currentTask }
   return deriveSpeckitState(snapshot, carried, now)
 }

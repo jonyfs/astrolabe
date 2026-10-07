@@ -5,6 +5,13 @@ export const LANGS = ['en', 'pt-BR', 'es', 'fr'] as const
 export type Lang = (typeof LANGS)[number]
 
 const EN = {
+  'session.otherRoots': 'other roots',
+  'root.switched': 'Spec Kit root: {root}',
+  'root.none': 'No .specify/ at {path} or above it.',
+  'help.root': 'switch to another Spec Kit root under this folder',
+  'pane.parallel': '⇉ {ids} can run in parallel as subagents',
+  'session.hooksBefore': 'hooks before',
+  'session.hooksAfter': 'hooks after',
   'pane.questions': '? {id}: {n} [NEEDS CLARIFICATION] markers to answer (/speckit-clarify)',
   'pane.checklist': '☐ {id}: {open} of {total} checklist items open',
   'toast.noTest': '🧭 {task} was ticked, but no test file changed',
@@ -103,6 +110,13 @@ export type TextKey = keyof typeof EN
 type Dictionary = Readonly<Record<TextKey, string>>
 
 const PT_BR: Dictionary = {
+  'session.otherRoots': 'outros roots',
+  'root.switched': 'Root do Spec Kit: {root}',
+  'root.none': 'Nenhum .specify/ em {path} nem acima.',
+  'help.root': 'troca para outro root do Spec Kit dentro desta pasta',
+  'pane.parallel': '⇉ {ids} podem rodar em paralelo como subagentes',
+  'session.hooksBefore': 'hooks antes',
+  'session.hooksAfter': 'hooks depois',
   'pane.questions': '? {id}: {n} marcadores [NEEDS CLARIFICATION] para responder (/speckit-clarify)',
   'pane.checklist': '☐ {id}: {open} de {total} itens de checklist em aberto',
   'toast.noTest': '🧭 {task} foi marcada, mas nenhum arquivo de teste mudou',
@@ -198,6 +212,13 @@ const PT_BR: Dictionary = {
 }
 
 const ES: Dictionary = {
+  'session.otherRoots': 'otras raíces',
+  'root.switched': 'Raíz de Spec Kit: {root}',
+  'root.none': 'No hay .specify/ en {path} ni más arriba.',
+  'help.root': 'cambia a otra raíz de Spec Kit dentro de esta carpeta',
+  'pane.parallel': '⇉ {ids} pueden ejecutarse en paralelo como subagentes',
+  'session.hooksBefore': 'hooks antes',
+  'session.hooksAfter': 'hooks después',
   'pane.questions': '? {id}: {n} marcadores [NEEDS CLARIFICATION] por responder (/speckit-clarify)',
   'pane.checklist': '☐ {id}: {open} de {total} ítems de checklist abiertos',
   'toast.noTest': '🧭 {task} se marcó, pero ningún archivo de prueba cambió',
@@ -293,6 +314,13 @@ const ES: Dictionary = {
 }
 
 const FR: Dictionary = {
+  'session.otherRoots': 'autres racines',
+  'root.switched': 'Racine Spec Kit : {root}',
+  'root.none': 'Aucun .specify/ dans {path} ni au-dessus.',
+  'help.root': 'passe à une autre racine Spec Kit sous ce dossier',
+  'pane.parallel': '⇉ {ids} peuvent tourner en parallèle comme sous-agents',
+  'session.hooksBefore': 'hooks avant',
+  'session.hooksAfter': 'hooks après',
   'pane.questions': '? {id} : {n} marqueurs [NEEDS CLARIFICATION] à traiter (/speckit-clarify)',
   'pane.checklist': '☐ {id} : {open} éléments de checklist ouverts sur {total}',
   'toast.noTest': "🧭 {task} a été cochée, mais aucun fichier de test n'a changé",

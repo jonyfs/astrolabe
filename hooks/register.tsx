@@ -20,6 +20,7 @@ import {
   skillsUpdate,
   updateLabel,
 } from './core/updates'
+import { joinPath } from './core/paths'
 import { VERSION } from './core/version'
 import {
   ASK_MS,
@@ -47,6 +48,7 @@ import { themeOf } from './core/theme'
 import { emptyMemo, type PaneState, type PaneTab, type UpdateId, type UpdateItem, type UpdatesState, type UsageState, type UsageReading, type QueuedAgent, type SessionStats } from './core/types'
 import type { Preset } from './core/presets'
 import type { Fs } from './io/fs-port'
+import { findRoot } from './io/root'
 import { applyFileTouch, applyRead, applyShell, applySkill, type Held, reconcileStart, reconcileTurn } from './io/reconcile'
 import { bandRow, nextRow, updatesRow } from './surfaces/band'
 import { askTree } from './surfaces/ask'
@@ -74,6 +76,7 @@ const helpText = (lang: Lang): string =>
     `  /astrolabe                  ${t(lang, 'help.open')}`,
     `  /astrolabe help             ${t(lang, 'help.help')}`,
     `  /astrolabe next             ${t(lang, 'help.next')}`,
+    `  /astrolabe root <folder>    ${t(lang, 'help.root')}`,
     `  /astrolabe allow <90-99> <30m-12h>   ${t(lang, 'help.allow')}`,
     `  /astrolabe revoke           ${t(lang, 'help.revoke')}`,
     t(lang, 'help.tabs'),
@@ -973,6 +976,17 @@ export const register: Register = (on, options) => {
   on('command.run', { command: 'astrolabe' }, async ($, e) => {
     const args = e.args.trim()
     if (args === 'help') return { text: helpText(currentLang()) }
+    if (args.startsWith('root ')) {
+      // Another Spec Kit root under this folder (020c #21): read it as the session's root.
+      const cwd = await $.session.cwd()
+      const target = joinPath(cwd, args.slice(5).trim())
+      const fs = fsOf($)
+      const now = await $.clock.now()
+      if ((await findRoot(fs, target)) === undefined) return { text: t(currentLang(), 'root.none', { path: target }) }
+      const held = await guarded($, () => reconcileStart(fs, target, undefined, now))
+      if (held?.state.root === undefined) return { text: t(currentLang(), 'root.none', { path: target }) }
+      return { text: t(currentLang(), 'root.switched', { root: held.state.root }) }
+    }
     if (args === 'next') {
       const command = (await $.state.get(SPECKIT)).value?.nextCommand
       if (command === undefined) return { text: t(currentLang(), 'next.none') }
