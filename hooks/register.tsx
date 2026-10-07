@@ -531,7 +531,9 @@ export const register: Register = (on, options) => {
       if (speckit !== undefined) await showStatus($, speckit)
       return { text: `🧭 stop and ceiling raised to ${parsed.allow.target}% until ${clockOf(new Date(now + parsed.allow.ms).toISOString())}; new subagents still wait from 80%` }
     }
-    await $.ui.open({ id: PANE_ID, title: PANE_TITLE })
+    // Opened on request: it takes the keys (1, 2, 3 at once) and Esc closes it. An unasked
+    // open never takes focus (Principle VII).
+    await $.ui.open({ id: PANE_ID, title: PANE_TITLE, focus: true, closeOnEscape: true })
     return { text: 'Astrolabe pane opened.' }
   })
 

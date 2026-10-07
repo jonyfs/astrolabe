@@ -1,5 +1,6 @@
 // What the session memo keeps of each file (spec 009): only what derivation reads, so the
 // memo stays small however large the specs are. Pure: no $.
+import { hasClarification } from './clarification'
 import { classifyConstitution } from './constitution'
 import { parseTasks } from './tasks-parser'
 import type { FeatureFiles } from './types'
@@ -11,7 +12,7 @@ export const compactSpec = (text: string): string => {
   const lines = text.split(/\r?\n/)
   const end = lines[0]?.trim() === '---' ? lines.findIndex((l, i) => i > 0 && l.trimEnd() === '---') : -1
   const front = end > 0 ? `${lines.slice(0, end + 1).join('\n')}\n` : ''
-  return text.includes(CLARIFICATION) ? `${front}${CLARIFICATION}]\n` : front
+  return hasClarification(text) ? `${front}${CLARIFICATION}]\n` : front
 }
 
 /** The task lines alone, re-written in one canonical form. */

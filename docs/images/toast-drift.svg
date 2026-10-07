@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="390" height="162" viewBox="0 0 390 162" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="14">
+<rect width="390" height="162" rx="8" fill="#1e1e2e"/>
+<circle cx="16" cy="13" r="5" fill="#f38ba8"/><circle cx="32" cy="13" r="5" fill="#f9e2af"/><circle cx="48" cy="13" r="5" fill="#a6e3a1"/>
+<text x="195" y="17" fill="#a6adc8" font-size="12" text-anchor="middle">Drift alarm toast</text>
+<text x="14.0" y="53" fill="#cdd6f4" opacity="0.6" xml:space="preserve" textLength="361.2" lengthAdjust="spacingAndGlyphs">╭─────────────────────────────────────────╮</text>
+<text x="14.0" y="71" fill="#cdd6f4" opacity="0.6" xml:space="preserve" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="30.8" y="71" fill="rgb(148,148,148)" xml:space="preserve" textLength="75.6" lengthAdjust="spacingAndGlyphs">astrolabe</text>
+<text x="366.8" y="71" fill="#cdd6f4" opacity="0.6" xml:space="preserve" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="14.0" y="89" fill="#cdd6f4" opacity="0.6" xml:space="preserve" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="22.4" y="89" fill="#cdd6f4" xml:space="preserve" textLength="336.0" lengthAdjust="spacingAndGlyphs"> 🧭 T010 was ticked with no code edited  </text>
+<text x="358.4" y="89" fill="#cdd6f4" opacity="0.6" xml:space="preserve" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="14.0" y="107" fill="#cdd6f4" opacity="0.6" xml:space="preserve" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="22.4" y="107" fill="#cdd6f4" xml:space="preserve" textLength="344.4" lengthAdjust="spacingAndGlyphs"> since the last tick                     </text>
+<text x="366.8" y="107" fill="#cdd6f4" opacity="0.6" xml:space="preserve" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="14.0" y="125" fill="#cdd6f4" opacity="0.6" xml:space="preserve" textLength="361.2" lengthAdjust="spacingAndGlyphs">╰─────────────────────────────────────────╯</text>
+</svg>

@@ -1,0 +1,6 @@
+[38;2;166;227;161m$[0m claude plugin list 2>&1 | grep -A4 'astrolabe@'
+  ❯ astrolabe@astrolabe
+    Version: 0.8.1
+    Read from: /Users/jony/repositorios/ai/astrolabe
+    Scope: user
+    Status: ✔ enabled

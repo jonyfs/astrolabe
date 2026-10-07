@@ -47,3 +47,9 @@ describe('compaction keeps what derivation needs (009 FR-001)', () => {
     expect(JSON.stringify(memo).length < 4000).toBe(true)
   })
 })
+
+describe('compactSpec ignores quoted markers (010 FR-004)', () => {
+  test('a marker only in backticks is not kept', () => {
+    expect(compactSpec('# Spec\nwhile `[NEEDS CLARIFICATION` remains\n')).toBe('')
+  })
+})

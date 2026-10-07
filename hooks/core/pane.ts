@@ -57,6 +57,7 @@ export const taskRows = (state: SpeckitState, memo: SessionMemo, rows: number, c
   if (!state.present) return [NO_SPECKIT]
   if (active === undefined) return [{ key: 'none', text: 'No active feature.', role: 'muted' }]
   const tasks = state.activeTasks ?? parseTasks(memo.files[active.dir]?.tasks ?? '')
+  if (tasks.length === 0) return [{ key: 'no-tasks', text: 'No tasks yet: this feature has no tasks.md, or it lists none.', role: 'muted' }]
   const open = tasks.filter(t => !t.isDone)
   const out: PaneRow[] = [{ key: 'count', text: `${tasks.length - open.length}/${tasks.length} done`, role: 'muted' }]
   if (open.length === 0) return [...out, { key: 'all-done', text: 'All tasks are ticked.', role: 'done' }]

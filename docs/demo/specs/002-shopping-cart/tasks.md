@@ -1,0 +1,22 @@
+# Tasks: Shopping cart
+
+- [X] T001 Create the cart table
+- [X] T002 Write failing tests for adding an item
+- [X] T003 Add an item to the cart
+- [X] T004 Write failing tests for removing an item
+- [X] T005 Remove an item from the cart
+- [X] T006 Show the cart total
+- [X] T007 Keep the cart across sign-in
+- [X] T008 Write failing tests for quantity changes
+- [X] T009 Change an item's quantity
+- [ ] T010 Write failing tests for the empty cart
+- [ ] T011 Show an empty-cart message
+- [ ] T012 Write failing tests for out-of-stock items
+- [ ] T013 Block checkout of out-of-stock items
+- [ ] T014 Write the cart page tests in `tests/cart/page.test.ts`
+- [ ] T015 Build the cart page
+- [ ] T016 Add the cart icon to the header
+- [ ] T017 Show the item count on the icon
+- [ ] T018 Write the checkout button tests
+- [ ] T019 Wire the checkout button
+- [ ] T020 Update the README

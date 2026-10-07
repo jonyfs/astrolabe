@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="784" height="108" viewBox="0 0 784 108" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="14">
+<rect width="784" height="108" rx="8" fill="#1e1e2e"/>
+<circle cx="16" cy="13" r="5" fill="#f38ba8"/><circle cx="32" cy="13" r="5" fill="#f9e2af"/><circle cx="48" cy="13" r="5" fill="#a6e3a1"/>
+<text x="392" y="17" fill="#a6adc8" font-size="12" text-anchor="middle">shell</text>
+<text x="14.0" y="53" fill="rgb(166,227,161)" xml:space="preserve" textLength="8.4" lengthAdjust="spacingAndGlyphs">$</text>
+<text x="22.4" y="53" fill="#cdd6f4" xml:space="preserve" textLength="344.4" lengthAdjust="spacingAndGlyphs"> claude plugin update astrolabe@astrolabe</text>
+<text x="14.0" y="71" fill="#cdd6f4" xml:space="preserve" textLength="453.6" lengthAdjust="spacingAndGlyphs">Checking for updates for plugin "astrolabe@astrolabe"…</text>
+<text x="14.0" y="89" fill="#cdd6f4" xml:space="preserve" textLength="756.0" lengthAdjust="spacingAndGlyphs">✔ Plugin "astrolabe" updated from 0.8.0 to 0.8.1 for scope user. Restart to apply changes.</text>
+</svg>

@@ -1,15 +1,27 @@
 # 🧭 Astrolabe
 
-A Claude Code mod that shows where your session is and where it is heading: the
-project, git and model state from a classic status line, live Spec Kit progress, and
-usage-window governance that keeps subagent fan-out under your plan limits.
+A Claude Code mod that shows where your Spec Kit work stands and keeps your session under
+its usage limits: a phase rail above the prompt, the next command to run, the task in
+progress, a pane with every feature, toasts when something changes, buttons that install
+updates, and a status entry with your fullest usage window.
 
-> **Status: v0.8.0.** Astrolabe draws a band above the prompt with the Spec Kit phase rail,
-> the next command at the end of the prompt hint, the task in progress on the spinner line, an
-> entry in the status line, a pane you open with `/astrolabe`, two kinds of toast, buttons
-> that install updates, and usage governance that keeps subagent fan-out under your plan's
-> 5-hour and weekly windows. Usage
-> governance arrives in a later release (see [Roadmap](#roadmap)). Progress is tracked as Spec Kit features under `specs/`.
+![Astrolabe in a 180-column terminal](docs/images/overview-180.svg)
+
+> **Version 0.8.1.** Every image in this README is a capture of the real mod running in Claude
+> Code 2.1.292, made with `scripts/capture/scene.sh` in the demo project
+> [docs/demo/](docs/demo/) (see [How the images are made](#how-the-images-are-made)).
+
+## At a glance
+
+| Where | What Astrolabe draws | Section |
+|---|---|---|
+| Above the prompt | The active feature, the six Spec Kit steps, a progress bar, and buttons for updates | [The band](#what-the-band-shows) |
+| Under the prompt | `◆ 002 · implement 45% · 5h 42%`: feature, phase, progress, usage window | [The status entry](#what-the-status-entry-shows) |
+| The hint line | `next: /speckit-implement · 11 tasks left` | [The prompt hint](#what-the-prompt-hint-shows) |
+| The spinner | `… T011 · Show an empty-cart message · 1s` while Claude works on the feature | [The spinner](#what-the-spinner-says) |
+| `/astrolabe` | A pane with Specs, Tasks and Session tabs | [The pane](#the-astrolabe-pane) |
+| Toasts | A task ticked with no code edited; a phase finished | [Toasts](#toasts) |
+| Tool calls | New subagents capped or held, the session paused near the limit | [Usage governance](#usage-governance) |
 
 ## Why "Astrolabe"
 
@@ -42,7 +54,9 @@ session, type:
 
 Claude Code asks `Add marketplace?`. Answer `y`, pick the user scope with Enter, and you
 see `Installed astrolabe. Plugin is now active.` The status entry appears in that same
-session, with no restart.
+session, with no restart. To check it from a shell:
+
+![claude plugin list](docs/images/cli-list.svg)
 
 The two-step form does the same thing:
 
@@ -61,7 +75,11 @@ the same as for any plugin, and the mod never writes there.
 claude plugin update astrolabe@astrolabe
 ```
 
-Then type `/reload-plugins` in a running session, or start a new one.
+![claude plugin update](docs/images/cli-update.svg)
+
+Then type `/reload-plugins` in a running session, or start a new one. Astrolabe also checks
+for its own new release once a day and offers a button for it (see
+[Update notices](#update-notices)).
 
 ```sh
 claude plugin uninstall astrolabe@astrolabe
@@ -84,11 +102,10 @@ For a one-off session without installing, run `claude --plugin-dir ~/src/astrola
 ## What the status entry shows
 
 Astrolabe adds one entry to the status line under the prompt. Claude Code puts the mod's
-name in front of it, so in a terminal it looks like this (a real capture, see
-[docs/screens/001-status-100.txt](docs/screens/001-status-100.txt)):
+name in front of it:
 
 ```text
-  ⚠ astrolabe: ◆ 001 · implement 87%
+  ⚠ astrolabe: ◆ 002 · implement 45% · 7d 81% hold
 ```
 
 Each part, from left to right:
@@ -102,17 +119,20 @@ Each part, from left to right:
 | Phase | `implement` | The first Spec Kit step this feature has not finished. See [Phases](#phases). |
 | Percentage | `87%` | Ticked tasks out of all tasks in the feature's `tasks.md`, rounded down. 43 of 49 is `87%`. It appears only once `tasks.md` has tasks. |
 | Running step | `· plan…` | A Spec Kit skill such as `/speckit-plan` was called during this turn. It disappears when the turn ends. |
+| Usage window | `· 7d 81% hold` | The fuller of your 5-hour and weekly windows, and its band when it is not ok. See [Usage governance](#usage-governance). |
 
 The other entries you may see:
 
 | Entry | When |
 |---|---|
-| `◆ no Spec Kit` | No folder from the session's directory up to the filesystem root holds a `.specify/` directory. Nothing else is read. |
+| `◆ no Spec Kit` | No folder from the session's directory up to the filesystem root holds a `.specify/` directory. Nothing else is read. The band only shows update buttons, if any (image below). |
 | `◆ no active feature · next: /speckit-specify` | Spec Kit is set up, but every feature is done or abandoned, or there are none yet. The command after `next:` is the one to run. |
 | `◆ no active feature · next: /speckit-constitution` | Same, and the constitution is missing or still the unfilled template. |
 | `◆ 003 · abandoned` | `feature.json` names a feature whose spec says `status: abandoned`. A percentage follows when it has tasks (`◆ 003 · abandoned 40%`). |
 | `◆ 001 · done 100%` | `feature.json` names a finished feature. Run `/speckit-specify` for the next one. |
 | `… · 5h 42%` | The fuller usage window, with its band when it is not ok (`5h 83% hold`). See [Usage governance](#usage-governance). |
+
+![A folder without Spec Kit](docs/images/no-speckit.svg)
 
 ### Phases
 
@@ -144,11 +164,10 @@ turn.
 
 ## What the band shows
 
-The band is the row directly above the prompt. A real capture at 180 columns
-([docs/screens/002-band-180.txt](docs/screens/002-band-180.txt)):
+The band is the row directly above the prompt (the first row in the image at the top):
 
 ```text
-◆ 002 band-hint  constitution ● specify ● clarify ● plan ● tasks ● implement ◐  ███████░░░ 14/18 77%
+◆ 002 shopping-cart  constitution ● specify ● clarify ● plan ● tasks ● implement ◐  ████░░░░░░ 9/20 45%
 ```
 
 | Part | Example | What it means |
@@ -157,19 +176,17 @@ The band is the row directly above the prompt. A real capture at 180 columns
 | The rail | `constitution ● specify ● … implement ◐` | The six Spec Kit steps in order. `●` is finished, `◐` is the step the feature is in now, `○` is still ahead. The constitution is `●` once it is ratified; while it is missing or still the template it is `◐` and every later step is `○`. |
 | `…` after a mark | `plan ◐…` | A Spec Kit skill for that step is running in this turn. |
 | The bar | `███████░░░` | Ten cells, one per tenth of the tasks ticked, rounded down. It appears once `tasks.md` has tasks. |
-| The count | `14/18 77%` | Ticked tasks, all tasks, and the percentage rounded down. |
+| The count | `9/20 45%` | Ticked tasks, all tasks, and the percentage rounded down. |
+| Update buttons | `updates: [ gstack 1.91.33.0 ]` | A second row when something has a newer version. See [Update notices](#update-notices). |
 
 A finished feature shows every mark as `●` and a full bar. An abandoned feature named by
 `feature.json` shows `◆ 003 name  abandoned` instead of the rail.
 
 When the band is narrower, it drops detail in this order and never cuts the id: the labels of
 the finished and later steps, then the name, then the bar, then the count, then everything
-but `◆ 002`. In a 100-column terminal it looks like this
-([docs/screens/002-band-100.txt](docs/screens/002-band-100.txt)):
+but `◆ 002`. In a 100-column terminal it looks like this:
 
-```text
-◆ 002 band-hint  ● ● ● ● ● implement ◐  ███████░░░ 14/18 77%
-```
+![Astrolabe in a 100-column terminal](docs/images/narrow-100.svg)
 
 The band shows nothing of its own when the project has no Spec Kit, when no feature is active
 (the prompt hint then names the command to run), or while a survey uses the band. Whatever
@@ -180,18 +197,16 @@ other mods draw there stays.
 While a turn works on the active feature, the spinner line names the task in progress and how
 long it has been the current one:
 
-```text
-Sauteing… T014 · Write the parser tests in tests/core/x.test.ts · 3m
-```
+![The spinner while Claude works on the feature](docs/images/spinner.svg)
 
 Claude Code still draws its own word and, after Astrolabe's part, the turn's time and token
 count. Astrolabe only adds the part after the word:
 
 | Part | What it means |
 |---|---|
-| `T014` | The id of the first open task in the active feature's `tasks.md`. |
+| `T011` | The id of the first open task in the active feature's `tasks.md`. |
 | The text | The task's text without the `[P]` and `[US1]` markers or backticks, cut with `…` when the terminal is narrow. The id is never cut. |
-| `3m` | How long this task has been the first open one, counted from when Astrolabe first saw it this session: `45s`, `12m` or `1h 5m`. |
+| `1s` | How long this task has been the first open one, counted from when Astrolabe first saw it this session: `45s`, `12m` or `1h 5m`. |
 
 It shows only during a turn that works on the active feature, meaning `/speckit-implement` was
 called or a tool edited a file in the feature's folder during the turn. Other turns keep the
@@ -233,50 +248,40 @@ echo '{"preset":"minimal","flavor":"latte"}' | claude plugin configure astrolabe
 Colors are sent as hex values. On a terminal without truecolor, Claude Code decides how close a
 color it can show.
 
+![preset minimal](docs/images/preset-minimal.svg)
+
+![flavor latte](docs/images/flavor-latte.svg)
+
+The current values, from a shell:
+
+![claude plugin configure](docs/images/cli-configure.svg)
+
 ## The /astrolabe pane
 
 Type `/astrolabe` to open a pane with three tabs. In a fullscreen terminal it docks at the
-right; otherwise it sits above the prompt. To use the keys, focus it with a click or
-`ctrl+x tab`, then press `1`, `2` or `3`. The tab you pick stays for the session.
+right; otherwise it sits above the prompt. It opens with the keyboard on it, so `1`, `2` and
+`3` switch tabs right away, and Esc closes it. Later, focus it again with a click or
+`ctrl+x tab`. The tab you pick stays for the session.
 
-**1 Specs** lists every feature (real capture,
-[docs/screens/004-pane-specs.txt](docs/screens/004-pane-specs.txt)):
+**1 Specs** lists every feature:
 
-```text
-[ Specs ][ Tasks ][ Session ]
-  ● 001 core-state  done  ██████████ 100%
-  ◐ 002 band-hint  implement  █████████░ 94%
-▸ ◐ 004 pane  implement  ███████░░░ 72%
-```
+![The pane, Specs tab](docs/images/pane-specs.svg)
 
 `▸` marks the active feature. `●` is done, `◐` in progress, and `○` abandoned (drawn dim). Under
 the list come warnings: a `~` line when the active feature was guessed because
 `.specify/feature.json` is broken, and a `!` line for a spec that still has
 `[NEEDS CLARIFICATION` after its plan exists.
 
-**2 Tasks** lists the active feature's open tasks in file order, after a count
-([docs/screens/004-pane-tasks.txt](docs/screens/004-pane-tasks.txt)):
+**2 Tasks** lists the active feature's open tasks in file order, after a count:
 
-```text
-8/11 done
-T009 README: the command, each tab with an example, hotkeys, the unasked-open r…
-T010 Run validate, tests and tsc; capture the pane in tmux into docs/screens/00…
-```
+![The pane, Tasks tab](docs/images/pane-tasks.svg)
 
-When more tasks are open than the pane has rows, the last line says `+N more`.
+When more tasks are open than the pane has rows, the last line says `+N more`. A feature with
+no `tasks.md` yet says so.
 
-**3 Session** shows how Astrolabe sees the project right now:
+**3 Session** shows how Astrolabe sees the project right now, and any updates:
 
-```text
-root          /Users/me/src/astrolabe
-constitution  ratified
-active        004 pane
-chosen by     feature.json
-next          /speckit-implement
-running       none
-analyzed      yes
-current task  T009 · 4m
-```
+![The pane, Session tab](docs/images/pane-session.svg)
 
 `chosen by` is how the active feature was picked (`feature.json`, `branch` or `latest`).
 `analyzed` says whether `/speckit-analyze` ran in this session.
@@ -291,11 +296,10 @@ Astrolabe raises two short notices in Claude Code's toast area. Each marks a cha
 turn, so they stay rare.
 
 **Drift alarm** (presets `compact` and `full`). When Claude ticks a task in `tasks.md` but no
-code file was edited since the previous tick (or since the session started), you see:
+code file was edited in the turn, you see (captured after asking Claude to tick T010 and do
+nothing else):
 
-```text
-🧭 T014 was ticked with no code edited since the last tick
-```
+![The drift alarm toast](docs/images/toast-drift.svg)
 
 If the task names files, at least one of them has to have been edited, or the toast lists them:
 
@@ -416,33 +420,6 @@ status: active # active | done | abandoned
 spec with no plan or tasks in `implement`. This repository's spec template already adds the
 block to new specs.
 
-## Where it works
-
-| Surface | Draws |
-|---|---|
-| Terminal on Linux, macOS and Windows (Claude Code 2.1.287 or later) | Yes |
-| Claude Desktop app, Code tab (2.1.286 or later) | Yes |
-| VS Code extension, `claude -p`, cloud sessions | No. The mod's hooks run but nothing is drawn, and nothing errors. |
-
-CI runs the tests on Ubuntu, macOS and Windows for every pull request.
-
-Astrolabe replaces jonyfs/statusline. It does not set `statusLine`, so if you still have a
-classic status line command configured, both show.
-
-## Troubleshooting
-
-- **Nothing appears.** Check `claude --version` (2.1.292 or later) and
-  `claude plugin list` (`astrolabe@astrolabe`, enabled). Mods draw only in the terminal and
-  the Desktop app's Code tab.
-- **The wrong feature shows, or a `~`.** Open `.specify/feature.json`. Its
-  `feature_directory` must name a folder under `specs/` that exists, for example
-  `"specs/002-band-hint"`.
-- **A tick does not show.** The entry follows the disk at the end of each turn. Send any
-  prompt and wait for the turn to end.
-- **See what the mod did.** Run `claude --debug`. Any error Astrolabe caught is written to the
-  debug log as a line starting with `astrolabe:`. While a plugin folder is hot-reloaded, the
-  transcript also shows a dim line when a hook was skipped.
-
 ## Usage governance
 
 Claude Code tells the mod how full your 5-hour and weekly windows are after every turn.
@@ -482,6 +459,33 @@ duration ends or the window resets. New subagents still wait from 80%.
 Off a subscription (an API key) there are no windows, so nothing is shown or refused. To keep
 the readings but turn the governing off, set `governUsage` to `false`. If this project also
 has the usage-governor skill's hooks installed, they govern too; keep one of the two.
+
+## Where it works
+
+| Surface | Draws |
+|---|---|
+| Terminal on Linux, macOS and Windows (Claude Code 2.1.287 or later) | Yes |
+| Claude Desktop app, Code tab (2.1.286 or later) | Partly. Claude Code raises the band, the spinner and the pane there, and the status entry and toasts reach it, drawn with the app's own look. The prompt hint's `next:` text is not shown: Claude Code draws that part only in the terminal for now. Every image in this README comes from the terminal; none was captured in the app yet. |
+| VS Code extension, `claude -p`, cloud sessions | No. The mod's hooks run but nothing is drawn, and nothing errors. |
+
+CI runs the tests on Ubuntu, macOS and Windows for every pull request.
+
+Astrolabe replaces jonyfs/statusline. It does not set `statusLine`, so if you still have a
+classic status line command configured, both show.
+
+## Troubleshooting
+
+- **Nothing appears.** Check `claude --version` (2.1.292 or later) and
+  `claude plugin list` (`astrolabe@astrolabe`, enabled). Mods draw only in the terminal and
+  the Desktop app's Code tab.
+- **The wrong feature shows, or a `~`.** Open `.specify/feature.json`. Its
+  `feature_directory` must name a folder under `specs/` that exists, for example
+  `"specs/002-band-hint"`.
+- **A tick does not show.** The entry follows the disk at the end of each turn. Send any
+  prompt and wait for the turn to end.
+- **See what the mod did.** Run `claude --debug`. Any error Astrolabe caught is written to the
+  debug log as a line starting with `astrolabe:`. While a plugin folder is hot-reloaded, the
+  transcript also shows a dim line when a hook was skipped.
 
 ## From a statusline to a mod
 
@@ -525,6 +529,23 @@ Every change starts as a Spec Kit feature under `specs/` and goes through
 `/speckit-analyze` and `/speckit-implement`, test first. The rules are in
 [.specify/memory/constitution.md](.specify/memory/constitution.md). Everything in this
 repository is written in English.
+
+## How the images are made
+
+Every image is a real capture, never a drawing (Constitution Principle II):
+
+```sh
+scripts/capture/scene.sh overview-180 180 40 "$PWD/docs/demo" 30          # start claude in tmux, wait, capture
+node scripts/capture/ansi-to-svg.mjs docs/images/overview-180.ansi docs/images/overview-180.svg --from "^◆ "
+```
+
+`scene.sh` starts `claude` in a tmux window of the given size, sends the keys you list (for
+example `"/astrolabe" Enter 3 "keys:2"` to open the pane and show the Tasks tab), and saves
+the screen with its colors. `ansi-to-svg.mjs` turns that into an SVG; `--from`, `--drop`,
+`--crop` and `--cut` select the part to show. Inside tmux Claude Code draws with 256 colors,
+so the images show the nearest match of each Catppuccin color. Lines from other status
+providers (the author's own statusLine) and Claude Code's own usage notice are dropped, and
+`--replace` shortens the author's home path to `~/src/astrolabe`; nothing else is edited.
 
 ## License
 

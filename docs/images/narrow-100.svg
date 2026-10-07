@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="868" height="180" viewBox="0 0 868 180" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="14">
+<rect width="868" height="180" rx="8" fill="#1e1e2e"/>
+<circle cx="16" cy="13" r="5" fill="#f38ba8"/><circle cx="32" cy="13" r="5" fill="#f9e2af"/><circle cx="48" cy="13" r="5" fill="#a6e3a1"/>
+<text x="434" y="17" fill="#a6adc8" font-size="12" text-anchor="middle">Terminal, 100 columns: the rail keeps only the current step's label</text>
+<text x="14.0" y="53" fill="rgb(215,175,255)" xml:space="preserve" textLength="42.0" lengthAdjust="spacingAndGlyphs">◆ 002</text>
+<text x="64.4" y="53" fill="rgb(215,215,255)" xml:space="preserve" textLength="109.2" lengthAdjust="spacingAndGlyphs">shopping-cart</text>
+<text x="190.4" y="53" fill="rgb(175,215,175)" xml:space="preserve" textLength="8.4" lengthAdjust="spacingAndGlyphs">●</text>
+<text x="207.2" y="53" fill="rgb(175,215,175)" xml:space="preserve" textLength="8.4" lengthAdjust="spacingAndGlyphs">●</text>
+<text x="224.0" y="53" fill="rgb(175,215,175)" xml:space="preserve" textLength="8.4" lengthAdjust="spacingAndGlyphs">●</text>
+<text x="240.8" y="53" fill="rgb(175,215,175)" xml:space="preserve" textLength="8.4" lengthAdjust="spacingAndGlyphs">●</text>
+<text x="257.6" y="53" fill="rgb(175,215,175)" xml:space="preserve" textLength="8.4" lengthAdjust="spacingAndGlyphs">●</text>
+<text x="274.4" y="53" fill="rgb(255,215,175)" xml:space="preserve" textLength="75.6" lengthAdjust="spacingAndGlyphs">implement</text>
+<text x="358.4" y="53" fill="rgb(255,215,175)" xml:space="preserve" textLength="8.4" lengthAdjust="spacingAndGlyphs">◐</text>
+<text x="383.6" y="53" fill="rgb(175,215,255)" xml:space="preserve" textLength="33.6" lengthAdjust="spacingAndGlyphs">████</text>
+<text x="417.2" y="53" fill="rgb(95,95,135)" xml:space="preserve" textLength="50.4" lengthAdjust="spacingAndGlyphs">░░░░░░</text>
+<text x="476.0" y="53" fill="rgb(215,215,255)" xml:space="preserve" textLength="67.2" lengthAdjust="spacingAndGlyphs">9/20 45%</text>
+<text x="820.4" y="53" fill="rgb(148,148,148)" xml:space="preserve" textLength="25.2" lengthAdjust="spacingAndGlyphs">[-]</text>
+<text x="14.0" y="71" fill="rgb(175,175,215)" xml:space="preserve" textLength="75.6" lengthAdjust="spacingAndGlyphs">updates: </text>
+<text x="89.6" y="71" fill="#cdd6f4" font-weight="bold" xml:space="preserve" textLength="168.0" lengthAdjust="spacingAndGlyphs">[ gstack 1.91.33.0 ]</text>
+<text x="14.0" y="89" fill="rgb(128,128,128)" xml:space="preserve" textLength="840.0" lengthAdjust="spacingAndGlyphs">────────────────────────────────────────────────────────────────────────────────────────────────────</text>
+<text x="14.0" y="107" fill="#cdd6f4" xml:space="preserve" textLength="16.8" lengthAdjust="spacingAndGlyphs">❯ </text>
+<text x="30.8" y="107" fill="#cdd6f4" opacity="0.6" xml:space="preserve" textLength="176.4" lengthAdjust="spacingAndGlyphs">Try "fix lint errors"</text>
+<text x="14.0" y="125" fill="rgb(128,128,128)" xml:space="preserve" textLength="840.0" lengthAdjust="spacingAndGlyphs">────────────────────────────────────────────────────────────────────────────────────────────────────</text>
+<text x="30.8" y="143" fill="rgb(255,215,0)" xml:space="preserve" textLength="403.2" lengthAdjust="spacingAndGlyphs">⚠ astrolabe: ◆ 002 · implement 45% · 7d 81% hold</text>
+<text x="30.8" y="161" fill="rgb(255,215,0)" xml:space="preserve" textLength="126.0" lengthAdjust="spacingAndGlyphs">⏵⏵ auto mode on</text>
+<text x="156.8" y="161" fill="rgb(148,148,148)" xml:space="preserve" textLength="646.8" lengthAdjust="spacingAndGlyphs"> (shift+tab to cycle) · ← 2 agents · next: /speckit-implement · 11 tasks left</text>
+</svg>

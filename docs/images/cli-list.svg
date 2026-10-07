@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="465" height="162" viewBox="0 0 465 162" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="14">
+<rect width="465" height="162" rx="8" fill="#1e1e2e"/>
+<circle cx="16" cy="13" r="5" fill="#f38ba8"/><circle cx="32" cy="13" r="5" fill="#f9e2af"/><circle cx="48" cy="13" r="5" fill="#a6e3a1"/>
+<text x="232.5" y="17" fill="#a6adc8" font-size="12" text-anchor="middle">shell</text>
+<text x="14.0" y="53" fill="rgb(166,227,161)" xml:space="preserve" textLength="8.4" lengthAdjust="spacingAndGlyphs">$</text>
+<text x="22.4" y="53" fill="#cdd6f4" xml:space="preserve" textLength="403.2" lengthAdjust="spacingAndGlyphs"> claude plugin list 2&gt;&amp;1 | grep -A4 'astrolabe@'</text>
+<text x="14.0" y="71" fill="#cdd6f4" xml:space="preserve" textLength="193.2" lengthAdjust="spacingAndGlyphs">  ❯ astrolabe@astrolabe</text>
+<text x="14.0" y="89" fill="#cdd6f4" xml:space="preserve" textLength="151.2" lengthAdjust="spacingAndGlyphs">    Version: 0.8.1</text>
+<text x="14.0" y="107" fill="#cdd6f4" xml:space="preserve" textLength="436.8" lengthAdjust="spacingAndGlyphs">    Read from: /Users/jony/repositorios/ai/astrolabe</text>
+<text x="14.0" y="125" fill="#cdd6f4" xml:space="preserve" textLength="126.0" lengthAdjust="spacingAndGlyphs">    Scope: user</text>
+<text x="14.0" y="143" fill="#cdd6f4" xml:space="preserve" textLength="176.4" lengthAdjust="spacingAndGlyphs">    Status: ✔ enabled</text>
+</svg>
