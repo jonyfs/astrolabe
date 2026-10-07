@@ -16,3 +16,12 @@ built in this order, through the Spec Kit flow.
 | 025 | Commands and keys | #39 `/astrolabe help`, #41 a keyboard shortcut for the pane, #42 rich `/astrolabe status`, #43 the Edit row names the ticked task, #47 first-run tour, #48 text-only accessible mode |
 | 026 | Context for Claude | #50 the active feature in Claude's context, #51 a constitution reminder, #52 a short context on resume, #53 a session summary from a small model, #54 a quick question about the feature |
 | 027 | Quality and distribution | #55 a performance benchmark in CI, #56 README images built in CI, #57 Desktop app captures, #58 a privacy page, #59 art and texts for the plugin directory, #60 a 500-feature load test |
+
+Added by the owner on 2026-10-07, after the list:
+
+| Spec | Theme | What it does |
+|---|---|---|
+| 028 | Config tab | A pane tab with an editable form of every option and a Save button that applies them through `$.config.set`; the mod reloads with the new values. |
+| 029 | Humanize option | An option that adds a short, revised version of the humanizer rules to Claude's system prompt (`prompt.compose`), so everything Claude writes in the project follows them. |
+| 030 | Model and effort per skill | A table of the best model and effort for each gstack and Spec Kit skill, shown in a tab; in `auto` mode a `turn.step` hook sends the request with that model and effort while the skill runs. |
+| 031 | Terse mode | An option that adds a terse-answer section to the system prompt (levels `lite` and `full`), so Claude writes only what is needed. |

@@ -82,3 +82,27 @@ describe('the footer (018 US1)', () => {
     expect(session.last()).toContain('t 1h05m')
   })
 })
+
+describe('icons by surface (018 US2)', () => {
+  const start = async ($: never, on: never, surface: string) => {
+    const session = installTree(on, halfDone.tree, '/proj')
+    installEngine(on)
+    await session.clock.set(NOW)
+    await ($ as unknown as { session: { start: (e: never) => Promise<unknown> } }).session.start({ cwd: '/proj', surface, isInteractive: true } as never)
+    await measure($)
+    return session
+  }
+  test('auto: Nerd Font glyphs in the terminal', async ($, on) => {
+    const session = await start($ as never, on as never, 'terminal')
+    expect(session.last()).toContain('\uf1c0 61%')
+  })
+  test('auto: emoji in the Desktop app', async ($, on) => {
+    const session = await start($ as never, on as never, 'desktop')
+    expect(session.last()).toContain('🧠 61%')
+  })
+  test('ascii wins everywhere when chosen', { options: { icons: 'ascii' } }, async ($, on) => {
+    const session = await start($ as never, on as never, 'desktop')
+    expect(session.last()).toContain('ctx 61%')
+    expect(/^[\x20-\x7e◆·]*$/.test(session.last() ?? '')).toBe(true)
+  })
+})
