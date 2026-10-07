@@ -53,11 +53,10 @@ session that made them.
 
 1. ~~The vendored engine declarations~~: done in spec 011 (0.9.0). CI fetches them from the
    `engine-types-2.1.292` pre-release; they are no longer committed or shipped.
-2. **`governUsage` defaults to on.** For directory users, a third-party plugin that refuses tool
-   calls from 88% and submits a resume prompt by itself is a strong default. Consider `false`.
-3. **`checkUpdates` defaults to on.** Since spec 012 it no longer starts a shell: gstack's check
-   runs only when the script exists. It still runs `specify` daily for people without Spec Kit's
-   CLI (the call fails and is skipped). Kept on; consider `false` for the directory.
+2. ~~`governUsage` defaults to on~~: kept on, decided by the owner on 2026-10-07. Since 0.10.0
+   the governor asks before it holds or pauses, and the default it takes after a minute is the
+   cautious one.
+3. ~~`checkUpdates` defaults to on~~: kept on, with `askOnLimit` on as well (same decision).
 4. ~~Update buttons cannot be dismissed~~: done in spec 012 (a `hide` button).
 5. **Astrolabe would be the first mod in the directory.** None of the 315 plugins listed today is
    a hooks module, so expect closer human review.
