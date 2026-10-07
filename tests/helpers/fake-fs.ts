@@ -124,6 +124,10 @@ export type Session = {
   prompts: string[]
   /** Script process.run answers and http.fetch answers for a test. */
   script: { processes: ProcessScript; http: Record<string, { status: number; text: string }>; env: Record<string, string> }
+  /** Texts the plugin proposed for the empty prompt box ($.prompt.suggest). */
+  suggested: string[]
+  /** Texts the plugin copied ($.ui.copy). */
+  copied: string[]
   /** Tree paths that exist but whose read rejects (EACCES), as a permission error would. */
   denied: Set<string>
   /** Every toast the plugin raised, in order. */
@@ -221,6 +225,16 @@ export const installTree = (on: On, tree: Tree, cwd: string, seed: Record<string
     prompts.push(`/${e.command}`)
     return { text: 'ran' } as never
   })
+  const suggested: string[] = []
+  const copied: string[] = []
+  on('prompt.suggest', ($, e) => {
+    suggested.push(e.text)
+    return { isShown: true } as never
+  })
+  on('ui.copy', ($, e) => {
+    copied.push(e.text)
+    return { value: { isCopied: true } } as never
+  })
   on('ui.toast', ($, e) => {
     toasts.push(e.text)
     return { value: undefined }
@@ -253,7 +267,7 @@ export const installTree = (on: On, tree: Tree, cwd: string, seed: Record<string
     return { value: undefined }
   })
 
-  return { counts, statuses, forbidden, last: () => statuses.at(-1), held: () => held, logs, clock, toasts, store, processes, fetches, prompts, submitted, script, stateSets, denied }
+  return { counts, statuses, forbidden, last: () => statuses.at(-1), held: () => held, logs, clock, toasts, store, processes, fetches, prompts, submitted, script, stateSets, denied, suggested, copied }
 }
 
 /** Answers turn.complete and tool.call beneath the plugin, as the engine would. */

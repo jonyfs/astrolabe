@@ -48,7 +48,7 @@ import { emptyMemo, type PaneState, type PaneTab, type UpdateId, type UpdateItem
 import type { Preset } from './core/presets'
 import type { Fs } from './io/fs-port'
 import { applyFileTouch, applyRead, applyShell, applySkill, type Held, reconcileStart, reconcileTurn } from './io/reconcile'
-import { bandRow, updatesRow } from './surfaces/band'
+import { bandRow, nextRow, updatesRow } from './surfaces/band'
 import { askTree } from './surfaces/ask'
 import { dashboardTree } from './surfaces/dashboard'
 import { dial, kpiRows, phaseBars, usageChart } from './core/dashboard'
@@ -73,6 +73,7 @@ const helpText = (lang: Lang): string =>
     t(lang, 'help.title'),
     `  /astrolabe                  ${t(lang, 'help.open')}`,
     `  /astrolabe help             ${t(lang, 'help.help')}`,
+    `  /astrolabe next             ${t(lang, 'help.next')}`,
     `  /astrolabe allow <90-99> <30m-12h>   ${t(lang, 'help.allow')}`,
     `  /astrolabe revoke           ${t(lang, 'help.revoke')}`,
     t(lang, 'help.tabs'),
@@ -450,6 +451,28 @@ async function afterReconcile($: EngineInterface, preset: Preset, held: Held | u
   }
 }
 
+/** Runs the next Spec Kit command (020a), from the band's button or /astrolabe next. */
+async function runNext($: EngineInterface, command: string): Promise<void> {
+  await $.command.run({ command: command.replace(/^\//, ''), args: '' }).catch((error: unknown) => {
+    $.ui.log(`astrolabe: ${error instanceof Error ? error.message : String(error)}`, { to: 'debug' })
+  })
+}
+
+async function copyNext($: EngineInterface, command: string, surface: string): Promise<void> {
+  const copied = await $.ui.copy({ text: command, surface: surface as never }).catch(() => ({ isCopied: false }))
+  if (copied.isCopied) $.ui.toast(t(currentLang(), 'next.copied', { cmd: command }))
+}
+
+// The last next command proposed in the prompt box (020a): each new one is proposed once.
+let lastSuggested: string | undefined
+
+async function suggestNext($: EngineInterface, held: Held | undefined): Promise<void> {
+  const command = held?.state.nextCommand
+  if (command === undefined || command === lastSuggested || !isInteractive) return
+  lastSuggested = command
+  await $.prompt.suggest({ text: command }).catch(() => undefined)
+}
+
 /** Opens the pane once per session without being asked (preset full, wide fullscreen). */
 async function openUnasked($: EngineInterface): Promise<void> {
   try {
@@ -747,7 +770,9 @@ export const register: Register = (on, options) => {
     }
     const fs = fsOf($)
     const now = await $.clock.now()
-    await afterReconcile($, preset, await guarded($, previous => reconcileStart(fs, e.cwd, previous, now)))
+    const started = await guarded($, previous => reconcileStart(fs, e.cwd, previous, now))
+    await afterReconcile($, preset, started)
+    if (preset.band) await suggestNext($, started)
     // Started on a timer so the session never waits for a process or the network.
     if (checksUpdates) $.clock.after(0, () => void checkUpdates($))
     await flushStats($)
@@ -762,6 +787,7 @@ export const register: Register = (on, options) => {
       const now = await $.clock.now()
       const held = await guarded($, previous => reconcileTurn(fs, cwd, previous, now))
       await afterReconcile($, preset, held)
+      if (preset.band) await suggestNext($, held)
       // The footer's git part (018): counts from git, else the branch from the repository files.
       const root = held?.state.root
       const branch = held?.memo.base?.branch
@@ -900,7 +926,8 @@ export const register: Register = (on, options) => {
     const { value } = await $.state.get(SPECKIT)
     const segments = value === undefined ? [] : bandSegments(value, e.props.bodyColumns)
     const updates = (await $.state.get(UPDATES)).value ?? { items: [] }
-    if (segments.length === 0 && updates.items.length === 0) return next(e)
+    const command = value?.nextCommand
+    if (segments.length === 0 && updates.items.length === 0 && command === undefined) return next(e)
     const { Box, Text, Button } = $.ui.resolve(e)
     const buttons = updates.items.map(item => ({
       key: `update-${item.id}`,
@@ -910,6 +937,16 @@ export const register: Register = (on, options) => {
     return (
       <Box flexDirection="column">
         {segments.length > 0 && bandRow({ Box, Text }, segments, tokens)}
+        {command !== undefined &&
+          nextRow(
+            { Box, Text, Button },
+            command,
+            tokens,
+            () => runNext($, command),
+            surface => copyNext($, command, surface),
+            e.props.bodyColumns,
+            { next: t(currentLang(), 'status.next'), copy: t(currentLang(), 'next.copy') },
+          )}
         {buttons.length > 0 && updatesRow({ Box, Text, Button }, buttons, tokens, press, e.props.bodyColumns, () => hideUpdates($), t(currentLang(), 'updates.hide'))}
         {await next(e)}
       </Box>
@@ -936,6 +973,13 @@ export const register: Register = (on, options) => {
   on('command.run', { command: 'astrolabe' }, async ($, e) => {
     const args = e.args.trim()
     if (args === 'help') return { text: helpText(currentLang()) }
+    if (args === 'next') {
+      const command = (await $.state.get(SPECKIT)).value?.nextCommand
+      if (command === undefined) return { text: t(currentLang(), 'next.none') }
+      // A command does not run another from inside its own dispatch: start it from a timer.
+      $.clock.after(0, () => void runNext($, command))
+      return { text: t(currentLang(), 'next.running', { cmd: command }) }
+    }
     if (args !== '') {
       const parsed = parseAllow(args)
       if (parsed === undefined) return { text: `Unknown: /astrolabe ${args}. Type /astrolabe help for the commands.` }

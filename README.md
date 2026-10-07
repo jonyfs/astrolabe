@@ -249,6 +249,14 @@ from the moment it starts, so the narration shows early in a short turn. Other t
 plain spinner. When Claude Code shows its own message on the spinner (while compacting, for
 example), that message wins.
 
+## The next command
+
+Under the band, a row shows the next Spec Kit command as a button. Press it and the command
+runs, as if you had typed it. From 60 columns a `copy` button sits beside it and copies the
+command. Each time the next command changes, it is also proposed in the empty prompt box: press
+Tab (or the right arrow) to take it. `/astrolabe next` runs it from the prompt. The `minimal`
+preset shows none of this.
+
 ## What the prompt hint shows
 
 While the prompt is empty, Astrolabe adds the next Spec Kit command to the end of Claude

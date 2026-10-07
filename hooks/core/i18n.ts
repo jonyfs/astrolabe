@@ -5,6 +5,11 @@ export const LANGS = ['en', 'pt-BR', 'es', 'fr'] as const
 export type Lang = (typeof LANGS)[number]
 
 const EN = {
+  'next.copy': 'copy',
+  'next.copied': 'Copied {cmd}',
+  'next.none': 'No next command here: Spec Kit is not set up, or nothing is open.',
+  'next.running': 'Running {cmd}',
+  'help.next': 'run the next Spec Kit command',
   'pane.noSpeckit': 'This project does not use Spec Kit.',
   'pane.noFeatures': 'No features yet. Run /speckit-specify.',
   'pane.jsonDangling': '.specify/feature.json points at a missing folder',
@@ -95,6 +100,11 @@ export type TextKey = keyof typeof EN
 type Dictionary = Readonly<Record<TextKey, string>>
 
 const PT_BR: Dictionary = {
+  'next.copy': 'copiar',
+  'next.copied': '{cmd} copiado',
+  'next.none': 'Nenhum próximo comando aqui: o Spec Kit não está configurado, ou não há nada aberto.',
+  'next.running': 'Rodando {cmd}',
+  'help.next': 'roda o próximo comando do Spec Kit',
   'pane.noSpeckit': 'Este projeto não usa Spec Kit.',
   'pane.noFeatures': 'Nenhuma feature ainda. Rode /speckit-specify.',
   'pane.jsonDangling': '.specify/feature.json aponta para uma pasta que não existe',
@@ -182,6 +192,11 @@ const PT_BR: Dictionary = {
 }
 
 const ES: Dictionary = {
+  'next.copy': 'copiar',
+  'next.copied': '{cmd} copiado',
+  'next.none': 'No hay un siguiente comando aquí: Spec Kit no está configurado, o no hay nada abierto.',
+  'next.running': 'Ejecutando {cmd}',
+  'help.next': 'ejecuta el siguiente comando de Spec Kit',
   'pane.noSpeckit': 'Este proyecto no usa Spec Kit.',
   'pane.noFeatures': 'Todavía no hay features. Ejecuta /speckit-specify.',
   'pane.jsonDangling': '.specify/feature.json apunta a una carpeta que no existe',
@@ -269,6 +284,11 @@ const ES: Dictionary = {
 }
 
 const FR: Dictionary = {
+  'next.copy': 'copier',
+  'next.copied': '{cmd} copié',
+  'next.none': "Pas de commande suivante ici : Spec Kit n'est pas configuré, ou rien n'est ouvert.",
+  'next.running': 'Lancement de {cmd}',
+  'help.next': 'lance la commande Spec Kit suivante',
   'pane.noSpeckit': "Ce projet n'utilise pas Spec Kit.",
   'pane.noFeatures': 'Aucune feature pour le moment. Lancez /speckit-specify.',
   'pane.jsonDangling': '.specify/feature.json pointe vers un dossier absent',
