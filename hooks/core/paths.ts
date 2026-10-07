@@ -6,17 +6,20 @@ const FEATURE_DIR = /^\d{3}-.+$/
 /** Forward slashes, `.` and `..` resolved, no repeated or trailing slash, lowercase drive letter. */
 export const normalizePath = (path: string): string => {
   let p = path.replace(/\\/g, '/').replace(/^([A-Za-z]):/, (_, d: string) => `${d.toLowerCase()}:`)
+  // A UNC path (\\server\share\...) keeps its leading // and its server/share as the root.
+  const isUnc = /^\/\/[^/]/.test(p)
   const isAbsolute = p.startsWith('/')
   const parts: string[] = []
   for (const part of p.split('/')) {
     if (part === '' || part === '.') continue
     const last = parts.at(-1)
     const isDrive = parts.length === 1 && /^[a-z]:$/.test(last ?? '')
-    if (part === '..' && last !== undefined && last !== '..' && !isDrive) parts.pop()
+    const isShareRoot = isUnc && parts.length <= 2
+    if (part === '..' && last !== undefined && last !== '..' && !isDrive && !isShareRoot) parts.pop()
     else if (part === '..' && (isAbsolute || isDrive)) continue
     else parts.push(part)
   }
-  p = (isAbsolute ? '/' : '') + parts.join('/')
+  p = (isUnc ? '//' : isAbsolute ? '/' : '') + parts.join('/')
   if (/^[a-z]:$/.test(p)) p += '/'
   return p === '' ? '.' : p
 }
@@ -28,13 +31,16 @@ export const isAbsolutePath = (path: string): boolean => {
   return p.startsWith('/') || /^[a-z]:\//.test(p)
 }
 
-export const joinPath = (base: string, ...parts: string[]): string =>
-  normalizePath([base, ...parts].join('/'))
+export const joinPath = (base: string, ...parts: string[]): string => {
+  // Trim the base's trailing separator first, so joining onto `/` never makes `//` (UNC).
+  const head = normalizePath(base).replace(/\/+$/, '')
+  return normalizePath([head === '' ? '' : head, ...parts].join('/') || '/')
+}
 
 /** The parent directory, or undefined at a root (`/`, `c:/`). */
 export const parentDir = (path: string): string | undefined => {
   const p = normalizePath(path)
-  if (p === '/' || DRIVE_ROOT.test(p)) return undefined
+  if (p === '/' || DRIVE_ROOT.test(p) || /^\/\/[^/]+(\/[^/]+)?$/.test(p)) return undefined
   const cut = p.lastIndexOf('/')
   if (cut < 0) return undefined
   const parent = p.slice(0, cut)

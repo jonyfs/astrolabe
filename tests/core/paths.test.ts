@@ -89,3 +89,18 @@ describe('featureDirOf and specsLocation', () => {
     })
   })
 })
+
+describe('UNC paths (\\\\server\\share)', () => {
+  test('keep their leading // and stay absolute', () => {
+    expect(normalizePath('\\\\server\\share\\proj\\specs')).toBe('//server/share/proj/specs')
+    expect(joinPath('//server/share/proj', '.specify')).toBe('//server/share/proj/.specify')
+  })
+  test('the share is the root', () => {
+    expect(parentDir('//server/share/proj')).toBe('//server/share')
+    expect(parentDir('//server/share')).toBeUndefined()
+  })
+  test('relativeTo and featureDirOf work under a share', () => {
+    expect(relativeTo('//server/share/proj', '\\\\server\\share\\proj\\specs\\002-x\\tasks.md')).toBe('specs/002-x/tasks.md')
+    expect(featureDirOf('//server/share/proj', '//server/share/proj/specs/002-x/plan.md')).toBe('002-x')
+  })
+})
