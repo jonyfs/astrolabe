@@ -114,3 +114,7 @@ Every change starts as a Spec Kit feature under `specs/` and goes through
 `/speckit-analyze` and `/speckit-implement`, test-first. The rules are in
 [.specify/memory/constitution.md](.specify/memory/constitution.md). Everything in this
 repository is written in English.
+
+## License
+
+MIT. See [LICENSE](LICENSE).
