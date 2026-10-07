@@ -7,7 +7,7 @@ import { completeTurn, installEngine, installTree, startSession } from '../helpe
 const edit = (id: string, file_path: string) => ({ tool: 'Edit', tool_use_id: id, file_path, old_string: 'a', new_string: 'b' }) as never
 
 describe('concurrent tool calls never lose an update of $.state', () => {
-  test('two concurrent Edits under different features both reach the next turn', async ($, on) => {
+  test('two concurrent Edits under different features both reach the next turn', { timeoutMs: 20_000 }, async ($, on) => {
     const tree = { ...forty.tree }
     const session = installTree(on, tree, '/proj')
     installEngine(on)

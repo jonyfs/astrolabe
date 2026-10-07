@@ -1,6 +1,6 @@
 ---
 track: quick # quick | full
-status: active # active | done | abandoned
+status: done # active | done | abandoned
 ---
 
 # Quick spec: Lean session state and the 0.8.1 release
@@ -33,8 +33,15 @@ Principle XII.
 
 ## Tasks
 
-- [ ] T001 Failing tests: compacted snapshot derives the same state for every fixture; compact sizes; renders read no memo key; a repeated Bash call writes nothing
-- [ ] T002 `compactFiles` / `compactConstitution` in `hooks/core/compact.ts`, applied where the memo stores files
-- [ ] T003 Split `astrolabe.speckit` (state) and `astrolabe.memo` (memo) in `types/index.d.ts`, `hooks/register.tsx` and the test helpers; add `isWorkingOnActive` and `activeTasks` to the state
-- [ ] T004 Skip no-op writes in `guarded`
-- [ ] T005 Version 0.8.1, descriptions, README order; validate, tests, tsc, release script
+- [X] T001 Failing tests: compacted snapshot derives the same state for every fixture; compact sizes; renders read no memo key; a repeated Bash call writes nothing
+- [X] T002 `compactFiles` / `compactConstitution` in `hooks/core/compact.ts`, applied where the memo stores files
+- [X] T003 Split `astrolabe.speckit` (state) and `astrolabe.memo` (memo) in `types/index.d.ts`, `hooks/register.tsx` and the test helpers; add `isWorkingOnActive` and `activeTasks` to the state
+- [X] T004 Skip no-op writes in `guarded`
+- [X] T005 Version 0.8.1, descriptions, README order; validate, tests, tsc, release script
+
+## Notes
+
+- The 40-feature concurrency test was already flaky on `main` (7.7 s, over its 5 s limit). Root
+  cause: the test fake re-indexed the whole tree on every call. The index is now cached per tree
+  content; the test runs in about 1.8 s with a 20 s ceiling.
+- README order and the full visual documentation move to spec 010.

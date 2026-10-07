@@ -56,15 +56,15 @@ export const taskRows = (state: SpeckitState, memo: SessionMemo, rows: number, c
   const active = state.active
   if (!state.present) return [NO_SPECKIT]
   if (active === undefined) return [{ key: 'none', text: 'No active feature.', role: 'muted' }]
-  const tasks = parseTasks(memo.files[active.dir]?.tasks ?? '')
+  const tasks = state.activeTasks ?? parseTasks(memo.files[active.dir]?.tasks ?? '')
   const open = tasks.filter(t => !t.isDone)
   const out: PaneRow[] = [{ key: 'count', text: `${tasks.length - open.length}/${tasks.length} done`, role: 'muted' }]
   if (open.length === 0) return [...out, { key: 'all-done', text: 'All tasks are ticked.', role: 'done' }]
   const room = Math.max(1, rows - 1)
   const shown = open.length <= room ? open : open.slice(0, room - 1)
-  for (const t of shown) {
+  for (const [index, t] of shown.entries()) {
     const head = t.id === undefined ? '' : `${t.id} `
-    out.push({ key: `task-${t.line}`, text: `${head}${cut(cleanTaskText(t.text), columns - width(head))}`.trimEnd(), role: 'text' })
+    out.push({ key: `task-${t.id ?? index}`, text: `${head}${cut(cleanTaskText(t.text), columns - width(head))}`.trimEnd(), role: 'text' })
   }
   if (shown.length < open.length) out.push({ key: 'more', text: `+${open.length - shown.length} more`, role: 'muted' })
   return out
