@@ -50,6 +50,8 @@ import type { Fs } from './io/fs-port'
 import { applyFileTouch, applyRead, applyShell, applySkill, type Held, reconcileStart, reconcileTurn } from './io/reconcile'
 import { bandRow, updatesRow } from './surfaces/band'
 import { askTree } from './surfaces/ask'
+import { dashboardTree } from './surfaces/dashboard'
+import { dial, kpiRows, phaseBars, usageChart } from './core/dashboard'
 import { footerText } from './core/footer'
 import { parseGitStatus } from './core/git-status'
 import { iconSet, iconsFor } from './core/icons'
@@ -944,6 +946,36 @@ export const register: Register = (on, options) => {
       const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
       await $.state.set(PANE_STATE, { ...held, tab })
     }
-    return paneTree({ Box, Text, Button }, pane.tab, rows, tokens, select)
+    if (pane.tab !== 'dashboard') return paneTree({ Box, Text, Button }, pane.tab, rows, tokens, select)
+    // The Dashboard (018): numbers from $.state only, charts sized to the pane.
+    const elements = $.ui.resolve(e)
+    const usage = (await $.state.get(USAGE)).value ?? DEFAULT_USAGE
+    const stats = (await $.state.get(SESSION)).value
+    const now = await $.clock.now()
+    const binding = decisionOf(usage, now).highest
+    const activeFeature = state.features.find(f => f.dir === state.active?.dir)
+    const ascii = iconsFor(iconsOption, e.surface) === 'ascii'
+    const chart = stats === undefined ? undefined : usageChart(stats.series, { width: Math.min(columns, 72), height: 7, ...(binding?.resetsAt === undefined ? {} : { resetsAt: binding.resetsAt }), now, tokens })
+    const bars = phaseBars(state.features, Math.min(columns, 60), tokens, activeFeature?.phase)
+    const view = {
+      dial: dial(activeFeature?.phase, tokens),
+      ...(bars === undefined ? {} : { bars }),
+      ...(chart === undefined ? {} : { chart }),
+      chartNote: stats === undefined || stats.series.length === 0 ? 'No usage reading yet.' : columns < 30 ? 'Too narrow for the chart.' : 'Usage over the session, with the projection to the reset.',
+      ...(activeFeature === undefined || activeFeature.total === 0 ? {} : { progress: `${activeFeature.id} ${activeFeature.name}: ${activeFeature.done}/${activeFeature.total} tasks done` }),
+      kpis: stats === undefined ? [] : kpiRows(stats, binding, now),
+    }
+    const body = dashboardTree(
+      {
+        Box: elements.Box,
+        Text: elements.Text,
+        ...('Raster' in elements ? { Raster: elements.Raster } : {}),
+        ...('Svg' in elements ? { Svg: elements.Svg } : {}),
+      },
+      view,
+      tokens,
+      ascii,
+    )
+    return paneTree({ Box, Text, Button }, pane.tab, rows, tokens, select, body)
   })
 }

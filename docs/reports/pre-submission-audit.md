@@ -74,6 +74,10 @@ session that made them.
   A hook has 10 seconds, so an unanswered question let the call through. The gate now refuses
   at once with the cautious default and asks from a timer; the answer acts on the queue.
 
+- Spec 018 (0.12.0): the status entry is a footer in place of a statusline (windows with resets,
+  context, model and effort, git, cost, duration), icon sets (`icons`), and a Dashboard tab with
+  the dial, phase bars, a usage chart and session counts. One `git status` per main turn.
+
 ## Still open
 
 - **Desktop app images**: Claude Code documents that it raises the band, the spinner and the pane

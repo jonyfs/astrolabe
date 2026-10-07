@@ -28,24 +28,24 @@
 
 ## Phase 4: User Story 2, icons (P2)
 
-- [ ] T013 [US2] Failing tests: the footer, band and pane with each `icons` value on the terminal and Desktop surfaces, in `tests/integration/icons.test.tsx`
-- [ ] T014 [US2] Use the icon set in the footer, the band's marks and the pane's rows
+- [X] T013 [US2] Failing tests: the footer, band and pane with each `icons` value on the terminal and Desktop surfaces, in `tests/integration/icons.test.tsx`
+- [X] T014 [US2] Use the icon set in the footer and the Dashboard; the band and pane keep their Unicode marks, which the ascii text form maps to plain characters
 
 ## Phase 5: User Story 3, the Dashboard (P2)
 
 **Independent test**: a scripted session, then the pane's tab `4`; each KPI matches.
 
-- [ ] T015 [P] [US3] Failing tests for the KPI rows, the dial, the phase bars, the usage line with its projection, the burn rate, and the fallback to numbers below each chart's minimum width, in `tests/core/dashboard.test.ts`
-- [ ] T016 [US3] Failing integration tests in `tests/integration/dashboard.test.tsx`: tab `4` on terminal (Raster) and Desktop (Svg), counts after a scripted session, no reading, a narrow pane, no file read while drawing
-- [ ] T017 [US3] `hooks/core/dashboard.ts`
-- [ ] T018 [US3] `hooks/surfaces/dashboard.tsx` and the fourth tab in `hooks/surfaces/pane.tsx` and `hooks/register.tsx`
+- [X] T015 [P] [US3] Failing tests for the KPI rows, the dial, the phase bars, the usage line with its projection, the burn rate, and the fallback to numbers below each chart's minimum width, in `tests/core/dashboard.test.ts`
+- [X] T016 [US3] Failing integration tests in `tests/integration/dashboard.test.tsx`: tab `4` on terminal (Raster) and Desktop (Svg), counts after a scripted session, no reading, a narrow pane, no file read while drawing
+- [X] T017 [US3] `hooks/core/dashboard.ts`
+- [X] T018 [US3] `hooks/surfaces/dashboard.tsx` and the fourth tab in `hooks/surfaces/pane.tsx` and `hooks/register.tsx`
 
 ## Phase 6: Polish
 
-- [ ] T019 README: the footer with the map of what the statusline showed and where it is now, what is left out and why, the `icons` option, the Dashboard; captures from the real mod in `docs/images/`
-- [ ] T020 Humanizer pass on the README and this feature's documents
-- [ ] T021 Audit report and version 0.12.0 in `.claude-plugin/plugin.json` and `hooks/core/version.ts`
-- [ ] T022 `claude plugin validate .`, `tsc`, `claude plugin test .`; state size under 4 KB after a 200-turn scripted session
+- [X] T019 README: the footer with the map of what the statusline showed and where it is now, what is left out and why, the `icons` option, the Dashboard. New captures of the footer and the Dashboard move to spec 027 (#56, README images built in CI)
+- [X] T020 Humanizer pass on the README and this feature's documents
+- [X] T021 Audit report and version 0.12.0 in `.claude-plugin/plugin.json` and `hooks/core/version.ts`
+- [X] T022 `claude plugin validate .`, `tsc`, `claude plugin test .`; state size under 4 KB after a 200-turn scripted session
 
 ## Dependencies
 

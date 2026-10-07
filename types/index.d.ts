@@ -116,7 +116,7 @@ export type SpeckitState = {
   activeTasks?: Array<{ id?: string; text: string; isDone: boolean }>
 }
 
-export type PaneTab = 'specs' | 'tasks' | 'session'
+export type PaneTab = 'specs' | 'tasks' | 'session' | 'dashboard'
 
 /** The /astrolabe pane's session state: the tab shown and whether it opened unasked already. */
 export type PaneState = { tab: PaneTab; autoOpened: boolean }

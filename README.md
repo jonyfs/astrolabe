@@ -126,7 +126,35 @@ Each part, from left to right:
 | Phase | `implement` | The first Spec Kit step this feature has not finished. See [Phases](#phases). |
 | Percentage | `87%` | Ticked tasks out of all tasks in the feature's `tasks.md`, rounded down. 43 of 49 is `87%`. It appears only once `tasks.md` has tasks. |
 | Running step | `· plan…` | A Spec Kit skill such as `/speckit-plan` was called during this turn. It disappears when the turn ends. |
-| Usage window | `· 7d 81% hold` | The fuller of your 5-hour and weekly windows, and its band when it is not ok. See [Usage governance](#usage-governance). |
+| Usage window | `· 7d 81% hold (14:00)` | The window that decides, its band when it is not ok, and when it resets. The other window follows. See [Usage governance](#usage-governance). |
+| Context | `·  61%` | How full the context window is. |
+| Model and effort | `·  opus 5.5 high` | The model and effort of Claude's last request in the main thread. |
+| Git | `·  main ↑2  3` | The branch, commits to push and to pull, and changed or untracked files, from one `git status` at the end of each turn. Without a repository it is left out. |
+| Cost | `·  1.20` | What the session has cost so far, in US dollars, when Claude Code reports it. |
+| Duration | `·  1h05m` | How long the session has run, from its first minute on. |
+
+### The footer in place of a statusline
+
+The entry is a footer: it carries what a statusline under the prompt usually shows, so you can
+remove a separate `statusLine` command from your settings. When the terminal is too narrow, the
+parts go from the end: duration first, then cost, git, model, the other window and the context.
+The Spec Kit part and the window that decides always stay.
+
+| A statusline showed | In Astrolabe |
+|---|---|
+| Directory, repository, branch, ahead and behind, changed files | The footer's git part (the directory is the project you opened) |
+| Model, effort, context window | The footer |
+| 5-hour and 7-day windows with their resets | The footer, and the governor acts on them |
+| Session cost and duration | The footer |
+| Burn rate and projection | The Dashboard tab |
+| Todo progress, Claude working or idle | The band, the spinner and the Tasks tab |
+| Skills in use | The band and the prompt hint show the running Spec Kit skill |
+| Pull request and last CI run | Left out: they need the network on every turn (planned as an option) |
+| Vim mode, prompt cache timer, rtk savings | Left out |
+
+Icons follow the `icons` option: Nerd Font glyphs in the terminal and emoji in the Desktop app by
+default, or `ascii` for plain characters everywhere. A Nerd Font cannot be detected, so pick
+`emoji` or `ascii` if the glyphs show as boxes.
 
 The other entries you may see:
 
@@ -235,7 +263,7 @@ the tasks left. It disappears as soon as you type.
 
 ## Options
 
-Five options appear in Claude Code's config menu (`/config`, then Astrolabe). Changing one
+Six options appear in Claude Code's config menu (`/config`, then Astrolabe). Changing one
 reloads the mod right away.
 
 | Option | Values | Default | What it changes |
@@ -244,6 +272,7 @@ reloads the mod right away.
 | `flavor` | `mocha`, `frappe`, `macchiato`, `latte` | `mocha` | The Catppuccin palette for the band. `latte` is the light one. |
 | `checkUpdates` | `true`, `false` | `true` | The daily update check and its buttons (see [Update notices](#update-notices)). |
 | `governUsage` | `true`, `false` | `true` | Usage governance (see [Usage governance](#usage-governance)). Off, the windows still show. |
+| `icons` | `auto`, `nerd`, `emoji`, `ascii` | `auto` | Icons in the footer and the Dashboard. `auto` is Nerd Font glyphs in the terminal and emoji elsewhere. |
 | `askOnLimit` | `true`, `false` | `true` | Before it holds a subagent or pauses Claude, the governor asks you (see [Asked when it holds or pauses](#asked-when-it-holds-or-pauses)). Off, it holds and pauses without asking. |
 
 You can also type `/plugin configure astrolabe@astrolabe` in a session, or set them from a
@@ -267,9 +296,9 @@ The current values, from a shell:
 
 ## The /astrolabe pane
 
-Type `/astrolabe` to open a pane with three tabs. In a fullscreen terminal it docks at the
-right; otherwise it sits above the prompt. It opens with the keyboard on it, so `1`, `2` and
-`3` switch tabs right away, and Esc closes it. Later, focus it again with a click or
+Type `/astrolabe` to open a pane with four tabs. In a fullscreen terminal it docks at the
+right; otherwise it sits above the prompt. It opens with the keyboard on it, so `1` to `4`
+switch tabs right away, and Esc closes it. Later, focus it again with a click or
 `ctrl+x tab`. The tab you pick stays for the session.
 
 **1 Specs** lists every feature:
@@ -294,6 +323,22 @@ no `tasks.md` yet says so.
 
 `chosen by` is how the active feature was picked (`feature.json`, `branch` or `latest`).
 `analyzed` says whether `/speckit-analyze` ran in this session.
+
+**4 Dashboard** puts the session in numbers and charts:
+
+- an astrolabe dial with the six Spec Kit steps around a ring, the active feature's step marked
+  `●` with the needle on it, earlier steps ticked `✓`;
+- the active feature's tasks done out of all of them;
+- one bar per phase with how many features are in it;
+- a line chart of the deciding usage window over the session, 0 to 100%, with a dotted
+  projection to the reset at the current burn rate;
+- the session's counts: turns, tool calls, drift alarms, subagents run and queued, context, cost,
+  duration, burn rate in points an hour, and where the window should be at the reset.
+
+In the terminal the charts are drawn cell by cell in the theme's colors; in the Desktop app and
+VS Code they are vector images; with `icons: ascii`, or where neither is drawn, they are plain
+text. A pane too narrow for a chart shows its numbers instead. Drawing reads only what the
+session already holds, never a file.
 
 With the `full` preset, the pane also opens by itself once per session, at the end of the
 first turn, but only in a fullscreen terminal at least 144 columns wide. It never opens by
