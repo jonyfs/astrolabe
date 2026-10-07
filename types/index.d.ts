@@ -143,10 +143,23 @@ export type UsageState = {
   queue: QueuedAgent[]
   override?: { target: number; until: number }
   paused: boolean
+  /** Until when the owner let subagents through the hold, one at a time (015). */
+  holdLift?: number
+  /** The answer the owner gave (or the default taken) for the band now in force (015). */
+  asked?: { kind: 'hold' | 'pause'; answer: string }
 }
+
+/** One answer a usage question offers; `target` is the ceiling a lifting answer sets. */
+export type UsageAnswer = { value: string; label: string; target?: number }
+
+/** What the governor asks before it holds or pauses (015). The first answer is the default. */
+export type UsageQuestion = { kind: 'hold' | 'pause'; text: string; options: UsageAnswer[]; fallback: string }
+
+/** The open question the `astrolabe-usage` pane draws, with when its default goes ahead. */
+export type AskState = { question?: UsageQuestion; deadline?: number }
 
 declare module 'claude-code' {
   interface PluginState {
-    astrolabe: { speckit: SpeckitState; memo: SessionMemo; pane: PaneState; updates: UpdatesState; usage: UsageState }
+    astrolabe: { speckit: SpeckitState; memo: SessionMemo; pane: PaneState; updates: UpdatesState; usage: UsageState; ask: AskState }
   }
 }

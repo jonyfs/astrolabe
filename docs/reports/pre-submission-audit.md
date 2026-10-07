@@ -62,6 +62,12 @@ session that made them.
 5. **Astrolabe would be the first mod in the directory.** None of the 315 plugins listed today is
    a hooks module, so expect closer human review.
 
+## Added after the audit
+
+- Spec 015 (0.10.0): before it holds a subagent or pauses Claude, the governor asks the person
+  in a focused pane (or Claude Code's dialog on a narrow terminal) and goes ahead with the
+  cautious default after a minute. `askOnLimit` turns it off; `-p` runs are never asked.
+
 ## Still open
 
 - **Desktop app images**: Claude Code documents that it raises the band, the spinner and the pane

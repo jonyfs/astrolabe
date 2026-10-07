@@ -27,6 +27,9 @@ export type {
   UpdatesState,
   UsageReading,
   UsageState,
+  UsageAnswer,
+  UsageQuestion,
+  AskState,
   QueuedAgent,
   PaneState,
 } from '../../types'
