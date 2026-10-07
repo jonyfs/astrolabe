@@ -26,7 +26,8 @@ export const phaseToasts = (
   /** The real next command for a feature (the active one's may be /speckit-analyze). */
   nextOf: Readonly<Record<string, string>> = {},
 ): { toasts: Toast[]; baseline: Record<string, Phase>; toasted: string[] } => {
-  const next: Record<string, Phase> = { ...baseline }
+  // Only listed features stay, so the stored baseline never grows with deleted ones.
+  const next: Record<string, Phase> = {}
   const toasts: Toast[] = []
   const seen = [...toasted]
   for (const f of features) {

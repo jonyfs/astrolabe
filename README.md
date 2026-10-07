@@ -351,13 +351,14 @@ updates: [ gstack 1.91.33.0 ][ specify 1.2.0 ][ Spec Kit skills 1.2.0 ][ astrola
 
 | Button | How Astrolabe knows | What a click does |
 |---|---|---|
-| gstack | `~/.claude/skills/gstack/bin/gstack-update-check` reports `UPGRADE_AVAILABLE` | Runs the `/gstack-upgrade` command, which upgrades gstack and reports itself. |
+| gstack | `~/.claude/skills/gstack/bin/gstack-update-check` exists and reports `UPGRADE_AVAILABLE` (Astrolabe reads `HOME`, or `USERPROFILE` on Windows, to find it, and runs nothing when gstack is not installed) | Runs the `/gstack-upgrade` command, which upgrades gstack and reports itself. |
 | specify | `specify self check` names a newer release | Runs `specify self upgrade`, then toasts `🧭 specify updated to 1.2.0`. |
 | Spec Kit skills | `specify version` is newer than this project's `.specify/integrations/speckit.manifest.json` | The first click turns the button into `confirm: rewrite .claude/skills/speckit-*`. The second runs `specify init --here --integration claude --force` in the project, which rewrites the project's Spec Kit skills. |
 | astrolabe | GitHub's latest release of jonyfs/astrolabe is newer than the installed version | Runs `claude plugin update astrolabe`, then toasts that you should run `/reload-plugins`. |
 
-On a narrow terminal the row keeps the buttons that fit and ends with `+N` for the rest. A
-button disappears once its update succeeds. When one fails, a toast gives the first error
+On a narrow terminal the row keeps the buttons that fit and ends with `+N` for the rest. The
+last button, `hide`, dismisses every update shown; each one comes back only when a newer version
+than the hidden one appears. A button disappears once its update succeeds. When one fails, a toast gives the first error
 line and the command to run yourself. A tool that is not installed is simply skipped.
 
 This is the one network call Astrolabe makes: a single request a day to
@@ -393,7 +394,9 @@ click a button does anything get installed. Its own store keeps the phase baseli
 3. Otherwise the highest-numbered feature that is neither done nor abandoned.
 
 Spec Kit's `SPECIFY_FEATURE` and `SPECIFY_FEATURE_DIRECTORY` environment variables are
-ignored, because a mod cannot read environment variables. Use `feature.json` or the branch.
+ignored: they are set in the shells Claude runs, not in Claude Code itself. Use `feature.json`
+or the branch. The only environment variables Astrolabe reads are `HOME` and `USERPROFILE`, to
+find gstack for the update check.
 
 ### Tasks
 

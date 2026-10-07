@@ -27,8 +27,10 @@ export const updatesRow = (
   tokens: Tokens,
   onPress: (key: string) => Promise<void>,
   columns: number,
+  onHide: () => Promise<void>,
 ) => {
-  const { shown, more } = fitUpdateButtons(buttons.map(b => b.label), columns)
+  // The hide button ("[ hide ]", 8 cells) always stays at the end of the row.
+  const { shown, more } = fitUpdateButtons(buttons.map(b => b.label), columns - 9)
   return (
     <Box key="astrolabe-updates" flexDirection="row">
       <Text color={tokens.muted}>updates: </Text>
@@ -36,6 +38,8 @@ export const updatesRow = (
         <Button key={b.key} label={b.label} onPress={() => onPress(b.key)} />
       ))}
       {more > 0 && <Text color={tokens.muted}>{` +${more}`}</Text>}
+      <Text> </Text>
+      <Button key="updates-hide" label="hide" onPress={() => onHide()} />
     </Box>
   )
 }

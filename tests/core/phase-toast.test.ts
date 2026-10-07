@@ -49,3 +49,9 @@ describe('review fixes', () => {
     expect(out.toasts[0]?.text).toBe('🧭 002 f002 moved to implement · next: /speckit-analyze')
   })
 })
+
+describe('baseline hygiene (012)', () => {
+  test('features no longer listed are dropped from the baseline', () => {
+    expect(phaseToasts([f('002', 'plan')], { '001-f001': 'done', '002-f002': 'plan' }, [], true).baseline).toEqual({ '002-f002': 'plan' })
+  })
+})

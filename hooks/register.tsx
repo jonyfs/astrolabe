@@ -41,7 +41,7 @@ const DEFAULT_PANE: PaneState = { tab: 'specs', autoOpened: false }
 const UPDATES = { plugin: 'astrolabe', key: 'updates' } as const
 const UPDATES_STORE = 'updates'
 const RELEASES_URL = 'https://api.github.com/repos/jonyfs/astrolabe/releases/latest'
-const GSTACK_CHECK = ['sh', '-c', '"$HOME/.claude/skills/gstack/bin/gstack-update-check"']
+const UPDATES_HIDDEN = 'updates:hidden'
 const SKILLS_REFRESH = ['specify', 'init', '--here', '--integration', 'claude', '--force']
 const USAGE = { plugin: 'astrolabe', key: 'usage' } as const
 const DEFAULT_USAGE: UsageState = { readings: [], history: [], inFlight: 0, queue: [], paused: false }
@@ -227,17 +227,48 @@ async function stdoutOf($: EngineInterface, argv: readonly string[], cwd?: strin
   }
 }
 
+/** gstack's update check, found from the home directory; undefined when gstack is not installed. */
+async function gstackCheck($: EngineInterface): Promise<string | undefined> {
+  const home = (await $.env.get('HOME')) ?? (await $.env.get('USERPROFILE'))
+  if (home === undefined || home === '') return undefined
+  const path = `${home.replace(/[\\/]+$/, '')}/.claude/skills/gstack/bin/gstack-update-check`
+  return (await $.fs.exists(path).catch(() => false)) ? path : undefined
+}
+
+/** Updates the person hid with the hide button stay hidden until a newer version shows up. */
+async function visible($: EngineInterface, items: readonly UpdateItem[]): Promise<UpdateItem[]> {
+  const hidden = await $.store.get(UPDATES_HIDDEN)
+  const map = typeof hidden === 'object' && hidden !== null ? (hidden as Record<string, string>) : {}
+  return items.filter(item => map[item.id] !== item.latest)
+}
+
+async function hideUpdates($: EngineInterface): Promise<void> {
+  try {
+    const held = (await $.state.get(UPDATES)).value ?? { items: [] }
+    const before = await $.store.get(UPDATES_HIDDEN)
+    const map = typeof before === 'object' && before !== null ? (before as Record<string, string>) : {}
+    await $.store.set(UPDATES_HIDDEN, { ...map, ...Object.fromEntries(held.items.map(i => [i.id, i.latest])) })
+    await $.state.set(UPDATES, { items: [] })
+  } catch (error) {
+    logError($, error)
+  }
+}
+
 /** Spec 007: once per local day, ask each tool whether it has an update. Never throws. */
 async function checkUpdates($: EngineInterface): Promise<void> {
   try {
     const today = localDay(await $.clock.now())
     const stored = await $.store.get(UPDATES_STORE)
     const known = isStoredUpdates(stored) ? stored : undefined
-    if (known !== undefined) await setUpdates($, held => ({ ...held, items: known.items }))
+    if (known !== undefined) {
+      const shown = await visible($, known.items)
+      await setUpdates($, held => ({ ...held, items: shown }))
+    }
     if (!isDue(known, today)) return
     await $.store.set(UPDATES_STORE, { checkedOn: today, items: known?.items ?? [] })
     const items: UpdateItem[] = []
-    const gstack = await stdoutOf($, GSTACK_CHECK)
+    const gstackPath = await gstackCheck($)
+    const gstack = gstackPath === undefined ? undefined : await stdoutOf($, [gstackPath])
     const gstackItem = gstack === undefined ? undefined : parseGstackCheck(gstack)
     if (gstackItem !== undefined) items.push(gstackItem)
     const self = await stdoutOf($, ['specify', 'self', 'check'])
@@ -258,7 +289,8 @@ async function checkUpdates($: EngineInterface): Promise<void> {
       // offline: Astrolabe's own check is skipped until tomorrow
     }
     await $.store.set(UPDATES_STORE, { checkedOn: today, items })
-    await setUpdates($, held => ({ ...held, items }))
+    const shown = await visible($, items)
+    await setUpdates($, held => ({ ...held, items: shown }))
   } catch (error) {
     logError($, error)
   }
@@ -491,7 +523,7 @@ export const register: Register = (on, options) => {
     return (
       <Box flexDirection="column">
         {segments.length > 0 && bandRow({ Box, Text }, segments, tokens)}
-        {buttons.length > 0 && updatesRow({ Box, Text, Button }, buttons, tokens, press, e.props.bodyColumns)}
+        {buttons.length > 0 && updatesRow({ Box, Text, Button }, buttons, tokens, press, e.props.bodyColumns, () => hideUpdates($))}
         {await next(e)}
       </Box>
     )
