@@ -15,8 +15,8 @@
 <text x="173.6" y="71" fill="rgb(175,215,255)" font-weight="bold" xml:space="preserve" textLength="92.4" lengthAdjust="spacingAndGlyphs">[ Session ]</text>
 <rect x="14.0" y="76" width="8.4" height="18" fill="rgb(38,38,38)"/>
 <text x="14.0" y="89" fill="rgb(175,215,255)" xml:space="preserve" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
-<rect x="22.4" y="76" width="512.4" height="18" fill="rgb(38,38,38)"/>
-<text x="22.4" y="89" fill="rgb(215,215,255)" xml:space="preserve" textLength="512.4" lengthAdjust="spacingAndGlyphs">root          /Users/jony/repositorios/ai/astrolabe/docs/demo</text>
+<rect x="22.4" y="76" width="327.6" height="18" fill="rgb(38,38,38)"/>
+<text x="22.4" y="89" fill="rgb(215,215,255)" xml:space="preserve" textLength="327.6" lengthAdjust="spacingAndGlyphs">root          ~/src/astrolabe/docs/demo</text>
 <rect x="14.0" y="94" width="8.4" height="18" fill="rgb(38,38,38)"/>
 <text x="14.0" y="107" fill="rgb(175,215,255)" xml:space="preserve" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
 <rect x="22.4" y="94" width="184.8" height="18" fill="rgb(38,38,38)"/>

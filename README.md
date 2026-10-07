@@ -465,7 +465,7 @@ has the usage-governor skill's hooks installed, they govern too; keep one of the
 | Surface | Draws |
 |---|---|
 | Terminal on Linux, macOS and Windows (Claude Code 2.1.287 or later) | Yes |
-| Claude Desktop app, Code tab (2.1.286 or later) | Yes: the same band, hint, spinner, status entry, pane and toasts, drawn with the app's own look. The images in this README come from the terminal. |
+| Claude Desktop app, Code tab (2.1.286 or later) | Partly. Claude Code raises the band, the spinner and the pane there, and the status entry and toasts reach it, drawn with the app's own look. The prompt hint's `next:` text is not shown: Claude Code draws that part only in the terminal for now. Every image in this README comes from the terminal; none was captured in the app yet. |
 | VS Code extension, `claude -p`, cloud sessions | No. The mod's hooks run but nothing is drawn, and nothing errors. |
 
 CI runs the tests on Ubuntu, macOS and Windows for every pull request.
@@ -544,7 +544,8 @@ example `"/astrolabe" Enter 3 "keys:2"` to open the pane and show the Tasks tab)
 the screen with its colors. `ansi-to-svg.mjs` turns that into an SVG; `--from`, `--drop`,
 `--crop` and `--cut` select the part to show. Inside tmux Claude Code draws with 256 colors,
 so the images show the nearest match of each Catppuccin color. Lines from other status
-providers (the author's own statusLine) are dropped.
+providers (the author's own statusLine) and Claude Code's own usage notice are dropped, and
+`--replace` shortens the author's home path to `~/src/astrolabe`; nothing else is edited.
 
 ## License
 

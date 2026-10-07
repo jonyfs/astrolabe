@@ -119,7 +119,11 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const drop = rest.includes('--drop') ? new RegExp(rest[rest.indexOf('--drop') + 1]) : undefined
   const cut = rest.includes('--cut') ? Number(rest[rest.indexOf('--cut') + 1]) : undefined
   const plain = runs => runs.map(r => r.text).join('')
-  let lines = parseAnsi(readFileSync(input, 'utf8'))
+  // --replace FROM=TO shortens a personal path in the captured text (disclosed in the README).
+  const replaces = rest.flatMap((arg, i) => (arg === '--replace' ? [rest[i + 1].split('=')] : []))
+  let text = readFileSync(input, 'utf8')
+  for (const [from, to] of replaces) text = text.split(from).join(to)
+  let lines = parseAnsi(text)
   if (crop) lines = lines.slice(crop[0], crop[1])
   if (from) lines = lines.slice(Math.max(0, lines.findIndex(l => from.test(plain(l)))))
   if (drop) lines = lines.filter(l => !drop.test(plain(l)))
