@@ -29,7 +29,7 @@ click installs it, and a toast reports the result.
 The user asked for the flow to run without stopping; each recommended answer was accepted.
 
 - Q: How does the gstack button install, given `/gstack-upgrade` is an interactive skill? →
-  A: The click queues `/gstack-upgrade` as a prompt; Claude runs the skill. Still one click.
+  A: The click runs `/gstack-upgrade` through `$.command.run` (the engine refuses a slash command sent as a prompt); Claude runs the skill. Still one click.
 - Q: The project-skills refresh rewrites `.claude/skills/speckit-*`. → A: The first click asks
   for a second click (`confirm`); only the second runs `specify init --here --integration
   claude --force` in the Spec Kit root.
@@ -51,7 +51,7 @@ The user asked for the flow to run without stopping; each recommended answer was
 
 ### User Story 2 - One click installs (Priority: P1)
 
-1. **gstack**: the click submits `/gstack-upgrade` as a prompt.
+1. **gstack**: the click runs the `/gstack-upgrade` command.
 2. **specify**: the click runs `specify self upgrade`; success toasts
    `🧭 specify updated to <v>` and removes the item; failure toasts the first error line and
    the command to run by hand.

@@ -8,12 +8,25 @@ import { phaseToasts } from './core/phase-toast'
 import { sessionRows, specsRows, taskRows } from './core/pane'
 import { presetOf } from './core/presets'
 import { spinnerSuffix } from './core/spinner'
+import {
+  astrolabeUpdate,
+  firstLine,
+  isDue,
+  isStoredUpdates,
+  localDay,
+  parseCliVersion,
+  parseGstackCheck,
+  parseSelfCheck,
+  skillsUpdate,
+  updateLabel,
+} from './core/updates'
+import { VERSION } from './core/version'
 import { themeOf } from './core/theme'
-import { emptyMemo, type PaneState, type PaneTab, type Phase } from './core/types'
+import { emptyMemo, type PaneState, type PaneTab, type Phase, type UpdateId, type UpdateItem, type UpdatesState } from './core/types'
 import type { Preset } from './core/presets'
 import type { Fs } from './io/fs-port'
 import { applyFileTouch, applyShell, applySkill, type Held, reconcileStart, reconcileTurn } from './io/reconcile'
-import { bandRow } from './surfaces/band'
+import { bandRow, updatesRow } from './surfaces/band'
 import { paneTree } from './surfaces/pane'
 import { statusText } from './surfaces/status'
 
@@ -22,6 +35,11 @@ const PANE_STATE = { plugin: 'astrolabe', key: 'pane' } as const
 const PANE_ID = 'astrolabe'
 const PANE_TITLE = '🧭 Astrolabe'
 const DEFAULT_PANE: PaneState = { tab: 'specs', autoOpened: false }
+const UPDATES = { plugin: 'astrolabe', key: 'updates' } as const
+const UPDATES_STORE = 'updates'
+const RELEASES_URL = 'https://api.github.com/repos/jonyfs/astrolabe/releases/latest'
+const GSTACK_CHECK = ['sh', '-c', '"$HOME/.claude/skills/gstack/bin/gstack-update-check"']
+const SKILLS_REFRESH = ['specify', 'init', '--here', '--integration', 'claude', '--force']
 
 function fsOf($: EngineInterface): Fs {
   return {
@@ -121,12 +139,126 @@ async function openUnasked($: EngineInterface): Promise<void> {
   }
 }
 
+function logError($: EngineInterface, error: unknown): void {
+  $.ui.log(`astrolabe: ${error instanceof Error ? error.message : String(error)}`, { to: 'debug' })
+}
+
+async function setUpdates($: EngineInterface, change: (held: UpdatesState) => UpdatesState): Promise<void> {
+  const held = (await $.state.get(UPDATES)).value ?? { items: [] }
+  await $.state.set(UPDATES, change(held))
+}
+
+/** Runs one tool and returns its stdout, or undefined when it is missing or fails. */
+async function stdoutOf($: EngineInterface, argv: readonly string[], cwd?: string): Promise<string | undefined> {
+  try {
+    const run = await $.process.run(argv, cwd === undefined ? undefined : { cwd })
+    return run.exitCode === 0 ? run.stdout : undefined
+  } catch {
+    return undefined
+  }
+}
+
+/** Spec 007: once per local day, ask each tool whether it has an update. Never throws. */
+async function checkUpdates($: EngineInterface): Promise<void> {
+  try {
+    const today = localDay(await $.clock.now())
+    const stored = await $.store.get(UPDATES_STORE)
+    const known = isStoredUpdates(stored) ? stored : undefined
+    if (known !== undefined) await setUpdates($, held => ({ ...held, items: known.items }))
+    if (!isDue(known, today)) return
+    await $.store.set(UPDATES_STORE, { checkedOn: today, items: known?.items ?? [] })
+    const items: UpdateItem[] = []
+    const gstack = await stdoutOf($, GSTACK_CHECK)
+    const gstackItem = gstack === undefined ? undefined : parseGstackCheck(gstack)
+    if (gstackItem !== undefined) items.push(gstackItem)
+    const self = await stdoutOf($, ['specify', 'self', 'check'])
+    const selfItem = self === undefined ? undefined : parseSelfCheck(self)
+    if (selfItem !== undefined) items.push(selfItem)
+    const root = (await $.state.get(SPECKIT)).value?.state.root
+    if (root !== undefined) {
+      const manifest = await $.fs.read(`${root}/.specify/integrations/speckit.manifest.json`).catch(() => undefined)
+      const cli = await stdoutOf($, ['specify', 'version'])
+      const skills = skillsUpdate(typeof manifest === 'string' ? manifest : undefined, cli === undefined ? undefined : parseCliVersion(cli))
+      if (skills !== undefined) items.push(skills)
+    }
+    try {
+      const release = await $.http.fetch(RELEASES_URL, { headers: { accept: 'application/vnd.github+json' } })
+      const mine = release.ok ? astrolabeUpdate(VERSION, release.text) : undefined
+      if (mine !== undefined) items.push(mine)
+    } catch {
+      // offline: Astrolabe's own check is skipped until tomorrow
+    }
+    await $.store.set(UPDATES_STORE, { checkedOn: today, items })
+    await setUpdates($, held => ({ ...held, items }))
+  } catch (error) {
+    logError($, error)
+  }
+}
+
+async function dropUpdate($: EngineInterface, id: UpdateId): Promise<void> {
+  await setUpdates($, held => ({ items: held.items.filter(i => i.id !== id) }))
+  const stored = await $.store.get(UPDATES_STORE)
+  if (isStoredUpdates(stored)) await $.store.set(UPDATES_STORE, { ...stored, items: stored.items.filter(i => i.id !== id) })
+}
+
+/** Runs the action of one update Button (contracts/updates.md). */
+async function runUpdate($: EngineInterface, id: UpdateId): Promise<void> {
+  try {
+    const held = (await $.state.get(UPDATES)).value ?? { items: [] }
+    const item = held.items.find(i => i.id === id)
+    if (item === undefined || held.running !== undefined) return
+    if (id === 'speckit-skills' && held.confirming !== id) {
+      await $.state.set(UPDATES, { ...held, confirming: id })
+      return
+    }
+    await $.state.set(UPDATES, { items: held.items, running: id })
+    let failure: string | undefined
+    if (id === 'gstack') {
+      // Engine rule: a slash command runs through $.command.run, not as a prompt.
+      await $.command.run({ command: 'gstack-upgrade', args: '' }).catch((error: unknown) => {
+        logError($, error)
+        failure = '🧭 could not start /gstack-upgrade'
+      })
+    } else {
+      const root = (await $.state.get(SPECKIT)).value?.state.root
+      const argv =
+        id === 'specify' ? ['specify', 'self', 'upgrade'] : id === 'astrolabe' ? ['claude', 'plugin', 'update', 'astrolabe'] : SKILLS_REFRESH
+      const cwd = id === 'speckit-skills' ? root : undefined
+      const run = await $.process
+        .run(argv, cwd === undefined ? undefined : { cwd })
+        .catch((error: unknown) => ({ exitCode: 1, stdout: '', stderr: error instanceof Error ? error.message : String(error) }))
+      if (run.exitCode !== 0) {
+        const line = firstLine(run.stderr || run.stdout)
+        failure =
+          id === 'specify'
+            ? `🧭 specify upgrade failed: ${line}; run specify self upgrade`
+            : id === 'astrolabe'
+              ? `🧭 Astrolabe update failed: ${line}; run claude plugin update astrolabe`
+              : `🧭 Spec Kit skills refresh failed: ${line}`
+      }
+    }
+    if (failure !== undefined) {
+      $.ui.toast(failure)
+      await setUpdates($, h => ({ items: h.items }))
+      return
+    }
+    await dropUpdate($, id)
+    if (id === 'specify') $.ui.toast(`🧭 specify updated to ${item.latest}`)
+    if (id === 'speckit-skills') $.ui.toast(`🧭 Spec Kit skills refreshed to ${item.latest}`)
+    if (id === 'astrolabe') $.ui.toast(`🧭 Astrolabe updated to ${item.latest}; run /reload-plugins`)
+  } catch (error) {
+    logError($, error)
+    await setUpdates($, h => ({ items: h.items })).catch(() => undefined)
+  }
+}
+
 export const register: Register = (on, options) => {
   const preset = presetOf(options)
   const tokens = themeOf(options)
   // Whether the last band draw saw a fullscreen terminal of 144 columns or more. The pane
   // never opens unasked below that (Principle VII); session.start reports no width.
   let isWide = false
+  const checksUpdates = options['checkUpdates'] !== false
 
   on('session.start', async ($, e, next) => {
     const result = await next(e)
@@ -138,6 +270,8 @@ export const register: Register = (on, options) => {
     const fs = fsOf($)
     const now = await $.clock.now()
     await afterReconcile($, preset, await guarded($, previous => reconcileStart(fs, e.cwd, previous, now)))
+    // Started on a timer so the session never waits for a process or the network.
+    if (checksUpdates) $.clock.after(0, () => void checkUpdates($))
     return result
   })
 
@@ -149,6 +283,7 @@ export const register: Register = (on, options) => {
       const now = await $.clock.now()
       await afterReconcile($, preset, await guarded($, previous => reconcileTurn(fs, cwd, previous, now)))
       if (preset.pane === 'auto' && isWide) await openUnasked($)
+      if (checksUpdates) $.clock.after(0, () => void checkUpdates($))
     }
     return result
   })
@@ -198,11 +333,18 @@ export const register: Register = (on, options) => {
     if (!preset.band || e.props.hasSurvey) return next(e)
     const { value } = await $.state.get(SPECKIT)
     const segments = value === undefined ? [] : bandSegments(value.state, e.props.bodyColumns)
-    if (segments.length === 0) return next(e)
-    const { Box, Text } = $.ui.resolve(e)
+    const updates = (await $.state.get(UPDATES)).value ?? { items: [] }
+    if (segments.length === 0 && updates.items.length === 0) return next(e)
+    const { Box, Text, Button } = $.ui.resolve(e)
+    const buttons = updates.items.map(item => ({
+      key: `update-${item.id}`,
+      label: updates.running === item.id ? `${updateLabel(item, false)}…` : updateLabel(item, updates.confirming === item.id),
+    }))
+    const press = (key: string) => runUpdate($, key.replace(/^update-/, '') as UpdateId)
     return (
       <Box flexDirection="column">
-        {bandRow({ Box, Text }, segments, tokens)}
+        {segments.length > 0 && bandRow({ Box, Text }, segments, tokens)}
+        {buttons.length > 0 && updatesRow({ Box, Text, Button }, buttons, tokens, press)}
         {await next(e)}
       </Box>
     )
@@ -239,7 +381,14 @@ export const register: Register = (on, options) => {
       pane.tab === 'tasks'
         ? taskRows(state, value?.memo ?? emptyMemo(), Math.max(3, (e.viewport?.rows ?? 24) - 4), columns)
         : pane.tab === 'session'
-          ? sessionRows(state, await $.clock.now())
+          ? [
+              ...sessionRows(state, await $.clock.now()),
+              ...((await $.state.get(UPDATES)).value?.items ?? []).map(item => ({
+                key: `update-${item.id}`,
+                text: `${'update'.padEnd(14)}${updateLabel(item, false)} (installed ${item.installed})`,
+                role: 'current' as const,
+              })),
+            ]
           : specsRows(state, columns)
     const { Box, Text, Button } = $.ui.resolve(e)
     const select = async (tab: PaneTab) => {

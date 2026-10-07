@@ -83,6 +83,9 @@ export const treeFs = (tree: Tree): { fs: Fs; counts: Counts } => {
   return { fs, counts }
 }
 
+/** A scripted answer for one process.run argv (joined with spaces), or a refusal. */
+export type ProcessScript = Record<string, { exitCode?: number; stdout?: string; stderr?: string } | 'missing'>
+
 export type Session = {
   counts: Counts
   /** Every text the plugin passed to $.ui.status, in order. */
@@ -95,6 +98,14 @@ export type Session = {
   /** Lines the plugin sent to $.ui.log (its caught failures). */
   logs: string[]
   clock: MockClock
+  /** Every process the plugin ran, as argv joined with spaces. */
+  processes: string[]
+  /** Every URL the plugin fetched. */
+  fetches: string[]
+  /** Every slash command the plugin ran, as `/name`. */
+  prompts: string[]
+  /** Script process.run answers and http.fetch answers for a test. */
+  script: { processes: ProcessScript; http: Record<string, { status: number; text: string }> }
   /** Every toast the plugin raised, in order. */
   toasts: string[]
   /** The plugin's $.store, in memory. */
@@ -163,6 +174,27 @@ export const installTree = (on: On, tree: Tree, cwd: string, seed: Record<string
     return { value: undefined }
   })
   on('store.keys', () => ({ value: [...store.keys()] }))
+  const processes: string[] = []
+  const fetches: string[] = []
+  const prompts: string[] = []
+  const script: Session['script'] = { processes: {}, http: {} }
+  on('process.run', ($, e) => {
+    const line = e.argv.join(' ')
+    processes.push(line)
+    const answer = script.processes[line]
+    if (answer === undefined || answer === 'missing') return { deny: `ENOENT: ${e.argv[0]}` }
+    return { value: { exitCode: answer.exitCode ?? 0, stdout: answer.stdout ?? '', stderr: answer.stderr ?? '', isStdoutTruncated: false, isStderrTruncated: false } } as never
+  })
+  on('http.fetch', ($, e) => {
+    fetches.push(e.url)
+    const answer = script.http[e.url]
+    if (answer === undefined) return { deny: 'offline' }
+    return { value: { status: answer.status, ok: answer.status < 400, headers: {}, text: answer.text } } as never
+  })
+  on('command.run', ($, e) => {
+    prompts.push(`/${e.command}`)
+    return { text: 'ran' } as never
+  })
   on('ui.toast', ($, e) => {
     toasts.push(e.text)
     return { value: undefined }
@@ -187,7 +219,7 @@ export const installTree = (on: On, tree: Tree, cwd: string, seed: Record<string
     return { value: undefined }
   })
 
-  return { counts, statuses, forbidden, last: () => statuses.at(-1), held: () => held, logs, clock, toasts, store }
+  return { counts, statuses, forbidden, last: () => statuses.at(-1), held: () => held, logs, clock, toasts, store, processes, fetches, prompts, script }
 }
 
 /** Answers turn.complete and tool.call beneath the plugin, as the engine would. */

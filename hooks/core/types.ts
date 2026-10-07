@@ -22,6 +22,9 @@ export type {
   SpeckitState,
   PaneTab,
   DriftWindow,
+  UpdateId,
+  UpdateItem,
+  UpdatesState,
   PaneState,
 } from '../../types'
 

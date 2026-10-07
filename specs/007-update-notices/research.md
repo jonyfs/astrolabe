@@ -5,8 +5,8 @@
 - `specify self check` prints `Up to date: 1.1.1` when current; `specify version` prints a box
   with `CLI Version    1.1.1`; the project manifest `.specify/integrations/speckit.manifest.json`
   holds `"version": "1.1.1"`.
-- `/gstack-upgrade` is an interactive skill (git pull, ./setup); `$.prompt.submit({ text })`
-  queues it as a prompt.
+- `/gstack-upgrade` is an interactive skill (git pull, ./setup); `$.command.run({ command: 'gstack-upgrade' })`
+  runs it; `$.prompt.submit` refuses text that starts with `/`.
 - `specify init --here --integration claude --force` refreshes project skills.
 - `claude plugin update <plugin>` updates a plugin; a running session applies it after
   `/reload-plugins`.

@@ -4,9 +4,10 @@ A Claude Code mod that shows where your session is and where it is heading: the
 project, git and model state from a classic status line, live Spec Kit progress, and
 usage-window governance that keeps subagent fan-out under your plan limits.
 
-> **Status: v0.6.0.** Astrolabe draws a band above the prompt with the Spec Kit phase rail,
+> **Status: v0.7.0.** Astrolabe draws a band above the prompt with the Spec Kit phase rail,
 > the next command at the end of the prompt hint, the task in progress on the spinner line, an
-> entry in the status line, a pane you open with `/astrolabe`, and two kinds of toast. Usage
+> entry in the status line, a pane you open with `/astrolabe`, two kinds of toast, and buttons
+> that install updates. Usage
 > governance arrives in a later release (see [Roadmap](#roadmap)). Progress is tracked as Spec Kit features under `specs/`.
 
 ## Why "Astrolabe"
@@ -209,13 +210,14 @@ the tasks left. It disappears as soon as you type.
 
 ## Options
 
-Two options appear in Claude Code's config menu (`/config`, then Astrolabe). Changing one
+Three options appear in Claude Code's config menu (`/config`, then Astrolabe). Changing one
 reloads the mod right away.
 
 | Option | Values | Default | What it changes |
 |---|---|---|---|
 | `preset` | `minimal`, `compact`, `full` | `compact` | Where Astrolabe draws. `minimal` keeps only the status entry. `compact` adds the band, the prompt hint, the spinner narration and the drift alarm. `full` also opens the `/astrolabe` pane by itself on a wide fullscreen terminal, and shows phase toasts as well as the drift alarm. |
 | `flavor` | `mocha`, `frappe`, `macchiato`, `latte` | `mocha` | The Catppuccin palette for the band. `latte` is the light one. |
+| `checkUpdates` | `true`, `false` | `true` | The daily update check and its buttons (see [Update notices](#update-notices)). |
 
 You can also type `/plugin configure astrolabe@astrolabe` in a session, or set them from a
 shell. Options you leave out keep their values:
@@ -317,17 +319,46 @@ later phase, you see it once per session:
 ```
 
 To decide what is new, Astrolabe keeps each feature's last seen phase in its own store (the
-plugin's JSON file under your Claude Code configuration folder). That is the only thing it
-stores. The first check of each session only updates it, so a change made between sessions
+plugin's JSON file under your Claude Code configuration folder), next to the last update
+check. The first check of each session only updates it, so a change made between sessions
 does not toast. A Spec Kit skill that starts never toasts by itself; only the files count.
 
 To turn the toasts off, pick the `minimal` preset, or `compact` to keep only the drift alarm.
 
+## Update notices
+
+Once a day, the first time a session starts or a turn ends on a new day, Astrolabe checks four
+things in the background and adds a row of buttons under the band for anything that has a
+newer version:
+
+```text
+updates: [ gstack 1.91.33.0 ][ specify 1.2.0 ][ Spec Kit skills 1.2.0 ][ astrolabe 0.8.0 ]
+```
+
+| Button | How Astrolabe knows | What a click does |
+|---|---|---|
+| gstack | `~/.claude/skills/gstack/bin/gstack-update-check` reports `UPGRADE_AVAILABLE` | Runs the `/gstack-upgrade` command, which upgrades gstack and reports itself. |
+| specify | `specify self check` names a newer release | Runs `specify self upgrade`, then toasts `🧭 specify updated to 1.2.0`. |
+| Spec Kit skills | `specify version` is newer than this project's `.specify/integrations/speckit.manifest.json` | The first click turns the button into `confirm: rewrite .claude/skills/speckit-*`. The second runs `specify init --here --integration claude --force` in the project, which rewrites the project's Spec Kit skills. |
+| astrolabe | GitHub's latest release of jonyfs/astrolabe is newer than the installed version | Runs `claude plugin update astrolabe`, then toasts that you should run `/reload-plugins`. |
+
+A button disappears once its update succeeds. When one fails, a toast gives the first error
+line and the command to run yourself. A tool that is not installed is simply skipped.
+
+This is the one network call Astrolabe makes: a single request a day to
+`https://api.github.com/repos/jonyfs/astrolabe/releases/latest`. The results are kept in the
+mod's store with the date, so other sessions the same day show them without checking again.
+With the `minimal` preset there is no band, so the updates are listed in the `/astrolabe` pane's
+Session tab instead (without buttons). To turn the checks off, set `checkUpdates` to `false`;
+then Astrolabe runs no process and makes no network call.
+
 ## What Astrolabe reads
 
 Only files inside the Spec Kit root, the nearest folder above the session's directory that
-holds `.specify/`. It never writes a project file, never runs a process and makes no network
-calls. Its only write is the phase baseline in its own store (see [Toasts](#toasts)).
+holds `.specify/`. It never writes a project file. It runs processes and makes one network call
+only for the daily update check (see [Update notices](#update-notices)), and only when you
+click a button does anything get installed. Its own store keeps the phase baseline (see
+[Toasts](#toasts)) and the last update check.
 
 | File | Used for |
 |---|---|
@@ -410,14 +441,8 @@ classic status line command configured, both show.
 
 ## Roadmap
 
-These are designed and planned, one Spec Kit feature each:
-
-| Release | Adds |
-|---|---|
-| 007 | Once a day, clickable notices when gstack, the Spec Kit CLI or Astrolabe has an update |
-
-Usage governance (the bands below, from the usage-governor skill) also lands in a later
-release:
+Every feature of the original design is shipped. Next comes usage governance, ported from the
+usage-governor skill, as its own Spec Kit feature, with these bands:
 
 | Band | Highest window | What happens to new subagent dispatches |
 |---|---|---|

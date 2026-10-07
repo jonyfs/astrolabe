@@ -21,4 +21,10 @@ if [ "${tag#v}" != "$version" ]; then
   echo "tag $tag does not match plugin.json version $version" >&2
   exit 1
 fi
+code_file="${VERSION_TS:-$(dirname "$0")/../hooks/core/version.ts}"
+code_version=$(sed -n "s/^export const VERSION = '\\([^']*\\)'.*/\\1/p" "$code_file" | head -n 1)
+if [ "$code_version" != "$version" ]; then
+  echo "hooks/core/version.ts says $code_version but plugin.json says $version" >&2
+  exit 1
+fi
 echo "release $tag matches plugin.json"

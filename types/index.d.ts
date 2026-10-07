@@ -109,8 +109,16 @@ export type PaneTab = 'specs' | 'tasks' | 'session'
 /** The /astrolabe pane's session state: the tab shown and whether it opened unasked already. */
 export type PaneState = { tab: PaneTab; autoOpened: boolean }
 
+export type UpdateId = 'gstack' | 'specify' | 'speckit-skills' | 'astrolabe'
+
+/** Something with a newer version than the one installed. */
+export type UpdateItem = { id: UpdateId; installed: string; latest: string }
+
+/** What the band and pane draw about updates; `confirming` arms the skills refresh. */
+export type UpdatesState = { items: UpdateItem[]; confirming?: UpdateId; running?: UpdateId }
+
 declare module 'claude-code' {
   interface PluginState {
-    astrolabe: { speckit: { state: SpeckitState; memo: SessionMemo }; pane: PaneState }
+    astrolabe: { speckit: { state: SpeckitState; memo: SessionMemo }; pane: PaneState; updates: UpdatesState }
   }
 }
