@@ -78,7 +78,15 @@ export type SessionMemo = {
   currentTask?: { dir: string; id: string; startedAt: number }
   /** The rest of the last snapshot, so a hint or one file can re-derive without reads. */
   base?: Omit<Snapshot, 'features'>
+  /** Since the last tick transition: code files edited, and whether Bash or Agent ran. */
+  window: DriftWindow
+  /** `dir:phase` keys already toasted this session. */
+  toasted: string[]
+  /** Whether this session's first reconcile set the phase baseline yet. */
+  baselined: boolean
 }
+
+export type DriftWindow = { edits: string[]; sawShell: boolean }
 
 export type ConstitutionState = 'missing' | 'template' | 'ratified'
 

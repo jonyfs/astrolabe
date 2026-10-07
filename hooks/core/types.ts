@@ -1,5 +1,5 @@
 // The state model's types live in the $.state contract (types/index.d.ts).
-import type { SessionMemo } from '../../types'
+import type { DriftWindow, SessionMemo } from '../../types'
 
 export type {
   Phase,
@@ -21,7 +21,17 @@ export type {
   ConstitutionState,
   SpeckitState,
   PaneTab,
+  DriftWindow,
   PaneState,
 } from '../../types'
 
-export const emptyMemo = (): SessionMemo => ({ files: {}, analyzed: [], touched: [] })
+export const emptyWindow = (): DriftWindow => ({ edits: [], sawShell: false })
+
+export const emptyMemo = (): SessionMemo => ({
+  files: {},
+  analyzed: [],
+  touched: [],
+  window: emptyWindow(),
+  toasted: [],
+  baselined: false,
+})

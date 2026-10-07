@@ -4,10 +4,10 @@ A Claude Code mod that shows where your session is and where it is heading: the
 project, git and model state from a classic status line, live Spec Kit progress, and
 usage-window governance that keeps subagent fan-out under your plan limits.
 
-> **Status: v0.4.0.** Astrolabe draws a band above the prompt with the Spec Kit phase rail,
+> **Status: v0.5.0.** Astrolabe draws a band above the prompt with the Spec Kit phase rail,
 > the next command at the end of the prompt hint, the task in progress on the spinner line, an
-> entry in the status line, and a pane you open with `/astrolabe`. Toasts and usage governance
-> arrive in later releases (see [Roadmap](#roadmap)). Progress is tracked as Spec Kit features under `specs/`.
+> entry in the status line, a pane you open with `/astrolabe`, and two kinds of toast. Usage
+> governance arrives in a later release (see [Roadmap](#roadmap)). Progress is tracked as Spec Kit features under `specs/`.
 
 ## Why "Astrolabe"
 
@@ -214,7 +214,7 @@ reloads the mod right away.
 
 | Option | Values | Default | What it changes |
 |---|---|---|---|
-| `preset` | `minimal`, `compact`, `full` | `compact` | Where Astrolabe draws. `minimal` keeps only the status entry. `compact` adds the band, the prompt hint and the spinner narration. `full` also opens the `/astrolabe` pane by itself on a wide fullscreen terminal, and will show phase toasts when those arrive. |
+| `preset` | `minimal`, `compact`, `full` | `compact` | Where Astrolabe draws. `minimal` keeps only the status entry. `compact` adds the band, the prompt hint and the spinner narration. `full` also opens the `/astrolabe` pane by itself on a wide fullscreen terminal, and shows phase toasts as well as the drift alarm. |
 | `flavor` | `mocha`, `frappe`, `macchiato`, `latte` | `mocha` | The Catppuccin palette for the band. `latte` is the light one. |
 
 You can also type `/plugin configure astrolabe@astrolabe` in a session, or set them from a
@@ -280,10 +280,49 @@ With the `full` preset, the pane also opens by itself once per session, at the e
 first turn, but only in a fullscreen terminal at least 144 columns wide. It never opens by
 itself on a narrower or non-fullscreen terminal.
 
+## Toasts
+
+Astrolabe raises two short notices in Claude Code's toast area. Each marks a change, never a
+turn, so they stay rare.
+
+**Drift alarm** (presets `compact` and `full`). When Claude ticks a task in `tasks.md` but no
+code file was edited since the previous tick (or since the session started), you see:
+
+```text
+🧭 T014 was ticked with no code edited since the last tick
+```
+
+If the task names files, at least one of them has to have been edited, or the toast lists them:
+
+```text
+🧭 T014 was ticked, but none of its files were edited: tests/core/parser.test.ts
+```
+
+A code file is any file inside the project that is not under `specs/` or `.specify/`, edited
+with Edit, Write or NotebookEdit, by Claude or by a subagent. The alarm stays quiet when a Bash
+or Agent call happened since the last tick, because the mod cannot see what those changed. A
+box you tick in your own editor never raises it.
+
+**Phase toast** (preset `full` only). When the files on disk show that a feature moved to a
+later phase, you see it once per session:
+
+```text
+🧭 002 band-hint moved to tasks · next: /speckit-tasks
+🧭 002 band-hint is done · next: /speckit-specify
+```
+
+To decide what is new, Astrolabe keeps each feature's last seen phase in its own store (the
+plugin's JSON file under your Claude Code configuration folder). That is the only thing it
+stores. The first check of each session only updates it, so a change made between sessions
+does not toast. A Spec Kit skill that starts never toasts by itself; only the files count.
+
+To turn the toasts off, pick the `minimal` preset, or `compact` to keep only the drift alarm.
+
 ## What Astrolabe reads
 
 Only files inside the Spec Kit root, the nearest folder above the session's directory that
-holds `.specify/`. It never writes a file, never runs a process and makes no network calls.
+holds `.specify/`. It never writes a project file, never runs a process and makes no network
+calls. Its only write is the phase baseline in its own store (see [Toasts](#toasts)).
 
 | File | Used for |
 |---|---|
@@ -370,7 +409,6 @@ These are designed and planned, one Spec Kit feature each:
 
 | Release | Adds |
 |---|---|
-| 005 | Toasts when a phase finishes and when a task is ticked with no code edited |
 | 006 | Tag-driven releases and the statusline-to-mod tutorial |
 | 007 | Once a day, clickable notices when gstack, the Spec Kit CLI or Astrolabe has an update |
 
