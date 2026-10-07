@@ -4,13 +4,15 @@ import type { EngineInterface, Register } from 'claude-code'
 
 import { bandSegments } from './core/band'
 import { hintTail } from './core/hint'
+import { phaseToasts } from './core/phase-toast'
 import { sessionRows, specsRows, taskRows } from './core/pane'
 import { presetOf } from './core/presets'
 import { spinnerSuffix } from './core/spinner'
 import { themeOf } from './core/theme'
-import type { PaneState, PaneTab } from './core/types'
+import { emptyMemo, type PaneState, type PaneTab, type Phase } from './core/types'
+import type { Preset } from './core/presets'
 import type { Fs } from './io/fs-port'
-import { applyFileTouch, applySkill, type Held, reconcileStart, reconcileTurn } from './io/reconcile'
+import { applyFileTouch, applyShell, applySkill, type Held, reconcileStart, reconcileTurn } from './io/reconcile'
 import { bandRow } from './surfaces/band'
 import { paneTree } from './surfaces/pane'
 import { statusText } from './surfaces/status'
@@ -38,28 +40,73 @@ const MAX_ATTEMPTS = 5
  * get-then-set would lose updates. A failure goes to the debug log and never breaks
  * the session.
  */
-async function guarded($: EngineInterface, work: (previous: Held | undefined) => Promise<Held | undefined>): Promise<void> {
+async function guarded($: EngineInterface, work: (previous: Held | undefined) => Promise<Held | undefined>): Promise<Held | undefined> {
   try {
     for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
       const { value, version } = await $.state.get(SPECKIT)
       const next = await work(value)
-      if (next === undefined) return
+      if (next === undefined) return undefined
       const { isSet } = await $.state.set(SPECKIT, next, { ifVersion: version })
       if (isSet) {
         $.ui.status(statusText(next.state))
-        return
+        return next
       }
     }
     $.ui.log(`astrolabe: gave up after ${MAX_ATTEMPTS} conflicting updates`, { to: 'debug' })
   } catch (error) {
     $.ui.log(`astrolabe: ${error instanceof Error ? error.message : String(error)}`, { to: 'debug' })
   }
+  return undefined
 }
 
-async function touchFile($: EngineInterface, path: string, isWrite: boolean): Promise<void> {
+async function touchFile(
+  $: EngineInterface,
+  preset: Preset,
+  path: string,
+  isWrite: boolean,
+  change?: { before: string; after: string },
+): Promise<void> {
   const fs = fsOf($)
   const now = await $.clock.now()
-  await guarded($, async previous => (previous === undefined ? undefined : applyFileTouch(fs, previous, path, isWrite, now)))
+  let drift: string | undefined
+  const held = await guarded($, async previous => {
+    if (previous === undefined) return undefined
+    const touched = await applyFileTouch(fs, previous, path, isWrite, now, change)
+    drift = touched.drift
+    return touched.held
+  })
+  if (held !== undefined && drift !== undefined && preset.toasts !== 'none') $.ui.toast(drift)
+}
+
+const isPhaseRecord = (value: unknown): value is Record<string, Phase> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value) && Object.values(value).every(v => typeof v === 'string')
+
+/**
+ * After a reconcile with `toasts: all`: compare phases with the stored baseline and toast
+ * moves forward (005). Writes the store only when the baseline changed, and the memo only
+ * on the first reconcile of a session or after a toast.
+ */
+async function afterReconcile($: EngineInterface, preset: Preset, held: Held | undefined): Promise<void> {
+  const root = held?.state.root
+  if (preset.toasts !== 'all' || held === undefined || root === undefined) return
+  try {
+    const key = `baseline:${root}`
+    const stored = await $.store.get(key)
+    const baseline = isPhaseRecord(stored) ? stored : {}
+    const active = held.state.active
+    const nextOf = active !== undefined && held.state.nextCommand !== undefined ? { [active.dir]: held.state.nextCommand } : {}
+    const toasted = held.memo.toasted ?? []
+    const out = phaseToasts(held.state.features, baseline, toasted, held.memo.baselined === true, nextOf)
+    if (JSON.stringify(out.baseline) !== JSON.stringify(baseline)) await $.store.set(key, out.baseline)
+    for (const toast of out.toasts) $.ui.toast(toast.text)
+    if (held.memo.baselined !== true || out.toasted.length !== toasted.length) {
+      await guarded($, async previous =>
+        previous === undefined ? undefined : { ...previous, memo: { ...previous.memo, baselined: true, toasted: out.toasted } },
+      )
+    }
+  } catch (error) {
+    $.ui.log(`astrolabe: ${error instanceof Error ? error.message : String(error)}`, { to: 'debug' })
+  }
 }
 
 /** Opens the pane once per session without being asked (preset full, wide fullscreen). */
@@ -90,7 +137,7 @@ export const register: Register = (on, options) => {
     }
     const fs = fsOf($)
     const now = await $.clock.now()
-    await guarded($, previous => reconcileStart(fs, e.cwd, previous, now))
+    await afterReconcile($, preset, await guarded($, previous => reconcileStart(fs, e.cwd, previous, now)))
     return result
   })
 
@@ -100,7 +147,7 @@ export const register: Register = (on, options) => {
       const fs = fsOf($)
       const cwd = await $.session.cwd()
       const now = await $.clock.now()
-      await guarded($, previous => reconcileTurn(fs, cwd, previous, now))
+      await afterReconcile($, preset, await guarded($, previous => reconcileTurn(fs, cwd, previous, now)))
       if (preset.pane === 'auto' && isWide) await openUnasked($)
     }
     return result
@@ -115,21 +162,33 @@ export const register: Register = (on, options) => {
     return next(e)
   }).catch(($, e, next) => next(e))
 
+  // Bash and Agent change files the mod cannot see, so drift stays quiet for this window.
+  on('tool.call', { tool: 'Bash' }, async ($, e, next) => {
+    await guarded($, async previous => (previous === undefined ? undefined : applyShell(previous)))
+    return next(e)
+  }).catch(($, e, next) => next(e))
+
+  on('tool.call', { tool: 'Agent' }, async ($, e, next) => {
+    await guarded($, async previous => (previous === undefined ? undefined : applyShell(previous)))
+    return next(e)
+  }).catch(($, e, next) => next(e))
+
   on('tool.call', { tool: 'Edit' }, async ($, e, next) => {
     const result = await next(e)
-    await touchFile($, e.file_path, true)
+    // The Edit's own strings say what it ticked, so a box ticked elsewhere is not blamed on it.
+    await touchFile($, preset, e.file_path, true, { before: e.old_string, after: e.new_string })
     return result
   }).catch(($, e, next) => next(e))
 
   on('tool.call', { tool: 'Write' }, async ($, e, next) => {
     const result = await next(e)
-    await touchFile($, e.file_path, true)
+    await touchFile($, preset, e.file_path, true)
     return result
   }).catch(($, e, next) => next(e))
 
   on('tool.call', { tool: 'NotebookEdit' }, async ($, e, next) => {
     const result = await next(e)
-    await touchFile($, e.notebook_path, false)
+    await touchFile($, preset, e.notebook_path, false)
     return result
   }).catch(($, e, next) => next(e))
 
@@ -178,7 +237,7 @@ export const register: Register = (on, options) => {
     const columns = e.props.bodyColumns
     const rows =
       pane.tab === 'tasks'
-        ? taskRows(state, value?.memo ?? { files: {}, analyzed: [], touched: [] }, Math.max(3, (e.viewport?.rows ?? 24) - 4), columns)
+        ? taskRows(state, value?.memo ?? emptyMemo(), Math.max(3, (e.viewport?.rows ?? 24) - 4), columns)
         : pane.tab === 'session'
           ? sessionRows(state, await $.clock.now())
           : specsRows(state, columns)

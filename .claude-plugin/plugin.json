@@ -1,6 +1,6 @@
 {
   "name": "astrolabe",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Live Spec Kit state in Claude Code: a phase rail above the prompt, the next command in the prompt hint, and a status line entry.",
   "author": {
     "name": "Jony Santos"
@@ -19,7 +19,7 @@
     "preset": {
       "type": "string",
       "title": "Preset",
-      "description": "Where Astrolabe draws: minimal (status line only), compact (status, band and hint) or full (compact plus the pane and toasts as they arrive)",
+      "description": "Where Astrolabe draws: minimal (status line only), compact (status, band, hint, spinner and the drift alarm) or full (compact plus phase toasts and the pane opening by itself on wide screens)",
       "default": "compact",
       "options": [
         "minimal",

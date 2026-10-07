@@ -95,6 +95,10 @@ export type Session = {
   /** Lines the plugin sent to $.ui.log (its caught failures). */
   logs: string[]
   clock: MockClock
+  /** Every toast the plugin raised, in order. */
+  toasts: string[]
+  /** The plugin's $.store, in memory. */
+  store: Map<string, unknown>
 }
 
 /**
@@ -102,7 +106,7 @@ export type Session = {
  * session.start, turn.complete and $.ui.status from `tree`, and record what the
  * plugin did. Register before the test's first call on $.
  */
-export const installTree = (on: On, tree: Tree, cwd: string): Session => {
+export const installTree = (on: On, tree: Tree, cwd: string, seed: Record<string, unknown> = {}): Session => {
   const { fs: rawFs, counts } = treeFs(tree)
   // On a Windows host the engine resolves a POSIX path such as /proj/x against the
   // current drive (D:\proj\x) before a hook sees it. A tree written with POSIX roots
@@ -117,6 +121,8 @@ export const installTree = (on: On, tree: Tree, cwd: string): Session => {
   const statuses: Array<string | undefined> = []
   const forbidden: string[] = []
   const logs: string[] = []
+  const toasts: string[] = []
+  const store = new Map<string, unknown>(Object.entries(seed))
   const deny = { deny: 'ENOENT' } as const
   const clock = mock.clock(on)
 
@@ -147,8 +153,18 @@ export const installTree = (on: On, tree: Tree, cwd: string): Session => {
     forbidden.push(`fs.write ${e.path}`)
     return deny
   })
+  on('store.get', ($, e) => ({ value: store.get(e.key) }))
   on('store.set', ($, e) => {
-    forbidden.push(`store.set ${e.key}`)
+    store.set(e.key, JSON.parse(JSON.stringify(e.value)))
+    return { value: undefined }
+  })
+  on('store.delete', ($, e) => {
+    store.delete(e.key)
+    return { value: undefined }
+  })
+  on('store.keys', () => ({ value: [...store.keys()] }))
+  on('ui.toast', ($, e) => {
+    toasts.push(e.text)
     return { value: undefined }
   })
   on('env.get', ($, e) => {
@@ -171,7 +187,7 @@ export const installTree = (on: On, tree: Tree, cwd: string): Session => {
     return { value: undefined }
   })
 
-  return { counts, statuses, forbidden, last: () => statuses.at(-1), held: () => held, logs, clock }
+  return { counts, statuses, forbidden, last: () => statuses.at(-1), held: () => held, logs, clock, toasts, store }
 }
 
 /** Answers turn.complete and tool.call beneath the plugin, as the engine would. */

@@ -78,7 +78,16 @@ export type SessionMemo = {
   currentTask?: { dir: string; id: string; startedAt: number }
   /** The rest of the last snapshot, so a hint or one file can re-derive without reads. */
   base?: Omit<Snapshot, 'features'>
+  /** This turn's drift window (reset at each main turn.complete, kept across reloads). */
+  window: DriftWindow
+  /** `dir:phase` keys already toasted this session. */
+  toasted: string[]
+  /** Whether this session's first reconcile set the phase baseline yet. */
+  baselined: boolean
 }
+
+/** One main turn's work: code files edited, any Bash or Agent call, and whether drift was toasted. */
+export type DriftWindow = { edits: string[]; sawShell: boolean; alarmed: boolean }
 
 export type ConstitutionState = 'missing' | 'template' | 'ratified'
 

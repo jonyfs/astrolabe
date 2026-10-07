@@ -1,9 +1,11 @@
 // Turns "what happened" into a fresh { state, memo }: reads what the moment calls
 // for (FR-015, FR-016, FR-019) and derives the rest. No $: register.tsx passes an Fs.
-import { joinPath, specsLocation } from '../core/paths'
+import { detectDrift, newlyTicked, taskKey, withEdit, withShell } from '../core/drift'
+import { parseTasks } from '../core/tasks-parser'
+import { isWindowsPath, joinPath, relativeTo, specsLocation } from '../core/paths'
 import { skillHint } from '../core/skill-hints'
 import { deriveSpeckitState, snapshotFromMemo } from '../core/speckit'
-import { emptyMemo, type SessionMemo, type SpeckitState } from '../core/types'
+import { emptyMemo, emptyWindow, type DriftWindow, type SessionMemo, type SpeckitState, type Task } from '../core/types'
 
 import type { Fs } from './fs-port'
 import { findRoot } from './root'
@@ -16,7 +18,14 @@ const unique = (xs: ReadonlyArray<string | undefined>): string[] => [...new Set(
 /** session.start: find the root and read every feature. Keeps this session's analyzed flags across reloads. */
 export const reconcileStart = async (fs: Fs, cwd: string, previous: Held | undefined, now: number): Promise<Held> => {
   const root = await findRoot(fs, cwd)
-  const memo: SessionMemo = { ...emptyMemo(), analyzed: previous?.memo.analyzed ?? [] }
+  // A reload fires session.start again: keep this session's analyzed flags, toasted keys and
+  // drift window so a reload is not mistaken for a new session.
+  const memo: SessionMemo = {
+    ...emptyMemo(),
+    analyzed: previous?.memo.analyzed ?? [],
+    toasted: previous?.memo.toasted ?? [],
+    window: previous?.memo.window ?? emptyWindow(),
+  }
   if (root === undefined) return deriveSpeckitState({ featureJson: { kind: 'missing' }, features: [] }, memo, now)
   const snapshot = await readSnapshot(fs, root, 'full')
   const carried = previous?.memo.currentTask === undefined ? memo : { ...memo, currentTask: previous.memo.currentTask }
@@ -30,7 +39,7 @@ export const reconcileTurn = async (fs: Fs, cwd: string, previous: Held | undefi
   // One check per turn: a root whose .specify/ is gone is looked for again from scratch.
   if (!(await fs.exists(joinPath(root, '.specify')).catch(() => false))) return reconcileStart(fs, cwd, previous, now)
   const { runningSkill: _skill, ...kept } = previous.memo
-  const memo: SessionMemo = { ...kept, touched: [] }
+  const memo: SessionMemo = { ...kept, touched: [], window: emptyWindow() }
   const dirs = unique([previous.state.active?.dir, ...previous.memo.touched])
   const snapshot = await readSnapshot(fs, root, { dirs }, previous.memo.files)
   let held = deriveSpeckitState(snapshot, memo, now)
@@ -57,9 +66,26 @@ export const applySkill = (previous: Held, skill: string, now: number): Held => 
 
 const TRACKED = new Set(['spec.md', 'plan.md', 'tasks.md'])
 
+const windowOf = (memo: SessionMemo): DriftWindow => memo.window ?? emptyWindow()
+
+/** An Edit's strings may hold only part of a task line; take the full task from the file. */
+const fullTasks = (ticked: readonly Task[], text: string | undefined): Task[] => {
+  const keys = new Set(ticked.map(taskKey))
+  const inFile = parseTasks(text ?? '').filter(t => t.isDone && keys.has(taskKey(t)))
+  return inFile.length > 0 ? inFile : [...ticked]
+}
+
+/** A Bash or Agent call: their file changes are invisible, so drift stays quiet this window. */
+export const applyShell = (previous: Held): Held => ({
+  ...previous,
+  memo: { ...previous.memo, window: withShell(windowOf(previous.memo)) },
+})
+
 /**
- * A file tool call finished. Under specs/NNN-*: remember the feature as touched, and
- * when it wrote spec.md, plan.md or tasks.md (`isWrite`), re-read that feature now.
+ * A file tool call finished. Outside specs/ and .specify/ (inside the root) it is a code
+ * edit for the drift window. Under specs/NNN-*: remember the feature as touched, and when it
+ * wrote spec.md, plan.md or tasks.md (`isWrite`), re-read that feature now. A write of
+ * tasks.md that ticks a task closes the drift window and may report drift (FR-004, FR-005).
  */
 export const applyFileTouch = async (
   fs: Fs,
@@ -67,17 +93,36 @@ export const applyFileTouch = async (
   path: string,
   isWrite: boolean,
   now: number,
-): Promise<Held> => {
+  /** For an Edit: the text it replaced and the text it wrote, which say what it ticked. */
+  change?: { before: string; after: string },
+): Promise<{ held: Held; drift?: string }> => {
   const root = previous.state.root
-  if (root === undefined) return previous
+  if (root === undefined) return { held: previous }
+  const relative = relativeTo(root, path)
+  if (relative === undefined) return { held: previous }
+  const foldCase = isWindowsPath(root)
   const location = specsLocation(root, path)
-  if (location === undefined) return previous
+  if (location === undefined) {
+    if (/^(\.specify|specs)(\/|$)/i.test(relative)) return { held: previous }
+    const edit = foldCase ? relative.toLowerCase() : relative
+    return { held: { ...previous, memo: { ...previous.memo, window: withEdit(windowOf(previous.memo), edit) } } }
+  }
   const dir = location.dir
   const memo: SessionMemo = { ...previous.memo, touched: unique([...previous.memo.touched, dir]) }
   const snapshot = snapshotFromMemo(memo)
-  if (!isWrite || !TRACKED.has(location.file) || snapshot === undefined) return { ...previous, memo }
+  if (!isWrite || !TRACKED.has(location.file) || snapshot === undefined) return { held: { ...previous, memo } }
   const fresh = await readFeature(fs, root, dir)
   const others = snapshot.features.filter(f => f.dir !== dir)
   const features = [...others, fresh].sort((a, b) => a.dir.localeCompare(b.dir))
-  return deriveSpeckitState({ ...snapshot, features }, memo, now)
+  const ticked =
+    location.file !== 'tasks.md'
+      ? []
+      : change !== undefined
+        ? fullTasks(newlyTicked(change.before, change.after), fresh.tasks)
+        : newlyTicked(previous.memo.files[dir]?.tasks, fresh.tasks)
+  const first = ticked[0]
+  const drift = first === undefined ? undefined : detectDrift(first, windowOf(memo), foldCase)
+  const next = drift === undefined ? memo : { ...memo, window: { ...windowOf(memo), alarmed: true } }
+  const held = deriveSpeckitState({ ...snapshot, features }, next, now)
+  return drift === undefined ? { held } : { held, drift }
 }
