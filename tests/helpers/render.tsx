@@ -135,10 +135,14 @@ export const mountPane = async ($: Mounter, surface: RenderSurface, bodyColumns 
 
 /** Answers the command and pane nouns beneath the plugin and records what it asked for. */
 export const installPaneEngine = (on: On) => {
-  const seen = { opened: [] as Array<{ id: string; title?: string }> }
+  const seen = { opened: [] as Array<{ id: string; title?: string }>, closed: [] as Array<{ id: string }> }
   on('ui.open', ($, e) => {
     seen.opened.push(e as { id: string; title?: string })
     return { value: { isPlaced: true } } as never
+  })
+  on('ui.close', ($, e) => {
+    seen.closed.push({ id: (e as { id: string }).id })
+    return { value: undefined } as never
   })
   return seen
 }

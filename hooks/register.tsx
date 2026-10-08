@@ -681,7 +681,8 @@ function paneHeader(
   const Markdown = 'Markdown' in elements ? elements.Markdown : undefined
   const Code = 'Code' in elements ? elements.Code : undefined
   const active = state.active
-  if (pane.tab === 'specs') {
+  // One filter for Specs, Tasks and Help (043 #23).
+  if (pane.tab === 'specs' || pane.tab === 'tasks' || pane.tab === 'help') {
     const out: RenderNode[] = []
     if (Input !== undefined) {
       // Each keystroke filters; Enter keeps the text the same way.
@@ -690,17 +691,17 @@ function paneHeader(
         await $.state.set(PANE_STATE, { ...held, filter: value })
       }
       out.push(
-        <Input key="astrolabe-filter" placeholder={t(currentLang(), 'pane.filter')} value={pane.filter ?? ''} onInput={setFilter} onSubmit={setFilter} />,
+        <Input key="astrolabe-filter" placeholder={t(currentLang(), pane.tab === 'specs' ? 'pane.filter' : 'pane.filterRows')} value={pane.filter ?? ''} onInput={setFilter} onSubmit={setFilter} />,
       )
     }
-    if (Markdown !== undefined && active !== undefined && state.activeSummary !== undefined && state.root !== undefined) {
+    if (pane.tab === 'tasks' && Code !== undefined && stats?.tasksDiff !== undefined && stats.tasksDiff.dir === active?.dir) {
+      out.push(<Code source={stats.tasksDiff.text} format="diff" path={stats.tasksDiff.file} />)
+    }
+    if (pane.tab === 'specs' && Markdown !== undefined && active !== undefined && state.activeSummary !== undefined && state.root !== undefined) {
       const links = (state.activeDocs ?? []).map(file => `[${file}](${fileUrl(`${state.root}/specs/${active.dir}/${file}`)})`).join(' · ')
       out.push(<Markdown key="astrolabe-summary" text={links === '' ? state.activeSummary : `${state.activeSummary}\n\n${links}`} />)
     }
     return out
-  }
-  if (pane.tab === 'tasks' && Code !== undefined && stats?.tasksDiff !== undefined && stats.tasksDiff.dir === active?.dir) {
-    return [<Code source={stats.tasksDiff.text} format="diff" path={stats.tasksDiff.file} />]
   }
   return []
 }
@@ -1525,6 +1526,17 @@ export const register: Register = (on, options) => {
     const now = await $.clock.now()
     const started = await guarded($, previous => reconcileStart(fs, e.cwd, previous, now))
     await afterReconcile($, preset, started)
+    // The tab this project had last (043 #22).
+    try {
+      const root = started?.state.root
+      const saved = root === undefined ? undefined : await $.store.get(`tab:${root}`)
+      if (typeof saved === 'string' && ['specs', 'tasks', 'session', 'dashboard', 'help', 'config', 'prs'].includes(saved)) {
+        const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
+        if (held.tab !== saved) await $.state.set(PANE_STATE, { ...held, tab: saved as PaneTab })
+      }
+    } catch {
+      // No saved tab: Specs.
+    }
     // A large project reads its other features in batches after the band draws (040).
     if (started?.state.features.some(f => f.warnings.includes('loading')) === true) $.clock.after(0, () => void loadDeferred($))
     // The baseline for the next turn's tasks diff, and the theme's lightness for the charts (024).
@@ -1927,13 +1939,18 @@ export const register: Register = (on, options) => {
     const pane = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
     const state = value ?? { present: false, constitution: 'missing' as const, features: [], isAnalyzed: false }
     const columns = e.props.bodyColumns
+    const needle = (pane.filter ?? '').trim().toLowerCase()
+    const keep = <R extends { key: string; text: string }>(list: R[]): R[] =>
+      needle === '' ? list : list.filter(r => r.key === 'count' || r.text.toLowerCase().includes(needle))
     const rows =
       pane.tab === 'help'
-        ? helpText(currentLang())
-            .split('\n')
-            .map((text, i) => ({ key: `help-${i}`, text, role: (i === 0 || !text.startsWith(' ') ? 'accent' : 'text') as 'accent' | 'text' }))
+        ? keep(
+            helpText(currentLang())
+              .split('\n')
+              .map((text, i) => ({ key: `help-${i}`, text, role: (i === 0 || !text.startsWith(' ') ? 'accent' : 'text') as 'accent' | 'text' })),
+          )
         : pane.tab === 'tasks'
-        ? [...taskRows(state, emptyMemo(), 1000, columns, currentLang(), await $.clock.now()), ...(await pastResetRows($, state))]
+        ? [...keep(taskRows(state, emptyMemo(), 1000, columns, currentLang(), await $.clock.now())), ...(await pastResetRows($, state))]
         : pane.tab === 'session'
           ? [
               ...sessionRows(state, await $.clock.now(), currentLang()),
@@ -1975,11 +1992,15 @@ export const register: Register = (on, options) => {
         ...(pullCount === undefined || pullCount === 0 ? {} : { prs: String(pullCount) }),
       },
       // What the tab is for, then its keys (048 #72).
-      legend: `${t(currentLang(), ABOUT[pane.tab])} · ${t(currentLang(), pane.tab === 'specs' ? 'legend.specs' : pane.tab === 'config' ? 'legend.config' : 'legend.default')}`,
+      onClose: () => $.ui.close({ id: PANE_ID }).then(() => undefined),
+      onFind: pane.tab === 'specs' || pane.tab === 'tasks' || pane.tab === 'help' ? () => $.ui.focus({ requestId: PANE_ID, key: 'astrolabe-filter' }).then(() => undefined) : undefined,
+      legend: `${t(currentLang(), ABOUT[pane.tab])} · ${t(currentLang(), pane.tab === 'specs' || pane.tab === 'tasks' || pane.tab === 'help' ? 'legend.specs' : pane.tab === 'config' ? 'legend.config' : 'legend.default')}`,
     }
     const select = async (tab: PaneTab) => {
       const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
       await $.state.set(PANE_STATE, { ...held, tab })
+      // The last tab, per project, for the next session (043 #22).
+      if (state.root !== undefined) await $.store.set(`tab:${state.root}`, tab).catch(() => undefined)
       if (tab === 'prs') $.clock.after(0, () => void refreshPulls($))
     }
     // The footer under every tab (035), held at the bottom when the tab is shorter than the pane.
@@ -2044,11 +2065,12 @@ export const register: Register = (on, options) => {
       const header = paneHeader($, e, pane, state, stats)
       // Rows the header takes: the filter, the summary's lines and links, the diff's lines.
       const headerRows =
-        pane.tab === 'specs'
-          ? ('Input' in $.ui.resolve(e) ? 1 : 0) + (state.activeSummary === undefined ? 0 : state.activeSummary.split('\n').length + 2)
+        ('Input' in $.ui.resolve(e) && pane.tab !== 'session' ? 1 : 0) +
+        (pane.tab === 'specs'
+          ? state.activeSummary === undefined ? 0 : state.activeSummary.split('\n').length + 2
           : pane.tab === 'tasks' && stats?.tasksDiff !== undefined && stats.tasksDiff.dir === state.active?.dir
             ? stats.tasksDiff.text.split('\n').length
-            : 0
+            : 0)
       const room = bodyRows - 1 - headerRows - (footerIn === 'status' ? 1 : 3)
       const { win, pad, nav } = navFor(rows.map(() => 1), room)
       const footer = await footerFor(pad)

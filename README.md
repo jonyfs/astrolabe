@@ -397,12 +397,14 @@ The first session after you install Astrolabe shows one toast: `/astrolabe opens
 Type `/astrolabe` to open a pane with seven tabs (`/astrolabe help` lists every command and key). In a fullscreen terminal it docks at the
 right; otherwise it sits above the prompt. It opens with the keyboard on it, so `1` to `7`
 switch tabs right away, and Esc closes it. Later, focus it again with a click or
-`ctrl+x tab`. The tab you pick stays for the session.
+`ctrl+x tab`. The tab you pick stays for the session, and the next session of the same project opens on it.
+On Specs, Tasks and Help, `f` puts the cursor in one filter that keeps the rows holding what you
+type; `✕` at the end of the tab row closes the pane.
 
 A tab label carries a count when there is one: `Specs 3` features in progress, `Tasks 11` open
 tasks of the active feature, `PRs 2` open pull requests. Above the footer, a dim row says what the
 tab is for and lists its keys, such as
-`every feature, its phase and progress · 1-7 tabs · type to filter · j/k scroll · Esc closes`. A tab with
+`every feature, its phase and progress · 1-7 tabs · f filters · j/k scroll · Esc closes`. A tab with
 nothing to show says what would fill it and the command that does, for example
 `No active feature. Run /speckit-specify to start one.`
 
