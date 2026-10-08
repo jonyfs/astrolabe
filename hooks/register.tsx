@@ -356,12 +356,12 @@ function pullsBody(
     } else {
       await $.state.set(PANE_STATE, { ...held, confirm: key })
       // The second press must come within 10 s; after that the row asks again from scratch (052 #41).
-      $.clock.after(10_000, async () => {
+      $.clock.after(10_000, () => void (async () => {
         const now = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
         if (now.confirm !== key) return
         const { confirm: _late, ...rest } = now
         await $.state.set(PANE_STATE, rest)
-      })
+      })().catch(error => $.ui.log(`astrolabe: ${error instanceof Error ? error.message : String(error)}`, { to: 'debug' })))
     }
   }
   const mark = (c: string) => (c === 'pass' ? '✓' : c === 'fail' ? '✗' : c === 'pending' ? '…' : '·')
@@ -2117,7 +2117,7 @@ export const register: Register = (on, options) => {
       if (item === undefined) return { text: `🧭 nothing queued as ${runMatch[1]}` }
       await updateUsage($, u => ({ ...u, queue: u.queue.filter(q => q.id !== item.id), passes: [...(u.passes ?? []), item.prompt].slice(-QUEUE_MAX) }))
       await logGovernor($, `→ run ${item.id} now`)
-      $.clock.after(0, () => void $.prompt.submit({ text: runPrompt(item) }))
+      $.clock.after(0, () => void $.prompt.submit({ text: runPrompt(item) }).catch(() => undefined))
       return { text: `🧭 running ${item.id} now: ${item.description}` }
     }
     if (args !== '') {
@@ -2334,7 +2334,7 @@ export const register: Register = (on, options) => {
       chartNote: t(currentLang(), stats === undefined || stats.series.length === 0 ? 'dash.noReading' : columns < 30 ? 'dash.narrow' : 'dash.chartNote'),
       ...(activeFeature === undefined || activeFeature.total === 0 ? {} : { progress: t(currentLang(), 'dash.progress', { id: activeFeature.id, name: activeFeature.name, done: activeFeature.done, total: activeFeature.total }) }),
       kpis: stats === undefined ? [] : [...kpiRows(stats, binding, now, currentLang()), ...trendRows(stats.series, currentLang()), ...historyRows(stats, activeFeature)],
-      chips: kpiChips(stats, activeFeature, currentLang()),
+      chips: kpiChips(stats, activeFeature, currentLang(), binding, now),
     }
     const sections = dashboardSections(
       {
