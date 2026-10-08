@@ -1,6 +1,6 @@
 {
   "name": "astrolabe",
-  "version": "0.26.0",
+  "version": "0.27.0",
   "description": "Spec Kit progress and usage governance for Claude Code: a phase rail above the prompt, the next command in the prompt hint, the current task on the spinner, a /astrolabe pane, toasts, update buttons, and a status entry with your usage window.",
   "author": {
     "name": "Jony Santos"
@@ -88,6 +88,12 @@
       "title": "Tell Claude about the Spec Kit work",
       "description": "Add one line on the active feature, its current task and the next command to your prompt when it changed, and the constitution's principles when a Spec Kit skill runs",
       "default": true
+    },
+    "featureSummary": {
+      "type": "boolean",
+      "title": "Summary when a feature finishes",
+      "description": "When a feature's tasks are all done, ask a small model (haiku) for a five-line summary, shown in the Session tab; it uses a little of your usage",
+      "default": false
     },
     "accessible": {
       "type": "boolean",

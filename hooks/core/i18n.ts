@@ -5,6 +5,8 @@ export const LANGS = ['en', 'pt-BR', 'es', 'fr'] as const
 export type Lang = (typeof LANGS)[number]
 
 const EN = {
+  'summary.ready': '🧭 {feature} is done: its summary is in the Session tab of /astrolabe',
+  'session.summary': 'summary',
   'help.keys': 'Band keys (ctrl+x tab first): n runs the next command, c copies it, a opens this pane.',
   'tab.help': 'Help',
   'help.helpTab': 'these commands, keys and options',
@@ -149,6 +151,8 @@ export type TextKey = keyof typeof EN
 type Dictionary = Readonly<Record<TextKey, string>>
 
 const PT_BR: Dictionary = {
+  'summary.ready': '🧭 {feature} terminou: o resumo está na aba Sessão do /astrolabe',
+  'session.summary': 'resumo',
   'help.keys': 'Teclas da faixa (antes ctrl+x tab): n roda o próximo comando, c copia, a abre este painel.',
   'tab.help': 'Ajuda',
   'help.helpTab': 'estes comandos, teclas e opções',
@@ -290,6 +294,8 @@ const PT_BR: Dictionary = {
 }
 
 const ES: Dictionary = {
+  'summary.ready': '🧭 {feature} terminó: el resumen está en la pestaña Sesión de /astrolabe',
+  'session.summary': 'resumen',
   'help.keys': 'Teclas de la banda (antes ctrl+x tab): n ejecuta el siguiente comando, c lo copia, a abre este panel.',
   'tab.help': 'Ayuda',
   'help.helpTab': 'estos comandos, teclas y opciones',
@@ -431,6 +437,8 @@ const ES: Dictionary = {
 }
 
 const FR: Dictionary = {
+  'summary.ready': '🧭 {feature} est terminée : le résumé est dans l’onglet Session de /astrolabe',
+  'session.summary': 'résumé',
   'help.keys': 'Touches de la bande (d’abord ctrl+x tab) : n lance la commande suivante, c la copie, a ouvre ce panneau.',
   'tab.help': 'Aide',
   'help.helpTab': 'ces commandes, touches et options',

@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import { featureJson, project, spec, tasks } from '../fixtures/build'
+import { featureJson, project, RATIFIED, spec, tasks } from '../fixtures/build'
 import { scenario as halfDone } from '../fixtures/half-done'
 import { completeTurn, installEngine, installTree, startSession } from '../helpers/fake-fs'
 
@@ -56,5 +56,40 @@ describe('context for Claude (026)', () => {
     expect(asked[0]).toContain('what is left?')
     expect(asked[0]).toContain('002 band-hint')
     expect(session.toasts.at(-1)).toBe('🧭 T011 comes next; nothing blocks it.')
+  })
+})
+
+describe('a summary when a feature finishes (026 #53)', () => {
+  test('featureSummary on: one haiku call, a toast, the Session tab row', { options: { featureSummary: true } }, async ($, on) => {
+    const tree = project({ constitution: RATIFIED, featureJson: featureJson('specs/001-a'), features: { '001-a': { spec: spec(), plan: true, tasks: tasks(1, 1) } } })
+    const session = installTree(on, tree, '/proj')
+    installEngine(on)
+    const asked: string[] = []
+    on('model.complete', ($, e) => {
+      asked.push((e as { model: string }).model)
+      return { value: { isAnswered: true, text: 'Delivers a. Nothing open.' } } as never
+    })
+    await startSession($, '/proj')
+    tree['/proj/specs/001-a/tasks.md'] = tasks(2, 0)
+    await completeTurn($)
+    await session.clock.advance(1000)
+    expect(asked).toEqual(['haiku'])
+    expect(session.toasts.at(-1)).toBe('🧭 001 a is done: its summary is in the Session tab of /astrolabe')
+    expect((session.store.get('summaries') as Record<string, string>)['001-a']).toBe('Delivers a. Nothing open.')
+  })
+  test('off by default: no model call', async ($, on) => {
+    const tree = project({ constitution: RATIFIED, featureJson: featureJson('specs/001-a'), features: { '001-a': { spec: spec(), plan: true, tasks: tasks(1, 1) } } })
+    const session = installTree(on, tree, '/proj')
+    installEngine(on)
+    let calls = 0
+    on('model.complete', () => {
+      calls += 1
+      return { value: { isAnswered: true, text: 'x' } } as never
+    })
+    await startSession($, '/proj')
+    tree['/proj/specs/001-a/tasks.md'] = tasks(2, 0)
+    await completeTurn($)
+    await session.clock.advance(1000)
+    expect(calls).toBe(0)
   })
 })

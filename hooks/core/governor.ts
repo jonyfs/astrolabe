@@ -130,13 +130,17 @@ export const dropped = (d: Decision): string => `🧭 ${usageText(d)} (${d.band}
 export const runPrompt = (q: QueuedAgent): string =>
   `The person let one queued subagent run now. Dispatch it again with the Agent tool, with this exact prompt:\n${q.description}: ${q.prompt}`
 
-export const resumePrompt = (queue: readonly QueuedAgent[], usage: string): string =>
-  queue.length === 0
-    ? `Usage window renewed (${usage}). Continue the work that was paused.`
-    : [
-        `Usage window renewed (${usage}). Re-dispatch these queued subagents with the Agent tool, one at a time:`,
-        ...queue.map((q, i) => `${i + 1}. ${q.description}: ${q.prompt}`),
-      ].join('\n')
+export const resumePrompt = (queue: readonly QueuedAgent[], usage: string, where?: string): string =>
+  [
+    ...(queue.length === 0
+      ? [`Usage window renewed (${usage}). Continue the work that was paused.`]
+      : [
+          `Usage window renewed (${usage}). Re-dispatch these queued subagents with the Agent tool, one at a time:`,
+          ...queue.map((q, i) => `${i + 1}. ${q.description}: ${q.prompt}`),
+        ]),
+    // Where the work stopped (026 #52), so the resumed turn does not have to look for it.
+    ...(where === undefined ? [] : [`The work stopped at ${where}.`]),
+  ].join('\n')
 
 export const parseAllow = (args: string): { allow: { target: number; ms: number } } | { revoke: true } | undefined => {
   const text = args.trim()
