@@ -37,6 +37,7 @@ In Claude Code's plugin store on your machine (kept across sessions):
 | `days` | Tasks ticked per day, the last 14 days |
 | `reloaded` | The last version it reloaded for |
 | `welcomed` | The version that showed the first-run toast |
+| `tab:<project folder>` | The pane tab you last picked in that project |
 | `summaries` | Finished features' summaries, when `featureSummary` is on |
 
 ## What it sends
