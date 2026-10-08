@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import { astrolabeUpdate, compareVersions, isDue, localDay, parseCliVersion, parseGstackCheck, parseSelfCheck, releaseNotesUrl, skillsUpdate, updateLabel } from '../../hooks/core/updates'
+import { astrolabeUpdate, compareVersions, isDue, localDay, parseCliVersion, parseGstackCheck, parseSelfCheck, releaseNotesUrl, skillsUpdate, skillsVersusCli, updateLabel } from '../../hooks/core/updates'
 
 describe('parsers', () => {
   test('gstack-update-check', () => {
@@ -76,5 +76,14 @@ describe('release notes links (054 #82)', () => {
     expect(releaseNotesUrl({ id: 'specify', latest: '0.4.2' })).toBe('https://github.com/github/spec-kit/releases/tag/v0.4.2')
     expect(releaseNotesUrl({ id: 'speckit-skills', latest: '0.4.2' })).toBe('https://github.com/github/spec-kit/releases/tag/v0.4.2')
     expect(releaseNotesUrl({ id: 'gstack', latest: '1.2.0' })).toBeUndefined()
+  })
+})
+
+describe('the skills against the CLI (054 #98)', () => {
+  test('both versions and which one is behind', () => {
+    expect(skillsVersusCli('{"version":"0.4.0"}', '0.4.2')).toEqual({ skills: '0.4.0', cli: '0.4.2', behind: 'skills' })
+    expect(skillsVersusCli('{"version":"0.5.0"}', '0.4.2')).toEqual({ skills: '0.5.0', cli: '0.4.2', behind: 'cli' })
+    expect(skillsVersusCli('{"version":"0.4.2"}', '0.4.2')?.behind).toBe('none')
+    expect(skillsVersusCli(undefined, '0.4.2')).toBeUndefined()
   })
 })

@@ -1,6 +1,6 @@
 // Astrolabe's own version, for the update check. scripts/check-release-version.sh fails a
 // release when this differs from .claude-plugin/plugin.json.
-export const VERSION = '0.101.0'
+export const VERSION = '0.102.0'
 
 /** What this version changed, one line, for the Help tab (048 #80). */
-export const CHANGES = 'the band names the linked worktree the session runs in'
+export const CHANGES = '/astrolabe doctor compares the Spec Kit skills with the CLI'

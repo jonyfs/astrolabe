@@ -94,6 +94,16 @@ describe('help, part two (025)', () => {
     expect(ran.text).toMatch(/  ✓ slowest hook work: state update, \d+ ms of the 10 s budget/)
   })
 
+  test('054 #98: /astrolabe doctor names skills older than the CLI and how to refresh them', async ($, on) => {
+    const tree = { ...halfDone.tree, '/proj/.specify/integrations/speckit.manifest.json': '{"version":"0.4.0"}' }
+    const session = installTree(on as never, tree, '/proj')
+    installEngine(on as never)
+    session.script.processes['specify version'] = { stdout: '│     CLI Version    0.4.2      │\n' }
+    await startSession($ as never, '/proj')
+    const ran = (await $.command.run({ command: 'astrolabe', args: 'doctor' } as never)) as { text: string }
+    expect(ran.text).toContain('  ✗ Spec Kit skills 0.4.0, CLI 0.4.2: refresh the skills: specify init --here --integration claude --force')
+  })
+
   test('048 #73: the first session after install toasts once where to start', async ($, on) => {
     const session = installTree(on as never, halfDone.tree, '/proj', {})
     installEngine(on as never)
