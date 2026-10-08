@@ -126,7 +126,7 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 - [x] T080 #80 The PRs tab links each check run (P2)
 - [x] T081 #81 The Help tab links the Spec Kit and gstack docs (P3)
 - [x] T082 #82 The update row links the release notes of the new version (P2)
-- [ ] T083 #83 The constitution's principles link to their heading (P3)
+- [x] T083 #83 The constitution's principles link to their heading (P3)
 
 ### Helping Claude work better
 
