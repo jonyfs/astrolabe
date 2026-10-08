@@ -62,8 +62,8 @@ import { applyFileTouch, applyRead, applyShell, applySkill, type Held, reconcile
 import { bandRow, nextRow, updatesRow } from './surfaces/band'
 import { askTree } from './surfaces/ask'
 import { dashboardSections, dashboardTree } from './surfaces/dashboard'
-import { burnRate, dial, kpiChips, kpiRows, phaseBars, sparkline, usageChart } from './core/dashboard'
-import { addWeek, estimateLeft, pastReset, slowest, weekKey, type Weeks } from './core/history'
+import { burnRate, dial, kpiChips, kpiRows, phaseBars, sparkline, trendRows, usageChart } from './core/dashboard'
+import { addDay, addWeek, dayKey, estimateLeft, pastReset, slowest, weekKey, weekdays, type Days, type Weeks } from './core/history'
 import { footerChips, footerText, type FooterInput } from './core/footer'
 import { parseGitStatus, parsePullRequest } from './core/git-status'
 import { iconSet, iconsFor } from './core/icons'
@@ -153,6 +153,7 @@ const HISTORY_POINTS = 10
 const SESSION = { plugin: 'astrolabe', key: 'session' } as const
 const SERIES_POINTS = 60
 const HISTORY = 'history'
+const DAYS = 'days'
 // The disk version the plugins were last reloaded for (034).
 const RELOADED = 'reloaded'
 const GIT_STATUS = ['git', 'status', '--porcelain=v2', '--branch', '--show-stash']
@@ -1118,7 +1119,10 @@ async function noteProgress($: EngineInterface, before: Held | undefined, held: 
       const next = addWeek(weeks, weekKey(now), ticked, finished)
       await $.store.set(HISTORY, next)
       const week = next[weekKey(now)]
-      if (week !== undefined) await flushStats($, s => ({ ...s, week }))
+      const storedDays = await $.store.get(DAYS)
+      const days = addDay(typeof storedDays === 'object' && storedDays !== null && !Array.isArray(storedDays) ? (storedDays as Days) : {}, dayKey(now), ticked)
+      if (ticked > 0) await $.store.set(DAYS, days)
+      await flushStats($, s => ({ ...s, ...(week === undefined ? {} : { week }), weekdays: weekdays(days, now) }))
     }
   } catch (error) {
     $.ui.log(`astrolabe: ${error instanceof Error ? error.message : String(error)}`, { to: 'debug' })
@@ -1143,6 +1147,11 @@ function historyRows(stats: SessionStats, feature: { dir: string; done: number; 
     if (left !== undefined) rows.push([t(lang, 'kpi.estimate'), t(lang, 'kpi.estimateValue', { time: minutes(left), n: open })])
   }
   if (stats.week !== undefined) rows.push([t(lang, 'kpi.week'), t(lang, 'kpi.weekValue', { tasks: stats.week.tasks, features: stats.week.features })])
+  // Tasks per weekday this week (046 #54): one block a day, Monday first, scaled to the busiest.
+  if (stats.weekdays !== undefined && stats.weekdays.some(n => n > 0)) {
+    const top = Math.max(...stats.weekdays)
+    rows.push([t(lang, 'kpi.weekdays'), `${sparkline(stats.weekdays.map(n => (n * 100) / top))}  M T W T F S S`])
+  }
   return rows
 }
 
@@ -1623,7 +1632,18 @@ export const register: Register = (on, options) => {
         ...s,
         ...(percent === undefined ? {} : { context: { percent } }),
         ...(e.cost === undefined ? {} : { cost: e.cost.usd }),
-        ...(binding === undefined || binding.renewed === true ? {} : { series: [...s.series, { at: now, percent: binding.percent }].slice(-SERIES_POINTS) }),
+        ...(binding === undefined || binding.renewed === true ? {} : {
+              series: [
+                ...s.series,
+                {
+                  at: now,
+                  percent: binding.percent,
+                  ...((r => (r === undefined ? {} : { fiveHour: r.percentUsed }))(readings.find(r => r.kind === 'five_hour'))),
+                  ...((r => (r === undefined ? {} : { sevenDay: r.percentUsed }))(readings.find(r => r.kind === 'seven_day'))),
+                  ...(percent === undefined ? {} : { context: Math.round(percent) }),
+                },
+              ].slice(-SERIES_POINTS),
+            }),
       }))
       await warnUsage($, percent, e.cost?.usd)
       const speckit = (await $.state.get(SPECKIT)).value
@@ -2038,7 +2058,7 @@ export const register: Register = (on, options) => {
       ...(chart === undefined ? {} : { chart }),
       chartNote: t(currentLang(), stats === undefined || stats.series.length === 0 ? 'dash.noReading' : columns < 30 ? 'dash.narrow' : 'dash.chartNote'),
       ...(activeFeature === undefined || activeFeature.total === 0 ? {} : { progress: t(currentLang(), 'dash.progress', { id: activeFeature.id, name: activeFeature.name, done: activeFeature.done, total: activeFeature.total }) }),
-      kpis: stats === undefined ? [] : [...kpiRows(stats, binding, now, currentLang()), ...historyRows(stats, activeFeature)],
+      kpis: stats === undefined ? [] : [...kpiRows(stats, binding, now, currentLang()), ...trendRows(stats.series, currentLang()), ...historyRows(stats, activeFeature)],
       chips: kpiChips(stats, activeFeature, currentLang()),
     }
     const sections = dashboardSections(

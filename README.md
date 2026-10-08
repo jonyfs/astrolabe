@@ -473,8 +473,10 @@ folder with several Spec Kit projects under it, `other roots` names them, and
   `│` and `·` mean;
 - the session's counts: turns, tool calls, drift alarms, subagents run and queued, context, cost,
   duration, burn rate in points an hour, and where the window should be at the reset;
+- a sparkline each for the 5-hour window, the weekly window and the context over the last readings;
 - the slowest task of the active feature, an estimate for its open tasks from the time the ticked
-  ones took, and the tasks and features finished this week, across sessions.
+  ones took, and the tasks and features finished this week, across sessions, with a block per weekday for
+  the tasks ticked on it (`▂▅█▁    M T W T F S S`).
 
 A turn that ticked tasks says so next to its duration (`Baked for 1m 1s · 2 tasks done`). The
 Session tab shows the governor's last three steps: what it asked, what you answered, and when it

@@ -226,12 +226,15 @@ export type SessionStats = {
   taskTimes?: Array<{ dir: string; id: string; ms: number }>
   /** This week's tasks and features done, across sessions (021), copied from $.store for drawing. */
   week?: { tasks: number; features: number }
+  /** Tasks ticked on each day of this week, Monday first (046 #54). */
+  weekdays?: number[]
   /** Tasks done in each recent main turn, by the turn's duration (021), at most 20. */
   turnTicks?: Array<{ ms: number; n: number }>
   /** The person's language guessed from their prompts (019): en, pt-BR, es or fr. */
   language?: string
   /** The binding window's percent per reading, at most 60 points. */
-  series: Array<{ at: number; percent: number }>
+  /** The deciding window per reading, with each window and the context beside it (046 #53, #57). */
+  series: Array<{ at: number; percent: number; fiveHour?: number; sevenDay?: number; context?: number }>
   /** Warnings already shown this session (022): the cost budget at 80% and 100%, the context window. */
   warned?: { cost80?: boolean; cost100?: boolean; context?: boolean }
   /** The last `gh pr view` for a branch (023): when it ran and what it found, kept five minutes. */

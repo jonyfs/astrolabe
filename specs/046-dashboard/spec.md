@@ -13,9 +13,9 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 
 - [x] T001 #51 A row of KPI chips: tasks done, burn rate, context, cost (P1)
 - [x] T002 #52 A legend under the usage chart (P1)
-- [ ] T003 #53 5h and 7d as two lines (P2)
-- [ ] T004 #54 A bar per weekday for tasks done (P2)
-- [ ] T005 #57 A context sparkline (P2)
+- [x] T003 #53 5h and 7d as two lines (P2)
+- [x] T004 #54 A bar per weekday for tasks done (P2)
+- [x] T005 #57 A context sparkline (P2)
 - [ ] T006 #55 Time per feature this week (P3)
 - [ ] T007 #56 Cost per feature (P3)
 - [ ] T008 #58 A row per subagent run with its duration (P3)

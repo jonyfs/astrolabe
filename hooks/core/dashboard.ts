@@ -156,6 +156,19 @@ export const kpiChips = (stats: SessionStats | undefined, feature: Feature | und
   return out
 }
 
+/** One sparkline row per window and for the context (046 #53, #57), from the last 24 readings that carry it. */
+export const trendRows = (series: SessionStats['series'], lang: Lang = 'en'): Array<[string, string]> => {
+  const recent = series.slice(-24)
+  const rows: Array<[string, string]> = []
+  const line = (label: string, values: number[]) => {
+    if (values.length >= 2) rows.push([label, `${sparkline(values)} ${Math.round(values.at(-1)!)}%`])
+  }
+  line('5h', recent.flatMap(p => (p.fiveHour === undefined ? [] : [p.fiveHour])))
+  line('7d', recent.flatMap(p => (p.sevenDay === undefined ? [] : [p.sevenDay])))
+  line(tr(lang, 'kpi.context'), recent.flatMap(p => (p.context === undefined ? [] : [p.context])))
+  return rows
+}
+
 const BLOCKS = '▁▂▃▄▅▆▇█'
 
 /** A sparkline of percentages, one block per point (022 #25). */
