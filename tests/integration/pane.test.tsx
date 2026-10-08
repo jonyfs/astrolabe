@@ -156,6 +156,31 @@ describe('extensions and parallel tasks (020c)', () => {
   })
 })
 
+describe('[P] tasks to subagents (054 #89)', () => {
+  test('the Tasks tab offers one prompt that sends the [P] run to subagents', async ($, on) => {
+    const tree = project({
+      constitution: RATIFIED,
+      featureJson: featureJson('specs/002-b'),
+      features: { '002-b': { spec: spec(), plan: true, tasks: '- [x] T001 a\n- [ ] T002 [P] b in src/b.ts\n- [ ] T003 [P] c in src/c.ts\n- [ ] T004 d\n' } },
+    })
+    const session = installTree(on, tree, '/proj')
+    installEngine(on)
+    installRenderEngine(on)
+    installPaneEngine(on)
+    await startSession($ as never, '/proj')
+    const ui = await mountPane($ as never, 'terminal', 120, 40)
+    await ui.press('tab-tasks')
+    await ui.press('parallel-dispatch')
+    await session.clock.settle()
+    const sent = session.submitted.at(-1) ?? ''
+    expect(sent).toContain('Dispatch each one to its own subagent')
+    expect(sent).toContain('- T002 [P] b in src/b.ts')
+    expect(sent).toContain('- T003 [P] c in src/c.ts')
+    expect(sent).not.toContain('T004')
+    await ui.unmount()
+  })
+})
+
 describe('pane navigation (043)', () => {
   test('#21 #25: tabs carry counts; a legend names the keys of the tab shown', async ($, on) => {
     await setup($ as never, on as never)
