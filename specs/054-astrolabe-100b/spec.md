@@ -112,7 +112,7 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 ### Colours
 
 - [x] T071 #71 One colour per phase, used the same in the rail, the Specs tab and the dial (P1)
-- [ ] T072 #72 Warnings in peach, errors in red, success in green, everywhere, from the theme table (P1)
+- [x] T072 #72 Warnings in peach, errors in red, success in green, everywhere, from the theme table (P1)
 - [ ] T073 #73 The Claude Code theme's own keys used where they exist, so `dark-daltonized` and other themes read right (P1)
 - [x] T074 #74 Muted rows meet 4.5:1 in every flavor, checked by a test (P2)
 - [ ] T075 #75 Chip text colour picked by contrast, not by flavor (P2)

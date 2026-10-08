@@ -4,6 +4,9 @@
 
 export const ROLES = ['accent', 'text', 'muted', 'done', 'current', 'pending', 'barFill', 'barEmpty', 'blocked'] as const
 export type ThemeRole = (typeof ROLES)[number]
+
+/** One colour per kind of message, everywhere (054 #72): warnings peach, errors red, success green. */
+export const STATUS_ROLE = { warning: 'current', error: 'blocked', success: 'done' } as const satisfies Record<string, ThemeRole>
 export type Tokens = Readonly<Record<ThemeRole, string>>
 export type FlavorName = 'mocha' | 'frappe' | 'macchiato' | 'latte'
 

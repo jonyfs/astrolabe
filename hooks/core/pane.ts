@@ -5,7 +5,7 @@ import { parallelTasks } from './extensions'
 import { fileUrl } from './paths'
 import { byPriority, priorityMark, type Priorities, type Priority } from './spec-actions'
 import { parseTasks } from './tasks-parser'
-import type { ThemeRole } from './theme'
+import { STATUS_ROLE, type ThemeRole } from './theme'
 import type { Feature, SessionMemo, SpeckitState } from './types'
 
 /** A row; `segments`, when given, colour parts of `text` (which stays their join) (052 #12). */
@@ -103,7 +103,7 @@ const featureWarnings = (f: Feature, lang: Lang): PaneRow[] => {
   // Blocking first: a file that cannot be read, then a missing spec, then open questions and checklists (054 #29).
   for (const file of ['spec', 'tasks'] as const) {
     if (f.warnings.includes(`unreadable-${file}`)) {
-      rows.push({ key: `warning-${f.id}-${file}`, text: tr(lang, 'pane.unreadable', { id: f.id, file: `${file}.md` }), role: 'current' })
+      rows.push({ key: `warning-${f.id}-${file}`, text: tr(lang, 'pane.unreadable', { id: f.id, file: `${file}.md` }), role: STATUS_ROLE.error })
     }
   }
   if (f.warnings.includes('no-spec')) rows.push({ key: `nospec-${f.id}`, text: tr(lang, 'pane.noSpec', { id: f.id, dir: f.dir }), role: 'current' })
