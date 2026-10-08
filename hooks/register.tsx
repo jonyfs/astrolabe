@@ -102,7 +102,7 @@ async function doctor($: EngineInterface): Promise<string> {
 
 // /astrolabe help (025, roadmap #39): the commands, the pane's tabs and their keys, in the
 // person's language (019).
-const helpText = (lang: Lang): string =>
+const buildHelp = (lang: Lang): string =>
   [
     t(lang, 'help.title'),
     // What this version changed (048 #80).
@@ -149,6 +149,13 @@ const ABOUT: Readonly<Record<PaneTab, TextKey>> = {
   help: 'help.helpTab',
   config: 'help.configTab',
   prs: 'help.prsTab',
+}
+// The help text built once per language and option set, not on every render (054 #2).
+let helpCache: { key: string; text: string } | undefined
+const helpText = (lang: Lang): string => {
+  const key = `${lang}|${JSON.stringify(optionsSeen)}`
+  if (helpCache?.key !== key) helpCache = { key, text: buildHelp(lang) }
+  return helpCache.text
 }
 const ASK = { plugin: 'astrolabe', key: 'ask' } as const
 const DEFAULT_PANE: PaneState = { tab: 'specs', autoOpened: false }
@@ -306,7 +313,12 @@ async function refreshPulls($: EngineInterface, force = false): Promise<void> {
   pullsRunning = true
   try {
     const run = await $.process.run(['gh', 'pr', 'list', '--state', 'open', '--limit', '20', '--json', PR_LIST_FIELDS], { cwd: root, timeoutMs: 8000 }).catch(() => undefined)
-    if (run === undefined || run.exitCode !== 0) return
+    // A gh that fails or hangs says so instead of leaving the tab on "Reading…" (054 #14).
+    if (run === undefined || run.exitCode !== 0) {
+      const error = run === undefined ? 'gh did not answer in 8 s' : firstLine(run.stderr || run.stdout) || `gh exited ${run.exitCode}`
+      await flushStats($, s => ({ ...s, pulls: { at, rows: s.pulls?.rows ?? [], error } }))
+      return
+    }
     const rows = parsePullList(run.stdout)
     await flushStats($, s => ({ ...s, pulls: { at, rows } }))
   } catch (error) {
@@ -348,6 +360,7 @@ function pullsBody(
   const lang = currentLang()
   const rows = stats?.pulls?.rows
   if (rows === undefined) return [{ rows: 1, node: <Text color={tokens0.muted}>{t(lang, 'prs.loading')}</Text> }]
+  if (stats?.pulls?.error !== undefined && rows.length === 0) return [{ rows: 1, node: <Text color={tokens0.current}>{t(lang, 'prs.listFailed', { error: stats.pulls.error })}</Text> }]
   if (rows.length === 0) return [{ rows: 1, node: <Text color={tokens0.muted}>{t(lang, 'prs.none')}</Text> }]
   const press = (key: string, run: () => void) => async () => {
     const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE

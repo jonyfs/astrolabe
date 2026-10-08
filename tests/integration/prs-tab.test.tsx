@@ -76,4 +76,18 @@ describe('the PRs tab (032)', () => {
     expect(session.processes.some(p => p.startsWith('gh pr merge 45'))).toBe(false)
     await ui.unmount()
   })
+
+  test('054 #14: a failing gh says so with the fix, instead of reading forever', async ($, on) => {
+    const session = installTree(on, halfDone.tree, '/proj')
+    installEngine(on)
+    installRenderEngine(on)
+    installPaneEngine(on)
+    session.script.processes[GH_LIST] = { exitCode: 1, stderr: 'not logged into any GitHub hosts' }
+    await startSession($ as never, '/proj')
+    const ui = await mount($ as never)
+    await ui.press({ key: 'tab-prs' })
+    await session.clock.advance(1000)
+    expect(JSON.stringify(await ui.drawn())).toContain('gh pr list failed: not logged into any GitHub hosts; run gh auth status')
+    await ui.unmount()
+  })
 })

@@ -552,7 +552,7 @@ changed; `•` marks an option saved with a value other than its default. `Reset
 every two minutes after a turn while it is shown. Each row links to the pull request and shows its
 checks (`✓` passed, `✗` failed, `…` running), its review state, its labels and its branch. The
 buttons GitHub would allow sit beside it: `Approve`, `Update branch` when the branch is behind its
-base, and `Merge` when it is ready. Each asks for a second press before it runs: the button reads `Press again to merge #42`, and after 10 s without it the button asks again from scratch. A merge waits for green checks.
+base, and `Merge` when it is ready. When `gh pr list` fails or does not answer in 8 s, the tab says why and names `gh auth status`. Each asks for a second press before it runs: the button reads `Press again to merge #42`, and after 10 s without it the button asks again from scratch. A merge waits for green checks.
 
 With the `full` preset, the pane also opens by itself once per session, at the end of the
 first turn, but only in a fullscreen terminal at least 144 columns wide. It never opens by
