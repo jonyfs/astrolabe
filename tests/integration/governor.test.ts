@@ -35,7 +35,7 @@ describe('windows in the status entry (US1)', () => {
     const { session } = await setup($ as never, on as never)
     await measure($ as never, reading(42))
     // The footer (018) carries the window's reset time.
-    const at = clockOf(new Date(NOW + 3_600_000).toISOString())
+    const at = '1h00m'
     expect(session.last()).toBe(`◆ 002 · implement 45% · 5h 42% (${at})`)
     await measure($ as never, reading(83))
     expect(session.last()).toBe(`◆ 002 · implement 45% · 5h 83% hold (${at})`)

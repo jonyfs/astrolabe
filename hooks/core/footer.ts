@@ -56,10 +56,21 @@ const prText = (icons: Icons, pr: PullRequest): string => {
   return mark === '' ? number : `${number} ${mark}`
 }
 
+const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+
+/** When a window resets (041 #2): a countdown within a day (`2h13m`), else weekday and clock (`Mon 07:00`). */
+export const resetOf = (iso: string | undefined, now: number): string | undefined => {
+  const at = clockOf(iso)
+  if (at === undefined || iso === undefined) return undefined
+  const left = Date.parse(iso) - now
+  if (left <= 0) return undefined
+  return left < 86_400_000 ? duration(left) : `${WEEKDAYS[new Date(Date.parse(iso)).getDay()]} ${at}`
+}
+
 const windowText = (r: UsageReading, now: number, lang: Lang): string => {
   const renewed = r.resetsAt !== undefined && Date.parse(r.resetsAt) <= now
   if (renewed) return `${labelOf(r.kind)} ${t(lang, 'status.renewed')}`
-  const at = clockOf(r.resetsAt)
+  const at = resetOf(r.resetsAt, now)
   return `${labelOf(r.kind)} ${Math.round(r.percentUsed)}%${at === undefined ? '' : ` (${at})`}`
 }
 
@@ -70,7 +81,7 @@ const parts = (input: FooterInput): Part[] => {
   const binding = decision.highest
   if (binding !== undefined) {
     const segment = usageSegment(decision, input.lang ?? 'en') ?? ''
-    const at = binding.renewed === true ? undefined : clockOf(binding.resetsAt)
+    const at = binding.renewed === true ? undefined : resetOf(binding.resetsAt, now)
     out.push({ text: at === undefined ? segment : `${segment} (${at})`, rank: 0, colour: 'sapphire', ...(binding.renewed === true ? {} : { level: binding.percent }) })
   }
   for (const r of input.readings) {

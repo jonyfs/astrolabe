@@ -11,7 +11,7 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 
 ## Tasks
 
-- [ ] T001 #2 Reset beside each window: a countdown within a day, a weekday beyond it (P1)
+- [x] T001 #2 Reset beside each window: a countdown within a day, a weekday beyond it (P1)
 - [ ] T002 #3 At or past 100% the window reads `full` (P2)
 - [ ] T003 #4 A burn-rate chip with points per hour and the level projected at the reset (P2)
 - [ ] T004 #6 Branch and pull request chips link to the remote (P2)
