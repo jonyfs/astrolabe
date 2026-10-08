@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import { addWeek, estimateLeft, pastReset, slowest, weekKey } from '../../hooks/core/history'
+import { addDay, addWeek, estimateLeft, pastReset, slowest, weekKey, weekdays } from '../../hooks/core/history'
 
 describe('time per task and the estimate (021 #17, #18)', () => {
   const times = [
@@ -45,5 +45,16 @@ describe('pastReset (045 #50)', () => {
     expect(pastReset([], 'd', 11, new Date(NOW + 3_600_000).toISOString(), NOW)).toBeUndefined()
     expect(pastReset(times, 'd', 11, undefined, NOW)).toBeUndefined()
     expect(pastReset(times, 'd', 11, new Date(NOW - 1).toISOString(), NOW)).toBeUndefined()
+  })
+})
+
+describe('days (046 #54)', () => {
+  test('adds per day, keeps 14, and lays this week out Monday first', () => {
+    let d = {}
+    for (let i = 1; i <= 20; i += 1) d = addDay(d, `2026-10-${String(i).padStart(2, '0')}`, 1)
+    expect(Object.keys(d).length).toBe(14)
+    d = addDay(d, '2026-10-07', 2)
+    // 2026-10-07 is a Wednesday; the week runs 10-05 to 10-11, and 10-05 and 10-06 fell out of the 14 days.
+    expect(weekdays(d, Date.UTC(2026, 9, 7, 12))).toEqual([0, 0, 3, 1, 1, 1, 1])
   })
 })

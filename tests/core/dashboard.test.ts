@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'claude-code/testing'
 
 import { toText } from '../../hooks/core/cells'
-import { burnRate, dial, kpiRows, phaseBars, usageChart } from '../../hooks/core/dashboard'
+import { burnRate, dial, kpiRows, phaseBars, trendRows, usageChart } from '../../hooks/core/dashboard'
 import { FLAVORS } from '../../hooks/core/theme'
 
 const T = FLAVORS.mocha
@@ -86,5 +86,21 @@ describe('the state the feature adds stays small (018 SC-005)', () => {
       series: Array.from({ length: 60 }, (_, i) => ({ at: NOW + i * 600_000, percent: 99.123456789 })),
     }
     expect(JSON.stringify(stats).length).toBeLessThan(4096)
+  })
+})
+
+describe('trendRows (046 #53, #57)', () => {
+  test('a sparkline per window and for the context, once two readings carry it', () => {
+    const series = [
+      { at: 1, percent: 40, fiveHour: 20, sevenDay: 40, context: 10 },
+      { at: 2, percent: 50, fiveHour: 50, sevenDay: 50 },
+      { at: 3, percent: 60, fiveHour: 100, sevenDay: 60, context: 30 },
+    ]
+    expect(trendRows(series)).toEqual([
+      ['5h', '▂▅█ 100%'],
+      ['7d', '▄▅▅ 60%'],
+      ['context', '▂▃ 30%'],
+    ])
+    expect(trendRows([{ at: 1, percent: 10 }])).toEqual([])
   })
 })

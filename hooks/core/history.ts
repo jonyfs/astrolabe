@@ -44,3 +44,22 @@ export const addWeek = (weeks: Weeks, key: string, tasks: number, features: numb
   const keys = Object.keys(next).sort()
   return Object.fromEntries(keys.slice(-WEEKS_KEPT).map(k => [k, next[k]!]))
 }
+
+export type Days = Record<string, number>
+const DAYS_KEPT = 14
+
+/** The UTC day of a time, as `2026-10-07`. */
+export const dayKey = (at: number): string => new Date(at).toISOString().slice(0, 10)
+
+/** Adds a day's ticked tasks (046 #54), keeping the last 14 days. */
+export const addDay = (days: Days, key: string, tasks: number): Days => {
+  const next: Days = { ...days, [key]: (days[key] ?? 0) + tasks }
+  return Object.fromEntries(Object.keys(next).sort().slice(-DAYS_KEPT).map(k => [k, next[k]!]))
+}
+
+/** Tasks ticked on each day of this week, Monday first (UTC). */
+export const weekdays = (days: Days, now: number): number[] => {
+  const d = new Date(now)
+  const monday = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() - ((d.getUTCDay() + 6) % 7))
+  return Array.from({ length: 7 }, (_, i) => days[dayKey(monday + i * 86_400_000)] ?? 0)
+}

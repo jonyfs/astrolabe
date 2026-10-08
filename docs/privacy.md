@@ -34,6 +34,7 @@ In Claude Code's plugin store on your machine (kept across sessions):
 |---|---|
 | `updates`, `updates:hidden` | The last update check and the versions you hid |
 | `history` | Tasks and features finished per week |
+| `days` | Tasks ticked per day, the last 14 days |
 | `reloaded` | The last version it reloaded for |
 | `summaries` | Finished features' summaries, when `featureSummary` is on |
 
