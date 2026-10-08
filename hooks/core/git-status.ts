@@ -38,14 +38,17 @@ export const parsePullRequest = (out: string): PullRequest | undefined => {
   if (typeof value !== 'object' || value === null) return undefined
   const { number, statusCheckRollup } = value as { number?: unknown; statusCheckRollup?: unknown }
   if (typeof number !== 'number') return undefined
+  return { number, checks: checksOf(statusCheckRollup) }
+}
+
+/** All passed, one failed, some still running, or none (023, 032), from a statusCheckRollup. */
+export const checksOf = (statusCheckRollup: unknown): PullRequest['checks'] => {
   const checks = Array.isArray(statusCheckRollup) ? statusCheckRollup : []
   // A check run has a conclusion once completed; a commit status has a state.
   const results = checks.map(c => {
     const { conclusion, state } = (typeof c === 'object' && c !== null ? c : {}) as { conclusion?: unknown; state?: unknown }
     const word = typeof conclusion === 'string' && conclusion !== '' ? conclusion : typeof state === 'string' ? state : ''
-    return FAILED.has(word) || word === 'FAILURE' ? 'fail' : PASSED.has(word) ? 'pass' : 'pending'
+    return FAILED.has(word) ? 'fail' : PASSED.has(word) ? 'pass' : 'pending'
   })
-  const state: PullRequest['checks'] =
-    results.length === 0 ? 'none' : results.includes('fail') ? 'fail' : results.includes('pending') ? 'pending' : 'pass'
-  return { number, checks: state }
+  return results.length === 0 ? 'none' : results.includes('fail') ? 'fail' : results.includes('pending') ? 'pending' : 'pass'
 }

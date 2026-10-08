@@ -145,10 +145,10 @@ export type SpeckitState = {
   activeDocs?: Array<'spec.md' | 'plan.md' | 'tasks.md'>
 }
 
-export type PaneTab = 'specs' | 'tasks' | 'session' | 'dashboard' | 'help' | 'config'
+export type PaneTab = 'specs' | 'tasks' | 'session' | 'dashboard' | 'help' | 'config' | 'prs'
 
 /** The /astrolabe pane's session state: the tab shown and whether it opened unasked already. */
-export type PaneState = { tab: PaneTab; autoOpened: boolean; filter?: string; scroll?: { tab: PaneTab; offset: number }; draft?: Record<string, string | number | boolean> }
+export type PaneState = { tab: PaneTab; autoOpened: boolean; filter?: string; scroll?: { tab: PaneTab; offset: number }; draft?: Record<string, string | number | boolean>; confirm?: string }
 
 export type UpdateId = 'gstack' | 'specify' | 'speckit-skills' | 'astrolabe'
 
@@ -230,6 +230,8 @@ export type SessionStats = {
   warned?: { cost80?: boolean; cost100?: boolean; context?: boolean }
   /** The last `gh pr view` for a branch (023): when it ran and what it found, kept five minutes. */
   prCache?: { branch: string; at: number; pr?: PullRequest }
+  /** The repository's open pull requests for the PRs tab (032), and when they were read. */
+  pulls?: { at: number; rows: Array<import('../hooks/core/pulls').PullRow> }
   /** The last finished feature's summary from a small model (026). */
   lastSummary?: { dir: string; text: string }
   /** The features the repository's other worktrees work on (037), read after each main turn. */

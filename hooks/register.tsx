@@ -47,6 +47,7 @@ import {
 import { CHIPS, FLAVORS, flavorOf, isThemeKeys, themeOf } from './core/theme'
 import { tasksDiff } from './core/summary'
 import { styleSections } from './core/style'
+import { parsePullList, pullAction, PR_LIST_FIELDS } from './core/pulls'
 import { featureDirFor, parseWorktrees, worktreeName } from './core/worktrees'
 import { readFeature } from './io/snapshot'
 import { deriveFeature } from './core/phase'
@@ -96,6 +97,7 @@ const helpText = (lang: Lang): string =>
     `  4 ${t(lang, 'tab.dashboard').padEnd(10)} ${t(lang, 'help.dashboardTab')}`,
     `  5 ${t(lang, 'tab.help').padEnd(10)} ${t(lang, 'help.helpTab')}`,
     `  6 ${t(lang, 'tab.config').padEnd(10)} ${t(lang, 'help.configTab')}`,
+    `  7 ${t(lang, 'tab.prs').padEnd(10)} ${t(lang, 'help.prsTab')}`,
     t(lang, 'help.keys'),
     `${t(lang, 'help.options')} (preset, flavor, icons, language, checkUpdates, governUsage, askOnLimit, costBudget, pullRequest, images, autoReload, footerIn, accessible, claudeContext, featureSummary, humanize, terse).`,
   ].join('\n')
@@ -211,6 +213,95 @@ async function readGit($: EngineInterface, root: string | undefined, branch: str
 }
 
 let prRunning = false
+
+const PULLS_TTL_MS = 120_000
+let pullsRunning = false
+
+/** Reads the open pull requests for the PRs tab (032), at most every two minutes unless forced. */
+async function refreshPulls($: EngineInterface, force = false): Promise<void> {
+  if (pullsRunning) return
+  const root = (await $.state.get(SPECKIT)).value?.root ?? (await $.session.cwd())
+  const at = await $.clock.now()
+  const was = (await $.state.get(SESSION)).value?.pulls
+  if (!force && was !== undefined && at - was.at < PULLS_TTL_MS) return
+  pullsRunning = true
+  try {
+    const run = await $.process.run(['gh', 'pr', 'list', '--state', 'open', '--limit', '20', '--json', PR_LIST_FIELDS], { cwd: root, timeoutMs: 8000 }).catch(() => undefined)
+    if (run === undefined || run.exitCode !== 0) return
+    const rows = parsePullList(run.stdout)
+    await flushStats($, s => ({ ...s, pulls: { at, rows } }))
+  } catch (error) {
+    $.ui.log(`astrolabe: ${error instanceof Error ? error.message : String(error)}`, { to: 'debug' })
+  } finally {
+    pullsRunning = false
+  }
+}
+
+/** Runs an action on a pull request (032) after its second press, then reads the list again. */
+async function runPullAction($: EngineInterface, action: 'approve' | 'update' | 'merge', n: number): Promise<void> {
+  try {
+    const root = (await $.state.get(SPECKIT)).value?.root ?? (await $.session.cwd())
+    const run = await $.process.run(pullAction(action, n), { cwd: root, timeoutMs: 30_000 })
+    const lang = currentLang()
+    $.ui.toast(run.exitCode === 0 ? t(lang, `prs.done.${action}`, { n }) : t(lang, 'prs.failed', { n, error: (run.stderr || run.stdout).trim().split('\n')[0] ?? '' }))
+    await refreshPulls($, true)
+  } catch (error) {
+    $.ui.log(`astrolabe: ${error instanceof Error ? error.message : String(error)}`, { to: 'debug' })
+  }
+}
+
+/** The PRs tab's rows (032): a link per pull request, its state, and the buttons GitHub allows. */
+function pullsBody(
+  $: Parameters<Hook<'ui.render'>>[0],
+  e: Parameters<Hook<'ui.render'>>[1],
+  pane: PaneState,
+  stats: SessionStats | undefined,
+): Array<{ node: RenderNode; rows: number }> {
+  const elements = $.ui.resolve(e)
+  const { Box, Text, Button } = elements
+  const Link = 'Link' in elements ? elements.Link : undefined
+  const lang = currentLang()
+  const rows = stats?.pulls?.rows
+  if (rows === undefined) return [{ rows: 1, node: <Text color={tokens0.muted}>{t(lang, 'prs.loading')}</Text> }]
+  if (rows.length === 0) return [{ rows: 1, node: <Text color={tokens0.muted}>{t(lang, 'prs.none')}</Text> }]
+  const press = (key: string, run: () => void) => async () => {
+    const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
+    if (held.confirm === key) {
+      const { confirm: _gone, ...rest } = held
+      await $.state.set(PANE_STATE, rest)
+      $.clock.after(0, run)
+    } else await $.state.set(PANE_STATE, { ...held, confirm: key })
+  }
+  const mark = (c: string) => (c === 'pass' ? '✓' : c === 'fail' ? '✗' : c === 'pending' ? '…' : '·')
+  const colour = (c: string) => (c === 'pass' ? tokens0.done : c === 'fail' ? tokens0.accent : c === 'pending' ? tokens0.current : tokens0.muted)
+  return rows.flatMap(pr => {
+    const title = `${mark(pr.checks)} #${pr.number} ${pr.isDraft ? `[${t(lang, 'prs.draft')}] ` : ''}${pr.title}`
+    const facts = [t(lang, `prs.review.${pr.review}`), ...pr.labels.map(l => `#${l}`), pr.branch].filter(s => s !== '').join('  ')
+    const buttons: RenderNode[] = []
+    const add = (action: 'approve' | 'update' | 'merge') => {
+      const key = `pr-${action}-${pr.number}`
+      buttons.push(<Button key={key} label={pane.confirm === key ? t(lang, 'prs.confirm') : t(lang, `prs.${action}`)} onPress={press(key, () => void runPullAction($, action, pr.number))} />, <Text> </Text>)
+    }
+    if (pr.review !== 'approved' && !pr.isDraft) add('approve')
+    if (pr.merge === 'BEHIND') add('update')
+    if (pr.merge === 'CLEAN' && !pr.isDraft) add('merge')
+    return [
+      {
+        rows: 1,
+        node: Link !== undefined && pr.url !== '' ? <Link href={pr.url} label={title} /> : <Text color={colour(pr.checks)}>{title}</Text>,
+      },
+      {
+        rows: 1,
+        node: (
+          <Box flexDirection="row">
+            <Text color={tokens0.muted}>{`   ${facts}  `}</Text>
+            {buttons}
+          </Box>
+        ),
+      },
+    ]
+  })
+}
 
 // Astrolabe's own /config rows (028), read at session start and after a save.
 let configRows: ConfigRow[] = []
@@ -1394,6 +1485,7 @@ export const register: Register = (on, options) => {
       if (held !== undefined) await showStatus($, held.state)
       if (preset.pane === 'auto' && isWide) await openUnasked($)
       $.clock.after(0, () => void checkDiskVersion($))
+      if (((await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE).tab === 'prs') $.clock.after(0, () => void refreshPulls($))
       if (checksUpdates) $.clock.after(0, () => void checkUpdates($))
       const ended = now
       lastTurnAt = ended
@@ -1733,6 +1825,7 @@ export const register: Register = (on, options) => {
     const select = async (tab: PaneTab) => {
       const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
       await $.state.set(PANE_STATE, { ...held, tab })
+      if (tab === 'prs') $.clock.after(0, () => void refreshPulls($))
     }
     // The footer under every tab (035), held at the bottom when the tab is shorter than the pane.
     const footerFor = async (pad: number) => {
@@ -1770,6 +1863,16 @@ export const register: Register = (on, options) => {
         pad: room - shownRows - arrows,
         nav: { above: win.start, below: heights.length - win.end, up: () => scrollBy(-step), down: () => scrollBy(step), labels: { more: t(currentLang(), 'pane.scrollMore') } },
       }
+    }
+    if (pane.tab === 'prs') {
+      const units = pullsBody($, e, pane, (await $.state.get(SESSION)).value)
+      const { win, pad, nav } = navFor(units.map(u => u.rows), bodyRows - 1 - (footerIn === 'status' ? 0 : 2))
+      const body = (
+        <Box key="astrolabe-prs" flexDirection="column">
+          {units.slice(win.start, win.end).map(u => u.node)}
+        </Box>
+      )
+      return paneTree({ Box, Text, Button }, pane.tab, rows, tokens, select, body, currentLang(), [], await footerFor(pad), nav)
     }
     if (pane.tab === 'config') {
       const units = configBody($, e, pane)
