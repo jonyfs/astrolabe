@@ -130,6 +130,8 @@ export type SpeckitState = {
   present: boolean
   root?: string
   constitution: ConstitutionState
+  /** The ratified constitution's principles with their line (054 #83). */
+  principles?: Array<{ name: string; line: number }>
   active?: Active
   activeWarning?: ActiveWarning
   features: Feature[]

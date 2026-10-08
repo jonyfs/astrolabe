@@ -576,6 +576,8 @@ folder with several Spec Kit projects under it, `other roots` names them, and
 A turn that ticked tasks says so next to its duration (`Baked for 1m 1s · 2 tasks done`). The
 Session tab shows the governor's steps of the day (at most 10): what it asked, what you answered, and when it
 resumed.
+Under its `constitution` row the Session tab lists each principle of a ratified constitution (the
+`###` headings under `## Core Principles`), and each one opens `constitution.md` at its heading.
 
 The dial sweeps its needle from the first step to the active one when the tab opens, then
 holds still. On kitty and Ghostty (outside tmux) the usage chart is a picture, with dashed

@@ -1,7 +1,7 @@
 // Derives the whole Spec Kit state from a snapshot and the session memo. Pure: no $.
 import { resolveActive } from './active'
 import { compactConstitution, compactFiles } from './compact'
-import { classifyConstitution } from './constitution'
+import { classifyConstitution, principleHeadings } from './constitution'
 import { hooksFor } from './extensions'
 import { nextCommand } from './next-command'
 import { deriveFeature } from './phase'
@@ -42,10 +42,12 @@ export const deriveSpeckitState = (
   const isAnalyzed =
     active !== undefined && memo.analyzed.includes(active.dir) && (ranOn === undefined || ranOn === tasksFingerprint(snapshot.features.find(f => f.dir === active.dir)?.tasks))
   const constitution = classifyConstitution(snapshot.constitution)
+  const principles = constitution === 'ratified' && snapshot.constitution !== undefined ? principleHeadings(snapshot.constitution) : []
   const base = {
     present: true,
     root: snapshot.root,
     constitution,
+    ...(principles.length === 0 ? {} : { principles }),
     ...(active === undefined ? {} : { active }),
     ...(warning === undefined ? {} : { activeWarning: warning }),
     features,
