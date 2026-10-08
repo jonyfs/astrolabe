@@ -139,6 +139,7 @@ export const kpiRows = (
   const hours = (now - stats.startedAt) / 3_600_000
   if (ticked > 0 && hours > 0) rows.push([tr(lang, 'kpi.pace'), tr(lang, 'kpi.paceValue', { n: (ticked / hours).toFixed(1) })])
   if (ticked > 0) rows.push([tr(lang, 'kpi.turnsPerTask'), (stats.turns / ticked).toFixed(1)])
+  if (stats.waitedMs !== undefined && stats.waitedMs > 0) rows.push([tr(lang, 'kpi.waited'), duration(stats.waitedMs)])
   if (stats.compactions !== undefined) rows.push([tr(lang, 'kpi.compactions'), tr(lang, 'kpi.compactionsValue', { n: stats.compactions.n, freed: stats.compactions.freed })])
   const rate = burnRate(stats.series)
   if (rate !== undefined) rows.push([tr(lang, 'kpi.burn'), tr(lang, 'kpi.burnValue', { n: Math.round(rate) })])
