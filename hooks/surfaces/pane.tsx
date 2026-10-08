@@ -47,9 +47,12 @@ export const paneTree = (
           key={`tab-${item.tab}`}
           label={
             // Below 80 columns a tab is its number and badge, so the row never wraps (052 #1).
-            extras.columns !== undefined && extras.columns < 80
-              ? `${item.hotkey}${extras.badges?.[item.tab] === undefined ? '' : `·${extras.badges[item.tab]}`}`
-              : extras.badges?.[item.tab] === undefined ? t(lang, item.label) : `${t(lang, item.label)} ${extras.badges[item.tab]}`
+            // The tab shown also gets ▸, beyond the button's colour (052 #2).
+            `${item.tab === tab ? '▸ ' : ''}${
+              extras.columns !== undefined && extras.columns < 80
+                ? `${item.hotkey}${extras.badges?.[item.tab] === undefined ? '' : `·${extras.badges[item.tab]}`}`
+                : extras.badges?.[item.tab] === undefined ? t(lang, item.label) : `${t(lang, item.label)} ${extras.badges[item.tab]}`
+            }`
           }
           hotkey={item.hotkey}
           variant={item.tab === tab ? 'primary' : 'secondary'}

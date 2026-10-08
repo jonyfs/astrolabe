@@ -26,7 +26,7 @@ describe('help, part two (025)', () => {
     for (const key of ['a', 'n', 'c']) expect(band).toContain(`"hotkey":"${key}"`)
     const ui = await mount($ as never, 'AbovePrompt', { hasSurvey: false, isWorking: false, maxRows: 10, bodyColumns: 120, scroll: { bodyRows: 9, top: 0 } })
     await ui.press({ key: 'open-pane' })
-    expect(pane.opened.at(-1)).toEqual({ id: 'astrolabe', title: '🧭 Astrolabe', focus: true, closeOnEscape: true })
+    expect(pane.opened.at(-1)).toEqual({ id: 'astrolabe', title: '🧭 Astrolabe · 002 band-hint', focus: true, closeOnEscape: true })
     await ui.unmount()
   })
 
