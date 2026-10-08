@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import { bandSegments, bandText } from '../../hooks/core/band'
+import { bandSegments, bandText, nextReason } from '../../hooks/core/band'
 import type { Feature, Phase, SpeckitState } from '../../hooks/core/types'
 
 const feature = (phase: Phase, done = 14, total = 31, over: Partial<Feature> = {}): Feature => ({
@@ -116,5 +116,27 @@ describe('blocked (042 #13)', () => {
   })
   test('without the warning the step stays ◐', () => {
     expect(bandSegments(state(feature('tasks', 0, 0)), 200).find(s => s.key === 'mark-tasks')?.text).toBe('◐')
+  })
+})
+
+describe('band, part two (042)', () => {
+  const other = { id: '003', name: 'other', dir: '003-other', phase: 'plan' as const, done: 0, total: 0, warnings: [] }
+  test('#17 #18: a +N badge for other features in progress, and the worktree the active one runs in', () => {
+    const s = state(feature('implement'), { features: [feature('implement'), other] })
+    expect(at(s)).toContain('◆ 002 band-hint +1  ')
+    expect(bandText(bandSegments(s, 200, { worktree: 'astrolabe-dev' }))).toContain('band-hint +1 ⑂ astrolabe-dev')
+  })
+  test('#11: step names only from 100 columns', () => {
+    expect(at(state(feature('implement')), 100)).toContain('constitution ●')
+    expect(at(state(feature('implement')), 99)).not.toContain('constitution')
+  })
+  test('#20: compact and minimal', () => {
+    expect(bandText(bandSegments(state(feature('implement')), 200, { density: 'compact' }))).toBe('◆ 002  ◐ implement 14/31 45%')
+    expect(bandText(bandSegments(state(feature('implement')), 200, { density: 'minimal' }))).toBe('◆ 002  ◐ implement')
+  })
+  test('#14: the reason the next command is next', () => {
+    expect(nextReason(state(feature('implement'), { nextCommand: '/speckit-implement' }))).toBe('17 tasks are still open')
+    expect(nextReason(state(feature('plan', 0, 0), { nextCommand: '/speckit-plan' }))).toBe('the spec is clear: decide how to build it')
+    expect(nextReason(state(feature('plan', 0, 0)))).toBeUndefined()
   })
 })

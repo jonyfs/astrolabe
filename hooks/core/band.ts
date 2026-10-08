@@ -70,12 +70,26 @@ const progress = (feature: Feature, withBar: boolean): Segment[] => {
   return [...bar, gap('count'), { key: 'count', text: `${feature.done}/${feature.total} ${percent}%`, role: 'text' }]
 }
 
-export const bandSegments = (state: SpeckitState, columns: number): Segment[] => {
+export type BandDensity = 'full' | 'compact' | 'minimal'
+export type BandExtras = {
+  /** How much the band shows (042 #20). */
+  density?: BandDensity
+  /** The worktree the active feature runs in, when it is another one (042 #18). */
+  worktree?: string
+}
+
+export const bandSegments = (state: SpeckitState, columns: number, extras: BandExtras = {}): Segment[] => {
   const active = state.active
   if (!state.present || active === undefined) return []
   const feature = state.features.find(f => f.dir === active.dir)
   const id: Segment = { key: 'id', text: `◆ ${state.activeWarning === undefined ? '' : '~'}${active.id}`, role: 'accent' }
-  const name: Segment[] = [gap('name'), { key: 'name', text: active.name, role: 'text' }]
+  // Other features in progress (042 #17) and the worktree the active one runs in (042 #18).
+  const others = state.features.filter(f => f.dir !== active.dir && f.phase !== 'done' && f.phase !== 'abandoned').length
+  const tags: Segment[] = [
+    ...(others === 0 ? [] : [gap('others'), { key: 'others', text: `+${others}`, role: 'muted' as const }]),
+    ...(extras.worktree === undefined ? [] : [gap('worktree'), { key: 'worktree', text: `⑂ ${extras.worktree}`, role: 'muted' as const }]),
+  ]
+  const name: Segment[] = [gap('name'), { key: 'name', text: active.name, role: 'text' }, ...tags]
   let forms: Segment[][]
   if (feature === undefined) {
     forms = [[id]]
@@ -96,6 +110,11 @@ export const bandSegments = (state: SpeckitState, columns: number): Segment[] =>
       [id],
     ]
   }
+  // Step names only from 100 columns; below, the hover cards name the steps (042 #11).
+  if (feature !== undefined && feature.phase !== 'abandoned' && columns < 100) forms = forms.slice(1)
+  // compact starts at the current step and the count; minimal at the id and the step (042 #20).
+  if (feature !== undefined && feature.phase !== 'abandoned' && extras.density === 'compact') forms = forms.slice(-4)
+  if (feature !== undefined && feature.phase !== 'abandoned' && extras.density === 'minimal') forms = forms.slice(-2)
   return forms.find(form => width(form) <= columns) ?? []
 }
 
@@ -113,4 +132,15 @@ export const stepCards = (features: readonly Feature[], lang: Lang = 'en'): Arra
 export const stepOf = (segment: Segment): Step | undefined => {
   const m = /^(?:label|mark|running)-(.+)$/.exec(segment.key)
   return m !== null && (STEPS as readonly string[]).includes(m[1]!) ? (m[1] as Step) : undefined
+}
+
+/** Why the next command is next (042 #14), shown while the pointer is on its button. */
+export const nextReason = (state: SpeckitState, lang: Lang = 'en'): string | undefined => {
+  const command = state.nextCommand
+  if (command === undefined) return undefined
+  const feature = state.features.find(f => f.dir === state.active?.dir)
+  const step = command.replace(/^\/speckit-/, '')
+  if (step === 'implement' && feature !== undefined) return t(lang, 'reason.implement', { n: feature.total - feature.done })
+  if (step === 'specify' && feature !== undefined && feature.phase !== 'specify') return t(lang, 'reason.specifyNext')
+  return (['constitution', 'specify', 'clarify', 'plan', 'tasks', 'analyze'] as const).includes(step as never) ? t(lang, `reason.${step}` as never) : undefined
 }

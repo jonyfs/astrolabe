@@ -1,6 +1,6 @@
 {
   "name": "astrolabe",
-  "version": "0.47.0",
+  "version": "0.48.0",
   "description": "Spec Kit progress and usage governance for Claude Code: a phase rail above the prompt, the next command in the prompt hint, the current task on the spinner, a /astrolabe pane, toasts, update buttons, and a status entry with your usage window.",
   "author": {
     "name": "Jony Santos"
@@ -106,14 +106,21 @@
       "title": "Terse answers",
       "description": "Ask Claude to answer briefly: lite keeps full sentences, full drops filler and articles; files and commits stay normal prose",
       "default": "off",
-      "options": ["off", "lite", "full"]
+      "options": [
+        "off",
+        "lite",
+        "full"
+      ]
     },
     "skillModels": {
       "type": "string",
       "title": "Model per skill",
       "description": "auto sends each Spec Kit and gstack skill's requests with the model and effort it does best with (see the Help tab); switching models re-reads the context, so it costs more on long sessions",
       "default": "off",
-      "options": ["off", "auto"]
+      "options": [
+        "off",
+        "auto"
+      ]
     },
     "accessible": {
       "type": "boolean",
@@ -126,7 +133,11 @@
       "title": "Where the footer goes",
       "description": "pane: the bottom of the /astrolabe pane under every tab, the status entry keeping the Spec Kit part and the deciding window; status: the whole footer in the status entry; both",
       "default": "pane",
-      "options": ["pane", "status", "both"]
+      "options": [
+        "pane",
+        "status",
+        "both"
+      ]
     },
     "autoReload": {
       "type": "boolean",
@@ -139,7 +150,11 @@
       "title": "Pictures in the Dashboard",
       "description": "Draw the usage chart as a picture: auto on kitty and Ghostty outside tmux, on for any terminal that shows pictures (iTerm2, WezTerm), off for cell charts",
       "default": "auto",
-      "options": ["auto", "on", "off"]
+      "options": [
+        "auto",
+        "on",
+        "off"
+      ]
     },
     "pullRequest": {
       "type": "boolean",
@@ -152,6 +167,17 @@
       "title": "Session cost budget (USD)",
       "description": "Warn once when the session's cost passes 80% of this amount and once when it passes it; 0 turns the warning off",
       "default": 0
+    },
+    "bandDensity": {
+      "type": "string",
+      "title": "How much the band shows",
+      "description": "full: the rail with every step name when there is room; compact: the current step and the count; minimal: the feature id and its step",
+      "default": "full",
+      "options": [
+        "full",
+        "compact",
+        "minimal"
+      ]
     }
   }
 }

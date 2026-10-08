@@ -84,13 +84,25 @@ export const nextRow = (
   labels: { next: string; copy: string; pane: string },
   /** Opens the pane (025 #41): `a` once the band has the focus (ctrl+x tab). */
   onOpen?: () => Promise<void>,
+  /** Why this command is next, shown while the pointer is on its button (042 #14). */
+  reason?: string,
 ) => (
+  <Box flexDirection="column">
   <Box key="astrolabe-next" flexDirection="row">
     <Text color={tokens.muted}>{`${labels.next}: `}</Text>
-    <Button key="next-run" label={`▶ ${command}`} hotkey="n" onPress={() => onRun()} />
+    {/* The first focus stop, so Enter runs it once the band has the keyboard (042 #15). */}
+    <Button key="next-run" label={`▶ ${command}`} hotkey="n" autoFocus onPress={() => onRun()} {...(reason === undefined ? {} : { hover: { scope: 'astrolabe-next-reason', bold: true } })} />
     {columns >= 60 && <Text> </Text>}
     {columns >= 60 && <Button key="next-copy" label={labels.copy} hotkey="c" onPress={press => onCopy(press.surface)} />}
     {onOpen !== undefined && columns >= 70 && <Text> </Text>}
     {onOpen !== undefined && columns >= 70 && <Button key="open-pane" label={labels.pane} hotkey="a" onPress={() => onOpen()} />}
+  </Box>
+  {reason !== undefined && (
+    <Box key="astrolabe-next-reason" display="none" hover={{ scope: 'astrolabe-next-reason', display: 'flex' }}>
+      <Text color={tokens.muted} wrap="truncate-end">
+        {reason}
+      </Text>
+    </Box>
+  )}
   </Box>
 )
