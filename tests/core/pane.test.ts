@@ -28,33 +28,47 @@ const texts = (rows: Array<{ text: string }>) => rows.map(r => r.text)
 const width = (s: string) => [...s].length
 
 describe('specsRows', () => {
-  test('one row per feature, the active one marked, then warnings', () => {
+  test('sections by status, aligned columns with counts on every spec, then warnings (044)', () => {
     expect(texts(specsRows(state(), 80))).toEqual([
-      '  ● 001 core-state  done  ██████████ 100%',
-      '▸ ◐ 002 band-hint  implement  ████░░░░░░ 45%',
-      '  ○ 003 dropped  abandoned  ░░░░░░░░░░ 0%',
+      'In progress (1)',
+      '▸ ◐ 002 band-hint   implement  ████░░░░░░   9/20  45%',
+      'Done (1)',
+      '  ● 001 core-state  done       ██████████  49/49 100%',
+      'Abandoned (1)',
+      '  ○ 003 dropped     abandoned  ░░░░░░░░░░    0/3   0%',
       '! 002: [NEEDS CLARIFICATION] left after the plan',
     ])
   })
-  test('roles: done, accent for the active one, muted and dim for abandoned', () => {
-    const rows = specsRows(state(), 80)
+  test('roles: accent for the active one, done, muted and dim for abandoned; sections muted', () => {
+    const rows = specsRows(state(), 80).filter(r => r.key.startsWith('feature-') || r.key.startsWith('warning'))
     expect(rows.map(r => [r.role, r.dim === true])).toEqual([
-      ['done', false],
       ['accent', false],
+      ['done', false],
       ['muted', true],
       ['current', false],
     ])
+  })
+  test('the running skill shows on the active feature (044 #33)', () => {
+    const rows = specsRows(state({ runningSkill: { name: 'speckit-implement', step: 'implement' } }), 100)
+    expect(texts(rows)[1]).toBe('▸ ◐ 002 band-hint   implement  ████░░░░░░   9/20  45%  ⟳ speckit-implement')
+  })
+  test('a stale feature.json is named when the branch is on an active feature (044 #34)', () => {
+    const done = f('001', 'core-state', 'done', 49, 49)
+    const doing = f('002', 'band-hint', 'implement', 9, 20)
+    const rows = specsRows(state({ features: [done, doing], active: { dir: '001-core-state', id: '001', name: 'core-state', source: 'feature.json' }, branchFeature: '002-band-hint' }), 120)
+    expect(texts(rows)).toContain('! .specify/feature.json still names 001 core-state, which is done; the branch is on 002 band-hint: set it to specs/002-band-hint')
   })
   test('a guessed active feature is explained', () => {
     const rows = specsRows(state({ activeWarning: 'feature-json-dangling', active: { dir: '002-band-hint', id: '002', name: 'band-hint', source: 'latest' } }), 120)
     expect(texts(rows)).toContain('~ .specify/feature.json points at a missing folder; showing 002 (latest)')
   })
-  test('narrow panes drop the bar, then cut the name, never the id', () => {
-    expect(texts(specsRows(state(), 32))[1]).toBe('▸ ◐ 002 band-hint  implement 45%')
-    expect(texts(specsRows(state(), 25))[1]).toBe('▸ ◐ 002 b…  implement 45%')
-    expect(texts(specsRows(state(), 23))[1]).toBe('▸ ◐ 002  implement 45%')
+  test('narrow panes drop the bar, then the count, then cut the name, never the id', () => {
+    const row = (columns: number) => texts(specsRows(state(), columns).filter(r => r.key === 'feature-002'))[0]
+    expect(row(46)).toBe('▸ ◐ 002 band-hint   implement   9/20  45%')
+    expect(row(32)).toBe('▸ ◐ 002 band-hint  implement 45%')
+    expect(row(25)).toBe('▸ ◐ 002 b…  implement 45%')
     for (let columns = 12; columns <= 120; columns += 1) {
-      for (const row of specsRows(state(), columns).slice(0, 3)) {
+      for (const row of specsRows(state(), columns).filter(r => r.key.startsWith('feature-'))) {
         expect(width(row.text) <= columns || /^. . \d{3}/.test(row.text)).toBe(true)
         expect(/\d{3}/.test(row.text)).toBe(true)
       }

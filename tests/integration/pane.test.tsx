@@ -32,7 +32,7 @@ describe('the pane tabs (US1, US2)', () => {
       const { session } = await setup($ as never, on as never)
       const ui = await mountPane($ as never, surface)
       expect(await ui.tabs()).toContain('Specs')
-      expect(await ui.body()).toContain('▸ ◐ 002 band-hint  implement  ████░░░░░░ 45%')
+      expect(await ui.body()).toContain('▸ ◐ 002 band-hint   implement  ████░░░░░░  9/20  45%')
       const reads = session.counts.read
       await ui.press('tab-tasks')
       expect(await ui.body()).toContain('9/20 done')

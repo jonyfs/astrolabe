@@ -141,6 +141,8 @@ export type SpeckitState = {
   nextHooks?: { before: string[]; after: string[] }
   /** The active feature's tasks, for the pane (the memo stays out of every drawing). */
   activeTasks?: Array<{ id?: string; text: string; isDone: boolean; line?: number }>
+  /** The feature the git branch names, when one does (044), to catch a stale feature.json. */
+  branchFeature?: string
   /** The active spec's summary as markdown (024). */
   activeSummary?: string
   /** The active feature's files that exist, for the pane's links (024). */

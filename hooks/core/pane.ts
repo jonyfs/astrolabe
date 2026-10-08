@@ -17,23 +17,39 @@ const cut = (text: string, room: number): string =>
 
 const markOf = (f: Feature): string => (f.phase === 'done' ? '●' : f.phase === 'abandoned' ? '○' : '◐')
 
-const featureRow = (f: Feature, isActive: boolean, columns: number): PaneRow => {
+/** What a row shows besides the feature: the name column's width and the skill running on it (044). */
+type RowContext = { nameWidth: number; countWidth: number; running?: string }
+
+const featureRow = (f: Feature, isActive: boolean, columns: number, ctx: RowContext): PaneRow => {
   // Not read yet in a large project (040): a mark and no phase until its batch lands.
   if (f.warnings.includes('loading')) return { key: `feature-${f.id}`, text: `${isActive ? '▸' : ' '} … ${f.id} ${f.name}`, role: 'muted', dim: true }
   const head = `${isActive ? '▸' : ' '} ${markOf(f)} ${f.id} `
-  const percent = f.total > 0 ? ` ${Math.floor((f.done * 100) / f.total)}%` : ''
+  const percent = f.total > 0 ? `${Math.floor((f.done * 100) / f.total)}%`.padStart(4) : ''
+  const count = f.total > 0 ? `${f.done}/${f.total}`.padStart(ctx.countWidth) : ''
   const filled = f.total > 0 ? Math.floor((f.done * BAR_CELLS) / f.total) : 0
-  const bar = f.total > 0 ? `  ${'█'.repeat(filled)}${'░'.repeat(BAR_CELLS - filled)}` : ''
+  const bar = f.total > 0 ? `${'█'.repeat(filled)}${'░'.repeat(BAR_CELLS - filled)}` : ''
   const role: ThemeRole = isActive ? 'accent' : f.phase === 'done' ? 'done' : f.phase === 'abandoned' ? 'muted' : 'text'
   const dim = f.phase === 'abandoned' ? { dim: true } : {}
-  const forms = [`${head}${f.name}  ${f.phase}${bar}${percent}`, `${head}${f.name}  ${f.phase}${percent}`]
+  const running = ctx.running === undefined ? '' : `  ⟳ ${ctx.running}`
+  const name = f.name.padEnd(ctx.nameWidth)
+  const phase = f.phase.padEnd(9)
+  // Columns line up across rows (044); narrower panes drop the bar, then the count, then cut the name.
+  const forms = [
+    `${head}${name}  ${phase}  ${bar.padEnd(BAR_CELLS)}  ${count} ${percent}${running}`,
+    `${head}${name}  ${phase}  ${count} ${percent}${running}`,
+    `${head}${name}  ${phase} ${percent}`,
+  ].map(text => text.trimEnd())
   const fitting = forms.find(text => width(text) <= columns)
   if (fitting !== undefined) return { key: `feature-${f.id}`, text: fitting, role, ...dim }
-  const tail = `  ${f.phase}${percent}`
-  const name = cut(f.name, columns - width(head) - width(tail))
-  const text = name === '' ? `${head.trimEnd()}${tail}` : `${head}${name}${tail}`
+  const tail = `  ${f.phase}${percent === '' ? '' : ` ${percent.trim()}`}`
+  const cutName = cut(f.name, columns - width(head) - width(tail))
+  const text = cutName === '' ? `${head.trimEnd()}${tail}` : `${head}${cutName}${tail}`
   return { key: `feature-${f.id}`, text, role, ...dim }
 }
+
+/** Which section a feature belongs to (044): working on it, next up, done, abandoned. */
+const sectionOf = (f: Feature, activeDir: string | undefined): 'progress' | 'next' | 'done' | 'abandoned' =>
+  f.phase === 'done' ? 'done' : f.phase === 'abandoned' ? 'abandoned' : f.dir === activeDir || f.done > 0 || f.phase === 'implement' ? 'progress' : 'next'
 
 const WARNING_TEXT = {
   'feature-json-dangling': 'pane.jsonDangling',
@@ -43,7 +59,26 @@ const WARNING_TEXT = {
 export const specsRows = (state: SpeckitState, columns: number, lang: Lang = 'en'): PaneRow[] => {
   if (!state.present) return [noSpeckit(lang)]
   if (state.features.length === 0) return [{ key: 'empty', text: tr(lang, 'pane.noFeatures'), role: 'muted' }]
-  const rows = state.features.map(f => featureRow(f, state.active?.dir === f.dir, columns))
+  const activeDir = state.active?.dir
+  const ctx = {
+    nameWidth: Math.min(24, Math.max(...state.features.map(f => width(f.name)))),
+    countWidth: Math.max(0, ...state.features.filter(f => f.total > 0).map(f => width(`${f.done}/${f.total}`))),
+  }
+  const running = state.runningSkill?.name
+  const rows: PaneRow[] = []
+  // Sections by status (044), each only when it has features.
+  for (const section of ['progress', 'next', 'done', 'abandoned'] as const) {
+    const inSection = state.features.filter(f => sectionOf(f, activeDir) === section)
+    if (inSection.length === 0) continue
+    rows.push({ key: `section-${section}`, text: `${tr(lang, `pane.section.${section}`)} (${inSection.length})`, role: 'muted' })
+    for (const f of inSection) rows.push(featureRow(f, activeDir === f.dir, columns, { ...ctx, ...(running !== undefined && f.dir === activeDir ? { running } : {}) }))
+  }
+  // feature.json names a finished feature while the branch names another one (044 #34).
+  const active = state.features.find(f => f.dir === activeDir)
+  const onBranch = state.branchFeature === undefined ? undefined : state.features.find(f => f.dir === state.branchFeature)
+  if (state.active?.source === 'feature.json' && active?.phase === 'done' && onBranch !== undefined && onBranch.dir !== activeDir && onBranch.phase !== 'done') {
+    rows.push({ key: 'warning-stale', text: tr(lang, 'pane.stale', { done: `${active.id} ${active.name}`, branch: `${onBranch.id} ${onBranch.name}`, dir: onBranch.dir }), role: 'current' })
+  }
   if (state.activeWarning !== undefined) {
     const showing = state.active === undefined ? tr(lang, 'pane.noFeature') : `${state.active.id} (${state.active.source})`
     rows.push({ key: 'warning-active', text: tr(lang, 'pane.showing', { why: tr(lang, WARNING_TEXT[state.activeWarning]), showing }), role: 'current' })

@@ -9,6 +9,12 @@ import { specSummary } from './summary'
 import { parseTasks } from './tasks-parser'
 import type { SessionMemo, Snapshot, SpeckitState } from './types'
 
+/** The feature folder a branch names by its number (`026-x`, `feature/026-x`), if any (044). */
+const branchDir = (branch: string | undefined, dirs: readonly string[]): string | undefined => {
+  const id = branch === undefined ? undefined : /(?:^|\/)(\d{3})-/.exec(branch)?.[1]
+  return id === undefined ? undefined : dirs.find(d => d.startsWith(`${id}-`))
+}
+
 export const deriveSpeckitState = (
   snapshot: Snapshot,
   memo: SessionMemo,
@@ -78,6 +84,7 @@ export const deriveSpeckitState = (
     isWorkingOnActive,
     ...(activeTasks === undefined ? {} : { activeTasks }),
     ...(activeSummary === undefined ? {} : { activeSummary }),
+    ...((dir => (dir === undefined ? {} : { branchFeature: dir }))(branchDir(snapshot.branch, snapshot.features.map(f => f.dir)))),
     ...(activeDocs === undefined || activeDocs.length === 0 ? {} : { activeDocs }),
   }
   // The memo keeps compacted files only (spec 009): enough to derive the same state again.
