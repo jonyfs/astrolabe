@@ -46,6 +46,7 @@ import {
 } from './core/governor'
 import { CHIPS, FLAVORS, flavorOf, isThemeKeys, themeOf } from './core/theme'
 import { tasksDiff } from './core/summary'
+import { styleSections } from './core/style'
 import { featureDirFor, parseWorktrees, worktreeName } from './core/worktrees'
 import { readFeature } from './io/snapshot'
 import { deriveFeature } from './core/phase'
@@ -96,7 +97,7 @@ const helpText = (lang: Lang): string =>
     `  5 ${t(lang, 'tab.help').padEnd(10)} ${t(lang, 'help.helpTab')}`,
     `  6 ${t(lang, 'tab.config').padEnd(10)} ${t(lang, 'help.configTab')}`,
     t(lang, 'help.keys'),
-    `${t(lang, 'help.options')} (preset, flavor, icons, language, checkUpdates, governUsage, askOnLimit, costBudget, pullRequest, images, autoReload, footerIn, accessible, claudeContext, featureSummary).`,
+    `${t(lang, 'help.options')} (preset, flavor, icons, language, checkUpdates, governUsage, askOnLimit, costBudget, pullRequest, images, autoReload, footerIn, accessible, claudeContext, featureSummary, humanize, terse).`,
   ].join('\n')
 const ASK = { plugin: 'astrolabe', key: 'ask' } as const
 const DEFAULT_PANE: PaneState = { tab: 'specs', autoOpened: false }
@@ -1294,6 +1295,17 @@ export const register: Register = (on, options) => {
   }).catch(($, e, next) => next(e))
 
   on('turn.step', noteModel)
+
+  // Writing style for everything Claude writes here (029 humanize, 031 terse): fixed sections,
+  // added last, so the cache boundary and the engine's own sections stay as they were.
+  const styles = styleSections(options['humanize'] === true, options['terse'])
+  if (styles.length > 0) {
+    on('prompt.compose', async ($, e, next) => {
+      const result = await next(e)
+      const ids = new Set(styles.map(s => s.id))
+      return { sections: [...result.sections.filter(s => !ids.has(s.id)), ...styles] }
+    }).catch(($, e, next) => next(e))
+  }
 
   on('session.start', async ($, e, next) => {
     isInteractive = e.isInteractive !== false

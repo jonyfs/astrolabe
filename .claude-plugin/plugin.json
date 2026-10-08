@@ -1,6 +1,6 @@
 {
   "name": "astrolabe",
-  "version": "0.30.0",
+  "version": "0.31.0",
   "description": "Spec Kit progress and usage governance for Claude Code: a phase rail above the prompt, the next command in the prompt hint, the current task on the spinner, a /astrolabe pane, toasts, update buttons, and a status entry with your usage window.",
   "author": {
     "name": "Jony Santos"
@@ -94,6 +94,19 @@
       "title": "Summary when a feature finishes",
       "description": "When a feature's tasks are all done, ask a small model (haiku) for a five-line summary, shown in the Session tab; it uses a little of your usage",
       "default": false
+    },
+    "humanize": {
+      "type": "boolean",
+      "title": "Write like a person",
+      "description": "Add short humanizer rules to Claude's system prompt: plain prose, no hype words, no em dashes, facts kept exact",
+      "default": false
+    },
+    "terse": {
+      "type": "string",
+      "title": "Terse answers",
+      "description": "Ask Claude to answer briefly: lite keeps full sentences, full drops filler and articles; files and commits stay normal prose",
+      "default": "off",
+      "options": ["off", "lite", "full"]
     },
     "accessible": {
       "type": "boolean",
