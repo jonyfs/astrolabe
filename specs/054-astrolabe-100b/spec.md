@@ -26,7 +26,7 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 - [ ] T007 #7 The dial frames computed once per phase, not per render (P3)
 - [ ] T008 #8 `flushStats` merges writes within one tool call into one state write (P2)
 - [ ] T009 #9 The usage chart grid reused when the series and size did not change (P3)
-- [ ] T010 #10 A load test for 1,000 tasks in one tasks.md: the Tasks tab under 30 ms (P2)
+- [x] T010 #10 A load test for 1,000 tasks in one tasks.md: the Tasks tab under 30 ms (P2)
 
 ### Reliability
 
