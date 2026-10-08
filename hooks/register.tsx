@@ -316,9 +316,15 @@ async function refreshPulls($: EngineInterface, force = false): Promise<void> {
 /** Runs an action on a pull request (032) after its second press, then reads the list again. */
 async function runPullAction($: EngineInterface, action: 'approve' | 'update' | 'merge', n: number, head?: string): Promise<void> {
   try {
+    const lang = currentLang()
+    // A merge waits for green checks (054 #58): pending or failing checks refuse it here.
+    const checks = (await $.state.get(SESSION)).value?.pulls?.rows.find(r => r.number === n)?.checks
+    if (action === 'merge' && (checks === 'pending' || checks === 'fail')) {
+      $.ui.toast(t(lang, checks === 'pending' ? 'prs.mergePending' : 'prs.mergeFailing', { n }))
+      return
+    }
     const root = (await $.state.get(SPECKIT)).value?.root ?? (await $.session.cwd())
     const run = await $.process.run(pullAction(action, n, head), { cwd: root, timeoutMs: 30_000 })
-    const lang = currentLang()
     $.ui.toast(run.exitCode === 0 ? t(lang, `prs.done.${action}`, { n }) : t(lang, 'prs.failed', { n, error: (run.stderr || run.stdout).trim().split('\n')[0] ?? '', fix: pullAction(action, n).join(' ') }))
     await refreshPulls($, true)
   } catch (error) {
@@ -1089,6 +1095,10 @@ async function guarded($: EngineInterface, work: (previous: Held | undefined) =>
   return undefined
 }
 
+/** A shell command that can make a spec, move feature.json or switch the branch (054 #5). */
+export const canTouchSpecs = (command: string): boolean =>
+  /\b(git|mv|cp|rm|mkdir|touch|specify|tee|sed|python3?|node|bun|sh|bash|zsh)\b|\.specify|specs\/|>/.test(command)
+
 /** A path under a `.specify/` folder: feature.json, the constitution, extensions.yml (053). */
 const isUnderSpecify = (path: string): boolean => /(^|[\\/])\.specify[\\/]/.test(path)
 
@@ -1808,8 +1818,9 @@ export const register: Register = (on, options) => {
   on('tool.call', { tool: 'Bash' }, async ($, e, next) => {
     await guarded($, async previous => (previous === undefined ? undefined : applyShell(previous)))
     const result = await next(e)
-    // The command may have made a spec or switched the branch: the tabs follow now (053).
-    await syncNow($)
+    // The command may have made a spec or switched the branch: the tabs follow now (053),
+    // only for a command that can do so, so a plain `ls` costs no reads (054 #5).
+    if (canTouchSpecs(String((e as { command?: unknown }).command ?? ''))) await syncNow($)
     return result
   }).catch(($, e, next) => next(e))
 

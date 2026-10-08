@@ -57,6 +57,11 @@ describe('the footer (018 FR-001, FR-002)', () => {
     expect(text).toContain('burn 10/h → 100%')
     expect(footerText({ ...full, burn: 0, icons: iconSet('ascii'), columns: 200 })).not.toContain('/h')
   })
+  test('past 85% the context chip says to compact (054 #43)', () => {
+    expect(footerText({ ...full, context: { percent: 86 }, icons: iconSet('ascii'), columns: 200 })).toContain('ctx 86% compact soon')
+    expect(footerText({ ...full, context: { percent: 84 }, icons: iconSet('ascii'), columns: 200 })).not.toContain('compact soon')
+  })
+
   test('nerd icons sit before their values', () => {
     const text = footerText({ ...full, icons: iconSet('nerd'), columns: 200 })
     expect(text).toContain(' main ↑2 ↓1  3')
