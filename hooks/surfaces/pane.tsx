@@ -32,13 +32,15 @@ export const paneTree = (
   footer?: { text: string; pad: number; columns: number; chips?: ReadonlyArray<{ key: string; text: string; bg: string; fg: string }>; arrow?: string },
   /** What is above and below the rows shown, with the presses that scroll (038). */
   nav?: { above: number; below: number; up: () => Promise<void>; down: () => Promise<void>; labels: { more: string } },
+  /** Counts beside the tab labels (043 #21) and the keys of the tab shown (043 #25). */
+  extras: { badges?: Partial<Record<PaneTab, string>>; legend?: string } = {},
 ) => (
   <Box flexDirection="column">
     <Box key="astrolabe-pane-tabs" flexDirection="row">
       {PANE_TABS.map(item => (
         <Button
           key={`tab-${item.tab}`}
-          label={t(lang, item.label)}
+          label={extras.badges?.[item.tab] === undefined ? t(lang, item.label) : `${t(lang, item.label)} ${extras.badges[item.tab]}`}
           hotkey={item.hotkey}
           variant={item.tab === tab ? 'primary' : 'secondary'}
           onPress={() => onSelect(item.tab)}
@@ -55,6 +57,13 @@ export const paneTree = (
       ))}
       {nav !== undefined && nav.below > 0 && <Button key="scroll-down" label={`▼ ${nav.below} ${nav.labels.more} (j)`} hotkey="j" plain onPress={() => nav.down()} />}
     </Box>
+    {extras.legend === undefined ? null : (
+      <Box key="astrolabe-pane-legend">
+        <Text color={tokens.muted} dimColor wrap="truncate-end">
+          {extras.legend}
+        </Text>
+      </Box>
+    )}
     {footer === undefined ? null : (
       <Box flexDirection="column">
         {Array.from({ length: footer.pad }, () => (

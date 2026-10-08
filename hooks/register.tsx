@@ -1857,6 +1857,18 @@ export const register: Register = (on, options) => {
               })),
             ]
     const { Box, Text, Button } = $.ui.resolve(e)
+    // Counts beside the tabs (043 #21) and the keys of the tab shown, one row above the footer (043 #25).
+    const activeOpen = state.features.find(f => f.dir === state.active?.dir)
+    const inProgress = state.features.filter(f => f.phase !== 'done' && f.phase !== 'abandoned').length
+    const pullCount = (await $.state.get(SESSION)).value?.pulls?.rows.length
+    const extras = {
+      badges: {
+        ...(inProgress === 0 ? {} : { specs: String(inProgress) }),
+        ...(activeOpen === undefined || activeOpen.total - activeOpen.done <= 0 ? {} : { tasks: String(activeOpen.total - activeOpen.done) }),
+        ...(pullCount === undefined || pullCount === 0 ? {} : { prs: String(pullCount) }),
+      },
+      legend: t(currentLang(), pane.tab === 'specs' ? 'legend.specs' : pane.tab === 'config' ? 'legend.config' : 'legend.default'),
+    }
     const select = async (tab: PaneTab) => {
       const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
       await $.state.set(PANE_STATE, { ...held, tab })
@@ -1901,23 +1913,23 @@ export const register: Register = (on, options) => {
     }
     if (pane.tab === 'prs') {
       const units = pullsBody($, e, pane, (await $.state.get(SESSION)).value)
-      const { win, pad, nav } = navFor(units.map(u => u.rows), bodyRows - 1 - (footerIn === 'status' ? 0 : 2))
+      const { win, pad, nav } = navFor(units.map(u => u.rows), bodyRows - 1 - (footerIn === 'status' ? 1 : 3))
       const body = (
         <Box key="astrolabe-prs" flexDirection="column">
           {units.slice(win.start, win.end).map(u => u.node)}
         </Box>
       )
-      return paneTree({ Box, Text, Button }, pane.tab, rows, tokens, select, body, currentLang(), [], await footerFor(pad), nav)
+      return paneTree({ Box, Text, Button }, pane.tab, rows, tokens, select, body, currentLang(), [], await footerFor(pad), nav, extras)
     }
     if (pane.tab === 'config') {
       const units = configBody($, e, pane)
-      const { win, pad, nav } = navFor(units.map(u => u.rows), bodyRows - 1 - (footerIn === 'status' ? 0 : 2))
+      const { win, pad, nav } = navFor(units.map(u => u.rows), bodyRows - 1 - (footerIn === 'status' ? 1 : 3))
       const body = (
         <Box key="astrolabe-config" flexDirection="column">
           {units.slice(win.start, win.end).map(u => u.node)}
         </Box>
       )
-      return paneTree({ Box, Text, Button }, pane.tab, rows, tokens, select, body, currentLang(), [], await footerFor(pad), nav)
+      return paneTree({ Box, Text, Button }, pane.tab, rows, tokens, select, body, currentLang(), [], await footerFor(pad), nav, extras)
     }
     if (pane.tab !== 'dashboard') {
       const stats = (await $.state.get(SESSION)).value
@@ -1929,10 +1941,10 @@ export const register: Register = (on, options) => {
           : pane.tab === 'tasks' && stats?.tasksDiff !== undefined && stats.tasksDiff.dir === state.active?.dir
             ? stats.tasksDiff.text.split('\n').length
             : 0
-      const room = bodyRows - 1 - headerRows - (footerIn === 'status' ? 0 : 2)
+      const room = bodyRows - 1 - headerRows - (footerIn === 'status' ? 1 : 3)
       const { win, pad, nav } = navFor(rows.map(() => 1), room)
       const footer = await footerFor(pad)
-      return paneTree({ Box, Text, Button }, pane.tab, rows.slice(win.start, win.end), tokens, select, undefined, currentLang(), header, footer, nav)
+      return paneTree({ Box, Text, Button }, pane.tab, rows.slice(win.start, win.end), tokens, select, undefined, currentLang(), header, footer, nav, extras)
     }
     // The Dashboard (018): numbers from $.state only, charts sized to the pane.
     const elements = $.ui.resolve(e)
@@ -1979,8 +1991,8 @@ export const register: Register = (on, options) => {
       currentLang(),
     )
     // The Dashboard scrolls by section, so a chart is never cut in half (038).
-    const { win, pad, nav } = navFor(sections.map(section => section.rows), bodyRows - 1 - (footerIn === 'status' ? 0 : 2))
+    const { win, pad, nav } = navFor(sections.map(section => section.rows), bodyRows - 1 - (footerIn === 'status' ? 1 : 3))
     const body = dashboardTree({ Box: elements.Box, Text: elements.Text }, sections.slice(win.start, win.end))
-    return paneTree({ Box, Text, Button }, pane.tab, rows, tokens, select, body, currentLang(), [], await footerFor(pad), nav)
+    return paneTree({ Box, Text, Button }, pane.tab, rows, tokens, select, body, currentLang(), [], await footerFor(pad), nav, extras)
   })
 }

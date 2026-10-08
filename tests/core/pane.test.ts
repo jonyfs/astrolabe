@@ -75,7 +75,7 @@ describe('specsRows', () => {
     }
   })
   test('no Spec Kit, or no features yet', () => {
-    expect(texts(specsRows({ present: false, constitution: 'missing', features: [], isAnalyzed: false }, 80))).toEqual(['This project does not use Spec Kit.'])
+    expect(texts(specsRows({ present: false, constitution: 'missing', features: [], isAnalyzed: false }, 80))).toEqual(['This project does not use Spec Kit. Run specify init to start.'])
     expect(texts(specsRows(state({ features: [] }), 80))).toEqual(['No features yet. Run /speckit-specify.'])
   })
 })
@@ -92,7 +92,7 @@ describe('taskRows', () => {
   test('empty cases', () => {
     expect(texts(taskRows(state(), memo('- [x] T001 a\n'), 10, 80))).toEqual(['1/1 done', 'All tasks are ticked.'])
     const { active: _a, ...none } = state()
-    expect(texts(taskRows(none, emptyMemo(), 10, 80))).toEqual(['No active feature.'])
+    expect(texts(taskRows(none, emptyMemo(), 10, 80))).toEqual(['No active feature. Run /speckit-specify to start one.'])
   })
   test('long tasks are cut, ids kept', () => {
     const rows = taskRows(state(), memo(`- [ ] T002 ${'y'.repeat(100)}\n`), 10, 20)
@@ -115,7 +115,7 @@ describe('sessionRows', () => {
   })
   test('without Spec Kit', () => {
     expect(texts(sessionRows({ present: false, constitution: 'missing', features: [], isAnalyzed: false }, 0))).toEqual([
-      'This project does not use Spec Kit.',
+      'This project does not use Spec Kit. Run specify init to start.',
     ])
   })
 })
@@ -123,7 +123,7 @@ describe('sessionRows', () => {
 describe('taskRows without tasks (010)', () => {
   test('a feature without tasks says so instead of 0/0 done', () => {
     const quick = state({ activeTasks: [] })
-    expect(texts(taskRows(quick, emptyMemo(), 10, 80))).toEqual(['No tasks yet: this feature has no tasks.md, or it lists none.'])
+    expect(texts(taskRows(quick, emptyMemo(), 10, 80))).toEqual(['No tasks yet: this feature has no tasks.md, or it lists none. Run /speckit-tasks.'])
   })
 })
 

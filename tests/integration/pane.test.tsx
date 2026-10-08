@@ -59,7 +59,7 @@ describe('the pane tabs (US1, US2)', () => {
   test('without Spec Kit the pane says so', async ($, on) => {
     await setup($ as never, on as never, noSpeckit)
     const ui = await mountPane($ as never, 'terminal')
-    expect((await ui.body()).endsWith('This project does not use Spec Kit.')).toBe(true)
+    expect((await ui.body()).endsWith('This project does not use Spec Kit. Run specify init to start.')).toBe(true)
     await ui.unmount()
   })
 })
@@ -131,5 +131,17 @@ describe('extensions and parallel tasks (020c)', () => {
     expect(await ui.body()).toContain('hooks after   /speckit-git-commit (optional)')
     await ui.unmount()
     expect(session.logs).toEqual([])
+  })
+})
+
+describe('pane navigation (043)', () => {
+  test('#21 #25: tabs carry counts; a legend names the keys of the tab shown', async ($, on) => {
+    await setup($ as never, on as never)
+    const ui = await mountPane($ as never, 'terminal', 100, 30)
+    expect(await ui.tabs()).toContain('Tasks 11')
+    expect(await ui.legend()).toBe('1-7 tabs · type to filter · j/k scroll · Esc closes')
+    await ui.press('tab-tasks')
+    expect(await ui.legend()).toBe('1-7 tabs · j/k scroll · Esc closes')
+    await ui.unmount()
   })
 })
