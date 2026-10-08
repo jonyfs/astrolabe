@@ -2,6 +2,7 @@ import { describe, expect, test } from 'claude-code/testing'
 
 import {
   featureDirOf,
+  fileUrl,
   joinPath,
   normalizePath,
   parentDir,
@@ -102,5 +103,16 @@ describe('UNC paths (\\\\server\\share)', () => {
   test('relativeTo and featureDirOf work under a share', () => {
     expect(relativeTo('//server/share/proj', '\\\\server\\share\\proj\\specs\\002-x\\tasks.md')).toBe('specs/002-x/tasks.md')
     expect(featureDirOf('//server/share/proj', '//server/share/proj/specs/002-x/plan.md')).toBe('002-x')
+  })
+})
+
+describe('fileUrl (044 security review)', () => {
+  test('each segment is encoded, so # ? % ) stay inside the path', () => {
+    expect(fileUrl('/proj/specs/001-a#b?c/spec.md')).toBe('file:///proj/specs/001-a%23b%3Fc/spec.md')
+    expect(fileUrl('/proj/specs/001-x)y(z%/spec.md')).toBe('file:///proj/specs/001-x%29y%28z%25/spec.md')
+    expect(fileUrl('/my proj/spec.md')).toBe('file:///my%20proj/spec.md')
+  })
+  test('a Windows path keeps its drive and turns its slashes', () => {
+    expect(fileUrl('C:\\work\\proj\\spec.md')).toBe('file:///c:/work/proj/spec.md')
   })
 })

@@ -74,3 +74,17 @@ export const specsLocation = (root: string, path: string): { dir: string; file: 
 }
 
 export const featureDirOf = (root: string, path: string): string | undefined => specsLocation(root, path)?.dir
+
+/**
+ * A `file:` URL for a local path, each segment percent-encoded on its own: a folder named
+ * with `#`, `?`, `%` or `)` stays part of the path instead of ending it, in a link or in
+ * Markdown (security review of 044). A Windows drive letter keeps its colon.
+ */
+export const fileUrl = (path: string): string => {
+  const segments = normalizePath(path).split('/')
+  const encoded = segments.map((segment, i) =>
+    i <= 1 && /^[a-z]:$/i.test(segment) ? segment : encodeURIComponent(segment).replace(/[!'()*]/g, c => `%${c.charCodeAt(0).toString(16).toUpperCase()}`),
+  )
+  const joined = encoded.join('/')
+  return `file://${joined.startsWith('/') ? '' : '/'}${joined}`
+}
