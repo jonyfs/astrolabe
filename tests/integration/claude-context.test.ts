@@ -93,3 +93,14 @@ describe('a summary when a feature finishes (026 #53)', () => {
     expect(calls).toBe(0)
   })
 })
+
+describe('a prompt naming another feature (054 #91)', () => {
+  test('Claude is told which feature is active', async ($, on) => {
+    const tree: Record<string, string> = project({ constitution: RATIFIED, featureJson: featureJson('specs/002-b'), features: { '001-a': { spec: spec(), plan: true, tasks: tasks(2, 2) }, '002-b': { spec: spec(), plan: true, tasks: tasks(2, 0) } } })
+    const session = installTree(on, tree, '/proj')
+    installEngine(on)
+    await startSession($ as never, '/proj')
+    await $.prompt.submit({ text: 'fix the bug in 001', origin: { kind: 'composer' } } as never)
+    expect(session.contexts.flat().some(c => c.includes('this prompt names feature 001 a, but the active one is 002 b'))).toBe(true)
+  })
+})

@@ -617,6 +617,15 @@ let claudeContext = true
 let lastTold: string | undefined
 
 /** One line on the active feature for Claude (026 #50); undefined without one. */
+/** The note for a prompt that names a feature other than the active one, by its 3-digit id (054 #91). */
+export const otherFeatureNamed = (text: string, state: SpeckitState): string | undefined => {
+  const active = state.features.find(f => f.dir === state.active?.dir)
+  if (active === undefined) return undefined
+  const ids = [...text.matchAll(/(?:^|[^\d])(\d{3})(?![\d])/g)].map(m => m[1]!)
+  const named = state.features.find(f => f.id !== active.id && ids.includes(f.id))
+  return named === undefined ? undefined : `Astrolabe: this prompt names feature ${named.id} ${named.name}, but the active one is ${active.id} ${active.name}; .specify/feature.json decides which one Spec Kit skills work on.`
+}
+
 const featureContext = (state: SpeckitState): string | undefined => {
   const feature = state.features.find(f => f.dir === state.active?.dir)
   if (!state.present || feature === undefined) return undefined
@@ -1682,9 +1691,12 @@ export const register: Register = (on, options) => {
       if (claudeContext) {
         const state = (await $.state.get(SPECKIT)).value
         const told = state === undefined ? undefined : featureContext(state)
-        if (told !== undefined && told !== lastTold) {
-          lastTold = told
-          return next({ ...e, context: [...(e.context ?? []), told] })
+        // A prompt that names another feature than the active one (054 #91): say so, every time.
+        const other = state === undefined ? undefined : otherFeatureNamed(e.text, state)
+        const extra = other === undefined ? [] : [other]
+        if ((told !== undefined && told !== lastTold) || extra.length > 0) {
+          if (told !== undefined) lastTold = told
+          return next({ ...e, context: [...(e.context ?? []), ...(told === undefined ? [] : [told]), ...extra] })
         }
       }
     }
