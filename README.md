@@ -338,6 +338,7 @@ the active feature named in its arguments.
   ✗ gh not signed in: run gh auth login
   ✓ specify 0.4.2
   ✓ Spec Kit project at /proj
+  ✗ Spec Kit skills 0.4.0, CLI 0.4.2: refresh the skills: specify init --here --integration claude --force
   · icons: nerd (needs a Nerd Font in the terminal; set icons to emoji or ascii if glyphs show as boxes)
   · options: all defaults (change them in /config or the Config tab)
   ✓ slowest hook work: state update, 42 ms of the 10 s budget

@@ -17,6 +17,7 @@ import {
   parseCliVersion,
   parseGstackCheck,
   parseSelfCheck,
+  skillsVersusCli,
   releaseNotesUrl,
   skillsUpdate,
   updateLabel,
@@ -94,6 +95,18 @@ async function doctor($: EngineInterface): Promise<string> {
   if (auth !== undefined) check(auth.exitCode === 0, auth.exitCode === 0 ? 'gh signed in' : 'gh not signed in', 'run gh auth login')
   check(specify.exitCode === 0, specify.exitCode === 0 ? `specify ${firstLine(specify.stdout)}` : 'specify not found', 'install Spec Kit: uv tool install specify-cli --from git+https://github.com/github/spec-kit.git')
   check(state?.present === true, state?.present === true ? `Spec Kit project at ${state.root ?? '?'}` : 'no Spec Kit project here', 'run specify init --here')
+  // The project's skills against the CLI (054 #98), named when they differ.
+  if (state?.root !== undefined && specify.exitCode === 0) {
+    const manifest = await $.fs.read(`${state.root}/.specify/integrations/speckit.manifest.json`).catch(() => undefined)
+    const versions = skillsVersusCli(typeof manifest === 'string' ? manifest : undefined, parseCliVersion(specify.stdout))
+    if (versions !== undefined) {
+      check(
+        versions.behind === 'none',
+        versions.behind === 'none' ? `Spec Kit skills match the CLI (${versions.cli})` : `Spec Kit skills ${versions.skills}, CLI ${versions.cli}`,
+        versions.behind === 'skills' ? `refresh the skills: ${SKILLS_REFRESH.join(' ')}` : 'upgrade the CLI: uv tool upgrade specify-cli',
+      )
+    }
+  }
   const icons = iconsFor(iconsOption, 'terminal')
   lines.push(`  · icons: ${icons}${icons === 'nerd' ? ' (needs a Nerd Font in the terminal; set icons to emoji or ascii if glyphs show as boxes)' : ''}`)
   const set = Object.entries(optionsSeen).filter(([, v]) => v !== undefined)

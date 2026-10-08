@@ -53,6 +53,14 @@ export const skillsUpdate = (manifestJson: string | undefined, cliVersion: strin
   return { id: 'speckit-skills', installed, latest: cliVersion }
 }
 
+/** The project's Spec Kit skills against the CLI (054 #98): both versions, and which is behind; undefined when one is unknown. */
+export const skillsVersusCli = (manifestJson: string | undefined, cliVersion: string | undefined): { skills: string; cli: string; behind: 'skills' | 'cli' | 'none' } | undefined => {
+  const skills = versionField(manifestJson, 'version')
+  if (skills === undefined || cliVersion === undefined) return undefined
+  const order = compareVersions(skills, cliVersion)
+  return { skills, cli: cliVersion, behind: order < 0 ? 'skills' : order > 0 ? 'cli' : 'none' }
+}
+
 export const localDay = (ms: number): string => {
   const d = new Date(ms)
   const pad = (n: number) => String(n).padStart(2, '0')
