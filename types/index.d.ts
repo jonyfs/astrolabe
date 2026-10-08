@@ -275,7 +275,7 @@ export type SessionStats = {
   /** Compactions this session and the context points they freed (054 #38). */
   compactions?: { n: number; freed: number }
   /** How many times the advisor ran this session, and the last time (055). */
-  advisor?: { runs: number; at: number }
+  advisor?: { runs: number; at: number; last?: { id: string; text: string; at: number } }
   /** gstack's skills are installed under the home directory (051). */
   gstack?: boolean
   /** The features the repository's other worktrees work on (037), read after each main turn. */

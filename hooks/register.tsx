@@ -843,7 +843,7 @@ function paneHeader(
       const feature = state.features.find(f => f.dir === active.dir)
       out.push(
         <elements.Box key="astrolabe-gstack" flexDirection="row">
-          {feature !== undefined && <Button key="advisor-review" label={t(currentLang(), 'advisor.button')} plain onPress={() => void $.clock.after(0, () => void $.prompt.submit({ text: advisorPrompt(feature) }).catch(() => undefined))} />}
+          {feature !== undefined && <Button key="advisor-review" label={t(currentLang(), 'advisor.button')} plain onPress={() => askAdvisor($, feature)} />}
           {stats?.gstack === true &&
             GSTACK_SKILLS.map(skill => <Button key={`gstack-${skill}`} label={skill} plain onPress={() => void $.clock.after(0, () => void runSkill($, skill, about))} />)}
         </elements.Box>,
@@ -914,10 +914,40 @@ async function* noteModel($: Parameters<Hook<'turn.step'>>[0], e: Parameters<Hoo
   const advised = ((result as { serverToolUses?: ReadonlyArray<{ name: string }> } | undefined)?.serverToolUses ?? []).filter(use => use.name === 'advisor').length
   if (advised > 0 && e.agentId === undefined) {
     const at = await $.clock.now()
-    await flushStats($, st => ({ ...st, advisor: { runs: (st.advisor?.runs ?? 0) + advised, at } }))
+    await flushStats($, st => ({ ...st, advisor: { ...st.advisor, runs: (st.advisor?.runs ?? 0) + advised, at } }))
+    if (advisorAsked !== undefined) advisorAsked.ran = true
+  }
+  // The answer of the turn Astrolabe asked for goes to the Session tab (055 T004).
+  const response = result as { answer?: string; stopReason?: string | null } | undefined
+  if (e.agentId === undefined && advisorAsked !== undefined && response?.stopReason !== 'tool_use' && response?.stopReason !== 'pause_turn') {
+    const asked = advisorAsked
+    advisorAsked = undefined
+    const text = advisorFindings(response?.answer ?? '')
+    if (asked.ran && text !== '') {
+      const at = await $.clock.now()
+      await flushStats($, st => ({ ...st, advisor: { runs: st.advisor?.runs ?? 0, at: st.advisor?.at ?? at, last: { id: asked.id, text, at } } }))
+    }
   }
   return result
 }
+
+// The advisor review Astrolabe asked for, until the turn that answers it ends (055 T004).
+let advisorAsked: { id: string; ran: boolean } | undefined
+
+/** Sends the advisor prompt and waits for its answer (055). */
+const askAdvisor = ($: EngineInterface, feature: { id: string; name: string; dir: string }): void => {
+  advisorAsked = { id: feature.id, ran: false }
+  $.clock.after(0, () => void $.prompt.submit({ text: advisorPrompt(feature) }).catch(() => undefined))
+}
+
+/** The answer kept for the Session tab: its non-blank lines, at most 12 (055 T004). */
+export const advisorFindings = (answer: string): string =>
+  answer
+    .split(/\r?\n/)
+    .map(line => line.trimEnd())
+    .filter(line => line.trim() !== '')
+    .slice(0, 12)
+    .join('\n')
 
 /** The prompt that asks Claude to have the advisor review a spec (055); the advisor is Claude's own tool. */
 const advisorPrompt = (feature: { id: string; name: string; dir: string }): string =>
@@ -1211,6 +1241,7 @@ async function sessionTabRows($: EngineInterface, state: SpeckitState): Promise<
   const activity = [
     ...(summary === undefined ? [] : summary.text.split('\n').map((line, i) => ({ key: `summary-${i}`, text: `${label(i === 0 ? `${t(lang, 'session.summary')} ${summary.dir}` : '')}${line}`, role: 'muted' as ThemeRole }))),
     ...(advisor === undefined ? [] : [{ key: 'advisor', text: `${label(t(lang, 'session.advisor'))}${t(lang, 'advisor.runs', { n: advisor.runs, at: clockOf(new Date(advisor.at).toISOString()) ?? '' })}`, role: 'text' as ThemeRole }]),
+    ...(advisor?.last === undefined ? [] : advisor.last.text.split('\n').map((line, i) => ({ key: `advisor-${i}`, text: `${label(i === 0 ? `${t(lang, 'session.advisor')} ${advisor.last!.id}` : '')}${line}`, role: 'text' as ThemeRole }))),
     ...(review === undefined ? [] : review.text.split('\n').map((line, i) => ({ key: `review-${i}`, text: `${label(i === 0 ? `${t(lang, 'session.review')} ${review.id}` : '')}${line}`, role: 'text' as ThemeRole }))),
   ]
   const updateRows = updates.map(item => ({ key: `update-${item.id}`, text: `${label('update')}${updateLabel(item, false)} (installed ${item.installed})`, role: 'current' as ThemeRole }))
@@ -2155,7 +2186,7 @@ export const register: Register = (on, options) => {
       const wanted = args.slice(7).trim()
       const feature = wanted === '' ? state?.features.find(f => f.dir === state.active?.dir) : state?.features.find(f => f.id === wanted.padStart(3, '0'))
       if (feature === undefined) return { text: t(currentLang(), 'advisor.usage') }
-      $.clock.after(0, () => void $.prompt.submit({ text: advisorPrompt(feature) }).catch(() => undefined))
+      askAdvisor($, feature)
       return { text: t(currentLang(), 'advisor.started', { feature: `${feature.id} ${feature.name}` }) }
     }
     // Every worktree working on a feature, as text (054 #53).

@@ -1,6 +1,6 @@
 ---
 track: quick # quick | full
-status: active # active | done | abandoned
+status: done # active | done | abandoned
 ---
 
 # Quick spec: The advisor reviews a spec
@@ -18,4 +18,4 @@ Claude to call it, and can see each call in the step's result.
 - [x] T001 `/astrolabe advisor [id]`, typed by the person, sends one prompt asking Claude to read the spec's files and call the advisor, editing nothing (P1)
 - [x] T002 An `advisor review` button on the Specs tab, beside gstack's skills, for the active feature (P1)
 - [x] T003 Each advisor run counted from `turn.step`'s `serverToolUses`, shown in the Session tab with the last time (P1)
-- [ ] T004 The advisor's answer captured into the Session tab like `/astrolabe review`'s findings (P2)
+- [x] T004 The advisor's answer captured into the Session tab like `/astrolabe review`'s findings (P2)

@@ -322,7 +322,8 @@ Claude reads `spec.md`, `plan.md` and `tasks.md`, calls the advisor, reports wha
 proposes changes without editing anything. A mod cannot call the advisor itself, since the API
 runs it inside Claude's own request, so this takes one turn. The `advisor review` button above
 the active feature's summary does the same, and the Session tab counts the advisor's runs this
-session. Only you can start it.
+session. When that turn ends after the advisor ran, the Session tab also keeps Claude's report,
+its first 12 non-blank lines under `advisor 002`. Only you can start it.
 
 When gstack is installed, that row also holds its skills, above the active feature's
 summary: `investigate`, `review`, `health`, `qa-only` and `retro`. A press runs that skill with
