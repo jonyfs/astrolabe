@@ -21,7 +21,21 @@ type Index = { files: Map<string, string>; dirs: Set<string> }
 // Tests mutate trees in place, so the index is cached per tree and rebuilt only when the
 // tree's entries change (the 40-feature fixtures make hundreds of calls).
 const indexCache = new WeakMap<Tree, { signature: string; index: Index }>()
+/** Trees a test promises never to change: indexed once, with no signature per call (027 load test). */
+const frozenTrees = new WeakSet<Tree>()
+export const freezeTree = <T extends Tree>(tree: T): T => {
+  frozenTrees.add(tree)
+  return tree
+}
+
 const indexTree = (tree: Tree): Index => {
+  if (frozenTrees.has(tree)) {
+    const kept = indexCache.get(tree)
+    if (kept !== undefined) return kept.index
+    const index = buildIndex(tree)
+    indexCache.set(tree, { signature: '', index })
+    return index
+  }
   const signature = Object.entries(tree)
     .map(([k, v]) => `${k}\u0000${v}`)
     .join('\u0001')

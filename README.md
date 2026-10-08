@@ -867,6 +867,10 @@ so the images show the nearest match of each Catppuccin color. Lines from other 
 providers (the author's own statusLine) and Claude Code's own usage notice are dropped, and
 `--replace` shortens the author's home path to `~/src/astrolabe`; nothing else is edited.
 
+## Privacy
+
+Astrolabe has no server and no telemetry. [docs/privacy.md](docs/privacy.md) lists every file it reads, what it keeps in Claude Code's store, and the one request it sends (the daily update check).
+
 ## License
 
 MIT. See [LICENSE](LICENSE).
