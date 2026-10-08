@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import { filterFeatures, sessionRows, specsRows, taskRows } from '../../hooks/core/pane'
+import { filterFeatures, gatesText, sessionRows, specsRows, taskRows } from '../../hooks/core/pane'
 import { emptyMemo, type Feature, type SessionMemo, type SpeckitState } from '../../hooks/core/types'
 
 const f = (id: string, name: string, phase: Feature['phase'], done: number, total: number, warnings: Feature['warnings'] = []): Feature => ({
@@ -32,6 +32,7 @@ describe('specsRows', () => {
     expect(texts(specsRows(state(), 80))).toEqual([
       'In progress (1)',
       '▸ ◐ 002 band-hint   implement  ████░░░░░░   9/20  45%',
+      '  gates  constitution ✓  clarify ✗  checklist –  tasks ✓  analyze ✓',
       'Done (1)',
       '  ● 001 core-state  done       ██████████  49/49 100%',
       'Abandoned (1)',
@@ -176,5 +177,13 @@ describe('worktrees on the Specs tab (054 #49, #52)', () => {
     expect(texts(rows).find(t => t.includes('002 band-hint'))).toContain('⑂ wt-a, wt-b')
     expect(texts(rows)).toContain('! 002 is open in two worktrees (wt-a, wt-b): their changes will collide')
     expect(texts(specsRows(state(), 140, 'en', {}, { '002': ['wt-a'] })).some(t => t.includes('collide'))).toBe(false)
+  })
+})
+
+describe('gates (054 #56)', () => {
+  test('each gate: ✓, ✗ with its count, or – not yet', () => {
+    const f0 = { clarifications: 2, checklist: { open: 3, total: 5 }, total: 0, warnings: [] }
+    expect(gatesText({ constitution: 'template', isAnalyzed: false }, f0)).toBe('  gates  constitution ✗  clarify ✗2  checklist ✗3  tasks –  analyze –')
+    expect(gatesText({ constitution: 'ratified', isAnalyzed: true }, { total: 4, warnings: [] })).toBe('  gates  constitution ✓  clarify ✓  checklist –  tasks ✓  analyze ✓')
   })
 })

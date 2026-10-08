@@ -464,7 +464,7 @@ The tabs follow Claude during a turn: a Write of `.specify/feature.json` or the 
 Bash command that makes a spec or switches the branch, and a subagent's return all redraw them at
 once, without waiting for the turn to end.
 
-A feature row names the worktrees working on it (`⑂ wt-a`); one feature open in two worktrees gets a `!` line, since their changes will collide. A folder under `specs/` with no `spec.md` gets a `?` line naming it.
+Under the active feature a dim `gates` row shows where it stands: `constitution ✓  clarify ✗2  checklist ✗3  tasks ✓  analyze –` (`✓` passed, `✗` with what is open, `–` not reached yet). A feature row names the worktrees working on it (`⑂ wt-a`); one feature open in two worktrees gets a `!` line, since their changes will collide. A folder under `specs/` with no `spec.md` gets a `?` line naming it.
 
 When the repository has other git worktrees, the features they work on show under the list, read
 after each turn from the branch name (`026-...`) and that worktree's files:
@@ -506,7 +506,7 @@ folder with several Spec Kit projects under it, `other roots` names them, and
 - a line chart of the deciding usage window over the session, 0 to 100%, with a dotted
   projection to the reset at the current burn rate, and a legend under it that says what `●`,
   `│` and `·` mean;
-- the session's counts: turns, tool calls, drift alarms, subagents run and queued, context,
+- the session's counts: turns, tool calls, drift alarms, subagents run and queued, context, tasks an hour, turns a task (to see when Claude spins),
   duration, burn rate in points an hour, and where the window should be at the reset;
 - a sparkline each for the 5-hour window, the weekly window and the context over the last readings;
 - the slowest task of the active feature, an estimate for its open tasks from the time the ticked

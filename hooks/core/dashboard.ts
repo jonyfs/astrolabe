@@ -134,6 +134,11 @@ export const kpiRows = (
   ]
   if (stats.context !== undefined) rows.push([tr(lang, 'kpi.context'), `${Math.round(stats.context.percent)}%`])
   rows.push([tr(lang, 'kpi.session'), duration(now - stats.startedAt)])
+  // Pace (054 #31, #33): tasks ticked an hour, and turns per ticked task to see when Claude spins.
+  const ticked = (stats.turnTicks ?? []).reduce((sum, t) => sum + t.n, 0)
+  const hours = (now - stats.startedAt) / 3_600_000
+  if (ticked > 0 && hours > 0) rows.push([tr(lang, 'kpi.pace'), tr(lang, 'kpi.paceValue', { n: (ticked / hours).toFixed(1) })])
+  if (ticked > 0) rows.push([tr(lang, 'kpi.turnsPerTask'), (stats.turns / ticked).toFixed(1)])
   const rate = burnRate(stats.series)
   if (rate !== undefined) rows.push([tr(lang, 'kpi.burn'), tr(lang, 'kpi.burnValue', { n: Math.round(rate) })])
   const reset = binding?.resetsAt === undefined ? Number.NaN : Date.parse(binding.resetsAt)

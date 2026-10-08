@@ -66,6 +66,20 @@ const WARNING_TEXT = {
   'feature-json-malformed': 'pane.jsonMalformed',
 } as const
 
+/** The active feature's gates (054 #56): constitution, clarifications, checklist, tasks, analyze. */
+export const gatesText = (state: Pick<SpeckitState, 'constitution' | 'isAnalyzed'>, f: Pick<Feature, 'clarifications' | 'checklist' | 'total' | 'warnings'>, lang: Lang = 'en'): string => {
+  const mark = (ok: boolean | undefined, n?: number) => (ok === undefined ? '–' : ok ? '✓' : n === undefined ? '✗' : `✗${n}`)
+  const open = f.checklist?.open ?? 0
+  return [
+    `${tr(lang, 'gate.title')}`,
+    `${tr(lang, 'gate.constitution')} ${mark(state.constitution === 'ratified')}`,
+    `${tr(lang, 'gate.clarify')} ${mark((f.clarifications ?? 0) === 0 && !f.warnings.includes('clarification-after-plan'), f.clarifications)}`,
+    `${tr(lang, 'gate.checklist')} ${mark(f.checklist === undefined ? undefined : open === 0, open)}`,
+    `${tr(lang, 'gate.tasks')} ${mark(f.total > 0 ? true : undefined)}`,
+    `${tr(lang, 'gate.analyze')} ${mark(state.isAnalyzed ? true : undefined)}`,
+  ].join('  ')
+}
+
 export const specsRows = (
   state: SpeckitState,
   columns: number,
@@ -94,6 +108,10 @@ export const specsRows = (
       // A link to the feature's spec.md (044 #35).
       const root = state.root
       rows.push(root === undefined || f.warnings.includes('loading') ? row : { ...row, href: fileUrl(`${root}/specs/${f.dir}/spec.md`) })
+      // The active feature's gates under its row (054 #56): each ✓, ✗ with a count, or – not yet.
+      if (activeDir === f.dir && f.phase !== 'done' && f.phase !== 'abandoned' && !f.warnings.includes('loading')) {
+        rows.push({ key: 'gates', text: cut(gatesText(state, f, lang), columns), role: 'muted' })
+      }
     }
   }
   // One feature in two worktrees: their work will collide (054 #52).

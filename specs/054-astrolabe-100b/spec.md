@@ -56,9 +56,9 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 
 ### KPIs
 
-- [ ] T031 #31 Tasks per hour this session and this week (P1)
+- [x] T031 #31 Tasks per hour this session and this week (P1)
 - [ ] T032 #32 Time from specify to done for each finished feature (P2)
-- [ ] T033 #33 Turns per ticked task, to see when Claude spins (P1)
+- [x] T033 #33 Turns per ticked task, to see when Claude spins (P1)
 - [ ] T034 #34 Context used per ticked task (P2)
 - [ ] T035 #35 Drift alarms per feature (P3)
 - [ ] T036 #36 How long the session sat waiting on the governor (P2)
@@ -90,7 +90,7 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 
 ### Gates
 
-- [ ] T056 #56 A gate row per feature: constitution, clarifications, checklist, analyze, tests, each ✓ or ✗ (P1)
+- [x] T056 #56 A gate row per feature: constitution, clarifications, checklist, analyze, tests, each ✓ or ✗ (P1)
 - [ ] T057 #57 `/speckit-implement` refused while the feature has open clarifications, with the reason and an override command (P2)
 - [x] T058 #58 A PR merge refused from the PRs tab while its checks are pending or failing (P1)
 - [ ] T059 #59 The analyze gate turns green only after `/speckit-analyze` ran on the current tasks.md (P2)
