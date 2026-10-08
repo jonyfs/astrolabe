@@ -3,7 +3,7 @@ import { describe, expect, test } from 'claude-code/testing'
 import { featureJson, project, RATIFIED, spec, tasks } from '../fixtures/build'
 import { completeTurn, installEngine, installTree, startSession } from '../helpers/fake-fs'
 import { installPaneEngine, installRenderEngine, mountPane } from '../helpers/render'
-import { featureDirFor, parseWorktrees } from '../../hooks/core/worktrees'
+import { featureDirFor, mergedBranches, parseWorktrees, uncommittedCount, worktreeState } from '../../hooks/core/worktrees'
 
 // Spec 037: the Specs tab shows the features the repository's other worktrees work on.
 const WORKTREES = 'git worktree list --porcelain'
@@ -34,6 +34,31 @@ describe('worktree specs (037)', () => {
     expect(session.processes).toContain(WORKTREES)
     const ui = await mountPane($ as never, 'terminal', 100, 40)
     expect(await ui.body()).toContain('⑂ dev  ◐ 026 claude-context  implement 1/3')
+    await ui.unmount()
+  })
+
+  test('054 #50 #51: a worktree shows its uncommitted files, and `merged` with the command that removes it', async ($, on) => {
+    expect(uncommittedCount(' M a.ts\n?? b.ts\n')).toBe(2)
+    expect([...mergedBranches('* main\n+ 026-claude-context\n  old\n')]).toEqual(['main', '026-claude-context', 'old'])
+    expect(worktreeState({ path: '/wt/dev', changed: 3, merged: true })).toBe('  · 3 uncommitted  · merged · git worktree remove /wt/dev')
+    expect(worktreeState({ path: '/wt/dev', changed: 0 })).toBe('')
+    const tree = {
+      ...project({ constitution: RATIFIED, featureJson: featureJson('specs/025-a'), features: { '025-a': { spec: spec('status: done'), plan: true, tasks: tasks(2, 0) } } }),
+      '/proj/.git/HEAD': 'ref: refs/heads/main\n',
+      ...project({ root: '/wt/dev', features: { '026-claude-context': { spec: spec(), plan: true, tasks: tasks(1, 2) } } }),
+    }
+    const session = installTree(on, tree, '/proj')
+    installEngine(on)
+    installRenderEngine(on)
+    installPaneEngine(on)
+    session.script.processes[WORKTREES] = { stdout: LIST }
+    session.script.processes['git branch --merged main'] = { stdout: '* main\n+ 026-claude-context\n' }
+    session.script.processes['git status --porcelain'] = { stdout: ' M a.ts\n' }
+    await startSession($, '/proj')
+    await completeTurn($)
+    await session.clock.advance(1000)
+    const ui = await mountPane($ as never, 'terminal', 140, 40)
+    expect(await ui.body()).toContain('⑂ dev  ◐ 026 claude-context  implement 1/3  · 1 uncommitted  · merged · git worktree remove /wt/dev')
     await ui.unmount()
   })
 })
