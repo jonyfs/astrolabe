@@ -20,7 +20,7 @@ import {
   skillsUpdate,
   updateLabel,
 } from './core/updates'
-import { joinPath } from './core/paths'
+import { fileUrl, joinPath } from './core/paths'
 import { CHANGES, VERSION } from './core/version'
 import {
   ASK_MS,
@@ -663,7 +663,6 @@ const filtered = (state: SpeckitState, filter: string | undefined): SpeckitState
   return words === '' ? state : { ...state, features: state.features.filter(f => `${f.id} ${f.name}`.toLowerCase().includes(words)) }
 }
 
-const fileUrl = (path: string): string => `file://${path.startsWith('/') ? '' : '/'}${encodeURI(path)}`
 
 /**
  * What the Specs and Tasks tabs draw above their rows (024): the filter and the active spec's

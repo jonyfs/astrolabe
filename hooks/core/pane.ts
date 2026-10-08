@@ -2,6 +2,7 @@
 import { t as tr, type Lang } from './i18n'
 import { formatElapsed, cleanTaskText } from './spinner'
 import { parallelTasks } from './extensions'
+import { fileUrl } from './paths'
 import { parseTasks } from './tasks-parser'
 import type { ThemeRole } from './theme'
 import type { Feature, SessionMemo, SpeckitState } from './types'
@@ -80,7 +81,7 @@ export const specsRows = (state: SpeckitState, columns: number, lang: Lang = 'en
       const row = featureRow(f, activeDir === f.dir, columns - 2, { ...ctx, ...(running !== undefined && f.dir === activeDir ? { running } : {}) })
       // A link to the feature's spec.md (044 #35).
       const root = state.root
-      rows.push(root === undefined || f.warnings.includes('loading') ? row : { ...row, href: `file://${root.startsWith('/') ? '' : '/'}${encodeURI(`${root}/specs/${f.dir}/spec.md`)}` })
+      rows.push(root === undefined || f.warnings.includes('loading') ? row : { ...row, href: fileUrl(`${root}/specs/${f.dir}/spec.md`) })
     }
   }
   // feature.json names a finished feature while the branch names another one (044 #34).
