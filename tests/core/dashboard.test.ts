@@ -128,6 +128,16 @@ describe('context a task (054 #34)', () => {
   })
 })
 
+describe('no rows of zeros (054 #70)', () => {
+  test('drift alarms and subagents show only once there is one', () => {
+    const base = { startedAt: 0, turns: 1, toolCalls: 0, drifts: 0, agentsRun: 0, agentsQueued: 0, series: [] }
+    const labels = kpiRows(base, undefined, 1).map(([label]) => label)
+    expect(labels).not.toContain('drift alarms')
+    expect(labels).not.toContain('subagents')
+    expect(labels).toContain('turns')
+  })
+})
+
 describe('drift alarms per feature (054 #35)', () => {
   test('the total, then each feature, most first', () => {
     const base = { startedAt: 0, turns: 1, toolCalls: 0, drifts: 3, agentsRun: 0, agentsQueued: 0, series: [] }
