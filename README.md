@@ -147,6 +147,13 @@ window that decides (`◆ 002 · implement 45% · 5h 42% (14:00)`). Set `footerI
 the whole footer back in the status entry, or `both` for both places. On a tab shorter than the
 pane the footer holds the last rows; the Dashboard is longer, so its footer follows the charts.
 
+In the pane the footer is drawn the way the [statusline](https://github.com/jonyfs/statusline)
+project draws its bar: Powerline chips in Catppuccin colours. Spec Kit is mauve, the model red, git
+lavender, the cost teal, and the usage windows and the context follow statusline's ramp: green below
+60%, yellow to 85% (`5h 72%▵`), red above (`5h 94%▴`). The context takes the colour without the
+mark. The `flavor` option picks the palette; with `ascii` icons or the accessible mode the footer
+is plain text.
+
 When the room is too narrow, the parts go from the end: duration first, then cost, git, model,
 the other window and the context. The Spec Kit part and the window that decides always stay.
 

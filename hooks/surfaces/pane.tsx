@@ -27,7 +27,7 @@ export const paneTree = (
   /** Drawn above the rows: the filter, the summary, the diff (024). */
   header: readonly RenderNode[] = [],
   /** The footer under every tab (035), after `pad` blank rows that hold it at the bottom. */
-  footer?: { text: string; pad: number; columns: number },
+  footer?: { text: string; pad: number; columns: number; chips?: ReadonlyArray<{ key: string; text: string; bg: string; fg: string }>; arrow?: string },
   /** What is above and below the rows shown, with the presses that scroll (038). */
   nav?: { above: number; below: number; up: () => Promise<void>; down: () => Promise<void>; labels: { more: string } },
 ) => (
@@ -60,9 +60,27 @@ export const paneTree = (
         ))}
         <Box key="astrolabe-pane-footer" flexDirection="column">
           <Text color={tokens.pending}>{'─'.repeat(Math.max(1, footer.columns))}</Text>
-          <Text color={tokens.muted} wrap="truncate-end">
-            {footer.text}
-          </Text>
+          {footer.chips === undefined || footer.chips.length === 0 ? (
+            <Text color={tokens.muted} wrap="truncate-end">
+              {footer.text}
+            </Text>
+          ) : (
+            // statusline's Powerline row (039): solid chips, an arrow cut from the two backgrounds.
+            <Box flexDirection="row">
+              {footer.chips.flatMap((chip, i) => {
+                const next = footer.chips?.[i + 1]
+                const arrow = footer.arrow ?? ''
+                return [
+                  <Text key={`chip-${chip.key}`} color={chip.fg} backgroundColor={chip.bg} bold>
+                    {` ${chip.text} `}
+                  </Text>,
+                  ...(arrow === ''
+                    ? next === undefined ? [] : [<Text> </Text>]
+                    : [next === undefined ? <Text color={chip.bg}>{arrow}</Text> : <Text color={chip.bg} backgroundColor={next.bg}>{arrow}</Text>]),
+                ]
+              })}
+            </Box>
+          )}
         </Box>
       </Box>
     )}
