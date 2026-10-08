@@ -13,9 +13,11 @@ export type PullRow = {
   /** GitHub's mergeStateStatus: CLEAN merges, BEHIND needs an update, the rest wait. */
   merge: string
   isDraft: boolean
+  /** The head commit when listed; a merge passes it, so a push in between makes the merge fail. */
+  head?: string
 }
 
-export const PR_LIST_FIELDS = 'number,title,headRefName,url,labels,reviewDecision,statusCheckRollup,mergeStateStatus,isDraft'
+export const PR_LIST_FIELDS = 'number,title,headRefName,headRefOid,url,labels,reviewDecision,statusCheckRollup,mergeStateStatus,isDraft'
 
 /** Parses `gh pr list --json <PR_LIST_FIELDS>`; an empty list for anything else. */
 export const parsePullList = (out: string): PullRow[] => {
@@ -42,11 +44,17 @@ export const parsePullList = (out: string): PullRow[] => {
         checks: checksOf(p['statusCheckRollup']),
         merge: typeof p['mergeStateStatus'] === 'string' ? p['mergeStateStatus'] : 'UNKNOWN',
         isDraft: p['isDraft'] === true,
+        ...(typeof p['headRefOid'] === 'string' && /^[0-9a-f]{7,40}$/.test(p['headRefOid']) ? { head: p['headRefOid'] } : {}),
       } satisfies PullRow,
     ]
   })
 }
 
 /** The argv for an action on a pull request. */
-export const pullAction = (action: 'approve' | 'update' | 'merge', n: number): string[] =>
-  action === 'approve' ? ['gh', 'pr', 'review', String(n), '--approve'] : action === 'update' ? ['gh', 'pr', 'update-branch', String(n)] : ['gh', 'pr', 'merge', String(n), '--merge']
+export const pullAction = (action: 'approve' | 'update' | 'merge', n: number, head?: string): string[] =>
+  action === 'approve'
+    ? ['gh', 'pr', 'review', String(n), '--approve']
+    : action === 'update'
+      ? ['gh', 'pr', 'update-branch', String(n)]
+      : // The merge lands the head the person saw, or fails if someone pushed since.
+        ['gh', 'pr', 'merge', String(n), '--merge', ...(head === undefined ? [] : ['--match-head-commit', head])]

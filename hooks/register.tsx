@@ -238,10 +238,10 @@ async function refreshPulls($: EngineInterface, force = false): Promise<void> {
 }
 
 /** Runs an action on a pull request (032) after its second press, then reads the list again. */
-async function runPullAction($: EngineInterface, action: 'approve' | 'update' | 'merge', n: number): Promise<void> {
+async function runPullAction($: EngineInterface, action: 'approve' | 'update' | 'merge', n: number, head?: string): Promise<void> {
   try {
     const root = (await $.state.get(SPECKIT)).value?.root ?? (await $.session.cwd())
-    const run = await $.process.run(pullAction(action, n), { cwd: root, timeoutMs: 30_000 })
+    const run = await $.process.run(pullAction(action, n, head), { cwd: root, timeoutMs: 30_000 })
     const lang = currentLang()
     $.ui.toast(run.exitCode === 0 ? t(lang, `prs.done.${action}`, { n }) : t(lang, 'prs.failed', { n, error: (run.stderr || run.stdout).trim().split('\n')[0] ?? '' }))
     await refreshPulls($, true)
@@ -280,7 +280,7 @@ function pullsBody(
     const buttons: RenderNode[] = []
     const add = (action: 'approve' | 'update' | 'merge') => {
       const key = `pr-${action}-${pr.number}`
-      buttons.push(<Button key={key} label={pane.confirm === key ? t(lang, 'prs.confirm') : t(lang, `prs.${action}`)} onPress={press(key, () => void runPullAction($, action, pr.number))} />, <Text> </Text>)
+      buttons.push(<Button key={key} label={pane.confirm === key ? t(lang, 'prs.confirm') : t(lang, `prs.${action}`)} onPress={press(key, () => void runPullAction($, action, pr.number, pr.head))} />, <Text> </Text>)
     }
     if (pr.review !== 'approved' && !pr.isDraft) add('approve')
     if (pr.merge === 'BEHIND') add('update')

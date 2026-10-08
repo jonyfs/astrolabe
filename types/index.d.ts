@@ -231,7 +231,22 @@ export type SessionStats = {
   /** The last `gh pr view` for a branch (023): when it ran and what it found, kept five minutes. */
   prCache?: { branch: string; at: number; pr?: PullRequest }
   /** The repository's open pull requests for the PRs tab (032), and when they were read. */
-  pulls?: { at: number; rows: Array<import('../hooks/core/pulls').PullRow> }
+  pulls?: {
+    at: number
+    rows: Array<{
+      number: number
+      title: string
+      branch: string
+      url: string
+      labels: string[]
+      review: 'approved' | 'changes' | 'required' | 'none'
+      checks: 'pass' | 'fail' | 'pending' | 'none'
+      merge: string
+      isDraft: boolean
+      /** The head commit listed, so a merge lands only that commit (032 fix). */
+      head?: string
+    }>
+  }
   /** The last finished feature's summary from a small model (026). */
   lastSummary?: { dir: string; text: string }
   /** The features the repository's other worktrees work on (037), read after each main turn. */
