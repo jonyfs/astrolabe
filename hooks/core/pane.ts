@@ -9,7 +9,7 @@ import type { ThemeRole } from './theme'
 import type { Feature, SessionMemo, SpeckitState } from './types'
 
 /** A row; `segments`, when given, colour parts of `text` (which stays their join) (052 #12). */
-export type PaneRow = { key: string; text: string; role: ThemeRole; dim?: boolean; bold?: boolean; href?: string; segments?: ReadonlyArray<{ text: string; role: ThemeRole }> }
+export type PaneRow = { key: string; text: string; role: ThemeRole; dim?: boolean; bold?: boolean; href?: string; links?: ReadonlyArray<{ label: string; href: string }>; segments?: ReadonlyArray<{ text: string; role: ThemeRole }> }
 
 const BAR_CELLS = 10
 const noSpeckit = (lang: Lang): PaneRow => ({ key: 'none', text: tr(lang, 'pane.noSpeckit'), role: 'muted' })
@@ -152,7 +152,11 @@ export const specsRows = (
       const row = featureRow(f, activeDir === f.dir, columns - 2, { ...ctx, ...(running !== undefined && f.dir === activeDir ? { running } : {}), ...(priorities[f.id] === undefined ? {} : { priority: priorities[f.id] }), ...(worktrees[f.id] === undefined ? {} : { worktrees: worktrees[f.id] }) })
       // A link to the feature's spec.md (044 #35).
       const root = state.root
-      rows.push(root === undefined || f.warnings.includes('loading') ? row : { ...row, href: fileUrl(`${root}/specs/${f.dir}/spec.md`) })
+      // Its plan.md and tasks.md too, once they exist (054 #77); a quick spec keeps its tasks in spec.md.
+      const hasPlan = f.phase === 'tasks' || f.phase === 'implement' || f.phase === 'done'
+      const hasTasks = f.total > 0 && f.track !== 'quick'
+      const links = root === undefined ? [] : [...(hasPlan ? [{ label: 'plan', href: fileUrl(`${root}/specs/${f.dir}/plan.md`) }] : []), ...(hasTasks ? [{ label: 'tasks', href: fileUrl(`${root}/specs/${f.dir}/tasks.md`) }] : [])]
+      rows.push(root === undefined || f.warnings.includes('loading') ? row : { ...row, href: fileUrl(`${root}/specs/${f.dir}/spec.md`), ...(links.length === 0 ? {} : { links }) })
       // The active feature's gates under its row (054 #56): each ✓, ✗ with a count, or – not yet.
       if (activeDir === f.dir && f.phase !== 'done' && f.phase !== 'abandoned' && !f.warnings.includes('loading')) {
         rows.push({ key: 'gates', text: cut(gatesText(state, f, lang), columns), role: 'muted' })

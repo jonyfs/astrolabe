@@ -120,7 +120,7 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 
 ### Links
 
-- [ ] T077 #77 Each feature row links its spec.md, plan.md and tasks.md (P1)
+- [x] T077 #77 Each feature row links its spec.md, plan.md and tasks.md (P1)
 - [ ] T078 #78 A task id links to its line in tasks.md (`file://…#L42`) (P2)
 - [ ] T079 #79 The branch links to its page on the remote (P2)
 - [ ] T080 #80 The PRs tab links each check run (P2)
