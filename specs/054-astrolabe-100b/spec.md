@@ -138,7 +138,7 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 - [ ] T089 #89 [P] tasks offered as one prompt that dispatches them to subagents (P2)
 - [ ] T090 #90 After a feature is done, a prompt suggestion for `/speckit-retro` or gstack `/retro` (P3)
 - [x] T091 #91 The prompt hint warns when the prompt names a feature other than the active one (P2)
-- [ ] T092 #92 A summary of the last 5 turns of the feature available as `/astrolabe recap` (P2)
+- [x] T092 #92 A summary of the last 5 turns of the feature available as `/astrolabe recap` (P2)
 - [ ] T093 #93 A guard that tells Claude, through the context line, when tasks.md and the code drift apart (P2)
 - [ ] T094 #94 Model choice per task kind: tests on Sonnet, design on Opus, through skillModels (P3)
 - [ ] T095 #95 A cache-warm reminder only when the next step is likely within 5 minutes (P3)

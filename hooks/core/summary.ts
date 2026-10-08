@@ -1,4 +1,5 @@
 // The active spec's summary for the pane (024 #7) and the turn's tasks.md diff (024 #8).
+import { plainText } from './git-status'
 import { t, type Lang } from './i18n'
 // Pure: no $. Never throws.
 
@@ -60,3 +61,12 @@ export const capDiff = (text: string, lang: Lang): string => {
   return lines.length <= DIFF_LINES ? text : [...lines.slice(0, DIFF_LINES), t(lang, 'pane.diffMore', { n: lines.length - DIFF_LINES })].join('\n')
 }
 
+
+/** A turn's answer as one line for /astrolabe recap (054 #92): its first non-blank line, no control characters, 140 cells. */
+export const recapLine = (answer: string): string => {
+  const first = answer.split(/\r?\n/).map(l => l.trim()).find(l => l !== '') ?? ''
+  return plainText(first.replace(/^#+\s*/, ''), 140)
+}
+
+/** The last 5 recap lines of one feature, oldest first; all features when no id. */
+export const recapOf = <R extends { id?: string }>(recap: readonly R[], id: string | undefined): R[] => recap.filter(r => id === undefined || r.id === id).slice(-5)

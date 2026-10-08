@@ -29,7 +29,8 @@ lists everything it touches; the code in `hooks/` is the place to check it.
 ## What it keeps
 
 In Claude Code's session state (gone when the session ends): the Spec Kit state it drew, the
-session's counts, the governor's queue and log, the pane's tab, filter and scroll.
+session's counts, the governor's queue and log, the pane's tab, filter and scroll, and the first line
+of each of the last 20 answers, for `/astrolabe recap`.
 
 In Claude Code's plugin store on your machine (kept across sessions):
 
