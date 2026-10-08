@@ -98,3 +98,20 @@ export const parallelPrompt = (feature: { id: string; name: string; dir: string 
     `When they are done, tick each finished task in specs/${feature.dir}/tasks.md and report what each one changed.`,
     ...tasks.map(t => `- ${t.id === undefined ? '' : `${t.id} `}${t.text}`),
   ].join('\n')
+
+/** The files a task names (054 #88): backticked paths and words with a slash or a file extension. */
+export const taskFiles = (text: string): string[] => {
+  const found = [
+    ...[...text.matchAll(/`([^`\s]+)`/g)].map(m => m[1]!),
+    ...[...text.matchAll(/(?:^|[\s(])((?:[\w.-]+\/)+[\w.-]+|[\w-]+\.(?:ts|tsx|js|mjs|json|md|sh|ps1|py|yml|yaml|toml))(?=[\s),;:]|$)/g)].map(m => m[1]!),
+  ].filter(f => /[/.]/.test(f) && !/^\d+(\.\d+)*$/.test(f))
+  return [...new Set(found)]
+}
+
+/** The focus-mode clause of the context line (054 #88). */
+export const focusNote = (task: { id?: string; text: string } | undefined): string =>
+  task === undefined
+    ? 'focus mode is on: change only what the current task needs'
+    : taskFiles(task.text).length === 0
+      ? `focus mode is on: change only what task ${task.id ?? ''} needs and no other file`.replace('  ', ' ')
+      : `focus mode is on: change only ${taskFiles(task.text).join(', ')}`

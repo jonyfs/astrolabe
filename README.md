@@ -357,6 +357,17 @@ Recent turns on 054:
   14:20  Shipped v0.80.0 after the three CI jobs passed
 ```
 
+`/astrolabe focus on` turns on focus mode. While it is on, the line Astrolabe adds to your prompt
+also tells Claude to change only the files the current task names: backticked paths and words with a
+slash or a file extension, such as `hooks/core/pane.ts` or `README.md`. A task that names no file
+gets "change only what task T010 needs and no other file". `/astrolabe focus off` turns it off, and
+`/astrolabe focus` says whether it is on. Only you can switch it, from the prompt; the setting lasts
+for the session, across a `/reload-plugins`. It needs the `claudeContext` option on.
+
+```text
+Astrolabe: the active Spec Kit feature is 054 pane-polish, phase implement, 62 of 99 tasks done; the current task is T010 Edit `hooks/core/pane.ts`; the next command is /speckit-implement; focus mode is on: change only hooks/core/pane.ts.
+```
+
 `/astrolabe kpis` prints the Dashboard's numbers as a Markdown table you can paste into a pull
 request body: the active feature's tasks, the turns, the tool calls, the pace, the burn rate and the
 rest of the KPI rows the session has. Pipes in a value are escaped so the table stays whole.
