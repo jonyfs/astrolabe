@@ -246,3 +246,20 @@ describe('parity with the usage-governor skill (016)', () => {
     expect(session.logs).toEqual([])
   })
 })
+
+describe('the queue across a reload (054 #18)', () => {
+  test('a new session.start says how many still wait, and since when', async ($, on) => {
+    const { session } = await setup($ as never, on as never)
+    await measure($ as never, reading(83, 600_000))
+    await $.tool.call(agent('a1'))
+    await $.tool.call(agent('a2'))
+    await startSession($ as never, '/proj')
+    expect(session.toasts.at(-1)).toBe(`🧭 2 subagents still waiting since ${clockOf(new Date(NOW).toISOString())}; /astrolabe run <id> runs one now`)
+  })
+
+  test('an empty queue says nothing', async ($, on) => {
+    const { session } = await setup($ as never, on as never)
+    await startSession($ as never, '/proj')
+    expect(session.toasts.some(t => t.includes('still waiting'))).toBe(false)
+  })
+})

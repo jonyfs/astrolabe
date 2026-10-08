@@ -37,7 +37,7 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 - [ ] T015 #15 `/astrolabe doctor` also checks the hook budget: the slowest hook of the session in ms (P2)
 - [x] T016 #16 A broken `.specify/extensions.yml` is named in the Session tab with its line (P2)
 - [ ] T017 #17 A reload keeps the pane's scroll, filter and tab (state survives; module values rebuilt) (P2)
-- [ ] T018 #18 The governor's queue survives a reload and says so (`3 waiting since 14:02`) (P2)
+- [x] T018 #18 The governor's queue survives a reload and says so (`3 waiting since 14:02`) (P2)
 - [x] T019 #19 A feature folder without spec.md shows as `?` with the reason, never as `specify` silently (P1)
 - [ ] T020 #20 Two sessions on one project never toast the same phase move twice (P3)
 
