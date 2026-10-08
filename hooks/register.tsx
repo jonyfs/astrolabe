@@ -119,6 +119,7 @@ const helpText = (lang: Lang): string =>
     `  /astrolabe doctor           ${t(lang, 'help.doctor')}`,
     `  /astrolabe priority <id> <high|normal|low>   ${t(lang, 'help.priority')}`,
     `  /astrolabe review [id]      ${t(lang, 'help.review')}`,
+    `  /astrolabe advisor [id]     ${t(lang, 'help.advisor')}`,
     `  /astrolabe config reset     ${t(lang, 'help.configReset')}`,
     // Each option with its value now (048 #75).
     `${t(lang, 'help.options')}: ${OPTION_NAMES.map(name => `${name}=${optionsSeen[name] === undefined ? 'default' : String(optionsSeen[name])}`).join(', ')}.`,
@@ -778,13 +779,15 @@ function paneHeader(
     }
     // gstack's skills on the active feature, when gstack is installed (051).
     const Button = 'Button' in elements ? elements.Button : undefined
-    if (pane.tab === 'specs' && stats?.gstack === true && active !== undefined && Button !== undefined) {
+    // The active feature's actions (051, 055): the advisor's review, and gstack's skills when installed.
+    if (pane.tab === 'specs' && active !== undefined && Button !== undefined) {
       const about = `${active.id} ${active.name}`
+      const feature = state.features.find(f => f.dir === active.dir)
       out.push(
         <elements.Box key="astrolabe-gstack" flexDirection="row">
-          {GSTACK_SKILLS.map(skill => (
-            <Button key={`gstack-${skill}`} label={skill} plain onPress={() => void $.clock.after(0, () => void runSkill($, skill, about))} />
-          ))}
+          {feature !== undefined && <Button key="advisor-review" label={t(currentLang(), 'advisor.button')} plain onPress={() => void $.clock.after(0, () => void $.prompt.submit({ text: advisorPrompt(feature) }).catch(() => undefined))} />}
+          {stats?.gstack === true &&
+            GSTACK_SKILLS.map(skill => <Button key={`gstack-${skill}`} label={skill} plain onPress={() => void $.clock.after(0, () => void runSkill($, skill, about))} />)}
         </elements.Box>,
       )
     }
@@ -848,8 +851,24 @@ async function* noteModel($: Parameters<Hook<'turn.step'>>[0], e: Parameters<Hoo
     live.model = step.model
     live.effort = step.effort === undefined ? undefined : String(step.effort)
   }
-  return yield* next(step)
+  const result = yield* next(step)
+  // The advisor is a server tool the API runs inside the request (055): count each run.
+  const advised = ((result as { serverToolUses?: ReadonlyArray<{ name: string }> } | undefined)?.serverToolUses ?? []).filter(use => use.name === 'advisor').length
+  if (advised > 0 && e.agentId === undefined) {
+    const at = await $.clock.now()
+    await flushStats($, st => ({ ...st, advisor: { runs: (st.advisor?.runs ?? 0) + advised, at } }))
+  }
+  return result
 }
+
+/** The prompt that asks Claude to have the advisor review a spec (055); the advisor is Claude's own tool. */
+const advisorPrompt = (feature: { id: string; name: string; dir: string }): string =>
+  [
+    `Review the Spec Kit feature ${feature.id} ${feature.name} with the advisor.`,
+    `Read specs/${feature.dir}/spec.md, and plan.md and tasks.md if they exist, then call the advisor tool.`,
+    'Report what it finds that is missing, ambiguous, inconsistent between the files, untestable or risky, most serious first.',
+    'Do not edit any file; end by proposing the changes for me to approve.',
+  ].join(' ')
 
 /** Read-modify-write of astrolabe.usage with ifVersion, retried like `guarded`. */
 async function updateUsage($: EngineInterface, change: (usage: UsageState) => UsageState): Promise<UsageState> {
@@ -2008,6 +2027,16 @@ export const register: Register = (on, options) => {
       return { text: t(currentLang(), 'ask.asking', { feature: about }) }
     }
     if (args === 'doctor') return { text: await doctor($) }
+    if (args === 'advisor' || args.startsWith('advisor ')) {
+      // A whole turn with the advisor: only the person starts it (055).
+      if (e.origin?.kind !== 'composer') return { text: t(currentLang(), 'advisor.onlyYou') }
+      const state = (await $.state.get(SPECKIT)).value
+      const wanted = args.slice(7).trim()
+      const feature = wanted === '' ? state?.features.find(f => f.dir === state.active?.dir) : state?.features.find(f => f.id === wanted.padStart(3, '0'))
+      if (feature === undefined) return { text: t(currentLang(), 'advisor.usage') }
+      $.clock.after(0, () => void $.prompt.submit({ text: advisorPrompt(feature) }).catch(() => undefined))
+      return { text: t(currentLang(), 'advisor.started', { feature: `${feature.id} ${feature.name}` }) }
+    }
     if (args === 'config reset') {
       if (e.origin?.kind !== 'composer') return { text: t(currentLang(), 'config.resetOnlyYou') }
       return { text: await resetConfig($) }
@@ -2102,6 +2131,7 @@ export const register: Register = (on, options) => {
                 role: 'muted' as const,
               })),
               ...(((summary) => (summary === undefined ? [] : summary.text.split('\n').map((line, i) => ({ key: `summary-${i}`, text: `${(i === 0 ? `${t(currentLang(), 'session.summary')} ${summary.dir}` : '').padEnd(14)}${line}`, role: 'muted' as const }))))((await $.state.get(SESSION)).value?.lastSummary)),
+              ...(((advisor) => (advisor === undefined ? [] : [{ key: 'advisor', text: `${t(currentLang(), 'session.advisor').padEnd(14)}${t(currentLang(), 'advisor.runs', { n: advisor.runs, at: clockOf(new Date(advisor.at).toISOString()) ?? '' })}`, role: 'text' as const }]))((await $.state.get(SESSION)).value?.advisor)),
               ...(((review) => (review === undefined ? [] : review.text.split('\n').map((line, i) => ({ key: `review-${i}`, text: `${(i === 0 ? `${t(currentLang(), 'session.review')} ${review.id}` : '').padEnd(14)}${line}`, role: 'text' as const }))))((await $.state.get(SESSION)).value?.lastReview)),
               ...usageRows((await $.state.get(USAGE)).value ?? DEFAULT_USAGE, await $.clock.now()).map(([label, text]) => ({
                 key: `usage-${label}`,
@@ -2238,7 +2268,7 @@ export const register: Register = (on, options) => {
       // Rows the header takes: the filter, the summary's lines and links, the diff's lines.
       const headerRows =
         ('Input' in $.ui.resolve(e) && pane.tab !== 'session' ? 1 : 0) +
-        (pane.tab === 'specs' && stats?.gstack === true && state.active !== undefined ? 1 : 0) +
+        (pane.tab === 'specs' && state.active !== undefined && 'Button' in $.ui.resolve(e) ? 1 : 0) +
         (pane.tab === 'specs'
           ? state.activeSummary === undefined ? 0 : state.activeSummary.split('\n').length + 2
           : pane.tab === 'tasks' && stats?.tasksDiff !== undefined && stats.tasksDiff.dir === state.active?.dir
