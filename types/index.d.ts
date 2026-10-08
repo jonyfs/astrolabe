@@ -230,6 +230,8 @@ export type SessionStats = {
   warned?: { cost80?: boolean; cost100?: boolean; context?: boolean }
   /** The last `gh pr view` for a branch (023): when it ran and what it found, kept five minutes. */
   prCache?: { branch: string; at: number; pr?: PullRequest }
+  /** The features the repository's other worktrees work on (037), read after each main turn. */
+  worktrees?: Array<{ name: string; branch?: string; dir: string; id: string; featureName: string; phase: Phase; done: number; total: number }>
   /** The last main turn's change to the active tasks, as unified-diff hunks (024). */
   tasksDiff?: { dir: string; file: 'tasks.md' | 'spec.md'; text: string }
 }

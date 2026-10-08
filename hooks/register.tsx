@@ -46,6 +46,9 @@ import {
 } from './core/governor'
 import { FLAVORS, isThemeKeys, themeOf } from './core/theme'
 import { tasksDiff } from './core/summary'
+import { featureDirFor, parseWorktrees, worktreeName } from './core/worktrees'
+import { readFeature } from './io/snapshot'
+import { deriveFeature } from './core/phase'
 import { parseTasks } from './core/tasks-parser'
 import { chartImage, dialFrames, imagesFor } from './core/pixels'
 import { emptyMemo, type PaneState, type PaneTab, type UpdateId, type UpdateItem, type UpdatesState, type UsageState, type UsageReading, type QueuedAgent, type SessionStats, type GitState, type PullRequest, type SpeckitState } from './core/types'
@@ -205,6 +208,38 @@ async function readGit($: EngineInterface, root: string | undefined, branch: str
 }
 
 let prRunning = false
+
+const GIT_WORKTREES = ['git', 'worktree', 'list', '--porcelain']
+let worktreesRunning = false
+
+/** Reads what the repository's other worktrees work on (037): one git call, then their spec files. */
+async function refreshWorktrees($: EngineInterface, root: string): Promise<void> {
+  if (worktreesRunning) return
+  worktreesRunning = true
+  try {
+    const run = await $.process.run(GIT_WORKTREES, { cwd: root, timeoutMs: 2000 }).catch(() => undefined)
+    const list = run?.exitCode === 0 ? parseWorktrees(run.stdout) : []
+    const main = list[0]
+    const norm = (p: string) => p.replace(/\\/g, '/').replace(/\/+$/, '')
+    const rel = main === undefined ? '' : norm(root).startsWith(norm(main.path)) ? norm(root).slice(norm(main.path).length) : ''
+    const fs = fsOf($)
+    const found: NonNullable<SessionStats['worktrees']> = []
+    for (const wt of list.slice(1, 9)) {
+      const specRoot = `${norm(wt.path)}${rel}`
+      if (norm(specRoot) === norm(root)) continue
+      const dirs = (await fs.list(`${specRoot}/specs`).catch(() => [])).filter(d => d.kind === 'dir').map(d => d.name)
+      const dir = featureDirFor(wt.branch, dirs)
+      if (dir === undefined) continue
+      const feature = deriveFeature(await readFeature(fs, specRoot, dir))
+      found.push({ name: worktreeName(wt.path), ...(wt.branch === undefined ? {} : { branch: wt.branch }), dir, id: feature.id, featureName: feature.name, phase: feature.phase, done: feature.done, total: feature.total })
+    }
+    await flushStats($, ({ worktrees: _old, ...s }) => (found.length === 0 ? s : { ...s, worktrees: found }))
+  } catch (error) {
+    $.ui.log(`astrolabe: ${error instanceof Error ? error.message : String(error)}`, { to: 'debug' })
+  } finally {
+    worktreesRunning = false
+  }
+}
 
 // The theme tokens, for drawings outside register's closure (025).
 let tokens0: ReturnType<typeof themeOf> = themeOf({})
@@ -1128,6 +1163,10 @@ export const register: Register = (on, options) => {
         const cached = s.prCache !== undefined && s.prCache.branch === git?.branch ? s.prCache.pr : undefined
         return { ...s, turns: s.turns + 1, ...(git === undefined ? {} : { git: withPr(git, cached) }) }
       })
+      if (root !== undefined && git?.branch !== undefined) {
+        const repoRoot = root
+        $.clock.after(0, () => void refreshWorktrees($, repoRoot))
+      }
       if (pullRequests && root !== undefined && git?.branch !== undefined) {
         const prBranch = git.branch
         $.clock.after(0, () => void refreshPr($, root, prBranch))
@@ -1436,7 +1475,15 @@ export const register: Register = (on, options) => {
                 role: 'current' as const,
               })),
             ]
-          : specsRows(filtered(state, pane.filter), columns, currentLang())
+          : [
+              ...specsRows(filtered(state, pane.filter), columns, currentLang()),
+              // Features other worktrees of this repository work on (037).
+              ...((await $.state.get(SESSION)).value?.worktrees ?? []).map(w => ({
+                key: `worktree-${w.name}`,
+                text: `⑂ ${w.name}  ${w.phase === 'done' ? '●' : '◐'} ${w.id} ${w.featureName}  ${w.phase}${w.total === 0 ? '' : ` ${w.done}/${w.total}`}`,
+                role: 'current' as const,
+              })),
+            ]
     const { Box, Text, Button } = $.ui.resolve(e)
     const select = async (tab: PaneTab) => {
       const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
