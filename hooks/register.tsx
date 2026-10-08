@@ -387,8 +387,24 @@ async function runPullAction($: EngineInterface, action: 'approve' | 'update' | 
   }
 }
 
-/** The PRs tab's rows (032): a link per pull request, its state, and the buttons GitHub allows. */
+/** The PRs tab (032), led by gstack's /ship for the branch when gstack is installed (054 #96). */
 function pullsBody(
+  $: Parameters<Hook<'ui.render'>>[0],
+  e: Parameters<Hook<'ui.render'>>[1],
+  pane: PaneState,
+  stats: SessionStats | undefined,
+): Array<{ node: RenderNode; rows: number }> {
+  const elements = $.ui.resolve(e)
+  const branch = stats?.git?.branch
+  const ship =
+    stats?.gstack === true && branch !== undefined && branch !== 'main' && branch !== 'master' && 'Button' in elements
+      ? [{ rows: 1, node: <elements.Button key="gstack-ship" label={t(currentLang(), 'prs.ship', { branch })} plain onPress={() => void $.clock.after(0, () => void runSkill($, 'ship', `branch ${branch}`))} /> }]
+      : []
+  return [...ship, ...pullsRows($, e, pane, stats)]
+}
+
+/** The PRs tab's rows (032): a link per pull request, its state, and the buttons GitHub allows. */
+function pullsRows(
   $: Parameters<Hook<'ui.render'>>[0],
   e: Parameters<Hook<'ui.render'>>[1],
   pane: PaneState,

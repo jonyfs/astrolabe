@@ -2,7 +2,7 @@ import { describe, expect, test } from 'claude-code/testing'
 
 import { parsePullList, pullAction } from '../../hooks/core/pulls'
 import { scenario as halfDone } from '../fixtures/half-done'
-import { installEngine, installTree, startSession } from '../helpers/fake-fs'
+import { completeTurn, installEngine, installTree, startSession } from '../helpers/fake-fs'
 import { installPaneEngine, installRenderEngine } from '../helpers/render'
 
 // Spec 032: the PRs tab.
@@ -88,6 +88,27 @@ describe('the PRs tab (032)', () => {
     await ui.press({ key: 'tab-prs' })
     await session.clock.advance(1000)
     expect(JSON.stringify(await ui.drawn())).toContain('gh pr list failed: not logged into any GitHub hosts; run gh auth status')
+    await ui.unmount()
+  })
+})
+
+describe('gstack /ship on the PRs tab (054 #96)', () => {
+  test('with gstack installed, a button runs /ship for the branch; none on main', async ($, on) => {
+    const tree = { ...halfDone.tree, '/proj/.git/HEAD': 'ref: refs/heads/054-x\n', '/home/u/.claude/skills/gstack/bin/gstack-update-check': '#!/bin/sh\n' }
+    const session = installTree(on, tree, '/proj')
+    session.script.env['HOME'] = '/home/u'
+    installEngine(on)
+    installRenderEngine(on)
+    installPaneEngine(on)
+    session.script.processes[GH_LIST] = { stdout: '[]' }
+    await startSession($ as never, '/proj')
+    await completeTurn($ as never)
+    const ui = await mount($ as never)
+    await ui.press({ key: 'tab-prs' })
+    await session.clock.advance(1000)
+    await ui.press({ key: 'gstack-ship' })
+    await session.clock.settle()
+    expect(session.prompts).toContain('/ship')
     await ui.unmount()
   })
 })
