@@ -84,7 +84,7 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 - [ ] T050 #50 A worktree whose branch is merged shows `merged` and the command that removes it (P2)
 - [ ] T051 #51 A worktree with uncommitted changes shows how many (P2)
 - [x] T052 #52 Two worktrees on one feature are flagged as a conflict (P1)
-- [ ] T053 #53 `/astrolabe worktrees` lists them all as text (P2)
+- [x] T053 #53 `/astrolabe worktrees` lists them all as text (P2)
 - [ ] T054 #54 The band names the worktree the session runs in when it is not the main one (P2)
 - [ ] T055 #55 A worktree's tasks count toward its feature's progress in the main checkout (P2)
 
@@ -95,7 +95,7 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 - [x] T058 #58 A PR merge refused from the PRs tab while its checks are pending or failing (P1)
 - [ ] T059 #59 The analyze gate turns green only after `/speckit-analyze` ran on the current tasks.md (P2)
 - [ ] T060 #60 A release gate check in the PRs tab: version in plugin.json matches the tag about to be made (P3)
-- [ ] T061 #61 Gates listed in the Help tab with what each one checks (P2)
+- [x] T061 #61 Gates listed in the Help tab with what each one checks (P2)
 - [ ] T062 #62 The governor's gate log in the Session tab: what was held, run or dropped, today (P2)
 
 ### Interface

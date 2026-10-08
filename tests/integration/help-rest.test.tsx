@@ -107,6 +107,15 @@ describe('help, part two (025)', () => {
     expect(ran.text).toContain('footerIn=both')
   })
 
+  test('054 #53 #61: /astrolabe worktrees says when there are none; help explains the gates', async ($, on) => {
+    await setup($ as never, on as never)
+    const none = (await $.command.run({ command: 'astrolabe', args: 'worktrees' } as never)) as { text: string }
+    expect(none.text).toBe('🧭 no other worktree works on a feature')
+    const help = (await $.command.run({ command: 'astrolabe', args: 'help' } as never)) as { text: string }
+    expect(help.text).toContain('Gates (under the active feature):')
+    expect(help.text).toContain('analyze       /speckit-analyze ran on these tasks')
+  })
+
   test('T008: accessible mode draws text only', { options: { accessible: true } }, async ($, on) => {
     await setup($ as never, on as never)
     const band = JSON.stringify((await drawBand($ as never, 'terminal', 120)).tree)
