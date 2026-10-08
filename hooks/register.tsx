@@ -222,6 +222,9 @@ async function footerInput($: EngineInterface, state: Held['state'], width: numb
       ...(stats?.git === undefined ? {} : { git: stats.git }),
       ...(stats === undefined ? {} : { startedAt: stats.startedAt }),
       ...((rate => (rate === undefined ? {} : { burn: rate }))(stats === undefined ? undefined : burnRate(stats.series))),
+      ...(state.runningSkill === undefined
+        ? {}
+        : { skill: { name: state.runningSkill.name, ...((m => (m === undefined ? {} : { model: m }))(skillModels === 'auto' ? skillModelFor(state.runningSkill.name)?.model : undefined)) } }),
       now,
       icons: iconSet(iconsFor(iconsOption, surfaceSeen as never)),
       columns: width,
