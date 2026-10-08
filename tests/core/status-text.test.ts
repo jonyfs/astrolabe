@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import { formatStatus } from '../../hooks/core/status-text'
+import { activeMark, formatStatus } from '../../hooks/core/status-text'
 import type { Feature, SpeckitState } from '../../hooks/core/types'
 
 const feature = (over: Partial<Feature> = {}): Feature => ({
@@ -80,5 +80,13 @@ describe('formatStatus: width degradation never cuts an id', () => {
     const s = state({ nextCommand: '/speckit-specify' }, null)
     expect(formatStatus(s, 25)).toBe('◆ no active feature')
     expect(formatStatus(s, 10)).toBe('')
+  })
+})
+
+describe('one name for the active feature (054 #30)', () => {
+  test('◆ and the id, with ~ when the feature is a guess', () => {
+    expect(activeMark({ active: { id: '002', name: 'band-hint', dir: '002-band-hint', source: 'feature.json' } } as never)).toBe('◆ 002')
+    expect(activeMark({ active: { id: '002', name: 'band-hint', dir: '002-band-hint', source: 'latest' }, activeWarning: 'fallback' } as never)).toBe('◆ ~002')
+    expect(activeMark({} as never)).toBe('◆')
   })
 })

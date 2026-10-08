@@ -22,7 +22,7 @@ describe('the /astrolabe command (US1)', () => {
     const ran = await $.command.run({ command: 'astrolabe', args: '' } as never)
     expect((ran as { text?: string }).text).toBe('Astrolabe pane opened.')
     // Typed by the person: focused, so 1, 2 and 3 work at once, and Esc closes it.
-    expect(pane.opened).toEqual([{ id: 'astrolabe', title: '🧭 Astrolabe · 002 band-hint', focus: true, closeOnEscape: true }])
+    expect(pane.opened).toEqual([{ id: 'astrolabe', title: '🧭 Astrolabe · ◆ 002 band-hint', focus: true, closeOnEscape: true }])
   })
 })
 
