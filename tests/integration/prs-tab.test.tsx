@@ -7,10 +7,10 @@ import { installPaneEngine, installRenderEngine } from '../helpers/render'
 
 // Spec 032: the PRs tab.
 const LIST = JSON.stringify([
-  { number: 45, title: 'feat: style', headRefName: '029-style', url: 'https://github.com/o/r/pull/45', labels: [{ name: 'feature' }], reviewDecision: 'APPROVED', statusCheckRollup: [{ conclusion: 'SUCCESS' }], mergeStateStatus: 'CLEAN', isDraft: false },
+  { number: 45, title: 'feat: style', headRefName: '029-style', headRefOid: 'abc1234def', url: 'https://github.com/o/r/pull/45', labels: [{ name: 'feature' }], reviewDecision: 'APPROVED', statusCheckRollup: [{ conclusion: 'SUCCESS' }], mergeStateStatus: 'CLEAN', isDraft: false },
   { number: 46, title: 'fix: old', headRefName: 'fix-old', url: 'https://github.com/o/r/pull/46', labels: [], reviewDecision: 'REVIEW_REQUIRED', statusCheckRollup: [{ status: 'IN_PROGRESS', conclusion: '' }], mergeStateStatus: 'BEHIND', isDraft: false },
 ])
-const GH_LIST = 'gh pr list --state open --limit 20 --json number,title,headRefName,url,labels,reviewDecision,statusCheckRollup,mergeStateStatus,isDraft'
+const GH_LIST = 'gh pr list --state open --limit 20 --json number,title,headRefName,headRefOid,url,labels,reviewDecision,statusCheckRollup,mergeStateStatus,isDraft'
 
 type Ui = { find: (q: { key?: string }) => Promise<{ text: string } | undefined>; press: (q: { key: string }) => Promise<unknown>; drawn: () => Promise<unknown>; unmount: () => Promise<void> }
 const mount = async ($: never) =>
@@ -27,6 +27,8 @@ describe('the PRs tab (032)', () => {
     expect(rows[0]?.labels).toEqual(['feature'])
     expect(parsePullList('nope')).toEqual([])
     expect(pullAction('merge', 45)).toEqual(['gh', 'pr', 'merge', '45', '--merge'])
+    expect(pullAction('merge', 45, 'abc1234def')).toEqual(['gh', 'pr', 'merge', '45', '--merge', '--match-head-commit', 'abc1234def'])
+    expect(parsePullList(LIST)[0]?.head).toBe('abc1234def')
   })
 
   test('lists the pull requests with links; merge runs after a second press', async ($, on) => {
@@ -35,7 +37,7 @@ describe('the PRs tab (032)', () => {
     installRenderEngine(on)
     installPaneEngine(on)
     session.script.processes[GH_LIST] = { stdout: LIST }
-    session.script.processes['gh pr merge 45 --merge'] = { stdout: 'merged' }
+    session.script.processes['gh pr merge 45 --merge --match-head-commit abc1234def'] = { stdout: 'merged' }
     await startSession($ as never, '/proj')
     const ui = await mount($ as never)
     await ui.press({ key: 'tab-prs' })
@@ -47,10 +49,10 @@ describe('the PRs tab (032)', () => {
     expect(tree).not.toContain('pr-merge-46')
     await ui.press({ key: 'pr-merge-45' })
     await session.clock.advance(100)
-    expect(session.processes).not.toContain('gh pr merge 45 --merge')
+    expect(session.processes).not.toContain('gh pr merge 45 --merge --match-head-commit abc1234def')
     await ui.press({ key: 'pr-merge-45' })
     await session.clock.advance(100)
-    expect(session.processes).toContain('gh pr merge 45 --merge')
+    expect(session.processes).toContain('gh pr merge 45 --merge --match-head-commit abc1234def')
     expect(session.toasts).toContain('🧭 #45 merged')
     await ui.unmount()
   })
