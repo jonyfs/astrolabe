@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import { footerText, shortModel } from '../../hooks/core/footer'
+import { footerText, resetOf, shortModel } from '../../hooks/core/footer'
 import { iconSet } from '../../hooks/core/icons'
 
 const NOW = Date.UTC(2026, 9, 7, 12, 0)
@@ -28,8 +28,17 @@ describe('the footer (018 FR-001, FR-002)', () => {
   test('every part in order, ascii icons', () => {
     const text = footerText({ ...full, icons: iconSet('ascii'), columns: 200 })
     expect(text).toBe(
-      `◆ 002 · implement 45% · 7d 83% hold (${at(full.readings[1]!.resetsAt)}) · 5h 42% (${at(reset)}) · ctx 61% · opus 5.5 high · git:main ^2 v1 ~3 · $1.20 · t 1h05m`,
+      `◆ 002 · implement 45% · 7d 83% hold (${resetOf(full.readings[1]!.resetsAt, full.now)}) · 5h 42% (${resetOf(reset, full.now)}) · ctx 61% · opus 5.5 high · git:main ^2 v1 ~3 · $1.20 · t 1h05m`,
     )
+  })
+
+  test('resets: a countdown within a day, a weekday and clock beyond it (041 #2)', () => {
+    const now = Date.parse('2026-10-07T10:00:00Z')
+    expect(resetOf(new Date(now + 2 * 3_600_000 + 13 * 60_000).toISOString(), now)).toBe('2h13m')
+    expect(resetOf(new Date(now + 45 * 60_000).toISOString(), now)).toBe('45m')
+    const later = new Date(now + 3 * 86_400_000)
+    expect(resetOf(later.toISOString(), now)).toMatch(/^(Sun|Mon|Tue|Wed|Thu|Fri|Sat) \d\d:\d\d$/)
+    expect(resetOf(new Date(now - 1000).toISOString(), now)).toBeUndefined()
   })
 
   test('nerd icons sit before their values', () => {

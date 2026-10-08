@@ -131,7 +131,7 @@ Each part, from left to right:
 | Phase | `implement` | The first Spec Kit step this feature has not finished. See [Phases](#phases). |
 | Percentage | `87%` | Ticked tasks out of all tasks in the feature's `tasks.md`, rounded down. 43 of 49 is `87%`. It appears only once `tasks.md` has tasks. |
 | Running step | `· plan…` | A Spec Kit skill such as `/speckit-plan` was called during this turn. It disappears when the turn ends. |
-| Usage window | `· 7d 81% hold (14:00)` | The window that decides, its band when it is not ok, and when it resets. The other window follows. See [Usage governance](#usage-governance). |
+| Usage window | `· 7d 81% hold (Mon 14:00)` | The window that decides, its band when it is not ok, and when it resets: a countdown such as `2h13m` when the reset is less than a day away, else the weekday and time. The other window follows. See [Usage governance](#usage-governance). |
 | Context | `·  61%` | How full the context window is. |
 | Model and effort | `·  opus 5.5 high` | The model and effort of Claude's last request in the main thread. |
 | Git | `·  main ↑2  3` | The branch, commits to push and to pull, and changed or untracked files, from one `git status` at the end of each turn. Without a repository it is left out. |
@@ -143,7 +143,7 @@ Each part, from left to right:
 The footer carries what a statusline under the prompt usually shows, so you can remove a
 separate `statusLine` command from your settings. By default it sits at the bottom of the
 `/astrolabe` pane, under every tab, and the status entry keeps only the Spec Kit part and the
-window that decides (`◆ 002 · implement 45% · 5h 42% (14:00)`). Set `footerIn` to `status` to put
+window that decides (`◆ 002 · implement 45% · 5h 42% (2h13m)`). Set `footerIn` to `status` to put
 the whole footer back in the status entry, or `both` for both places. On a tab shorter than the
 pane the footer holds the last rows; the Dashboard is longer, so its footer follows the charts.
 
@@ -304,7 +304,7 @@ band drawn above it in the terminal:
 
 next: /speckit-implement
 
-◆ 002 · implement 45% · 5h 42% (14:00) · ctx 61% · opus 5.5 high · git:main ~2 · $1.20
+◆ 002 · implement 45% · 5h 42% (2h13m) · ctx 61% · opus 5.5 high · git:main ~2 · $1.20
 ```
 
 When Claude ticks tasks with an Edit, the tool's row in the transcript names them
