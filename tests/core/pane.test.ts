@@ -198,3 +198,12 @@ describe('folded sections (052 #10, #11)', () => {
     expect(texts(specsRows(st, 120)).some(t => t.includes('011 d011'))).toBe(true)
   })
 })
+
+describe('coloured rows (052 #12, 054 #71)', () => {
+  test('the widest form colours the phase and the bar, and the segments join to the text', () => {
+    const row = specsRows(state(), 120).find(r => r.key === 'feature-002')!
+    expect(row.segments?.map(s => s.text).join('')).toBe(row.text)
+    expect(row.segments?.map(s => s.role)).toEqual(['accent', 'current', 'accent', 'barFill', 'barEmpty', 'accent'])
+    expect(specsRows(state(), 40).find(r => r.key === 'feature-002')?.segments).toBeUndefined()
+  })
+})

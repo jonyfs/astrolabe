@@ -471,7 +471,7 @@ The tabs follow Claude during a turn: a Write of `.specify/feature.json` or the 
 Bash command that makes a spec or switches the branch, and a subagent's return all redraw them at
 once, without waiting for the turn to end.
 
-A spec's own warnings sit right under its row. With no filter, Done and Abandoned past three features fold to their heading (`Done (12) · folded; s or is:done shows them`). Under the active feature a dim `gates` row shows where it stands: `constitution ✓  clarify ✗2  checklist ✗3  tasks ✓  analyze –` (`✓` passed, `✗` with what is open, `–` not reached yet). A feature row names the worktrees working on it (`⑂ wt-a`); one feature open in two worktrees gets a `!` line, since their changes will collide. A folder under `specs/` with no `spec.md` gets a `?` line naming it.
+Where the row has room, its phase takes its colour on the rail (clarify and implement peach, plan blue, tasks mauve) and the bar its fill and empty colours. A spec's own warnings sit right under its row. With no filter, Done and Abandoned past three features fold to their heading (`Done (12) · folded; s or is:done shows them`). Under the active feature a dim `gates` row shows where it stands: `constitution ✓  clarify ✗2  checklist ✗3  tasks ✓  analyze –` (`✓` passed, `✗` with what is open, `–` not reached yet). A feature row names the worktrees working on it (`⑂ wt-a`); one feature open in two worktrees gets a `!` line, since their changes will collide. A folder under `specs/` with no `spec.md` gets a `?` line naming it.
 
 When the repository has other git worktrees, the features they work on show under the list, read
 after each turn from the branch name (`026-...`) and that worktree's files:

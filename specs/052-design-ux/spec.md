@@ -28,7 +28,7 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 - [ ] T009 #9 The active feature's summary shows its first two lines, with the rest one press away (P2)
 - [x] T010 #10 The Done section folds to one row (`Done (12)`) until opened (P1)
 - [x] T011 #11 The Abandoned section folds to its count as well (P2)
-- [ ] T012 #12 The phase column takes the rail's colours: clarify yellow, plan blue, implement peach (P2)
+- [x] T012 #12 The phase column takes the rail's colours: clarify yellow, plan blue, implement peach (P2)
 - [ ] T013 #13 A bar at 100% draws green; a bar under way keeps the bar colour (P3)
 - [x] T014 #14 A spec's warnings sit under its own row, indented, instead of together at the end (P1)
 - [ ] T015 #15 Worktree rows line up with feature rows: same id, name and phase columns (P2)
