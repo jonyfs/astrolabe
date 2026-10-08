@@ -273,6 +273,50 @@ describe('the advisor reviews a spec (055)', () => {
   })
 })
 
+describe('the advisor answer in the Session tab (055 T004)', () => {
+  test('the final answer of the turn that ran the advisor is kept, 12 lines at most', async ($, on) => {
+    let reply: Record<string, unknown> = {}
+    ;(on as unknown as (event: string, hook: unknown) => void)('turn.step', async function* (_: unknown, e: { turnId: string; index: number }) {
+      return { turnId: e.turnId, index: e.index, answer: '', toolUses: [], stopReason: 'end_turn', usage: null, ...reply }
+    })
+    const { session } = await setup($ as never, on as never)
+    const step = async () => {
+      for await (const _ of ($ as unknown as { turn: { step: (e: never) => AsyncIterable<unknown> } }).turn.step({ turnId: 't', index: 0, model: 'claude-opus-5-5', messageCount: 1 } as never)) {
+        // drain
+      }
+    }
+    await $.command.run({ command: 'astrolabe', args: 'advisor 2', origin: { kind: 'composer' } } as never)
+    await session.clock.settle()
+    reply = { stopReason: 'tool_use', serverToolUses: [{ id: 'a1', name: 'advisor', input: {}, startedAt: 0, endedAt: 1 }] }
+    await step()
+    reply = { answer: `Findings:\n\n${[...Array(14).keys()].map(i => `${i + 1}. finding ${i + 1}`).join('\n')}` }
+    await step()
+    const ui = await mountPane($ as never, 'terminal', 120, 60)
+    await ui.press('tab-session')
+    const body = await ui.body()
+    expect(body).toMatch(/advisor 002\s+Findings:/)
+    expect(body).toContain('11. finding 11')
+    expect(body).not.toContain('12. finding 12')
+    await ui.unmount()
+  })
+
+  test('a turn that never ran the advisor keeps nothing', async ($, on) => {
+    ;(on as unknown as (event: string, hook: unknown) => void)('turn.step', async function* (_: unknown, e: { turnId: string; index: number }) {
+      return { turnId: e.turnId, index: e.index, answer: 'I read the files.', toolUses: [], stopReason: 'end_turn', usage: null }
+    })
+    const { session } = await setup($ as never, on as never)
+    await $.command.run({ command: 'astrolabe', args: 'advisor 2', origin: { kind: 'composer' } } as never)
+    await session.clock.settle()
+    for await (const _ of ($ as unknown as { turn: { step: (e: never) => AsyncIterable<unknown> } }).turn.step({ turnId: 't', index: 0, model: 'claude-opus-5-5', messageCount: 1 } as never)) {
+      // drain
+    }
+    const ui = await mountPane($ as never, 'terminal', 120, 60)
+    await ui.press('tab-session')
+    expect(await ui.body()).not.toContain('I read the files.')
+    await ui.unmount()
+  })
+})
+
 describe('the Session tab in blocks (052 #24, #25)', () => {
   test('Project, then Governor once there is a reading; the state row takes the band colour', async ($, on) => {
     const { session } = await setup($ as never, on as never)
