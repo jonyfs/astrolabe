@@ -137,11 +137,11 @@ describe('extensions and parallel tasks (020c)', () => {
 describe('pane navigation (043)', () => {
   test('#21 #25: tabs carry counts; a legend names the keys of the tab shown', async ($, on) => {
     await setup($ as never, on as never)
-    const ui = await mountPane($ as never, 'terminal', 100, 30)
+    const ui = await mountPane($ as never, 'terminal', 130, 30)
     expect(await ui.tabs()).toContain('Tasks 11')
-    expect(await ui.legend()).toBe('every feature, its phase and progress · 1-7 tabs · f filters · s status · j/k scroll · Esc closes')
+    expect(await ui.legend()).toBe('every feature, its phase and progress · 1-7 tabs · h help · f filters · s status · j/k scroll · Esc closes')
     await ui.press('tab-tasks')
-    expect(await ui.legend()).toBe("the active feature's open tasks · 1-7 tabs · f filters · j/k scroll · Esc closes")
+    expect(await ui.legend()).toBe("the active feature's open tasks · 1-7 tabs · h help · f filters · j/k scroll · Esc closes")
     await ui.unmount()
   })
 })
@@ -232,7 +232,7 @@ describe('design and UX (052)', () => {
     await setup($ as never, on as never)
     const st = $ as never
     const ui = await mountPane(st, 'terminal', 60, 30)
-    expect(await ui.legend()).toBe('1-7 tabs · f filters · s status · j/k scroll · Esc closes')
+    expect(await ui.legend()).toBe('1-7 tabs · h help · f filters · s status · j/k scroll · Esc closes')
     await ui.unmount()
   })
 })
@@ -296,6 +296,17 @@ describe('a narrow tab row (052 #1)', () => {
     const tabs = await ui.tabs()
     expect(tabs).toContain('2·11')
     expect(tabs).not.toContain('Tasks')
+    await ui.unmount()
+  })
+})
+
+describe('h opens Help (052 #50)', () => {
+  test('from any tab', async ($, on) => {
+    await setup($ as never, on as never)
+    const ui = await mountPane($ as never, 'terminal', 100, 30)
+    await ui.press('tab-tasks')
+    await ui.press('help-key')
+    expect(await ui.body()).toContain('Astrolabe commands:')
     await ui.unmount()
   })
 })

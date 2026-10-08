@@ -56,7 +56,7 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 ### Dashboard
 
 - [x] T030 #30 KPI chips take the footer's ramp: context and burn green, yellow, red (P1)
-- [ ] T031 #31 One blank row between Dashboard sections, and every section titled the same way (P2)
+- [ ] T031 #31 One blank row between Dashboard sections, and every section titled the same way (P2) — skipped: the blank rows pushed the session KPIs below the first screen; density wins
 - [ ] T032 #32 From 100 columns the KPI rows sit in two columns (P3)
 - [ ] T033 #33 The chart's axis says `%` and its first and last times (P2)
 - [ ] T034 #34 The dial names the current step under it (P2)
@@ -81,4 +81,4 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 - [x] T047 #47 The accessible mode spells every mark (`priority high`, `blocked`, `parallel`) (P1)
 - [x] T048 #48 Muted and dim rows meet 4.5:1 contrast on the light flavor (latte) (P1)
 - [x] T049 #49 The ascii icon set also covers the pane's own marks: `⇉ ┌ │ └ ↗ ✕ ⏱ ⟳ ↑ ↓` (P1)
-- [ ] T050 #50 `h` opens the Help tab from any tab, and the legend says so (P2)
+- [x] T050 #50 `h` opens the Help tab from any tab, and the legend says so (P2)
