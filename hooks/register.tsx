@@ -1772,6 +1772,12 @@ export const register: Register = (on, options) => {
     const kept = (await $.state.get(SESSION)).value?.language
     if (kept === 'en' || kept === 'pt-BR' || kept === 'es' || kept === 'fr') guessedLang = kept
     const result = await next(e)
+    // The governor's queue lives in $.state, so a reload keeps it: say it is still there (054 #18).
+    const usageKept = (await $.state.get(USAGE)).value
+    if (usageKept !== undefined && usageKept.queue.length > 0) {
+      const since = usageKept.waitingSince === undefined ? undefined : clockOf(new Date(usageKept.waitingSince).toISOString())
+      $.ui.toast(t(currentLang(), since === undefined ? 'governor.queueKept' : 'governor.queueKeptSince', { n: usageKept.queue.length, at: since ?? '' }))
+    }
     try {
       await $.command.register({ name: 'astrolabe', description: 'Open the Astrolabe pane: every Spec Kit feature, the open tasks and the session' })
     } catch (error) {
