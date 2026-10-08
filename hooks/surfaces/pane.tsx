@@ -89,7 +89,7 @@ export const paneTree = (
               <Link href={row.href} label={m('↗')} />
             </Box>
           ) : (
-            <Text color={tokens[row.role]} dimColor={row.dim === true} wrap="truncate-end">
+            <Text color={tokens[row.role]} dimColor={row.dim === true} bold={row.bold === true} wrap="truncate-end">
               {m(row.text)}
             </Text>
           ),

@@ -19,7 +19,7 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 - [x] T003 #3 The legend row cuts the tab's description first and keeps the keys whole (P1)
 - [ ] T004 #4 The pane's title names the active feature (`🧭 Astrolabe · 026 claude-context`) (P2)
 - [ ] T005 #5 One label width for Session, Dashboard and Help, taken from the longest label instead of the fixed 14 and 10 (P1)
-- [ ] T006 #6 Section headers drawn bold with the count muted, instead of plain muted text (P2)
+- [x] T006 #6 Section headers drawn bold with the count muted, instead of plain muted text (P2)
 - [x] T007 #7 A filter that matches nothing says so and how to clear it (`no rows hold "xyz"; empty the filter`) (P1)
 - [ ] T008 #8 The filter field shows how many rows it keeps (P3)
 
@@ -41,7 +41,7 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 - [x] T019 #19 The last turn's diff shows at most 6 lines, with `+N lines` (P2)
 - [ ] T020 #20 The current task row is bold, with `⏱` aligned at the right edge (P3)
 - [x] T021 #21 The `⇉ … can run in parallel` line drops when the brackets already show the run (P1)
-- [ ] T022 #22 Task ids padded to one width (`T9 ` and `T10`) so the text column lines up (P2)
+- [x] T022 #22 Task ids padded to one width (`T9 ` and `T10`) so the text column lines up (P2)
 - [x] T023 #23 The fold row counts what it folds (`✓ 9 done · T001…T009`) (P1)
 
 ### Session tab
