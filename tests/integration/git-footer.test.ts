@@ -20,14 +20,14 @@ const setup = async ($: never, on: never) => {
 }
 
 describe('the pull request in the footer (023)', () => {
-  test('off by default: gh never runs', { options: { icons: 'ascii' } }, async ($, on) => {
+  test('off by default: gh never runs', { options: { footerIn: 'status', icons: 'ascii' } }, async ($, on) => {
     const session = await setup($ as never, on as never)
     await completeTurn($)
     await session.clock.advance(1000)
     expect(session.processes).not.toContain(GH)
     expect(session.last()).toContain('git:main stash:1')
   })
-  test('on: one gh call, the footer shows it, cached for five minutes', { options: { icons: 'ascii', pullRequest: true } }, async ($, on) => {
+  test('on: one gh call, the footer shows it, cached for five minutes', { options: { footerIn: 'status', icons: 'ascii', pullRequest: true } }, async ($, on) => {
     const session = await setup($ as never, on as never)
     await completeTurn($)
     await session.clock.advance(1000)
@@ -43,7 +43,7 @@ describe('the pull request in the footer (023)', () => {
     await session.clock.advance(1000)
     expect(session.processes.filter(p => p === GH).length).toBe(2)
   })
-  test('no pull request (gh exits 1): nothing shows, no error', { options: { icons: 'ascii', pullRequest: true } }, async ($, on) => {
+  test('no pull request (gh exits 1): nothing shows, no error', { options: { footerIn: 'status', icons: 'ascii', pullRequest: true } }, async ($, on) => {
     const session = await setup($ as never, on as never)
     session.script.processes[GH] = { exitCode: 1, stderr: 'no pull requests found' }
     await completeTurn($)

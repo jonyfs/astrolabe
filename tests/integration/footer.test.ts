@@ -37,7 +37,7 @@ const setup = async ($: never, on: never, tree = halfDone.tree) => {
 }
 
 describe('the footer (018 US1)', () => {
-  test('model and effort from the last main request, context and cost from the measure', { options: { icons: 'ascii' } }, async ($, on) => {
+  test('model and effort from the last main request, context and cost from the measure', { options: { footerIn: 'status', icons: 'ascii' } }, async ($, on) => {
     const session = await setup($ as never, on as never)
     await step($ as never, 'claude-opus-5-5', 'high')
     await step($ as never, 'claude-haiku-4-5-20251001', 'low', 'sub-1')
@@ -51,7 +51,7 @@ describe('the footer (018 US1)', () => {
     expect(text).toContain('$1.20')
   })
 
-  test('git: one query per main turn, never while drawing; the counts show', { options: { icons: 'ascii' } }, async ($, on) => {
+  test('git: one query per main turn, never while drawing; the counts show', { options: { footerIn: 'status', icons: 'ascii' } }, async ($, on) => {
     const session = await setup($ as never, on as never, withGit)
     session.script.processes[GIT] = { stdout: PORCELAIN }
     await completeTurn($)
@@ -61,21 +61,21 @@ describe('the footer (018 US1)', () => {
     expect(session.processes.filter(p => p === GIT).length).toBe(2)
   })
 
-  test('a failing git leaves the branch read from the files', { options: { icons: 'ascii' } }, async ($, on) => {
+  test('a failing git leaves the branch read from the files', { options: { footerIn: 'status', icons: 'ascii' } }, async ($, on) => {
     const session = await setup($ as never, on as never, withGit)
     await completeTurn($)
     expect(session.last()).toContain('git:main')
     expect(session.logs).toEqual([])
   })
 
-  test('no git repository: no query and no git part', { options: { icons: 'ascii' } }, async ($, on) => {
+  test('no git repository: no query and no git part', { options: { footerIn: 'status', icons: 'ascii' } }, async ($, on) => {
     const session = await setup($ as never, on as never)
     await completeTurn($)
     expect(session.processes.filter(p => p.startsWith('git'))).toEqual([])
     expect(session.last()).not.toContain('git:')
   })
 
-  test('the session duration grows', { options: { icons: 'ascii' } }, async ($, on) => {
+  test('the session duration grows', { options: { footerIn: 'status', icons: 'ascii' } }, async ($, on) => {
     const session = await setup($ as never, on as never)
     await session.clock.advance(65 * 60_000)
     await completeTurn($)
@@ -92,15 +92,15 @@ describe('icons by surface (018 US2)', () => {
     await measure($)
     return session
   }
-  test('auto: Nerd Font glyphs in the terminal', async ($, on) => {
+  test('auto: Nerd Font glyphs in the terminal', { options: { footerIn: 'status' } }, async ($, on) => {
     const session = await start($ as never, on as never, 'terminal')
     expect(session.last()).toContain('\uf1c0 61%')
   })
-  test('auto: emoji in the Desktop app', async ($, on) => {
+  test('auto: emoji in the Desktop app', { options: { footerIn: 'status' } }, async ($, on) => {
     const session = await start($ as never, on as never, 'desktop')
     expect(session.last()).toContain('🧠 61%')
   })
-  test('ascii wins everywhere when chosen', { options: { icons: 'ascii' } }, async ($, on) => {
+  test('ascii wins everywhere when chosen', { options: { footerIn: 'status', icons: 'ascii' } }, async ($, on) => {
     const session = await start($ as never, on as never, 'desktop')
     expect(session.last()).toContain('ctx 61%')
     expect(/^[\x20-\x7e◆·]*$/.test(session.last() ?? '')).toBe(true)

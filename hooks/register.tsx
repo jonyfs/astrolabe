@@ -57,7 +57,7 @@ import { askTree } from './surfaces/ask'
 import { dashboardTree } from './surfaces/dashboard'
 import { dial, kpiRows, phaseBars, sparkline, usageChart } from './core/dashboard'
 import { addWeek, estimateLeft, slowest, weekKey, type Weeks } from './core/history'
-import { footerText } from './core/footer'
+import { footerText, type FooterInput } from './core/footer'
 import { parseGitStatus, parsePullRequest } from './core/git-status'
 import { iconSet, iconsFor } from './core/icons'
 import { guessLang, langOf, t, type Lang } from './core/i18n'
@@ -87,7 +87,7 @@ const helpText = (lang: Lang): string =>
     `  2 ${t(lang, 'tab.tasks').padEnd(10)} ${t(lang, 'help.tasksTab')}`,
     `  3 ${t(lang, 'tab.session').padEnd(10)} ${t(lang, 'help.sessionTab')}`,
     `  4 ${t(lang, 'tab.dashboard').padEnd(10)} ${t(lang, 'help.dashboardTab')}`,
-    `${t(lang, 'help.options')} (preset, flavor, icons, language, checkUpdates, governUsage, askOnLimit, costBudget, pullRequest, images, autoReload).`,
+    `${t(lang, 'help.options')} (preset, flavor, icons, language, checkUpdates, governUsage, askOnLimit, costBudget, pullRequest, images, autoReload, footerIn).`,
   ].join('\n')
 const ASK = { plugin: 'astrolabe', key: 'ask' } as const
 const DEFAULT_PANE: PaneState = { tab: 'specs', autoOpened: false }
@@ -132,11 +132,16 @@ const kindOf = (usage: UsageState, now: number): { kind?: string } => {
 
 /** The status entry: the footer of spec 018, the Spec Kit part first (008, 018). */
 async function showStatus($: EngineInterface, state: Held['state']): Promise<void> {
+  // With the footer in the pane (035), the status entry keeps only what is never dropped.
+  $.ui.status(footerText({ ...(await footerInput($, state, Math.max(20, columnsSeen - 14))), lead: footerIn === 'pane' }))
+}
+
+/** What the footer shows, for the status entry and the pane alike (018, 035). */
+async function footerInput($: EngineInterface, state: Held['state'], width: number): Promise<FooterInput> {
   const usage = (await $.state.get(USAGE)).value ?? DEFAULT_USAGE
   const stats = (await $.state.get(SESSION)).value
   const now = await $.clock.now()
-  $.ui.status(
-    footerText({
+  return {
       speckit: columns => formatStatus(state, columns, currentLang()),
       lang: currentLang(),
       readings: usage.readings,
@@ -149,10 +154,12 @@ async function showStatus($: EngineInterface, state: Held['state']): Promise<voi
       ...(stats === undefined ? {} : { startedAt: stats.startedAt }),
       now,
       icons: iconSet(iconsFor(iconsOption, surfaceSeen as never)),
-      columns: Math.max(20, columnsSeen - 14),
-    }),
-  )
+      columns: width,
+  }
 }
+
+// Where the footer goes (035): the pane (the status entry keeps the lead), the status entry, or both.
+let footerIn: 'pane' | 'status' | 'both' = 'pane'
 
 /** Writes what the session counted since the last write, merged with `change`, if anything moved. */
 async function flushStats($: EngineInterface, change: (s: SessionStats) => SessionStats = s => s): Promise<void> {
@@ -988,6 +995,7 @@ export const register: Register = (on, options) => {
   pullRequests = options['pullRequest'] === true
   budget = typeof options['costBudget'] === 'number' && options['costBudget'] > 0 ? options['costBudget'] : 0
   iconsOption = options['icons']
+  footerIn = options['footerIn'] === 'status' || options['footerIn'] === 'both' ? options['footerIn'] : 'pane'
   autoReload = options['autoReload'] !== false
   imagesOption = options['images']
   languageOption = options['language']
@@ -1355,9 +1363,25 @@ export const register: Register = (on, options) => {
       const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
       await $.state.set(PANE_STATE, { ...held, tab })
     }
+    // The footer under every tab (035), held at the bottom when the tab is shorter than the pane.
+    const footerFor = async (contentRows: number) => {
+      if (footerIn === 'status') return undefined
+      const text = footerText(await footerInput($, state, columns))
+      const room = e.props.scroll?.bodyRows ?? 0
+      return { text, columns, pad: Math.max(0, room - contentRows - 2) }
+    }
     if (pane.tab !== 'dashboard') {
-      const header = paneHeader($, e, pane, state, (await $.state.get(SESSION)).value)
-      return paneTree({ Box, Text, Button }, pane.tab, rows, tokens, select, undefined, currentLang(), header)
+      const stats = (await $.state.get(SESSION)).value
+      const header = paneHeader($, e, pane, state, stats)
+      // Rows the header takes: the filter, the summary's lines and links, the diff's lines.
+      const headerRows =
+        pane.tab === 'specs'
+          ? ('Input' in $.ui.resolve(e) ? 1 : 0) + (state.activeSummary === undefined ? 0 : state.activeSummary.split('\n').length + 2)
+          : pane.tab === 'tasks' && stats?.tasksDiff !== undefined && stats.tasksDiff.dir === state.active?.dir
+            ? stats.tasksDiff.text.split('\n').length
+            : 0
+      const footer = await footerFor(1 + headerRows + rows.length)
+      return paneTree({ Box, Text, Button }, pane.tab, rows, tokens, select, undefined, currentLang(), header, footer)
     }
     // The Dashboard (018): numbers from $.state only, charts sized to the pane.
     const elements = $.ui.resolve(e)
@@ -1403,6 +1427,7 @@ export const register: Register = (on, options) => {
       ascii,
       currentLang(),
     )
-    return paneTree({ Box, Text, Button }, pane.tab, rows, tokens, select, body, currentLang())
+    // The Dashboard is taller than most panes: its footer follows the charts.
+    return paneTree({ Box, Text, Button }, pane.tab, rows, tokens, select, body, currentLang(), [], await footerFor(Number.MAX_SAFE_INTEGER))
   })
 }
