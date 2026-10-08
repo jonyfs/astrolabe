@@ -130,9 +130,9 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 
 ### Helping Claude work better
 
-- [ ] T084 #84 A context line for Claude names the current task and its acceptance line from the spec (P1)
-- [ ] T085 #85 When a turn ends with no task ticked after 3 turns on the same one, a toast suggests `/compact` or splitting the task (P1)
-- [ ] T086 #86 Before `/speckit-implement`, a nudge to run `/speckit-analyze` when it has not run (P1)
+- [x] T084 #84 A context line for Claude names the current task and its acceptance line from the spec (P1)
+- [x] T085 #85 When a turn ends with no task ticked after 3 turns on the same one, a toast suggests `/compact` or splitting the task (P1)
+- [x] T086 #86 Before `/speckit-implement`, a nudge to run `/speckit-analyze` when it has not run (P1)
 - [ ] T087 #87 The next command proposed in the prompt box carries the feature id (`/speckit-plan 054`) (P2)
 - [ ] T088 #88 A `focus` mode: the context line tells Claude to touch only files the current task names (P2)
 - [ ] T089 #89 [P] tasks offered as one prompt that dispatches them to subagents (P2)

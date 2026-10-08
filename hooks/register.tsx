@@ -591,6 +591,10 @@ const featureContext = (state: SpeckitState): string | undefined => {
     `the active Spec Kit feature is ${feature.id} ${feature.name}, phase ${feature.phase}${feature.total === 0 ? '' : `, ${feature.done} of ${feature.total} tasks done`}`,
     ...(state.currentTask === undefined ? [] : [`the current task is ${state.currentTask.id === undefined ? '' : `${state.currentTask.id} `}${state.currentTask.text}`]),
     ...(state.nextCommand === undefined ? [] : [`the next command is ${state.nextCommand}`]),
+    // What still blocks the feature (054 #84, #86): open questions, open checklist items, analyze not run.
+    ...((feature.clarifications ?? 0) > 0 || feature.warnings.includes('clarification-after-plan') ? ['the spec still has [NEEDS CLARIFICATION] markers'] : []),
+    ...((feature.checklist?.open ?? 0) > 0 ? [`${feature.checklist!.open} checklist items are open`] : []),
+    ...(feature.phase === 'implement' && !state.isAnalyzed && feature.done === 0 ? ['/speckit-analyze has not run on these tasks'] : []),
   ]
   return `Astrolabe: ${parts.join('; ')}.`
 }
@@ -1214,6 +1218,17 @@ async function noteProgress($: EngineInterface, before: Held | undefined, held: 
         ...(ticked > 0 ? { turnTicks: [...(s.turnTicks ?? []), { ms: durationMs, n: ticked }].slice(-20) } : {}),
         ...(isTicked ? { taskTimes: [...(s.taskTimes ?? []), { dir: was!.dir, id: was!.id, ms: now - was!.startedAt }].slice(-50) } : {}),
       }))
+    }
+    // Three turns on one task and nothing ticked: Claude may be spinning (054 #85).
+    const current = held?.state.currentTask?.id ?? held?.state.activeTasks?.find(task => !task.isDone)?.id
+    if (current !== undefined) {
+      let spinning = false
+      await flushStats($, s => {
+        const turns = ticked > 0 || s.spin?.id !== current ? (ticked > 0 ? 0 : 1) : s.spin.turns + 1
+        spinning = turns >= 3 && s.spin?.told !== true
+        return { ...s, spin: { id: current, turns, ...(spinning || (s.spin?.id === current && s.spin.told === true && ticked === 0) ? { told: true as const } : {}) } }
+      })
+      if (spinning && presetOf(optionsSeen).toasts !== 'none') $.ui.toast(t(currentLang(), 'toast.spin', { id: current }))
     }
     if (ticked > 0 || finished > 0) {
       const stored = await $.store.get(HISTORY)
