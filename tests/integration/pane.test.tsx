@@ -104,6 +104,11 @@ describe('/astrolabe help (025 #39)', () => {
       expect(text).toContain(part)
     }
   })
+  test('054 #24: names the footer parts in their fixed order', async ($, on) => {
+    await setup($ as never, on as never)
+    const ran = (await $.command.run({ command: 'astrolabe', args: 'help', origin: { kind: 'composer' } } as never)) as { text?: string }
+    expect(ran.text).toContain('Footer, always in this order: Spec Kit · deciding window · other windows · context · model · skill · git · burn · session time.')
+  })
   test('an unknown argument points at help', async ($, on) => {
     await setup($ as never, on as never)
     const ran = (await $.command.run({ command: 'astrolabe', args: 'bogus', origin: { kind: 'composer' } } as never)) as { text?: string }
