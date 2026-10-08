@@ -48,6 +48,16 @@ describe('the footer (018 FR-001, FR-002)', () => {
     expect(chips[1]?.key).toBe('speckit')
   })
 
+  test('at or past 100% a window reads full (041 #3)', () => {
+    const text = footerText({ ...full, readings: [{ kind: 'five_hour', percentUsed: 30, resetsAt: reset }, { kind: 'seven_day', percentUsed: 100, resetsAt: new Date(NOW + 5 * 86_400_000).toISOString() }], icons: iconSet('ascii'), columns: 200 })
+    expect(text).toContain('7d full ceiling')
+  })
+  test('a burn chip: points an hour and where the window lands at the reset (041 #4)', () => {
+    const text = footerText({ ...full, burn: 10, icons: iconSet('ascii'), columns: 200 })
+    // 7d decides at 83% (hold); its reset is 5 days out, so it lands at 100%.
+    expect(text).toContain('burn 10/h → 100%')
+    expect(footerText({ ...full, burn: 0, icons: iconSet('ascii'), columns: 200 })).not.toContain('/h')
+  })
   test('nerd icons sit before their values', () => {
     const text = footerText({ ...full, icons: iconSet('nerd'), columns: 200 })
     expect(text).toContain(' main ↑2 ↓1  3')

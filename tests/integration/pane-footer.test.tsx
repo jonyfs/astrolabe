@@ -14,8 +14,9 @@ const measure = ($: never) =>
     changed: ['rateLimits', 'context', 'cost'],
   } as never)
 
-const setup = async ($: never, on: never) => {
+const setup = async ($: never, on: never, env: Record<string, string> = {}) => {
   const session = installTree(on, halfDone.tree, '/proj')
+  Object.assign(session.script.env, env)
   installEngine(on)
   installRenderEngine(on)
   installPaneEngine(on)
@@ -42,6 +43,18 @@ describe('the footer in the pane (035)', () => {
       await ui.unmount()
     })
   }
+  test('041 #9: NO_COLOR draws the footer as text with the thin separator', async ($, on) => {
+    await setup($ as never, on as never, { NO_COLOR: '1' })
+    const ui = await mountPane($ as never, 'terminal', 100, 80)
+    expect(await ui.footer()).toMatch(/5h 42% \(2h00m\) · /)
+    await ui.unmount()
+  })
+  test('041 #9: without NO_COLOR the footer is chips', async ($, on) => {
+    await setup($ as never, on as never)
+    const ui = await mountPane($ as never, 'terminal', 100, 80)
+    expect(await ui.footer()).not.toMatch(/5h 42% \(2h00m\) · /)
+    await ui.unmount()
+  })
   test('footerIn status: the old status entry, no pane footer', { options: { icons: 'ascii', footerIn: 'status' } }, async ($, on) => {
     const session = await setup($ as never, on as never)
     expect(session.last()).toContain('ctx 61%')

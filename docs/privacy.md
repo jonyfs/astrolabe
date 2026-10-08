@@ -17,7 +17,8 @@ lists everything it touches; the code in `hooks/` is the place to check it.
 - Its own install: `.claude-plugin/plugin.json` in its folder, to see whether a newer version is
   on disk (`autoReload`).
 - Environment variables: `HOME` and `USERPROFILE` (to find gstack), and `KITTY_WINDOW_ID`,
-  `TERM`, `TERM_PROGRAM` and `TMUX` (to tell whether the terminal draws pictures).
+  `TERM`, `TERM_PROGRAM` and `TMUX` (to tell whether the terminal draws pictures), and `NO_COLOR`
+  (to draw the footer without colours).
 - What Claude Code tells every plugin: usage windows, context size, cost, the model and effort
   of each request, the tools that run and the prompts you type. Astrolabe reads the prompts you type
   only to guess your language and to add its context line.

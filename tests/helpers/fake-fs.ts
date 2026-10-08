@@ -262,6 +262,8 @@ export const installTree = (on: On, tree: Tree, cwd: string, seed: Record<string
     if (e.name === 'HOME' || e.name === 'USERPROFILE') return { value: script.env[e.name] }
     // The terminal's own variables, read to tell whether it draws pictures (024).
     if (['KITTY_WINDOW_ID', 'TERM', 'TERM_PROGRAM', 'TMUX'].includes(e.name)) return { value: script.env[e.name] }
+    // The NO_COLOR convention (041 #9).
+    if (e.name === 'NO_COLOR') return { value: script.env[e.name] }
     forbidden.push(`env.get ${e.name}`)
     return { value: undefined }
   })
