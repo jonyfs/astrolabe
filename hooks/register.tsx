@@ -1993,6 +1993,7 @@ export const register: Register = (on, options) => {
       },
       // What the tab is for, then its keys (048 #72).
       onClose: () => $.ui.close({ id: PANE_ID }).then(() => undefined),
+      ...((el => ('Link' in el ? { Link: el.Link } : {}))($.ui.resolve(e))),
       onFind: pane.tab === 'specs' || pane.tab === 'tasks' || pane.tab === 'help' ? () => $.ui.focus({ requestId: PANE_ID, key: 'astrolabe-filter' }).then(() => undefined) : undefined,
       legend: `${t(currentLang(), ABOUT[pane.tab])} · ${t(currentLang(), pane.tab === 'specs' || pane.tab === 'tasks' || pane.tab === 'help' ? 'legend.specs' : pane.tab === 'config' ? 'legend.config' : 'legend.default')}`,
     }

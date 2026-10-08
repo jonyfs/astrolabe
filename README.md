@@ -429,7 +429,7 @@ Done (1)
   ● 001 core-state  done       ██████████  49/49 100%
 ```
 
-`▸` marks the active feature. `●` is done, `◐` in progress, and `○` abandoned (drawn dim). While a
+`▸` marks the active feature. `●` is done, `◐` in progress, and `○` abandoned (drawn dim). `?2` and `☐3` count a spec's open questions and open checklist items, and `↗` at the end of a row opens its `spec.md`. While a
 Spec Kit skill runs, `⟳` and the skill's name follow the active feature. A narrow pane drops the
 bar first, then the count, then cuts the name; the id always stays. If `.specify/feature.json`
 names a done feature while the git branch names one that is not done, a `!` line says so and
