@@ -126,6 +126,7 @@ export const mountPane = async ($: Mounter, surface: RenderSurface, bodyColumns 
   return {
     body: async () => (await ui.find({ key: 'astrolabe-pane-body' }))?.text ?? '',
     tabs: async () => (await ui.find({ key: 'astrolabe-pane-tabs' }))?.text ?? '',
+    footer: async () => (await ui.find({ key: 'astrolabe-pane-footer' }))?.text ?? '',
     press: (key: string) => ui.press({ key }),
     unmount: () => ui.unmount(),
   }

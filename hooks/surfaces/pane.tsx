@@ -25,6 +25,8 @@ export const paneTree = (
   lang: Lang = 'en',
   /** Drawn above the rows: the filter, the summary, the diff (024). */
   header: readonly RenderNode[] = [],
+  /** The footer under every tab (035), after `pad` blank rows that hold it at the bottom. */
+  footer?: { text: string; pad: number; columns: number },
 ) => (
   <Box flexDirection="column">
     <Box key="astrolabe-pane-tabs" flexDirection="row">
@@ -46,5 +48,18 @@ export const paneTree = (
         </Text>
       ))}
     </Box>
+    {footer === undefined ? null : (
+      <Box flexDirection="column">
+        {Array.from({ length: footer.pad }, () => (
+          <Text> </Text>
+        ))}
+        <Box key="astrolabe-pane-footer" flexDirection="column">
+          <Text color={tokens.pending}>{'─'.repeat(Math.max(1, footer.columns))}</Text>
+          <Text color={tokens.muted} wrap="truncate-end">
+            {footer.text}
+          </Text>
+        </Box>
+      </Box>
+    )}
   </Box>
 )

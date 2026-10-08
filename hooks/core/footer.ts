@@ -21,6 +21,8 @@ export type FooterInput = {
   icons: Icons
   columns: number
   lang?: Lang
+  /** Only the parts never dropped: the Spec Kit part and the deciding window (035). */
+  lead?: boolean
 }
 
 
@@ -102,7 +104,7 @@ const parts = (input: FooterInput): Part[] => {
 
 /** The footer text: Spec Kit first, then the parts in order, fitted to `columns`. */
 export const footerText = (input: FooterInput): string => {
-  let kept = parts(input)
+  let kept = input.lead === true ? parts(input).filter(p => p.rank === 0) : parts(input)
   const join = (speckit: string) => [speckit, ...kept.map(p => p.text)].filter(s => s !== '').join(SEP)
   let text = join(input.speckit())
   while (textWidth(text) > input.columns) {

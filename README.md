@@ -140,10 +140,15 @@ Each part, from left to right:
 
 ### The footer in place of a statusline
 
-The entry is a footer: it carries what a statusline under the prompt usually shows, so you can
-remove a separate `statusLine` command from your settings. When the terminal is too narrow, the
-parts go from the end: duration first, then cost, git, model, the other window and the context.
-The Spec Kit part and the window that decides always stay.
+The footer carries what a statusline under the prompt usually shows, so you can remove a
+separate `statusLine` command from your settings. By default it sits at the bottom of the
+`/astrolabe` pane, under every tab, and the status entry keeps only the Spec Kit part and the
+window that decides (`◆ 002 · implement 45% · 5h 42% (14:00)`). Set `footerIn` to `status` to put
+the whole footer back in the status entry, or `both` for both places. On a tab shorter than the
+pane the footer holds the last rows; the Dashboard is longer, so its footer follows the charts.
+
+When the room is too narrow, the parts go from the end: duration first, then cost, git, model,
+the other window and the context. The Spec Kit part and the window that decides always stay.
 
 | A statusline showed | In Astrolabe |
 |---|---|
@@ -306,6 +311,7 @@ reloads the mod right away.
 | `governUsage` | `true`, `false` | `true` | Usage governance (see [Usage governance](#usage-governance)). Off, the windows still show. |
 | `icons` | `auto`, `nerd`, `emoji`, `ascii` | `auto` | Icons in the footer and the Dashboard. `auto` is Nerd Font glyphs in the terminal and emoji elsewhere. |
 | `language` | `auto`, `en`, `pt-BR`, `es`, `fr` | `auto` | The language of the pane, the Dashboard, the governor's questions, the toasts and `/astrolabe help`. `auto` follows the language you type in, English until a prompt says enough. What Claude reads (refusals, resume prompts) stays in English. |
+| `footerIn` | `pane`, `status`, `both` | `pane` | Where the footer goes: the bottom of the `/astrolabe` pane (the status entry keeps the Spec Kit part and the deciding window), the status entry, or both. |
 | `autoReload` | `true`, `false` | `true` | After a turn, when the Astrolabe on disk is newer than the one running (an install from a local clone, an update), run `/reload-plugins` once so the new version loads. Off, a toast says to run it. |
 | `images` | `auto`, `on`, `off` | `auto` | Draw the Dashboard's usage chart as a picture. `auto` does on kitty and Ghostty outside tmux. |
 | `pullRequest` | `true`, `false` | `false` | Show the branch's open pull request and its checks in the footer, from `gh`. See [The footer in place of a statusline](#the-footer-in-place-of-a-statusline). |
