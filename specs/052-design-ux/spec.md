@@ -79,6 +79,6 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 - [ ] T045 #45 A footer chip cut to fit shows its whole text on hover (P3)
 - [ ] T046 #46 For the first three sessions the footer ends with a `/astrolabe help` chip (P3)
 - [x] T047 #47 The accessible mode spells every mark (`priority high`, `blocked`, `parallel`) (P1)
-- [ ] T048 #48 Muted and dim rows meet 4.5:1 contrast on the light flavor (latte) (P1)
+- [x] T048 #48 Muted and dim rows meet 4.5:1 contrast on the light flavor (latte) (P1)
 - [x] T049 #49 The ascii icon set also covers the pane's own marks: `⇉ ┌ │ └ ↗ ✕ ⏱ ⟳ ↑ ↓` (P1)
 - [ ] T050 #50 `h` opens the Help tab from any tab, and the legend says so (P2)
