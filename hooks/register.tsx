@@ -186,7 +186,7 @@ const PR_TTL_MS = 300_000
 
 // The session's numbers between writes (018): a tool call costs no state write; they are
 // written at the end of each main turn and at each measure. A reload loses one turn's counts.
-const live = { toolCalls: 0, drifts: 0, agentsRun: 0, agentsQueued: 0, model: undefined as string | undefined, effort: undefined as string | undefined }
+const live = { toolCalls: 0, drifts: 0, driftsById: {} as Record<string, number>, agentsRun: 0, agentsQueued: 0, model: undefined as string | undefined, effort: undefined as string | undefined }
 // The footer's room: the last width a drawing saw, less the "⚠ astrolabe: " the terminal adds.
 let columnsSeen = 120
 let surfaceSeen: string | null = 'terminal'
@@ -253,6 +253,9 @@ async function flushStats($: EngineInterface, change: (s: SessionStats) => Sessi
       ...before,
       toolCalls: before.toolCalls + live.toolCalls,
       drifts: before.drifts + live.drifts,
+      ...(Object.keys(live.driftsById).length === 0
+        ? {}
+        : { driftsByFeature: Object.fromEntries([...new Set([...Object.keys(before.driftsByFeature ?? {}), ...Object.keys(live.driftsById)])].map(id => [id, (before.driftsByFeature?.[id] ?? 0) + (live.driftsById[id] ?? 0)])) }),
       agentsRun: before.agentsRun + live.agentsRun,
       agentsQueued: before.agentsQueued + live.agentsQueued,
       ...(live.model === undefined ? {} : { model: live.model }),
@@ -263,6 +266,7 @@ async function flushStats($: EngineInterface, change: (s: SessionStats) => Sessi
     if ((await $.state.set(SESSION, next, { ifVersion: version })).isSet) {
       live.toolCalls = 0
       live.drifts = 0
+      live.driftsById = {}
       live.agentsRun = 0
       live.agentsQueued = 0
       return
@@ -1289,6 +1293,9 @@ async function touchFile(
   })
   if (held !== undefined && drift !== undefined && preset.toasts !== 'none') {
     live.drifts += 1
+    // Per feature too (054 #35): the one active when the alarm went off.
+    const id = held.state.active?.id
+    if (id !== undefined) live.driftsById[id] = (live.driftsById[id] ?? 0) + 1
     $.ui.toast(drift)
   }
 }

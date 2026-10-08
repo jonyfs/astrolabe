@@ -128,6 +128,14 @@ describe('context a task (054 #34)', () => {
   })
 })
 
+describe('drift alarms per feature (054 #35)', () => {
+  test('the total, then each feature, most first', () => {
+    const base = { startedAt: 0, turns: 1, toolCalls: 0, drifts: 3, agentsRun: 0, agentsQueued: 0, series: [] }
+    expect(Object.fromEntries(kpiRows(base, undefined, 1))['drift alarms']).toBe('3')
+    expect(Object.fromEntries(kpiRows({ ...base, driftsByFeature: { '004': 1, '002': 2 } }, undefined, 1))['drift alarms']).toBe('3 (002: 2, 004: 1)')
+  })
+})
+
 describe('the first row (054 #23)', () => {
   test('adds where the deciding window lands at its reset', () => {
     const NOW3 = Date.UTC(2026, 9, 8, 12)
