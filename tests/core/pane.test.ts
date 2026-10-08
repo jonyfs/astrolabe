@@ -169,3 +169,12 @@ describe('filterFeatures (054 #21)', () => {
     expect(filterFeatures(fs, 'is:done', '002-band-hint', 'abandoned').map(x => x.id)).toEqual(['001'])
   })
 })
+
+describe('worktrees on the Specs tab (054 #49, #52)', () => {
+  test('a feature row names its worktrees; two on one feature is a warning', () => {
+    const rows = specsRows(state(), 140, 'en', {}, { '002': ['wt-a', 'wt-b'] })
+    expect(texts(rows).find(t => t.includes('002 band-hint'))).toContain('⑂ wt-a, wt-b')
+    expect(texts(rows)).toContain('! 002 is open in two worktrees (wt-a, wt-b): their changes will collide')
+    expect(texts(specsRows(state(), 140, 'en', {}, { '002': ['wt-a'] })).some(t => t.includes('collide'))).toBe(false)
+  })
+})

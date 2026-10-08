@@ -20,7 +20,7 @@ const cut = (text: string, room: number): string =>
 const markOf = (f: Feature): string => (f.phase === 'done' ? '●' : f.phase === 'abandoned' ? '○' : '◐')
 
 /** What a row shows besides the feature: the name column's width and the skill running on it (044). */
-type RowContext = { nameWidth: number; countWidth: number; running?: string; priority?: Priority }
+type RowContext = { nameWidth: number; countWidth: number; running?: string; priority?: Priority; worktrees?: readonly string[] }
 
 const featureRow = (f: Feature, isActive: boolean, columns: number, ctx: RowContext): PaneRow => {
   // Not read yet in a large project (040): a mark and no phase until its batch lands.
@@ -38,7 +38,9 @@ const featureRow = (f: Feature, isActive: boolean, columns: number, ctx: RowCont
     f.clarifications !== undefined && f.clarifications > 0 ? `?${f.clarifications}` : '',
     f.checklist !== undefined && f.checklist.open > 0 && f.phase !== 'done' && f.phase !== 'abandoned' ? `☐${f.checklist.open}` : '',
   ].filter(c => c !== '')
-  const running = `${chips.length === 0 ? '' : `  ${chips.join(' ')}`}${ctx.running === undefined ? '' : `  ⟳ ${ctx.running}`}`
+  // The worktrees working on this feature (054 #49).
+  const trees = ctx.worktrees === undefined || ctx.worktrees.length === 0 ? '' : `  ⑂ ${ctx.worktrees.join(', ')}`
+  const running = `${chips.length === 0 ? '' : `  ${chips.join(' ')}`}${trees}${ctx.running === undefined ? '' : `  ⟳ ${ctx.running}`}`
   const name = f.name.padEnd(ctx.nameWidth)
   const phase = f.phase.padEnd(9)
   // Columns line up across rows (044); narrower panes drop the bar, then the count, then cut the name.
@@ -64,7 +66,14 @@ const WARNING_TEXT = {
   'feature-json-malformed': 'pane.jsonMalformed',
 } as const
 
-export const specsRows = (state: SpeckitState, columns: number, lang: Lang = 'en', priorities: Priorities = {}): PaneRow[] => {
+export const specsRows = (
+  state: SpeckitState,
+  columns: number,
+  lang: Lang = 'en',
+  priorities: Priorities = {},
+  /** Feature id to the worktrees working on it (054 #49). */
+  worktrees: Readonly<Record<string, readonly string[]>> = {},
+): PaneRow[] => {
   if (!state.present) return [noSpeckit(lang)]
   if (state.features.length === 0) return [{ key: 'empty', text: tr(lang, 'pane.noFeatures'), role: 'muted' }]
   const activeDir = state.active?.dir
@@ -81,11 +90,15 @@ export const specsRows = (state: SpeckitState, columns: number, lang: Lang = 'en
     if (inSection.length === 0) continue
     rows.push({ key: `section-${section}`, text: `${tr(lang, `pane.section.${section}`)} (${inSection.length})`, role: 'muted' })
     for (const f of inSection) {
-      const row = featureRow(f, activeDir === f.dir, columns - 2, { ...ctx, ...(running !== undefined && f.dir === activeDir ? { running } : {}), ...(priorities[f.id] === undefined ? {} : { priority: priorities[f.id] }) })
+      const row = featureRow(f, activeDir === f.dir, columns - 2, { ...ctx, ...(running !== undefined && f.dir === activeDir ? { running } : {}), ...(priorities[f.id] === undefined ? {} : { priority: priorities[f.id] }), ...(worktrees[f.id] === undefined ? {} : { worktrees: worktrees[f.id] }) })
       // A link to the feature's spec.md (044 #35).
       const root = state.root
       rows.push(root === undefined || f.warnings.includes('loading') ? row : { ...row, href: fileUrl(`${root}/specs/${f.dir}/spec.md`) })
     }
+  }
+  // One feature in two worktrees: their work will collide (054 #52).
+  for (const [id, trees] of Object.entries(worktrees)) {
+    if (trees.length > 1) rows.push({ key: `warning-worktrees-${id}`, text: tr(lang, 'pane.worktreeClash', { id, list: trees.join(', ') }), role: 'current' })
   }
   // feature.json names a finished feature while the branch names another one (044 #34).
   const active = state.features.find(f => f.dir === activeDir)
@@ -98,6 +111,7 @@ export const specsRows = (state: SpeckitState, columns: number, lang: Lang = 'en
     rows.push({ key: 'warning-active', text: tr(lang, 'pane.showing', { why: tr(lang, WARNING_TEXT[state.activeWarning]), showing }), role: 'current' })
   }
   for (const f of state.features) {
+    if (f.warnings.includes('no-spec')) rows.push({ key: `nospec-${f.id}`, text: tr(lang, 'pane.noSpec', { id: f.id, dir: f.dir }), role: 'current' })
     if (f.warnings.includes('clarification-after-plan')) {
       rows.push({ key: `warning-${f.id}`, text: tr(lang, 'pane.clarifyLeft', { id: f.id }), role: 'current' })
     }

@@ -38,7 +38,7 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 - [ ] T016 #16 A broken `.specify/extensions.yml` is named in the Session tab with its line (P2)
 - [ ] T017 #17 A reload keeps the pane's scroll, filter and tab (state survives; module values rebuilt) (P2)
 - [ ] T018 #18 The governor's queue survives a reload and says so (`3 waiting since 14:02`) (P2)
-- [ ] T019 #19 A feature folder without spec.md shows as `?` with the reason, never as `specify` silently (P1)
+- [x] T019 #19 A feature folder without spec.md shows as `?` with the reason, never as `specify` silently (P1)
 - [ ] T020 #20 Two sessions on one project never toast the same phase move twice (P3)
 
 ### Information organized
@@ -80,10 +80,10 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 
 ### Worktrees
 
-- [ ] T049 #49 The Specs tab marks each feature that has a worktree, with its folder (P1)
+- [x] T049 #49 The Specs tab marks each feature that has a worktree, with its folder (P1)
 - [ ] T050 #50 A worktree whose branch is merged shows `merged` and the command that removes it (P2)
 - [ ] T051 #51 A worktree with uncommitted changes shows how many (P2)
-- [ ] T052 #52 Two worktrees on one feature are flagged as a conflict (P1)
+- [x] T052 #52 Two worktrees on one feature are flagged as a conflict (P1)
 - [ ] T053 #53 `/astrolabe worktrees` lists them all as text (P2)
 - [ ] T054 #54 The band names the worktree the session runs in when it is not the main one (P2)
 - [ ] T055 #55 A worktree's tasks count toward its feature's progress in the main checkout (P2)
