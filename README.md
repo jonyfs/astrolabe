@@ -423,7 +423,7 @@ switch tabs right away, and Esc closes it. Later, focus it again with a click or
 On Specs, Tasks and Help, `f` puts the cursor in one filter that keeps the rows holding what you
 type (a filter that keeps nothing says so); on Specs, `s` cycles a status filter (all, in progress, next up, done, abandoned), and `is:done` in the filter does the same; in a narrow pane the legend keeps only the keys; `✕` at the end of the tab row closes the pane.
 
-A tab label carries a count when there is one: `Specs 3` features in progress, `Tasks 11` open
+Below 80 columns a tab shows only its number and count (`2·11`). A tab label carries a count when there is one: `Specs 3` features in progress, `Tasks 11` open
 tasks of the active feature, `PRs 2` open pull requests. Above the footer, a dim row says what the
 tab is for and lists its keys, such as
 `every feature, its phase and progress · 1-7 tabs · f filters · s status · j/k scroll · Esc closes`. A tab with
@@ -505,7 +505,7 @@ folder with several Spec Kit projects under it, `other roots` names them, and
 
 **4 Dashboard** puts the session in numbers and charts:
 
-- a first row of chips: tasks done, burn rate and context (`tasks 9/20 │ burn 12/h │ context 61%`);
+- a first row of chips: tasks done, burn rate and context (`tasks 9/20 │ burn 12/h │ context 61%`), the burn and context chips green, yellow or red like the footer;
 - an astrolabe dial with the six Spec Kit steps around a ring, the active feature's step marked
   `●` with the needle on it, earlier steps ticked `✓`;
 - the active feature's tasks done out of all of them;

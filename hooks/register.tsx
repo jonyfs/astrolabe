@@ -2187,6 +2187,7 @@ export const register: Register = (on, options) => {
       },
       // What the tab is for, then its keys (048 #72).
       onClose: () => $.ui.close({ id: PANE_ID }).then(() => undefined),
+      columns,
       marks: accessible ? ('words' as const) : iconsFor(iconsOption, e.surface) === 'ascii' ? ('ascii' as const) : ('unicode' as const),
       // s cycles the Specs tab's status filter (054 #21).
       ...(pane.tab === 'specs'
@@ -2205,7 +2206,8 @@ export const register: Register = (on, options) => {
             },
           }
         : {}),
-      ...((el => ('Link' in el ? { Link: el.Link } : {}))($.ui.resolve(e))),
+      // file: links open only from the terminal; the desktop draws them as plain text, so none there.
+      ...((el => ('Link' in el && e.surface === 'terminal' ? { Link: el.Link } : {}))($.ui.resolve(e))),
       onFind: pane.tab === 'specs' || pane.tab === 'tasks' || pane.tab === 'help' ? () => $.ui.focus({ requestId: PANE_ID, key: 'astrolabe-filter' }).then(() => undefined) : undefined,
       // What the tab is for, then its keys; a narrow pane keeps the keys whole (052 #3).
       legend: ((about: string, keys: string) => ([...`${about} · ${keys}`].length <= columns ? `${about} · ${keys}` : keys))(

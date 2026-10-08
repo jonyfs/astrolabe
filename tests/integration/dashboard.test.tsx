@@ -79,7 +79,7 @@ describe('the Dashboard tab (018 US3)', () => {
     await setup($ as never, on as never)
     const ui = await mountPane($ as never, 'desktop', 80, 60)
     await ui.press('tab-dashboard')
-    expect(await ui.body()).toContain('No usage reading yet.')
+    expect(await ui.body()).toContain('No usage reading yet: send a prompt; the reading comes after the turn.')
     await ui.unmount()
   })
 })

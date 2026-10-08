@@ -288,3 +288,14 @@ describe('the Session tab in blocks (052 #24, #25)', () => {
     await ui.unmount()
   })
 })
+
+describe('a narrow tab row (052 #1)', () => {
+  test('under 80 columns a tab is its number and badge', async ($, on) => {
+    await setup($ as never, on as never)
+    const ui = await mountPane($ as never, 'terminal', 60, 30)
+    const tabs = await ui.tabs()
+    expect(tabs).toContain('2·11')
+    expect(tabs).not.toContain('Tasks')
+    await ui.unmount()
+  })
+})

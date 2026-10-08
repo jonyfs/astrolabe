@@ -24,7 +24,7 @@ export type DashboardView = {
   progress?: string
   kpis: ReadonlyArray<[string, string]>
   /** Short KPI chips drawn first (046 #51). */
-  chips?: readonly string[]
+  chips?: ReadonlyArray<{ text: string; level?: number }>
   /** The usage chart as pixels, where the terminal draws pictures (024 #5). */
   chartImage?: { rgba: string; width: number; height: number; columns: number; rows: number; alt: string }
   /** The dial's frames for the animated dial (024 #6). */
@@ -55,8 +55,8 @@ export const dashboardSections = (el: Elements, view: DashboardView, tokens: Tok
       node: (
         <el.Box key="astrolabe-kpi-chips" flexDirection="row">
           {chips.map((chip, i) => (
-            <el.Text key={`kpi-chip-${i}`} color={ascii ? tokens.text : tokens.accent} bold>
-              {ascii ? `[${chip}]${i < chips.length - 1 ? ' ' : ''}` : ` ${chip} ${i < chips.length - 1 ? '│' : ''}`}
+            <el.Text key={`kpi-chip-${i}`} color={ascii ? tokens.text : chip.level === undefined ? tokens.accent : chip.level < 60 ? tokens.done : chip.level < 85 ? tokens.current : tokens.blocked} bold>
+              {ascii ? `[${chip.text}]${i < chips.length - 1 ? ' ' : ''}` : ` ${chip.text} ${i < chips.length - 1 ? '│' : ''}`}
             </el.Text>
           ))}
         </el.Box>

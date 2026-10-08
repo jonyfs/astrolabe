@@ -14,7 +14,7 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 
 ### The pane's frame
 
-- [ ] T001 #1 Below 80 columns the tab row turns each label into its number and badge (`1·3 2·11`), so seven tabs, `f`, `p` and `✕` never wrap (P1)
+- [x] T001 #1 Below 80 columns the tab row turns each label into its number and badge (`1·3 2·11`), so seven tabs, `f`, `p` and `✕` never wrap (P1)
 - [ ] T002 #2 The tab shown also gets `▸` before its label, beyond the button's colour (P2)
 - [x] T003 #3 The legend row cuts the tab's description first and keeps the keys whole (P1)
 - [ ] T004 #4 The pane's title names the active feature (`🧭 Astrolabe · 026 claude-context`) (P2)
@@ -55,12 +55,12 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 
 ### Dashboard
 
-- [ ] T030 #30 KPI chips take the footer's ramp: context and burn green, yellow, red (P1)
+- [x] T030 #30 KPI chips take the footer's ramp: context and burn green, yellow, red (P1)
 - [ ] T031 #31 One blank row between Dashboard sections, and every section titled the same way (P2)
 - [ ] T032 #32 From 100 columns the KPI rows sit in two columns (P3)
 - [ ] T033 #33 The chart's axis says `%` and its first and last times (P2)
 - [ ] T034 #34 The dial names the current step under it (P2)
-- [ ] T035 #35 Before the first reading the chart's place says what brings one (`send a prompt; the reading comes after the turn`) (P1)
+- [x] T035 #35 Before the first reading the chart's place says what brings one (`send a prompt; the reading comes after the turn`) (P1)
 
 ### Help, Config, PRs
 
