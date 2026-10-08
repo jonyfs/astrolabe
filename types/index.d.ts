@@ -34,13 +34,15 @@ export type FeatureFiles = {
   compact?: true
   /** The spec's summary for the pane (024), kept when the spec text is compacted. */
   summary?: string
+  /** Not read yet: a large project reads it after the band draws (040). */
+  deferred?: true
   /** Each task's line in its file (024), kept when the tasks are compacted. */
   taskLines?: number[]
   /** The tasks came from a quick spec's `## Tasks` section: there is no tasks.md (024). */
   tasksInSpec?: true
 }
 
-export type FeatureWarning = 'clarification-after-plan' | 'unreadable-spec' | 'unreadable-tasks'
+export type FeatureWarning = 'clarification-after-plan' | 'unreadable-spec' | 'unreadable-tasks' | 'loading'
 
 export type Feature = {
   id: string

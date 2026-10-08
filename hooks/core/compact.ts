@@ -42,5 +42,6 @@ export const compactFiles = (files: FeatureFiles): FeatureFiles =>
         ...((summary => (summary === undefined ? {} : { summary }))(files.spec === undefined ? undefined : specSummary(files.spec))),
         ...(files.tasks === undefined ? {} : { taskLines: files.taskLines ?? parseTasks(files.tasks).map(t => t.line) }),
         ...(files.tasksInSpec === undefined ? {} : { tasksInSpec: files.tasksInSpec }),
+        ...(files.deferred === undefined ? {} : { deferred: files.deferred }),
         compact: true,
       }

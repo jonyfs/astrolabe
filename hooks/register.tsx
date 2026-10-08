@@ -58,7 +58,7 @@ import { emptyMemo, type PaneState, type PaneTab, type UpdateId, type UpdateItem
 import type { Preset } from './core/presets'
 import type { Fs } from './io/fs-port'
 import { findRoot } from './io/root'
-import { applyFileTouch, applyRead, applyShell, applySkill, type Held, reconcileStart, reconcileTurn } from './io/reconcile'
+import { applyFileTouch, applyRead, applyShell, applySkill, type Held, reconcileDeferred, reconcileStart, reconcileTurn } from './io/reconcile'
 import { bandRow, nextRow, updatesRow } from './surfaces/band'
 import { askTree } from './surfaces/ask'
 import { dashboardSections, dashboardTree } from './surfaces/dashboard'
@@ -216,6 +216,25 @@ async function readGit($: EngineInterface, root: string | undefined, branch: str
 }
 
 let prRunning = false
+
+const DEFER_BATCH = 100
+
+/** Reads the deferred features a batch at a time, one timer each, until none is left (040). */
+async function loadDeferred($: EngineInterface): Promise<void> {
+  try {
+    const held = (await $.state.get(SPECKIT)).value
+    const pending = held?.features.filter(f => f.warnings.includes('loading')).map(f => f.dir) ?? []
+    if (pending.length === 0) return
+    const batch = pending.slice(0, DEFER_BATCH)
+    const now = await $.clock.now()
+    const fs = fsOf($)
+    const next = await guarded($, async previous => (previous === undefined ? undefined : reconcileDeferred(fs, previous, batch, now)))
+    if (next !== undefined) await showStatus($, next.state)
+    if (pending.length > batch.length) $.clock.after(0, () => void loadDeferred($))
+  } catch (error) {
+    $.ui.log(`astrolabe: ${error instanceof Error ? error.message : String(error)}`, { to: 'debug' })
+  }
+}
 
 // skillModels (030): off, or auto to send a skill's requests with the model and effort it does best with.
 let skillModels: unknown = 'off'
@@ -1426,6 +1445,8 @@ export const register: Register = (on, options) => {
     const now = await $.clock.now()
     const started = await guarded($, previous => reconcileStart(fs, e.cwd, previous, now))
     await afterReconcile($, preset, started)
+    // A large project reads its other features in batches after the band draws (040).
+    if (started?.state.features.some(f => f.warnings.includes('loading')) === true) $.clock.after(0, () => void loadDeferred($))
     // The baseline for the next turn's tasks diff, and the theme's lightness for the charts (024).
     turnTasks = started?.state.active === undefined || started.state.activeTasks === undefined ? undefined : { dir: started.state.active.dir, tasks: started.state.activeTasks }
     try {

@@ -18,6 +18,8 @@ const cut = (text: string, room: number): string =>
 const markOf = (f: Feature): string => (f.phase === 'done' ? '●' : f.phase === 'abandoned' ? '○' : '◐')
 
 const featureRow = (f: Feature, isActive: boolean, columns: number): PaneRow => {
+  // Not read yet in a large project (040): a mark and no phase until its batch lands.
+  if (f.warnings.includes('loading')) return { key: `feature-${f.id}`, text: `${isActive ? '▸' : ' '} … ${f.id} ${f.name}`, role: 'muted', dim: true }
   const head = `${isActive ? '▸' : ' '} ${markOf(f)} ${f.id} `
   const percent = f.total > 0 ? ` ${Math.floor((f.done * 100) / f.total)}%` : ''
   const filled = f.total > 0 ? Math.floor((f.done * BAR_CELLS) / f.total) : 0

