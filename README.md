@@ -486,7 +486,7 @@ after each turn from the branch name (`026-...`) and that worktree's files:
 ⑂ astrolabe-dev  ◐ 026 claude-context  implement 3/5
 ```
 
-**2 Tasks** lists the active feature's open tasks in file order, after a count:
+**2 Tasks** lists the active feature's open tasks in file order, after a count. In the terminal each task ends with `↗`, a link to its line (`tasks.md#L42`, or `spec.md` for a quick spec):
 
 ![The pane, Tasks tab](docs/images/pane-tasks.svg)
 
