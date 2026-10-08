@@ -23,7 +23,8 @@ import {
   updateLabel,
 } from './core/updates'
 import { fileUrl, joinPath } from './core/paths'
-import { configMark, GSTACK_SKILLS, nextPriority, OPTION_GROUPS, optionDefaults, optionGroup, parsePriority, REVIEW_MODEL, reviewPrompt, withPriority, type OptionGroup, type Priority } from './core/spec-actions'
+import { configMark, GSTACK_SKILLS, nextPriority, OPTION_GROUPS, optionDefaults, optionGroup, parallelPrompt, parsePriority, REVIEW_MODEL, reviewPrompt, withPriority, type OptionGroup, type Priority } from './core/spec-actions'
+import { parallelTasks } from './core/extensions'
 import { CHANGES, VERSION } from './core/version'
 import {
   ASK_MS,
@@ -916,6 +917,18 @@ function paneHeader(
             GSTACK_SKILLS.map(skill => <Button key={`gstack-${skill}`} label={skill} plain onPress={() => void $.clock.after(0, () => void runSkill($, skill, about))} />)}
         </elements.Box>,
       )
+    }
+    // A run of [P] tasks offered as one prompt to subagents (054 #89).
+    if (pane.tab === 'tasks' && active !== undefined && Button !== undefined) {
+      const open = (state.activeTasks ?? []).filter(task => !task.isDone)
+      const run = parallelTasks(open)
+      const feature = state.features.find(f => f.dir === active.dir)
+      if (run.length >= 2 && feature !== undefined) {
+        const tasks = open.filter(task => task.id !== undefined && run.includes(task.id))
+        out.push(
+          <Button key="parallel-dispatch" label={t(currentLang(), 'parallel.button', { ids: run.join(', ') })} plain onPress={() => void $.clock.after(0, () => void $.prompt.submit({ text: parallelPrompt(feature, tasks) }).catch(() => undefined))} />,
+        )
+      }
     }
     if (pane.tab === 'specs' && Markdown !== undefined && active !== undefined && state.activeSummary !== undefined && state.root !== undefined) {
       const links = (state.activeDocs ?? []).map(file => `[${file}](${fileUrl(`${state.root}/specs/${active.dir}/${file}`)})`).join(' · ')

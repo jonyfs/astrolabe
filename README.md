@@ -504,7 +504,9 @@ after each turn from the branch name (`026-...`) and that worktree's files:
 The task being worked on is marked `▸` and shows how long it has run (`▸ T010 Write x.ts  ⏱ 12m`). The last turn's diff of `tasks.md` shows at most 6 lines and a `… +N lines` line. The first row names the feature, its phase and its count (`026 claude-context · implement · 9/20 done`). Ticked tasks fold into one dim row (`✓ 9 done · T001…T009`). Headings of `tasks.md`, such as `Phase 3: User Story 1 · 2/5`, head their tasks with their own count, and a run of `[P]` tasks is bracketed with `┌`, `│` and `└` (a lone one gets `⇉`); the `⇉ … can run in parallel` line shows only when no bracket does. When the open tasks, at the time the ticked ones took, would end after the 5-hour window resets, a `⚠` line says so. When more tasks are open than the pane has rows, the last line says `+N more`. A feature with
 no `tasks.md` yet says so; a quick spec (`track: quick`) uses the `## Tasks` section of its
 `spec.md` instead. When two or more `[P]` tasks come first among the open ones, a `⇉` line names
-them: they can go to subagents at once.
+them: they can go to subagents at once. The `▶ send T002, T003 to subagents at once` button above
+the list submits one prompt that asks Claude to dispatch each of them to its own subagent in one
+message, with the plan and the files the task names, and to tick each when it is done.
 
 Above the count, the last main turn's change to the task list shows as a diff: each box it
 ticked or unticked, with its line number in the file. It stays until a later turn changes the

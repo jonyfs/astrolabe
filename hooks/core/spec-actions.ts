@@ -88,3 +88,13 @@ export const optionGroup = (key: string): OptionGroup => {
   for (const [group, fields] of Object.entries(OPTION_GROUPS) as Array<[OptionGroup, readonly string[]]>) if (fields.includes(field)) return group
   return 'integrations'
 }
+
+/** The prompt that sends a run of [P] tasks to subagents at once (054 #89); the person presses it. */
+export const parallelPrompt = (feature: { id: string; name: string; dir: string }, tasks: ReadonlyArray<{ id?: string; text: string }>): string =>
+  [
+    `These tasks of Spec Kit feature ${feature.id} ${feature.name} are marked [P]: they touch different files and can run at once.`,
+    'Dispatch each one to its own subagent with the Agent tool, all in one message so they run in parallel.',
+    `Give each subagent its task, specs/${feature.dir}/plan.md and the files the task names; tell it to change only those files.`,
+    `When they are done, tick each finished task in specs/${feature.dir}/tasks.md and report what each one changed.`,
+    ...tasks.map(t => `- ${t.id === undefined ? '' : `${t.id} `}${t.text}`),
+  ].join('\n')
