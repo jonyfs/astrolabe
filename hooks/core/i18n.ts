@@ -192,7 +192,9 @@ const EN = {
   'help.tasksTab': "the active feature's open tasks",
   'help.sessionTab': 'how Astrolabe sees the project, the governor and updates',
   'help.dashboardTab': "the dial, phases, the usage chart and the session's numbers",
-  'help.options': 'Options: /config, then Astrolabe',
+  'help.options': 'Options (/config, then Astrolabe)',
+  'help.changes': 'New in {version}: {changes}',
+  'toast.welcome': '🧭 Astrolabe is on: /astrolabe opens the pane, /astrolabe help lists the commands',
 } as const
 
 export type TextKey = keyof typeof EN
@@ -386,7 +388,9 @@ const PT_BR: Dictionary = {
   'help.tasksTab': 'as tarefas abertas da feature ativa',
   'help.sessionTab': 'como o Astrolabe vê o projeto, o governor e as atualizações',
   'help.dashboardTab': 'o mostrador, as fases, o gráfico de uso e os números da sessão',
-  'help.options': 'Opções: /config, depois Astrolabe',
+  'help.options': 'Opções (/config, depois Astrolabe)',
+  'help.changes': 'Novo em {version}: {changes}',
+  'toast.welcome': '🧭 Astrolabe ligado: /astrolabe abre o painel, /astrolabe help lista os comandos',
 }
 
 const ES: Dictionary = {
@@ -577,7 +581,9 @@ const ES: Dictionary = {
   'help.tasksTab': 'las tareas abiertas de la feature activa',
   'help.sessionTab': 'cómo ve Astrolabe el proyecto, el governor y las actualizaciones',
   'help.dashboardTab': 'el dial, las fases, el gráfico de uso y los números de la sesión',
-  'help.options': 'Opciones: /config, luego Astrolabe',
+  'help.options': 'Opciones (/config, luego Astrolabe)',
+  'help.changes': 'Nuevo en {version}: {changes}',
+  'toast.welcome': '🧭 Astrolabe activo: /astrolabe abre el panel, /astrolabe help lista los comandos',
 }
 
 const FR: Dictionary = {
@@ -768,7 +774,9 @@ const FR: Dictionary = {
   'help.tasksTab': 'les tâches ouvertes de la feature active',
   'help.sessionTab': "comment Astrolabe voit le projet, le governor et les mises à jour",
   'help.dashboardTab': "le cadran, les phases, le graphique d'usage et les chiffres de la session",
-  'help.options': 'Options : /config, puis Astrolabe',
+  'help.options': 'Options (/config, puis Astrolabe)',
+  'help.changes': 'Nouveau dans {version} : {changes}',
+  'toast.welcome': '🧭 Astrolabe est actif : /astrolabe ouvre le panneau, /astrolabe help liste les commandes',
 }
 
 const DICTIONARIES: Readonly<Record<Lang, Dictionary>> = { en: EN, 'pt-BR': PT_BR, es: ES, fr: FR }

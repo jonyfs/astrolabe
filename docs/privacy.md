@@ -36,6 +36,7 @@ In Claude Code's plugin store on your machine (kept across sessions):
 | `history` | Tasks and features finished per week |
 | `days` | Tasks ticked per day, the last 14 days |
 | `reloaded` | The last version it reloaded for |
+| `welcomed` | The version that showed the first-run toast |
 | `summaries` | Finished features' summaries, when `featureSummary` is on |
 
 ## What it sends

@@ -35,14 +35,14 @@ describe('phase toasts (US1)', () => {
   test('full: the baseline is the session\'s own, never in $.store (013)', { options: { preset: 'full' } }, async ($, on) => {
     const tree = planOnly()
     // Another session on the same root once stored a later phase; it must not hide this move.
-    const session = installTree(on, tree, '/proj', { 'baseline:/proj': { '002-b': 'tasks' } })
+    const session = installTree(on, tree, '/proj', { welcomed: 'seeded', 'baseline:/proj': { '002-b': 'tasks' } })
     installEngine(on)
     await startSession($, '/proj')
     tree['/proj/specs/002-b/plan.md'] = '# Plan\n'
     await completeTurn($)
     expect(session.toasts).toEqual(['🧭 002 b moved to tasks · next: /speckit-tasks'])
     expect(session.store.get('baseline:/proj')).toEqual({ '002-b': 'tasks' })
-    expect([...session.store.keys()]).toEqual(['baseline:/proj'])
+    expect([...session.store.keys()]).toEqual(['welcomed', 'baseline:/proj'])
   })
 
   test('full: a skill hint alone never toasts', { options: { preset: 'full' } }, async ($, on) => {

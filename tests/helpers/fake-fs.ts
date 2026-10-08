@@ -157,7 +157,8 @@ export type Session = {
  * session.start, turn.complete and $.ui.status from `tree`, and record what the
  * plugin did. Register before the test's first call on $.
  */
-export const installTree = (on: On, tree: Tree, cwd: string, seed: Record<string, unknown> = {}): Session => {
+// An installed Astrolabe has shown its first-run toast (048 #73); pass a seed without it to test that toast.
+export const installTree = (on: On, tree: Tree, cwd: string, seed: Record<string, unknown> = { welcomed: 'seeded' }): Session => {
   const { fs: rawFs, counts } = treeFs(tree)
   // On a Windows host the engine resolves a POSIX path such as /proj/x against the
   // current drive (D:\proj\x) before a hook sees it. A tree written with POSIX roots
