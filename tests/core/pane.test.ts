@@ -86,6 +86,12 @@ describe('taskRows', () => {
   test('open tasks in file order after a count', () => {
     expect(texts(taskRows(state(), memo(TASKS), 10, 80))).toEqual(['1/4 done', 'T002 Write x.ts', 'T003 c', 'T004 d'])
   })
+  test('the current task is marked, with how long it has run (045 #42)', () => {
+    const now = 10 * 60_000
+    const rows = taskRows(state({ currentTask: { id: 'T003', text: 'c', startedAt: 0 } }), memo(TASKS), 10, 80, 'en', now)
+    expect(texts(rows)).toEqual(['1/4 done', 'T002 Write x.ts', '▸ T003 c  ⏱ 10m', 'T004 d'])
+    expect(rows[2]?.role).toBe('current')
+  })
   test('too many for the rows ends with +N more', () => {
     expect(texts(taskRows(state(), memo(TASKS), 3, 80))).toEqual(['1/4 done', 'T002 Write x.ts', '+2 more'])
   })

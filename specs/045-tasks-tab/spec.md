@@ -11,7 +11,7 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 
 ## Tasks
 
-- [ ] T001 #42 The current task highlighted, with how long it has run (P1)
+- [x] T001 #42 The current task highlighted, with how long it has run (P1)
 - [ ] T002 #41 Done tasks folded under one row (P2)
 - [ ] T003 #43 Chips for [P] tasks, consecutive ones grouped (P2)
 - [ ] T004 #44 User-story headings from tasks.md as section rows (P2)

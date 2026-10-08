@@ -34,14 +34,17 @@ const gap = (key: string, text = ' '): Segment => ({ key: `gap-${key}`, text, ro
 const rail = (state: SpeckitState, feature: Feature, allLabels: boolean): Segment[] => {
   const marks = marksOf(state, feature)
   const running = state.runningSkill?.step
+  // Blocked (042 #13): clarifications left after the plan turn the current step red with a `?`.
+  const blocked = feature.warnings.includes('clarification-after-plan')
   const out: Segment[] = []
   STEPS.forEach((step, i) => {
     const mark = marks[step]
+    const isStuck = blocked && mark === '◐'
     if (i > 0) out.push(gap(`step-${step}`))
     if (allLabels || mark === '◐') {
-      out.push({ key: `label-${step}`, text: step, role: mark === '◐' ? 'current' : 'muted' }, gap(`label-${step}`))
+      out.push({ key: `label-${step}`, text: step, role: isStuck ? 'blocked' : mark === '◐' ? 'current' : 'muted' }, gap(`label-${step}`))
     }
-    out.push({ key: `mark-${step}`, text: mark, role: ROLE[mark] })
+    out.push({ key: `mark-${step}`, text: isStuck ? '?' : mark, role: isStuck ? 'blocked' : ROLE[mark] })
     if (running === step) out.push({ key: `running-${step}`, text: '…', role: 'accent' })
   })
   return out

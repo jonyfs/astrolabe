@@ -11,7 +11,7 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 
 ## Tasks
 
-- [ ] T001 #13 A blocked state: open clarifications after plan turn the rail red with a `?` (P1)
+- [x] T001 #13 A blocked state: open clarifications after plan turn the rail red with a `?` (P1)
 - [ ] T002 #14 The next command's reason on hover (P2)
 - [ ] T003 #15 The run button is the first focus stop, so Enter runs the next command (P2)
 - [ ] T004 #17 A badge when more than one feature is in progress (P2)
