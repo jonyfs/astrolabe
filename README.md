@@ -571,7 +571,7 @@ for a choice, a toggle for on and off, a field for a number or a text. A changed
 values; `Cancel` drops them. A row your organization's policy locks shows its value and cannot be
 changed; `•` marks an option saved with a value other than its default. `Reset to defaults` puts every option back to its default as a draft that Save applies; `/astrolabe config reset`, typed by you, does it at once.
 
-**7 PRs** lists the repository's open pull requests, read with `gh` when the tab opens and at most
+**7 PRs** starts, when gstack is installed and the branch is not `main`, with `▶ gstack /ship for <branch>`, which runs gstack's `/ship` on it. It lists the repository's open pull requests, read with `gh` when the tab opens and at most
 every two minutes after a turn while it is shown. Each row links to the pull request and shows its
 checks (`✓` passed, `✗` failed, `…` running), its review state, its labels and its branch. In the
 terminal a third line links each check to its run page, six at most (`✓ test (macos)`). The

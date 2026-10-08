@@ -145,7 +145,7 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 
 ### Ecosystem
 
-- [ ] T096 #96 gstack `/ship` offered on the PRs tab for the active branch (P2)
+- [x] T096 #96 gstack `/ship` offered on the PRs tab for the active branch (P2)
 - [ ] T097 #97 gstack `/review` offered when a PR is opened from the session (P2)
 - [x] T098 #98 Spec Kit's own version and the skills' version compared and named when they differ (P2)
 - [ ] T099 #99 An export of the Dashboard numbers as Markdown for a PR body (P3)
