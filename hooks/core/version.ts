@@ -3,4 +3,4 @@
 export const VERSION = '0.56.0'
 
 /** What this version changed, one line, for the Help tab (048 #80). */
-export const CHANGES = 's filters Specs by status, the Config tab resets to defaults, and the footer is tested on every tab'
+export const CHANGES = 'a plain shell command costs no reads, the context chip says compact soon past 85%, and a PR with pending or failing checks is not merged'
