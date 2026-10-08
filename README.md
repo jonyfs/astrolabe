@@ -433,7 +433,7 @@ nothing to show says what would fill it and the command that does, for example
 `No active feature. Run /speckit-specify to start one.`
 
 The Help tab (and `/astrolabe help`) starts with what this version changed, lists every option
-with its value now (`footerIn=pane`), and ends with a legend of every mark Astrolabe draws (`◆`, `●`,
+with its value now (`footerIn=pane`), the footer's parts in their fixed order (Spec Kit, deciding window, other windows, context, model, skill, git, burn, session time; a narrow screen drops session time first, then burn, git, skill, model, the other windows and context), and ends with a legend of every mark Astrolabe draws (`◆`, `●`,
 `◐`, `○`, `?`, `▸`, `⟳`, `~`, `!`, `☐`, `⑂`, `⇉`, `⏱`) and a glossary of the six Spec Kit steps.
 A toast about a failure names the command that fixes it, for example
 `🧭 #42: not mergeable; run gh pr merge 42 --merge`.

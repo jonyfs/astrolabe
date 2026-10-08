@@ -135,6 +135,7 @@ const buildHelp = (lang: Lang): string =>
     t(lang, 'help.keys'),
     t(lang, 'help.models'),
     ...Object.entries(SKILL_MODELS).map(([skill, m]) => `  ${skill.padEnd(22)} ${m.model.replace(/^claude-/, '').padEnd(12)} ${m.effort.padEnd(7)} ${m.why}`),
+    t(lang, 'help.footer'),
     t(lang, 'help.marks'),
     ...t(lang, 'help.marksList').split('\n').map(line => `  ${line}`),
     t(lang, 'help.glossary'),
