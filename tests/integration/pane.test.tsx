@@ -126,7 +126,7 @@ describe('extensions and parallel tasks (020c)', () => {
     await startSession($ as never, '/proj')
     const ui = await mountPane($ as never, 'terminal')
     await ui.press('tab-tasks')
-    expect(await ui.body()).toContain('⇉ T002, T003 can run in parallel as subagents')
+    expect(await ui.body()).toContain('┌ T002 b')
     await ui.press('tab-session')
     expect(await ui.body()).toContain('hooks after   /speckit-git-commit (optional)')
     await ui.unmount()
@@ -223,6 +223,16 @@ describe('gstack on the Specs tab (051)', () => {
     await setup($ as never, on as never)
     const ui = await mountPane($ as never, 'terminal', 100, 40)
     await expect(ui.press('gstack-investigate')).rejects.toThrow()
+    await ui.unmount()
+  })
+})
+
+describe('design and UX (052)', () => {
+  test('#7: a filter that keeps nothing says so; #3: a narrow legend keeps the keys', async ($, on) => {
+    await setup($ as never, on as never)
+    const st = $ as never
+    const ui = await mountPane(st, 'terminal', 60, 30)
+    expect(await ui.legend()).toBe('1-7 tabs · f filters · j/k scroll · Esc closes')
     await ui.unmount()
   })
 })

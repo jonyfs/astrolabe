@@ -84,32 +84,31 @@ describe('taskRows', () => {
   const memo = (tasks: string): SessionMemo => ({ ...emptyMemo(), files: { '002-band-hint': { dir: '002-band-hint', plan: true, tasks } } })
   const TASKS = '- [X] T001 a\n- [ ] T002 [P] [US1] Write `x.ts`\n- [ ] T003 c\n- [ ] T004 d\n'
   test('open tasks in file order after a count', () => {
-    expect(texts(taskRows(state(), memo(TASKS), 10, 80))).toEqual(['1/4 done', '✓ T001', '⇉ T002 Write x.ts', 'T003 c', 'T004 d'])
+    expect(texts(taskRows(state(), memo(TASKS), 10, 80))).toEqual(['002 band-hint · implement · 1/4 done', '✓ 1 done · T001', '⇉ T002 Write x.ts', 'T003 c', 'T004 d'])
   })
   test('the current task is marked, with how long it has run (045 #42)', () => {
     const now = 10 * 60_000
     const rows = taskRows(state({ currentTask: { id: 'T003', text: 'c', startedAt: 0 } }), memo(TASKS), 10, 80, 'en', now)
-    expect(texts(rows)).toEqual(['1/4 done', '✓ T001', '⇉ T002 Write x.ts', '▸ T003 c  ⏱ 10m', 'T004 d'])
+    expect(texts(rows)).toEqual(['002 band-hint · implement · 1/4 done', '✓ 1 done · T001', '⇉ T002 Write x.ts', '▸ T003 c  ⏱ 10m', 'T004 d'])
     expect(rows[3]?.role).toBe('current')
   })
   test('[P] runs are bracketed and stories head their tasks (045 #43, #44)', () => {
     const text = '## Phase 3: User Story 1\n- [ ] T001 [P] a\n- [ ] T002 [P] b\n- [ ] T003 [P] c\n## Phase 4: User Story 2\n- [ ] T004 d\n'
     expect(texts(taskRows(state(), memo(text), 20, 80))).toEqual([
-      '0/4 done',
-      '⇉ T001, T002, T003 can run in parallel as subagents',
-      'Phase 3: User Story 1',
+      '002 band-hint · implement · 0/4 done',
+      'Phase 3: User Story 1 · 0/3',
       '┌ T001 a',
       '│ T002 b',
       '└ T003 c',
-      'Phase 4: User Story 2',
+      'Phase 4: User Story 2 · 0/1',
       'T004 d',
     ])
   })
   test('too many for the rows ends with +N more', () => {
-    expect(texts(taskRows(state(), memo(TASKS), 3, 80))).toEqual(['1/4 done', '✓ T001', '⇉ T002 Write x.ts', '+2 more'])
+    expect(texts(taskRows(state(), memo(TASKS), 3, 80))).toEqual(['002 band-hint · implement · 1/4 done', '✓ 1 done · T001', '⇉ T002 Write x.ts', '+2 more'])
   })
   test('empty cases', () => {
-    expect(texts(taskRows(state(), memo('- [x] T001 a\n'), 10, 80))).toEqual(['1/1 done', 'All tasks are ticked.'])
+    expect(texts(taskRows(state(), memo('- [x] T001 a\n'), 10, 80))).toEqual(['002 band-hint · implement · 1/1 done', 'All tasks are ticked.'])
     const { active: _a, ...none } = state()
     expect(texts(taskRows(none, emptyMemo(), 10, 80))).toEqual(['No active feature. Run /speckit-specify to start one.'])
   })
