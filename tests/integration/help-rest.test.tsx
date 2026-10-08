@@ -54,14 +54,17 @@ describe('help, part two (025)', () => {
     await ui.unmount()
   })
 
-  test('T007: a welcome card on the first run, gone for good once dismissed', async ($, on) => {
-    const { session } = await setup($ as never, on as never)
+  test('036: no welcome card; the Help tab lists the commands, keys and options', async ($, on) => {
+    await setup($ as never, on as never)
     const ui = await mountPane($ as never, 'terminal', 100, 40)
-    expect(await ui.body()).toContain('/astrolabe help')
-    await ui.press('welcome-done')
-    expect(await ui.body()).not.toContain('/astrolabe help')
+    expect(await ui.tabs()).toContain('Help')
+    expect(await ui.body()).not.toContain('Welcome')
+    await ui.press('tab-help')
+    const body = await ui.body()
+    expect(body).toContain('/astrolabe status')
+    expect(body).toContain('n runs the next command')
+    expect(body).toContain('footerIn')
     await ui.unmount()
-    expect(session.store.get('welcomed')).toBe(true)
   })
 
   test('T008: accessible mode draws text only', { options: { accessible: true } }, async ($, on) => {

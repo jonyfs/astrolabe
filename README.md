@@ -357,13 +357,10 @@ The current values, from a shell:
 
 ## The /astrolabe pane
 
-Type `/astrolabe` to open a pane with four tabs (`/astrolabe help` lists every command and key). In a fullscreen terminal it docks at the
-right; otherwise it sits above the prompt. It opens with the keyboard on it, so `1` to `4`
+Type `/astrolabe` to open a pane with five tabs (`/astrolabe help` lists every command and key). In a fullscreen terminal it docks at the
+right; otherwise it sits above the prompt. It opens with the keyboard on it, so `1` to `5`
 switch tabs right away, and Esc closes it. Later, focus it again with a click or
 `ctrl+x tab`. The tab you pick stays for the session.
-
-The first time the pane opens, a welcome card above the Specs list explains the band, the keys and
-`/astrolabe help`. `Got it` hides it for good.
 
 **1 Specs** lists every feature:
 
@@ -431,6 +428,9 @@ In the terminal the charts are drawn cell by cell in the theme's colors; in the 
 VS Code they are vector images; with `icons: ascii`, or where neither is drawn, they are plain
 text. A pane too narrow for a chart shows its numbers instead. Drawing reads only what the
 session already holds, never a file.
+
+**5 Help** lists the `/astrolabe` commands, the pane and band keys, and the options, in your
+language.
 
 With the `full` preset, the pane also opens by itself once per session, at the end of the
 first turn, but only in a fullscreen terminal at least 144 columns wide. It never opens by
