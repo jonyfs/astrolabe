@@ -374,6 +374,12 @@ right; otherwise it sits above the prompt. It opens with the keyboard on it, so 
 switch tabs right away, and Esc closes it. Later, focus it again with a click or
 `ctrl+x tab`. The tab you pick stays for the session.
 
+A tab label carries a count when there is one: `Specs 3` features in progress, `Tasks 11` open
+tasks of the active feature, `PRs 2` open pull requests. Above the footer, a dim row lists the
+keys of the tab shown, such as `1-7 tabs · type to filter · j/k scroll · Esc closes`. A tab with
+nothing to show says what would fill it and the command that does, for example
+`No active feature. Run /speckit-specify to start one.`
+
 **1 Specs** lists every feature:
 
 ![The pane, Specs tab](docs/images/pane-specs.svg)
