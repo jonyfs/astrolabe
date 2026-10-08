@@ -626,7 +626,7 @@ not toast, and two sessions open on the same project each toast on their own. A 
 
 To turn the toasts off, pick the `minimal` preset, or `compact` to keep only the drift alarm.
 
-When three turns in a row work on the same task and tick nothing, a toast says so once: `🧭 three turns on T010 and nothing ticked: /compact, or split T010 into smaller tasks`. With `claudeContext` on, the line Claude reads also names what still blocks the feature: open `[NEEDS CLARIFICATION]` markers, open checklist items, and `/speckit-analyze` not yet run before the first task.
+When three turns in a row work on the same task and tick nothing, a toast says so once: `🧭 three turns on T010 and nothing ticked: /compact, or split T010 into smaller tasks`. With `claudeContext` on, the line Claude reads also names what still blocks the feature: open `[NEEDS CLARIFICATION]` markers, open checklist items, and `/speckit-analyze` not yet run before the first task. A prompt that names another feature by its id (`fix the bug in 001`) also gets a line saying which feature is active, since `.specify/feature.json` decides what Spec Kit skills work on.
 
 **Usage notices.** Each shows once a session:
 
