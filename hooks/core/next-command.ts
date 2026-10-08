@@ -24,3 +24,7 @@ export const nextCommand = (input: NextCommandInput): string | undefined => {
   if (byPhase !== undefined) return byPhase
   return active.done === 0 && !input.isAnalyzed ? '/speckit-analyze' : '/speckit-implement'
 }
+
+/** The feature that moved to done between two reads (054 #90), for the retro suggestion. */
+export const justFinished = <F extends Pick<Feature, 'dir' | 'phase'>>(before: readonly F[], after: readonly F[]): F | undefined =>
+  after.find(f => f.phase === 'done' && before.some(b => b.dir === f.dir && b.phase !== 'done'))

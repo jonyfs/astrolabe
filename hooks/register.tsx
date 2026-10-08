@@ -5,7 +5,8 @@ import type { ConfigRow, EngineInterface, Hook, Register, RenderNode } from 'cla
 import { bandSegments, nextReason, stepCards, type BandDensity } from './core/band'
 import { hintTail } from './core/hint'
 import { phaseToasts } from './core/phase-toast'
-import { filterFeatures, nextStatus, sessionRows, specsRows, taskRows, windowUnits } from './core/pane'
+import { justFinished } from './core/next-command'
+import { filterFeatures, helpRows, nextStatus, sessionRows, specsRows, taskRows, windowUnits } from './core/pane'
 import { presetOf } from './core/presets'
 import { spinnerSuffix } from './core/spinner'
 import {
@@ -140,6 +141,8 @@ const buildHelp = (lang: Lang): string =>
     `  /astrolabe config reset     ${t(lang, 'help.configReset')}`,
     `  /astrolabe worktrees        ${t(lang, 'help.worktrees')}`,
     `  /astrolabe recap [id]       ${t(lang, 'help.recap')}`,
+    `  /astrolabe kpis             ${t(lang, 'help.kpis')}`,
+    `  /astrolabe focus [on|off]   ${t(lang, 'help.focus')}`,
     // Each option with its value now (048 #75).
     `${t(lang, 'help.options')}: ${OPTION_NAMES.map(name => `${name}=${optionsSeen[name] === undefined ? 'default' : String(optionsSeen[name])}`).join(', ')}.`,
     t(lang, 'help.tabs'),
@@ -161,7 +164,15 @@ const buildHelp = (lang: Lang): string =>
     // The gates row under the active feature, each one explained (054 #61).
     t(lang, 'help.gates'),
     ...(['constitution', 'clarify', 'checklist', 'tasks', 'analyze'] as const).map(gate => `  ${t(lang, `gate.${gate}`).padEnd(13)} ${t(lang, `help.gate.${gate}`)}`),
+    // Where to read more (054 #81): each line ends with its link, which the Help tab makes clickable.
+    t(lang, 'help.docs'),
+    ...DOC_LINKS.map(d => `  ${d.name.padEnd(13)} ${d.url}`),
   ].join('\n')
+const DOC_LINKS = [
+  { name: 'Spec Kit', url: 'https://github.github.com/spec-kit/' },
+  { name: 'gstack', url: 'https://github.com/garrytan/gstack' },
+  { name: 'Astrolabe', url: 'https://github.com/jonyfs/astrolabe#readme' },
+] as const
 const OPTION_NAMES = ['preset', 'flavor', 'icons', 'language', 'bandDensity', 'checkUpdates', 'governUsage', 'askOnLimit', 'pullRequest', 'images', 'autoReload', 'footerIn', 'accessible', 'claudeContext', 'featureSummary', 'humanize', 'terse', 'skillModels'] as const
 const WELCOMED = 'welcomed'
 const ABOUT: Readonly<Record<PaneTab, TextKey>> = {
@@ -1458,7 +1469,16 @@ async function copyNext($: EngineInterface, command: string, surface: string): P
 // The last next command proposed in the prompt box (020a): each new one is proposed once.
 let lastSuggested: string | undefined
 
-async function suggestNext($: EngineInterface, held: Held | undefined): Promise<void> {
+async function suggestNext($: EngineInterface, held: Held | undefined, before?: Held): Promise<void> {
+  // A feature just finished (054 #90): propose a retrospective, Spec Kit's when the project has it, else gstack's.
+  const finished = before === undefined || held === undefined ? undefined : justFinished(before.state.features, held.state.features)
+  if (finished !== undefined && isInteractive) {
+    const root = held?.state.root
+    const hasSpeckitRetro = root !== undefined && (await fsOf($).read(`${root}/.claude/skills/speckit-retro/SKILL.md`).catch(() => undefined)) !== undefined
+    lastSuggested = hasSpeckitRetro ? '/speckit-retro' : '/retro'
+    await $.prompt.suggest({ text: lastSuggested }).catch(() => undefined)
+    return
+  }
   const command = held?.state.nextCommand
   if (command === undefined || command === lastSuggested || !isInteractive) return
   lastSuggested = command
@@ -2001,7 +2021,7 @@ export const register: Register = (on, options) => {
       await afterReconcile($, preset, held)
       await noteProgress($, before, held, now, e.durationMs)
       await noteTasksDiff($, held?.state)
-      if (preset.band) await suggestNext($, held)
+      if (preset.band) await suggestNext($, held, before)
       // The footer's git part (018): counts from git, else the branch from the repository files.
       const root = held?.state.root
       const branch = held?.memo.base?.branch
@@ -2452,9 +2472,7 @@ export const register: Register = (on, options) => {
     const rows =
       pane.tab === 'help'
         ? keep(
-            helpText(currentLang())
-              .split('\n')
-              .map((text, i) => ({ key: `help-${i}`, text, role: (i === 0 || !text.startsWith(' ') ? 'accent' : 'text') as 'accent' | 'text' })),
+            helpRows(helpText(currentLang())),
           )
         : pane.tab === 'tasks'
         ? [...keep(taskRows(state, emptyMemo(), 1000, columns, currentLang(), await $.clock.now())), ...(await pastResetRows($, state))]
