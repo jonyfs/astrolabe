@@ -237,6 +237,8 @@ export type SessionStats = {
   series: Array<{ at: number; percent: number; fiveHour?: number; sevenDay?: number; context?: number }>
   /** Warnings already shown this session (022): the cost budget at 80% and 100%, the context window. */
   warned?: { cost80?: boolean; cost100?: boolean; context?: boolean }
+  /** Turns in a row on the same current task without a tick, and whether that was said (054 #85). */
+  spin?: { id: string; turns: number; told?: true }
   /** The last `gh pr view` for a branch (023): when it ran and what it found, kept five minutes. */
   prCache?: { branch: string; at: number; pr?: PullRequest }
   /** The repository's open pull requests for the PRs tab (032), and when they were read. */
