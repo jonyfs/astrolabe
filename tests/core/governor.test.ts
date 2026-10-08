@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import { decide, holdQuestion, isReadOnlyTool, nextHeld, parseAllow, pauseQuestion, refusal, resumePrompt, usageRows, usageSegment } from '../../hooks/core/governor'
+import { decide, holdQuestion, isReadOnlyTool, nextBand, nextHeld, parseAllow, pauseQuestion, refusal, resumePrompt, stateText, usageRows, usageSegment } from '../../hooks/core/governor'
 
 const NOW = Date.UTC(2026, 9, 7, 12, 0)
 const IN_2H = new Date(NOW + 2 * 3600_000).toISOString()
@@ -175,12 +175,23 @@ describe('parity with the usage-governor skill (016)', () => {
       },
       NOW,
     )
-    expect(rows.map(([label]) => label)).toEqual(['usage', 'subagents', 'queue', 'override', 'lift'])
-    expect(rows[0]?.[1]).toBe('5h 42% · 7d 83%: throttle')
-    expect(rows[1]?.[1]).toBe('1 running, cap 1')
-    expect(rows[2]?.[1]).toBe('1 waiting: q1 Review')
-    expect(rows[3]?.[1]).toMatch(/^ceiling 95% on 7d until \d\d:\d\d$/)
-    expect(rows[4]?.[1]).toMatch(/^subagents one at a time until \d\d:\d\d$/)
+    expect(rows.map(([label]) => label)).toEqual(['state', 'usage', 'subagents', 'queue', 'override', 'lift'])
+    expect(rows[0]?.[1]).toBe('slowing down (7d at 83%): at most 1 subagent at a time')
+    expect(rows[1]?.[1]).toBe('5h 42% · 7d 83%: throttle')
+    expect(rows[2]?.[1]).toBe('1 running, cap 1')
+    expect(rows[3]?.[1]).toBe('q1 Review · /astrolabe run q1')
+    expect(rows[4]?.[1]).toMatch(/^ceiling 95% on 7d until \d\d:\d\d$/)
+    expect(rows[5]?.[1]).toMatch(/^subagents one at a time until \d\d:\d\d$/)
     expect(usageRows({ readings: [], history: [], inFlight: 0, queue: [], paused: false }, NOW)).toEqual([])
+  })
+
+  test('047: the state in plain words and the time to the next band', () => {
+    expect(stateText(decide([r(83)], [], undefined, NOW))).toMatch(/^holding \(5h at 83%\): new subagents wait until \d\d:\d\d; other tools run$/)
+    expect(stateText(decide([r(92)], [], undefined, NOW))).toMatch(/^paused \(5h at 92%\): only read-only tools run until /)
+    expect(stateText(decide([r(20)], [], undefined, NOW))).toBe('all clear (5h at 20%): up to 6 subagents at a time')
+    const history = [{ at: NOW - 3_600_000, percent: 50 }, { at: NOW, percent: 70 }]
+    expect(nextBand([{ kind: 'five_hour', percentUsed: 70, resetsAt: new Date(NOW + 5 * 3_600_000).toISOString() }], history, NOW)).toBe('hold at 80% in about 30m at this pace')
+    expect(nextBand([{ kind: 'five_hour', percentUsed: 70, resetsAt: new Date(NOW + 10 * 60_000).toISOString() }], history, NOW)).toBe('hold at 80%: not before the reset at this pace')
+    expect(nextBand([r(70)], [], NOW)).toBeUndefined()
   })
 })

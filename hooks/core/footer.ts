@@ -1,6 +1,6 @@
 // The footer: the status entry under the prompt, in place of a statusline (spec 018).
 // Ranked parts, joined with ' · ', dropped from the least important end to fit. Pure: no $.
-import { clockOf, decide, labelOf, usageSegment, type Decision } from './governor'
+import { clockOf, decide, isPaused, labelOf, usageSegment, type Decision } from './governor'
 import type { Icons } from './icons'
 import { t, type Lang } from './i18n'
 import type { GitState, PullRequest, UsageReading } from './types'
@@ -46,7 +46,7 @@ const duration = (ms: number): string => {
 
 /** A palette colour name (statusline's), or a ramp read from a level. */
 export type ChipColour = 'mauve' | 'sapphire' | 'yellow' | 'red' | 'lavender' | 'teal' | 'peach' | 'surface1' | 'green'
-type Part = { text: string; rank: number; colour?: ChipColour; level?: number }
+type Part = { text: string; rank: number; colour?: ChipColour; level?: number; first?: true }
 
 // An ASCII label ending in ':' is glued to its value (`stash:2`); a glyph takes a space.
 const glued = (icon: string, text: string) => (icon.endsWith(':') ? `${icon}${text}` : withIcon(icon, text))
@@ -82,7 +82,11 @@ const parts = (input: FooterInput): Part[] => {
   if (binding !== undefined) {
     const segment = usageSegment(decision, input.lang ?? 'en') ?? ''
     const at = binding.renewed === true ? undefined : resetOf(binding.resetsAt, now)
-    out.push({ text: at === undefined ? segment : `${segment} (${at})`, rank: 0, colour: 'sapphire', ...(binding.renewed === true ? {} : { level: binding.percent }) })
+    if (isPaused(decision)) {
+      // Paused (047 #65): the first chip, in red, says until when.
+      const until = clockOf(binding.resetsAt)
+      out.push({ text: `${segment} · ${t(input.lang ?? 'en', 'status.pausedUntil', { at: until ?? t(input.lang ?? 'en', 'ask.theReset') })}`, rank: 0, colour: 'red', first: true })
+    } else out.push({ text: at === undefined ? segment : `${segment} (${at})`, rank: 0, colour: 'sapphire', ...(binding.renewed === true ? {} : { level: binding.percent }) })
   }
   for (const r of input.readings) {
     if (r.kind === binding?.kind) continue
@@ -150,9 +154,11 @@ export type Chip = { key: string; text: string; colour: ChipColour }
 /** The footer as Powerline chips in statusline's colours (039); the context ramps without a mark. */
 export const footerChips = (input: FooterInput): Chip[] => {
   const { speckit, kept } = fitted(input)
+  const pinned = kept.filter(p => p.first === true).map((p, i) => ({ key: `first-${i}`, text: p.text, colour: p.colour ?? 'red' }))
   return [
+    ...pinned,
     ...(speckit === '' ? [] : [{ key: 'speckit', text: speckit, colour: 'mauve' as const }]),
-    ...kept.map((p, i) => {
+    ...kept.filter(p => p.first !== true).map((p, i) => {
       const ramp = p.level === undefined ? undefined : rampOf(p.level)
       const isContext = p.colour === 'yellow'
       return {

@@ -78,6 +78,20 @@ describe('fan-out under the cap (US2)', () => {
     expect(session.submitted.length).toBe(1)
   })
 
+  test('047 #64: /astrolabe run <id> sends one queued subagent now, only from the composer', async ($, on) => {
+    const { session } = await setup($ as never, on as never)
+    await measure($ as never, reading(83))
+    await $.tool.call(agent('a1'))
+    const fromClaude = (await $.command.run({ command: 'astrolabe', args: 'run q1' } as never)) as { text: string }
+    expect(fromClaude.text).toContain('only you can run a queued subagent')
+    const ran = (await $.command.run({ command: 'astrolabe', args: 'run q1', origin: { kind: 'composer' } } as never)) as { text: string }
+    expect(ran.text).toBe('🧭 running q1 now: job a1')
+    await session.clock.settle()
+    expect(session.submitted.at(-1)).toContain('do a1')
+    const again = (await $.command.run({ command: 'astrolabe', args: 'run q1', origin: { kind: 'composer' } } as never)) as { text: string }
+    expect(again.text).toBe('🧭 nothing queued as q1')
+  })
+
   test('a new reading below hold releases the queue at once', async ($, on) => {
     const { session } = await setup($ as never, on as never)
     await measure($ as never, reading(83))
