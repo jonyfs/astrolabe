@@ -15,9 +15,9 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 ### The pane's frame
 
 - [x] T001 #1 Below 80 columns the tab row turns each label into its number and badge (`1·3 2·11`), so seven tabs, `f`, `p` and `✕` never wrap (P1)
-- [ ] T002 #2 The tab shown also gets `▸` before its label, beyond the button's colour (P2)
+- [x] T002 #2 The tab shown also gets `▸` before its label, beyond the button's colour (P2)
 - [x] T003 #3 The legend row cuts the tab's description first and keeps the keys whole (P1)
-- [ ] T004 #4 The pane's title names the active feature (`🧭 Astrolabe · 026 claude-context`) (P2)
+- [x] T004 #4 The pane's title names the active feature (`🧭 Astrolabe · 026 claude-context`) (P2)
 - [ ] T005 #5 One label width for Session, Dashboard and Help, taken from the longest label instead of the fixed 14 and 10 (P1)
 - [x] T006 #6 Section headers drawn bold with the count muted, instead of plain muted text (P2)
 - [x] T007 #7 A filter that matches nothing says so and how to clear it (`no rows hold "xyz"; empty the filter`) (P1)

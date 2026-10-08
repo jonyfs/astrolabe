@@ -689,7 +689,10 @@ let accessible = false
  * takes focus (Principle VII).
  */
 async function openPane($: EngineInterface): Promise<void> {
-  await $.ui.open({ id: PANE_ID, title: PANE_TITLE, focus: true, closeOnEscape: true })
+  // The title names the active feature (052 #4).
+  const active = (await $.state.get(SPECKIT)).value?.active
+  const title = active === undefined ? PANE_TITLE : `${PANE_TITLE} · ${active.id} ${active.name}`
+  await $.ui.open({ id: PANE_ID, title, focus: true, closeOnEscape: true })
 }
 
 /** `/astrolabe status` (025 #42): the active feature, the next command and the footer, as text. */
