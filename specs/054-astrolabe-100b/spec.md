@@ -106,7 +106,7 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 - [ ] T066 #66 A row selected with the arrows on Specs, with Enter opening its spec.md link (P2)
 - [ ] T067 #67 Long names wrap on Desktop and cut with `…` in the terminal, consistently (P2)
 - [ ] T068 #68 Toggling the pane with the same key that opened it (P3)
-- [ ] T069 #69 A compact pane mode under 60 columns: one column, no bars (P2)
+- [x] T069 #69 A compact pane mode under 60 columns: one column, no bars (P2)
 - [x] T070 #70 Empty Dashboard sections hidden instead of drawn with zeros (P1)
 
 ### Colours

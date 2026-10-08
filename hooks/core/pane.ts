@@ -26,6 +26,9 @@ type RowContext = { nameWidth: number; countWidth: number; idWidth?: number; run
 /** One colour per phase, the rail's (054 #71). */
 const PHASE_ROLE: Partial<Record<Feature['phase'], ThemeRole>> = { specify: 'muted', clarify: 'current', plan: 'barFill', tasks: 'accent', implement: 'current', done: 'done' }
 
+/** Below this width the pane is compact (054 #69): one column, no bars. */
+export const COMPACT_COLUMNS = 60
+
 const featureRow = (f: Feature, isActive: boolean, columns: number, ctx: RowContext): PaneRow => {
   // Not read yet in a large project (040): a mark and no phase until its batch lands.
   if (f.warnings.includes('loading')) return { key: `feature-${f.id}`, text: `${isActive ? '▸' : ' '} … ${f.id.padEnd(ctx.idWidth ?? 0)} ${f.name}`, role: 'muted', dim: true }
@@ -54,7 +57,8 @@ const featureRow = (f: Feature, isActive: boolean, columns: number, ctx: RowCont
     `${head}${name}  ${phase}  ${count} ${percent}${running}`,
     `${head}${name}  ${phase} ${percent}`,
   ].map(text => text.trimEnd())
-  const fitting = forms.find(text => width(text) <= columns)
+  // A compact pane under 60 columns never draws bars (054 #69), even when a short name leaves room.
+  const fitting = forms.slice(columns < COMPACT_COLUMNS ? 1 : 0).find(text => width(text) <= columns)
   // The widest form in colour (052 #12, 054 #71): the phase in its rail colour, the bar in its own.
   if (fitting !== undefined && fitting === forms[0] && f.total > 0 && f.phase !== 'abandoned') {
     const segments = [
