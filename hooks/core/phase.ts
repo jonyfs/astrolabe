@@ -26,6 +26,7 @@ export const deriveFeature = (files: FeatureFiles): Feature => {
     ...(files.plan && files.spec !== undefined && hasClarification(files.spec) ? ['clarification-after-plan' as const] : []),
     ...(files.unreadable?.includes('spec.md') === true ? ['unreadable-spec' as const] : []),
     ...(files.unreadable?.includes('tasks.md') === true ? ['unreadable-tasks' as const] : []),
+    ...(files.deferred === true ? ['loading' as const] : []),
   ]
   const currentTask = currentTaskOf(tasks)
   return {

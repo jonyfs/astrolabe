@@ -17,6 +17,17 @@ export type Held = { state: SpeckitState; memo: SessionMemo }
 const unique = (xs: ReadonlyArray<string | undefined>): string[] => [...new Set(xs.filter((x): x is string => x !== undefined))]
 
 /** session.start: find the root and read every feature. Keeps this session's analyzed flags across reloads. */
+/** How many features a session start reads at once before it defers the rest (040). */
+export const DEFER_ABOVE = 150
+
+/** Reads features left for later (040), keeping everything else as the memo has it. */
+export const reconcileDeferred = async (fs: Fs, previous: Held, dirs: readonly string[], now: number): Promise<Held> => {
+  const root = previous.state.root
+  if (root === undefined || dirs.length === 0) return previous
+  const snapshot = await readSnapshot(fs, root, { dirs }, previous.memo.files, previous.memo.base)
+  return deriveSpeckitState(snapshot, previous.memo, now)
+}
+
 export const reconcileStart = async (fs: Fs, cwd: string, previous: Held | undefined, now: number): Promise<Held> => {
   const root = await findRoot(fs, cwd)
   // A reload fires session.start again: keep this session's analyzed flags, toasted keys and
@@ -33,7 +44,7 @@ export const reconcileStart = async (fs: Fs, cwd: string, previous: Held | undef
   }
   // Same root (a reload): the last read stands in for a file that cannot be read now.
   const last = previous?.state.root === root ? previous.memo : undefined
-  const read = await readSnapshot(fs, root, 'full', last?.files, last?.base)
+  const read = await readSnapshot(fs, root, 'full', last?.files, last?.base, DEFER_ABOVE)
   const snapshot = otherRoots.length === 0 ? read : { ...read, otherRoots }
   const carried = previous?.memo.currentTask === undefined ? memo : { ...memo, currentTask: previous.memo.currentTask }
   return deriveSpeckitState(snapshot, carried, now)

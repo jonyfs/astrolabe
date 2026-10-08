@@ -609,6 +609,12 @@ and Astrolabe tries it again every turn until a read works. If the session read 
 before, Astrolabe keeps that text, so the phase does not jump back. A constitution that cannot
 be read also keeps its last text, without a pane row.
 
+### Large projects
+
+Past 150 features, a session start reads the active feature (from `feature.json` or the branch) and
+the twenty newest at once, so the band draws right away, and reads the others in batches of 100
+right after. Until its batch lands, a feature shows as `… 042 name` in the Specs tab.
+
 ### Which feature is active
 
 1. `.specify/feature.json`, when its `feature_directory` names a folder under `specs/`

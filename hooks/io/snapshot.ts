@@ -112,6 +112,8 @@ export const readSnapshot = async (
   scope: SnapshotScope,
   previous: Readonly<Record<string, FeatureFiles>> = {},
   last: { constitution?: string; extensions?: ExtensionHook[]; otherRoots?: string[] } = {},
+  /** Past this many features with nothing cached, read the likely active ones now and the rest later (040). */
+  deferAbove?: number,
 ): Promise<Snapshot> => {
   const [rawFeatureJson, constitutionRead, head, dirs] = await Promise.all([
     readOrUndefined(fs, joinPath(root, '.specify', 'feature.json')),
@@ -120,9 +122,21 @@ export const readSnapshot = async (
     listFeatureDirs(fs, root),
   ])
   const fresh = new Set(scope === 'full' ? dirs : scope.dirs)
+  const featureJson = parseFeatureJson(root, rawFeatureJson)
+  // A large project with nothing cached (040): the feature feature.json or the branch names and the
+  // twenty newest are read now; the others wait as placeholders the caller reads on a timer.
+  const now = new Set<string>()
+  const defers = deferAbove !== undefined && scope === 'full' && dirs.length > deferAbove && Object.keys(previous).length === 0
+  if (defers) {
+    if (featureJson.kind === 'ok') now.add(featureJson.dir)
+    const id = head.branch === undefined ? undefined : /(?:^|\/)(\d{3})-/.exec(head.branch)?.[1]
+    for (const d of dirs) if (id !== undefined && d.startsWith(`${id}-`)) now.add(d)
+    for (const d of dirs.slice(-20)) now.add(d)
+  }
   const features = await Promise.all(
     dirs.map(dir => {
       const cached = previous[dir]
+      if (defers && !now.has(dir)) return Promise.resolve({ dir, plan: false, deferred: true as const })
       return fresh.has(dir) || cached === undefined ? readFeature(fs, root, dir, cached) : Promise.resolve(cached)
     }),
   )
@@ -132,7 +146,7 @@ export const readSnapshot = async (
     scope === 'full' ? parseExtensions((await readOrUndefined(fs, joinPath(root, '.specify', 'extensions.yml'))) ?? '') : last.extensions
   return {
     root,
-    featureJson: parseFeatureJson(root, rawFeatureJson),
+    featureJson,
     ...(constitution === undefined ? {} : { constitution }),
     ...(head.branch === undefined ? {} : { branch: head.branch }),
     ...(head.worktree === undefined ? {} : { worktree: head.worktree }),
