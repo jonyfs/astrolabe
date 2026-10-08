@@ -65,7 +65,7 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 - [ ] T037 #37 Subagents run per feature and their share of the window (P3)
 - [x] T038 #38 Compactions this session, and the context each one freed (P2)
 - [ ] T039 #39 The share of tasks ticked by subagents against the main thread (P3)
-- [ ] T040 #40 A weekly trend line of tasks done over the last 8 weeks (P2)
+- [x] T040 #40 A weekly trend line of tasks done over the last 8 weeks (P2)
 
 ### Statusline and footer
 

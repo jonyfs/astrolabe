@@ -45,6 +45,10 @@ export const addWeek = (weeks: Weeks, key: string, tasks: number, features: numb
   return Object.fromEntries(keys.slice(-WEEKS_KEPT).map(k => [k, next[k]!]))
 }
 
+/** Tasks done in each of the last `n` weeks, oldest first, 0 for a week with none (054 #40). */
+export const lastWeeks = (weeks: Weeks, now: number, n = 8): number[] =>
+  [...Array(n).keys()].reverse().map(i => weeks[weekKey(now - i * 7 * 86_400_000)]?.tasks ?? 0)
+
 export type Days = Record<string, number>
 const DAYS_KEPT = 14
 

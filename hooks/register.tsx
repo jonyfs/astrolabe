@@ -66,7 +66,7 @@ import { bandRow, nextRow, updatesRow } from './surfaces/band'
 import { askTree } from './surfaces/ask'
 import { dashboardSections, dashboardTree } from './surfaces/dashboard'
 import { burnRate, dial, kpiChips, kpiRows, phaseBars, sparkline, trendRows, usageChart } from './core/dashboard'
-import { addDay, addWeek, dayKey, estimateLeft, pastReset, slowest, weekKey, weekdays, type Days, type Weeks } from './core/history'
+import { addDay, addWeek, dayKey, estimateLeft, lastWeeks, pastReset, slowest, weekKey, weekdays, type Days, type Weeks } from './core/history'
 import { footerChips, footerText, type FooterInput } from './core/footer'
 import { branchWebUrl, parseGitStatus, parsePullRequest, remoteWebUrl } from './core/git-status'
 import { iconSet, iconsFor } from './core/icons'
@@ -1480,7 +1480,7 @@ async function noteProgress($: EngineInterface, before: Held | undefined, held: 
       const storedDays = await $.store.get(DAYS)
       const days = addDay(typeof storedDays === 'object' && storedDays !== null && !Array.isArray(storedDays) ? (storedDays as Days) : {}, dayKey(now), ticked)
       if (ticked > 0) await $.store.set(DAYS, days)
-      await flushStats($, s => ({ ...s, ...(week === undefined ? {} : { week }), weekdays: weekdays(days, now) }))
+      await flushStats($, s => ({ ...s, ...(week === undefined ? {} : { week }), weekdays: weekdays(days, now), weeksTrend: lastWeeks(next, now) }))
     }
   } catch (error) {
     $.ui.log(`astrolabe: ${error instanceof Error ? error.message : String(error)}`, { to: 'debug' })
@@ -1509,6 +1509,11 @@ function historyRows(stats: SessionStats, feature: { dir: string; done: number; 
   if (stats.weekdays !== undefined && stats.weekdays.some(n => n > 0)) {
     const top = Math.max(...stats.weekdays)
     rows.push([t(lang, 'kpi.weekdays'), `${sparkline(stats.weekdays.map(n => (n * 100) / top))}  M T W T F S S`])
+  }
+  // Tasks done over the last 8 weeks (054 #40), once more than one week has any.
+  if (stats.weeksTrend !== undefined && stats.weeksTrend.filter(n => n > 0).length > 1) {
+    const top = Math.max(...stats.weeksTrend)
+    rows.push([t(lang, 'kpi.weeks'), t(lang, 'kpi.weeksValue', { line: sparkline(stats.weeksTrend.map(n => (n * 100) / top)), n: stats.weeksTrend.at(-1) ?? 0 })])
   }
   return rows
 }
