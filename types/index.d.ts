@@ -141,6 +141,8 @@ export type SpeckitState = {
   isWorkingOnActive?: boolean
   /** The memo version this state was derived from; an older state never overwrites a newer one. */
   memoVersion?: number
+  /** When this state was last written, in `$.clock.now()` milliseconds (054 #26). */
+  updatedAt?: number
   /** Other Spec Kit roots under the session's directory, by folder name (020c). */
   otherRoots?: string[]
   /** Extension hooks before and after the next command (020c). */

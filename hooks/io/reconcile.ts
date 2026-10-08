@@ -89,8 +89,8 @@ export const reconcileNow = async (fs: Fs, previous: Held, now: number): Promise
     const fresh = await readFeature(fs, root, active, previous.memo.files[active])
     held = deriveSpeckitState({ ...snapshot, features: snapshot.features.map(f => (f.dir === active ? fresh : f)) }, previous.memo, now)
   }
-  // The drawn state carries the memo version it was written with; the derived one does not.
-  const { memoVersion: _v, ...shown } = previous.state as typeof previous.state & { memoVersion?: number }
+  // The drawn state carries the memo version and the time it was written with; the derived one does not.
+  const { memoVersion: _v, updatedAt: _at, ...shown } = previous.state as typeof previous.state & { memoVersion?: number }
   const same = JSON.stringify(held.state) === JSON.stringify(shown) && JSON.stringify(held.memo) === JSON.stringify(previous.memo)
   return same ? previous : held
 }

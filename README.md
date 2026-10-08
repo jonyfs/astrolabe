@@ -423,7 +423,7 @@ right; otherwise it sits above the prompt. It opens with the keyboard on it, so 
 switch tabs right away, and Esc closes it. Later, focus it again with a click or
 `ctrl+x tab`. The tab you pick stays for the session, and the next session of the same project opens on it.
 On Specs, Tasks and Help, `f` puts the cursor in one filter that keeps the rows holding what you
-type (a filter that keeps nothing says so); on Specs, `s` cycles a status filter (all, in progress, next up, done, abandoned), and `is:done` in the filter does the same; in a narrow pane the legend keeps only the keys; `✕` at the end of the tab row closes the pane.
+type (a filter that keeps nothing says so); on Specs, `s` cycles a status filter (all, in progress, next up, done, abandoned), and `is:done` in the filter does the same; in a narrow pane the legend keeps only the keys; from 80 columns it ends with `updated 14:32`, when Astrolabe last wrote what the tabs show; `✕` at the end of the tab row closes the pane.
 
 `h` opens the Help tab from any tab. The tab shown starts with `▸`, and the pane's title names the active feature (`🧭 Astrolabe · 026 claude-context`). Below 80 columns a tab shows only its number and count (`2·11`). A tab label carries a count when there is one: `Specs 3` features in progress, `Tasks 11` open
 tasks of the active feature, `PRs 2` open pull requests. Above the footer, a dim row says what the

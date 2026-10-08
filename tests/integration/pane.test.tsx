@@ -139,9 +139,10 @@ describe('pane navigation (043)', () => {
     await setup($ as never, on as never)
     const ui = await mountPane($ as never, 'terminal', 130, 30)
     expect(await ui.tabs()).toContain('Tasks 11')
-    expect(await ui.legend()).toBe('every feature, its phase and progress · 1-7 tabs · h help · f filters · s status · j/k scroll · Esc closes')
+    // 054 #26: the legend ends with when the state was last written.
+    expect(await ui.legend()).toMatch(/^every feature, its phase and progress · 1-7 tabs · h help · f filters · s status · j\/k scroll · Esc closes · updated \d\d:\d\d$/)
     await ui.press('tab-tasks')
-    expect(await ui.legend()).toBe("the active feature's open tasks · 1-7 tabs · h help · f filters · j/k scroll · Esc closes")
+    expect(await ui.legend()).toMatch(/^the active feature's open tasks · 1-7 tabs · h help · f filters · j\/k scroll · Esc closes · updated \d\d:\d\d$/)
     await ui.unmount()
   })
 })
