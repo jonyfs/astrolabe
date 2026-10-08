@@ -44,7 +44,7 @@ import {
   type Decision,
   type Question,
 } from './core/governor'
-import { FLAVORS, isThemeKeys, themeOf } from './core/theme'
+import { CHIPS, FLAVORS, flavorOf, isThemeKeys, themeOf } from './core/theme'
 import { tasksDiff } from './core/summary'
 import { featureDirFor, parseWorktrees, worktreeName } from './core/worktrees'
 import { readFeature } from './io/snapshot'
@@ -61,7 +61,7 @@ import { askTree } from './surfaces/ask'
 import { dashboardSections, dashboardTree } from './surfaces/dashboard'
 import { dial, kpiRows, phaseBars, sparkline, usageChart } from './core/dashboard'
 import { addWeek, estimateLeft, slowest, weekKey, type Weeks } from './core/history'
-import { footerText, type FooterInput } from './core/footer'
+import { footerChips, footerText, type FooterInput } from './core/footer'
 import { parseGitStatus, parsePullRequest } from './core/git-status'
 import { iconSet, iconsFor } from './core/icons'
 import { guessLang, langOf, t, type Lang } from './core/i18n'
@@ -209,6 +209,19 @@ async function readGit($: EngineInterface, root: string | undefined, branch: str
 }
 
 let prRunning = false
+
+// The options as loaded, for drawings that need more than one (039).
+let optionsSeen: Readonly<Record<string, unknown>> = {}
+
+/** Whether a colour is light enough to carry dark text (039), by its relative luminance. */
+const isLight = (hex: string): boolean => {
+  const n = Number.parseInt(hex.slice(1), 16)
+  const [r, g, b] = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map(c => {
+    const v = c / 255
+    return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4
+  })
+  return 0.2126 * r! + 0.7152 * g! + 0.0722 * b! > 0.3
+}
 
 // How many units each pane tab drew last (038), to clamp a scroll that arrives between draws.
 const unitsShown: Partial<Record<string, number>> = {}
@@ -1152,6 +1165,7 @@ async function gate($: GateArgs[0], e: GateArgs[1], next: GateArgs[2]): Promise<
 export const register: Register = (on, options) => {
   const preset = presetOf(options)
   const tokens = themeOf(options)
+  optionsSeen = options
   tokens0 = tokens
   // Whether the last band draw saw a fullscreen terminal of 144 columns or more. The pane
   // never opens unasked below that (Principle VII); session.start reports no width.
@@ -1622,7 +1636,18 @@ export const register: Register = (on, options) => {
     // The footer under every tab (035), held at the bottom when the tab is shorter than the pane.
     const footerFor = async (pad: number) => {
       if (footerIn === 'status') return undefined
-      return { text: footerText(await footerInput($, state, columns)), columns, pad: Math.max(0, pad) }
+      const input = await footerInput($, state, Math.max(20, columns - 4))
+      const set = iconsFor(iconsOption, e.surface)
+      // statusline's colours (039); text only in the accessible mode and with ascii icons.
+      const palette = CHIPS[flavorOf(optionsSeen, isLightTheme)]
+      const chips =
+        accessible || set === 'ascii'
+          ? undefined
+          : footerChips(input).map(chip => {
+              const bg = palette[chip.colour] ?? palette['surface1']!
+              return { key: chip.key, text: chip.text, bg, fg: isLight(bg) ? '#11111b' : '#eff1f5' }
+            })
+      return { text: footerText(input), columns, pad: Math.max(0, pad), ...(chips === undefined ? {} : { chips, arrow: set === 'nerd' ? '\ue0b0' : '' }) }
     }
     // The body scrolls inside the pane and the footer stays on the last rows (038).
     const bodyRows = e.props.scroll?.bodyRows ?? 24

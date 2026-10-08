@@ -44,7 +44,9 @@ const duration = (ms: number): string => {
   return minutes < 60 ? `${minutes}m` : `${Math.floor(minutes / 60)}h${String(minutes % 60).padStart(2, '0')}m`
 }
 
-type Part = { text: string; rank: number }
+/** A palette colour name (statusline's), or a ramp read from a level. */
+export type ChipColour = 'mauve' | 'sapphire' | 'yellow' | 'red' | 'lavender' | 'teal' | 'peach' | 'surface1' | 'green'
+type Part = { text: string; rank: number; colour?: ChipColour; level?: number }
 
 // An ASCII label ending in ':' is glued to its value (`stash:2`); a glyph takes a space.
 const glued = (icon: string, text: string) => (icon.endsWith(':') ? `${icon}${text}` : withIcon(icon, text))
@@ -69,16 +71,16 @@ const parts = (input: FooterInput): Part[] => {
   if (binding !== undefined) {
     const segment = usageSegment(decision, input.lang ?? 'en') ?? ''
     const at = binding.renewed === true ? undefined : clockOf(binding.resetsAt)
-    out.push({ text: at === undefined ? segment : `${segment} (${at})`, rank: 0 })
+    out.push({ text: at === undefined ? segment : `${segment} (${at})`, rank: 0, colour: 'sapphire', ...(binding.renewed === true ? {} : { level: binding.percent }) })
   }
   for (const r of input.readings) {
     if (r.kind === binding?.kind) continue
-    out.push({ text: windowText(r, now, input.lang ?? 'en'), rank: 2 })
+    out.push({ text: windowText(r, now, input.lang ?? 'en'), rank: 2, colour: 'sapphire', level: r.percentUsed })
   }
-  if (input.context !== undefined) out.push({ text: withIcon(icons.context, `${Math.round(input.context.percent)}%`), rank: 1 })
+  if (input.context !== undefined) out.push({ text: withIcon(icons.context, `${Math.round(input.context.percent)}%`), rank: 1, colour: 'yellow', level: input.context.percent })
   if (input.model !== undefined) {
     const effort = input.effort === undefined ? '' : ` ${input.effort}`
-    out.push({ text: withIcon(icons.model, `${shortModel(input.model)}${effort}`), rank: 3 })
+    out.push({ text: withIcon(icons.model, `${shortModel(input.model)}${effort}`), rank: 3, colour: 'red' })
   }
   const git = input.git
   if (git?.branch !== undefined) {
@@ -92,32 +94,61 @@ const parts = (input: FooterInput): Part[] => {
       git.pr === undefined ? '' : prText(icons, git.pr),
     ].filter(s => s !== '')
     const branch = icons.branch.endsWith(':') ? `${icons.branch}${git.branch}` : withIcon(icons.branch, git.branch)
-    out.push({ text: [branch, ...counts].join(' '), rank: 4 })
+    out.push({ text: [branch, ...counts].join(' '), rank: 4, colour: 'lavender' })
   }
   if (input.cost !== undefined && input.cost > 0) {
     const amount = input.cost.toFixed(2)
-    out.push({ text: icons.cost === '$' ? `$${amount}` : withIcon(icons.cost, amount), rank: 5 })
+    out.push({ text: icons.cost === '$' ? `$${amount}` : withIcon(icons.cost, amount), rank: 5, colour: 'teal' })
   }
-  if (input.startedAt !== undefined && now - input.startedAt >= 60_000) out.push({ text: withIcon(icons.clock, duration(now - input.startedAt)), rank: 6 })
+  if (input.startedAt !== undefined && now - input.startedAt >= 60_000) out.push({ text: withIcon(icons.clock, duration(now - input.startedAt)), rank: 6, colour: 'surface1' })
   return out
 }
 
 /** The footer text: Spec Kit first, then the parts in order, fitted to `columns`. */
-export const footerText = (input: FooterInput): string => {
+/** The parts that fit `columns`, Spec Kit first, the least important dropped first. */
+const fitted = (input: FooterInput): { speckit: string; kept: Part[] } => {
   let kept = input.lead === true ? parts(input).filter(p => p.rank === 0) : parts(input)
   const join = (speckit: string) => [speckit, ...kept.map(p => p.text)].filter(s => s !== '').join(SEP)
-  let text = join(input.speckit())
-  while (textWidth(text) > input.columns) {
+  let speckit = input.speckit()
+  while (textWidth(join(speckit)) > input.columns) {
     const droppable = kept.filter(p => p.rank > 0)
     if (droppable.length === 0) break
     const worst = droppable.reduce((a, b) => (b.rank > a.rank ? b : a))
     kept = kept.filter(p => p !== worst)
-    text = join(input.speckit())
   }
-  if (textWidth(text) > input.columns) {
+  if (textWidth(join(speckit)) > input.columns) {
     const rest = kept.map(p => p.text).join(SEP)
     const room = input.columns - (rest === '' ? 0 : textWidth(rest) + SEP.length)
-    text = join(input.speckit(Math.max(1, room)))
+    speckit = input.speckit(Math.max(1, room))
   }
-  return text
+  return { speckit, kept }
+}
+
+/** The footer text: Spec Kit first, then the parts in order, fitted to `columns`. */
+export const footerText = (input: FooterInput): string => {
+  const { speckit, kept } = fitted(input)
+  return [speckit, ...kept.map(p => p.text)].filter(s => s !== '').join(SEP)
+}
+
+/** statusline's level ramp (039): green below 60%, yellow to 85%, red above, a mark past the first band. */
+export const rampOf = (level: number): { colour: ChipColour; mark: string } =>
+  level < 60 ? { colour: 'green', mark: '' } : level < 85 ? { colour: 'yellow', mark: '▵' } : { colour: 'red', mark: '▴' }
+
+export type Chip = { key: string; text: string; colour: ChipColour }
+
+/** The footer as Powerline chips in statusline's colours (039); the context ramps without a mark. */
+export const footerChips = (input: FooterInput): Chip[] => {
+  const { speckit, kept } = fitted(input)
+  return [
+    ...(speckit === '' ? [] : [{ key: 'speckit', text: speckit, colour: 'mauve' as const }]),
+    ...kept.map((p, i) => {
+      const ramp = p.level === undefined ? undefined : rampOf(p.level)
+      const isContext = p.colour === 'yellow'
+      return {
+        key: `part-${i}`,
+        text: ramp === undefined || isContext ? p.text : `${p.text}${ramp.mark}`,
+        colour: ramp?.colour ?? p.colour ?? 'surface1',
+      }
+    }),
+  ]
 }
