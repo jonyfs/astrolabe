@@ -51,7 +51,7 @@ import {
 import { CHIPS, FLAVORS, flavorOf, isThemeKeys, STATUS_ROLE, themeOf, type ThemeRole } from './core/theme'
 import { capDiff, recapLine, recapOf, tasksDiff } from './core/summary'
 import { styleSections } from './core/style'
-import { parsePullList, pullAction, PR_LIST_FIELDS } from './core/pulls'
+import { parsePullList, prOpened, pullAction, PR_LIST_FIELDS } from './core/pulls'
 import { SKILL_MODELS, skillModelFor } from './core/skill-models'
 import { featureDirFor, mergedBranches, parseWorktrees, uncommittedCount, withWorktreeProgress, worktreeName, worktreeState } from './core/worktrees'
 import { readFeature } from './io/snapshot'
@@ -2152,6 +2152,10 @@ export const register: Register = (on, options) => {
     // The command may have made a spec or switched the branch: the tabs follow now (053),
     // only for a command that can do so, so a plain `ls` costs no reads (054 #5).
     if (canTouchSpecs(String((e as { command?: unknown }).command ?? ''))) await syncNow($)
+    // A pull request opened here: offer gstack's /review on it (054 #97).
+    const output = (result as { result?: { text?: string }; isError?: boolean } | undefined)
+    const opened = output?.isError === true ? undefined : prOpened(String((e as { command?: unknown }).command ?? ''), output?.result?.text ?? '')
+    if (opened !== undefined && (await $.state.get(SESSION)).value?.gstack === true) $.ui.toast(t(currentLang(), 'gstack.reviewPr', { n: opened }))
     return result
   }).catch(($, e, next) => next(e))
 

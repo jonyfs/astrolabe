@@ -62,3 +62,10 @@ export const pullAction = (action: 'approve' | 'update' | 'merge', n: number, he
       ? ['gh', 'pr', 'update-branch', String(n)]
       : // The merge lands the head the person saw, or fails if someone pushed since.
         ['gh', 'pr', 'merge', String(n), '--merge', ...(head === undefined ? [] : ['--match-head-commit', head])]
+
+/** The pull request a `gh pr create` just opened (054 #97): its number from the URL gh prints, else undefined. */
+export const prOpened = (command: string, output: string): number | undefined => {
+  if (!/\bgh\s+pr\s+create\b/.test(command)) return undefined
+  const m = /https:\/\/[^\s]+\/pull\/(\d+)/.exec(output)
+  return m === null ? undefined : Number(m[1])
+}
