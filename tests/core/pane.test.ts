@@ -207,3 +207,12 @@ describe('coloured rows (052 #12, 054 #71)', () => {
     expect(specsRows(state(), 40).find(r => r.key === 'feature-002')?.segments).toBeUndefined()
   })
 })
+
+describe('task ids line up (052 #22)', () => {
+  test('a short id is padded to the widest', () => {
+    const memo2 = { ...emptyMemo(), files: { '002-band-hint': { dir: '002-band-hint', plan: true, tasks: '- [ ] T9 a\n- [ ] T10 b\n' } } }
+    const rows = texts(taskRows(state(), memo2, 10, 80))
+    expect(rows).toContain('T9  a')
+    expect(rows).toContain('T10 b')
+  })
+})

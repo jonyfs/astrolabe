@@ -9,7 +9,7 @@ import type { ThemeRole } from './theme'
 import type { Feature, SessionMemo, SpeckitState } from './types'
 
 /** A row; `segments`, when given, colour parts of `text` (which stays their join) (052 #12). */
-export type PaneRow = { key: string; text: string; role: ThemeRole; dim?: boolean; href?: string; segments?: ReadonlyArray<{ text: string; role: ThemeRole }> }
+export type PaneRow = { key: string; text: string; role: ThemeRole; dim?: boolean; bold?: boolean; href?: string; segments?: ReadonlyArray<{ text: string; role: ThemeRole }> }
 
 const BAR_CELLS = 10
 const noSpeckit = (lang: Lang): PaneRow => ({ key: 'none', text: tr(lang, 'pane.noSpeckit'), role: 'muted' })
@@ -143,7 +143,7 @@ export const specsRows = (
     const inSection = byPriority(state.features.filter(f => sectionOf(f, activeDir) === section), priorities)
     if (inSection.length === 0) continue
     const folded = fold && (section === 'done' || section === 'abandoned') && inSection.length > 3 && !inSection.some(f => f.dir === activeDir)
-    rows.push({ key: `section-${section}`, text: `${tr(lang, `pane.section.${section}`)} (${inSection.length})${folded ? ` · ${tr(lang, 'pane.folded.section', { status: section })}` : ''}`, role: 'muted' })
+    rows.push({ key: `section-${section}`, text: `${tr(lang, `pane.section.${section}`)} (${inSection.length})${folded ? ` · ${tr(lang, 'pane.folded.section', { status: section })}` : ''}`, role: 'muted', bold: true })
     if (folded) continue
     for (const f of inSection) {
       const row = featureRow(f, activeDir === f.dir, columns - 2, { ...ctx, ...(running !== undefined && f.dir === activeDir ? { running } : {}), ...(priorities[f.id] === undefined ? {} : { priority: priorities[f.id] }), ...(worktrees[f.id] === undefined ? {} : { worktrees: worktrees[f.id] }) })
@@ -213,6 +213,8 @@ export const taskRows = (state: SpeckitState, memo: SessionMemo, rows: number, c
     const after = isP(i + 1)
     return before && after ? '│ ' : before ? '└ ' : after ? '┌ ' : '⇉ '
   }
+  // Ids padded to the widest shown, so the text column lines up (052 #22).
+  const idWidth = Math.max(0, ...shown.map(t => t.id?.length ?? 0))
   let story: string | undefined
   for (const [index, t] of shown.entries()) {
     // The user story a run of tasks belongs to (045 #44).
@@ -227,7 +229,7 @@ export const taskRows = (state: SpeckitState, memo: SessionMemo, rows: number, c
     const isCurrent = current !== undefined && t.id !== undefined && current.id === t.id
     const ran = isCurrent && now !== undefined && current.startedAt !== undefined ? elapsed(now - current.startedAt) : ''
     const tail = ran === '' ? '' : `  ⏱ ${ran}`
-    const head = `${isCurrent ? '▸ ' : ''}${groupOf(index)}${t.id === undefined ? '' : `${t.id} `}`
+    const head = `${isCurrent ? '▸ ' : ''}${groupOf(index)}${t.id === undefined ? '' : `${t.id.padEnd(idWidth)} `}`
     out.push({ key: `task-${t.id ?? index}`, text: `${head}${cut(cleanTaskText(t.text), columns - width(head) - width(tail))}`.trimEnd() + tail, role: isCurrent ? 'current' : 'text' })
   }
   if (shown.length < open.length) out.push({ key: 'more', text: tr(lang, 'pane.more', { n: open.length - shown.length }), role: 'muted' })

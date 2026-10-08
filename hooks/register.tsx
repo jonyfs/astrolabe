@@ -1136,7 +1136,7 @@ export const canTouchSpecs = (command: string): boolean =>
  * under a heading and only when it has rows. Each state is read once (054 #1). The governor's
  * state row takes the band's colour (052 #25).
  */
-async function sessionTabRows($: EngineInterface, state: SpeckitState): Promise<Array<{ key: string; text: string; role: ThemeRole; dim?: boolean }>> {
+async function sessionTabRows($: EngineInterface, state: SpeckitState): Promise<Array<{ key: string; text: string; role: ThemeRole; dim?: boolean; bold?: boolean }>> {
   const lang = currentLang()
   const now = await $.clock.now()
   const usage = (await $.state.get(USAGE)).value ?? DEFAULT_USAGE
@@ -1161,8 +1161,8 @@ async function sessionTabRows($: EngineInterface, state: SpeckitState): Promise<
   const updateRows = updates.map(item => ({ key: `update-${item.id}`, text: `${label('update')}${updateLabel(item, false)} (installed ${item.installed})`, role: 'current' as ThemeRole }))
   // Without Spec Kit the project rows say so on their own; no headings then.
   if (!state.present) return [...project, ...governor, ...activity, ...updateRows]
-  const block = (key: string, rows: Array<{ key: string; text: string; role: ThemeRole; dim?: boolean }>) =>
-    rows.length === 0 ? [] : [{ key: `block-${key}`, text: t(lang, `session.block.${key}` as TextKey), role: 'accent' as ThemeRole }, ...rows]
+  const block = (key: string, rows: Array<{ key: string; text: string; role: ThemeRole; dim?: boolean; bold?: boolean }>) =>
+    rows.length === 0 ? [] : [{ key: `block-${key}`, text: t(lang, `session.block.${key}` as TextKey), role: 'accent' as ThemeRole, bold: true }, ...rows]
   return [...block('project', project), ...block('governor', governor), ...block('activity', activity), ...block('updates', updateRows)]
 }
 
