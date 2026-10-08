@@ -56,6 +56,23 @@ describe('the pane tabs (US1, US2)', () => {
     await again.unmount()
   })
 
+  test('054 #17: a reload keeps the tab and the status filter', async ($, on) => {
+    await setup($ as never, on as never)
+    const first = await mountPane($ as never, 'terminal', 100, 30)
+    const all = await first.body()
+    await first.press('status-filter')
+    const filtered = await first.body()
+    await first.press('tab-session')
+    await first.unmount()
+    await startSession($ as never, '/proj')
+    const again = await mountPane($ as never, 'terminal', 100, 30)
+    expect(await again.body()).toContain('analyzed')
+    await again.press('tab-specs')
+    expect(await again.body()).toBe(filtered)
+    expect(filtered).not.toBe(all)
+    await again.unmount()
+  })
+
   test('without Spec Kit the pane says so', async ($, on) => {
     await setup($ as never, on as never, noSpeckit)
     const ui = await mountPane($ as never, 'terminal')
