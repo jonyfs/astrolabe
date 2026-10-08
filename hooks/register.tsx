@@ -1188,7 +1188,8 @@ async function sessionTabRows($: EngineInterface, state: SpeckitState): Promise<
   const project = sessionRows(state, now, lang)
   const governor = [
     ...usageRows(usage, now).map(([name, text]) => ({ key: `usage-${name}`, text: `${label(name)}${text}`, role: (name === 'state' ? bandRole : 'text') as ThemeRole })),
-    ...(usage.log ?? []).slice(-3).map((entry, i) => ({ key: `governor-log-${i}`, text: `${label(i === 0 ? t(lang, 'session.governor') : '')}${clockOf(new Date(entry.at).toISOString()) ?? ''} ${entry.text}`, role: 'muted' as ThemeRole })),
+    // Today's governor steps, at most 10 (054 #62).
+    ...(usage.log ?? []).filter(entry => new Date(entry.at).toDateString() === new Date(now).toDateString()).slice(-10).map((entry, i) => ({ key: `governor-log-${i}`, text: `${label(i === 0 ? t(lang, 'session.governor') : '')}${clockOf(new Date(entry.at).toISOString()) ?? ''} ${entry.text}`, role: 'muted' as ThemeRole })),
   ]
   const summary = stats?.lastSummary
   const review = stats?.lastReview

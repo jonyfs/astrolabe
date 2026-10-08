@@ -216,3 +216,11 @@ describe('task ids line up (052 #22)', () => {
     expect(rows).toContain('T10 b')
   })
 })
+
+describe('warning order (054 #29)', () => {
+  test('an unreadable file comes before open questions', () => {
+    const odd = { ...f('002', 'band-hint', 'implement', 9, 20, ['unreadable-tasks']), clarifications: 2 }
+    const rows = texts(specsRows(state({ features: [odd] }), 120))
+    expect(rows.findIndex(t => t.includes('could not be read'))).toBeLessThan(rows.findIndex(t => t.includes('[NEEDS CLARIFICATION] markers')))
+  })
+})
