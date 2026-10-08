@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import { parsePullList, pullAction } from '../../hooks/core/pulls'
+import { parsePullList, prOpened, pullAction } from '../../hooks/core/pulls'
 import { scenario as halfDone } from '../fixtures/half-done'
 import { completeTurn, installEngine, installTree, startSession } from '../helpers/fake-fs'
 import { installPaneEngine, installRenderEngine } from '../helpers/render'
@@ -110,5 +110,21 @@ describe('gstack /ship on the PRs tab (054 #96)', () => {
     await session.clock.settle()
     expect(session.prompts).toContain('/ship')
     await ui.unmount()
+  })
+})
+
+describe('gstack /review after a PR is opened (054 #97)', () => {
+  test('a gh pr create that prints the PR URL toasts the /review offer, with gstack installed', async ($, on) => {
+    expect(prOpened('gh pr create --title x --body-file b.md', 'https://github.com/o/r/pull/128\n')).toBe(128)
+    expect(prOpened('gh pr view 128', 'https://github.com/o/r/pull/128')).toBeUndefined()
+    const session = installTree(on, { ...halfDone.tree, '/home/u/.claude/skills/gstack/bin/gstack-update-check': '#!/bin/sh\n' }, '/proj')
+    session.script.env['HOME'] = '/home/u'
+    on('tool.call', () => ({ result: { text: 'https://github.com/o/r/pull/128\n' } }) as never)
+    on('command.register', () => ({ value: undefined }) as never)
+    on('turn.complete', () => ({ text: '' }))
+    on('session.measure', ($$, e) => ({ changed: e.changed }) as never)
+    await startSession($ as never, '/proj')
+    await $.tool.call({ tool: 'Bash', tool_use_id: 'b', command: 'gh pr create --title x --body-file b.md' } as never)
+    expect(session.toasts.at(-1)).toBe('🧭 PR #128 opened: run gstack /review on it before the merge')
   })
 })
