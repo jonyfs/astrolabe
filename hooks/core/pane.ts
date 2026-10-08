@@ -116,18 +116,35 @@ export const taskRows = (state: SpeckitState, memo: SessionMemo, rows: number, c
   const open = tasks.filter(t => !t.isDone)
   const out: PaneRow[] = [{ key: 'count', text: tr(lang, 'pane.count', { done: tasks.length - open.length, total: tasks.length }), role: 'muted' }]
   if (open.length === 0) return [...out, { key: 'all-done', text: tr(lang, 'pane.allTicked'), role: 'done' }]
+  // Done tasks folded under one row (045 #41).
+  const done = tasks.filter(t => t.isDone && t.id !== undefined).map(t => t.id!)
+  if (done.length > 0) out.push({ key: 'done-folded', text: cut(`✓ ${done.length === 1 ? done[0]! : `${done[0]}…${done.at(-1)}`}`, columns), role: 'done', dim: true })
   // A run of [P] tasks at the head can go to subagents at once (020c #19).
   const parallel = parallelTasks(tasks)
   if (parallel.length > 0) out.push({ key: 'parallel', text: tr(lang, 'pane.parallel', { ids: parallel.join(', ') }), role: 'accent' })
   const room = Math.max(1, rows - 1)
   const shown = open.length <= room ? open : open.slice(0, room - 1)
+  // [P] tasks (045 #43): a run of them is bracketed, a lone one is marked ⇉.
+  const isP = (i: number) => shown[i]?.text.includes('[P]') === true
+  const groupOf = (i: number): string => {
+    if (!isP(i)) return ''
+    const before = isP(i - 1)
+    const after = isP(i + 1)
+    return before && after ? '│ ' : before ? '└ ' : after ? '┌ ' : '⇉ '
+  }
+  let story: string | undefined
   for (const [index, t] of shown.entries()) {
+    // The user story a run of tasks belongs to (045 #44).
+    if (t.story !== undefined && t.story !== story) {
+      story = t.story
+      out.push({ key: `story-${t.line ?? index}`, text: cut(t.story, columns), role: 'muted' })
+    }
     // The task being worked on (045 #42): marked, with how long it has run.
     const current = state.currentTask
     const isCurrent = current !== undefined && t.id !== undefined && current.id === t.id
     const ran = isCurrent && now !== undefined && current.startedAt !== undefined ? elapsed(now - current.startedAt) : ''
     const tail = ran === '' ? '' : `  ⏱ ${ran}`
-    const head = `${isCurrent ? '▸ ' : ''}${t.id === undefined ? '' : `${t.id} `}`
+    const head = `${isCurrent ? '▸ ' : ''}${groupOf(index)}${t.id === undefined ? '' : `${t.id} `}`
     out.push({ key: `task-${t.id ?? index}`, text: `${head}${cut(cleanTaskText(t.text), columns - width(head) - width(tail))}`.trimEnd() + tail, role: isCurrent ? 'current' : 'text' })
   }
   if (shown.length < open.length) out.push({ key: 'more', text: tr(lang, 'pane.more', { n: open.length - shown.length }), role: 'muted' })
