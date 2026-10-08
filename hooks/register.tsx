@@ -1194,7 +1194,8 @@ async function guarded($: EngineInterface, work: (previous: Held | undefined) =>
       if (written.isSet) {
         // Two writers can finish out of order: the state carries its memo version, and an
         // older one never replaces a newer one, so the drawing never lags the memo.
-        const state = { ...next.state, memoVersion: written.version }
+        // When it was written, for the pane's legend (054 #26).
+        const state = { ...next.state, memoVersion: written.version, updatedAt: Date.now() }
         for (let tries = 0; tries < MAX_ATTEMPTS; tries += 1) {
           const shown = await $.state.get(SPECKIT)
           if ((shown.value?.memoVersion ?? -1) >= written.version) break
@@ -2336,7 +2337,7 @@ export const register: Register = (on, options) => {
       legend: ((about: string, keys: string) => ([...`${about} · ${keys}`].length <= columns ? `${about} · ${keys}` : keys))(
         t(currentLang(), ABOUT[pane.tab]),
         t(currentLang(), pane.tab === 'specs' ? 'legend.specs' : pane.tab === 'tasks' || pane.tab === 'help' ? 'legend.filter' : pane.tab === 'config' ? 'legend.config' : 'legend.default'),
-      ),
+      ) + (state.updatedAt === undefined || columns < 80 ? '' : ` · ${t(currentLang(), 'legend.updated', { at: clockOf(new Date(state.updatedAt).toISOString()) ?? '' })}`),
     }
     const select = async (tab: PaneTab) => {
       const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
