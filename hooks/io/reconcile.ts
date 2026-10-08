@@ -72,6 +72,29 @@ export const reconcileTurn = async (fs: Fs, cwd: string, previous: Held | undefi
 }
 
 /**
+ * Mid-turn (053): a Bash command or a write under `.specify/` may have made a spec, switched
+ * the branch or pointed feature.json elsewhere. Read the root's own files and the specs/
+ * listing again, new features and the active one, and keep the turn's memo (touched, window,
+ * running skill). Hands back `previous` itself when nothing moved, so nothing is written.
+ */
+export const reconcileNow = async (fs: Fs, previous: Held, now: number): Promise<Held> => {
+  const root = previous.state.root
+  if (root === undefined) return previous
+  const snapshot = await readSnapshot(fs, root, { dirs: [] }, previous.memo.files, previous.memo.base)
+  let held = deriveSpeckitState(snapshot, previous.memo, now)
+  const active = held.state.active?.dir
+  // A newly active feature is read fresh: its cache may be from an earlier turn.
+  if (active !== undefined && active !== previous.state.active?.dir && previous.memo.files[active] !== undefined) {
+    const fresh = await readFeature(fs, root, active, previous.memo.files[active])
+    held = deriveSpeckitState({ ...snapshot, features: snapshot.features.map(f => (f.dir === active ? fresh : f)) }, previous.memo, now)
+  }
+  // The drawn state carries the memo version it was written with; the derived one does not.
+  const { memoVersion: _v, ...shown } = previous.state as typeof previous.state & { memoVersion?: number }
+  const same = JSON.stringify(held.state) === JSON.stringify(shown) && JSON.stringify(held.memo) === JSON.stringify(previous.memo)
+  return same ? previous : held
+}
+
+/**
  * A Read of one of the active feature's files (014): the turn is working on it, so the
  * spinner narrates from the first read. No disk read; nothing changes for any other path.
  */

@@ -462,6 +462,10 @@ priority, followed by links to its `spec.md`, `plan.md` and `tasks.md` (only the
 exist). In the terminal a link opens the file with ctrl or cmd and a click, as your terminal
 opens `file:` links.
 
+The tabs follow Claude during a turn: a Write of `.specify/feature.json` or the constitution, a
+Bash command that makes a spec or switches the branch, and a subagent's return all redraw them at
+once, without waiting for the turn to end.
+
 When the repository has other git worktrees, the features they work on show under the list, read
 after each turn from the branch name (`026-...`) and that worktree's files:
 

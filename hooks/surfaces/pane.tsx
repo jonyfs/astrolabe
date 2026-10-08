@@ -4,6 +4,7 @@ import type { ElementTable, RenderNode } from 'claude-code'
 
 import type { PaneRow } from '../core/pane'
 import { t, type Lang, type TextKey } from '../core/i18n'
+import { markText } from '../core/icons'
 import type { Tokens } from '../core/theme'
 import type { PaneTab } from '../core/types'
 
@@ -33,9 +34,11 @@ export const paneTree = (
   /** What is above and below the rows shown, with the presses that scroll (038). */
   nav?: { above: number; below: number; up: () => Promise<void>; down: () => Promise<void>; labels: { more: string } },
   /** Counts beside the tab labels (043 #21) and the keys of the tab shown (043 #25). */
-  extras: { badges?: Partial<Record<PaneTab, string>>; legend?: string; onClose?: () => Promise<void>; onFind?: () => Promise<void>; onPriority?: () => Promise<void>; Link?: ElementTable<'terminal'>['Link'] } = {},
+  extras: { badges?: Partial<Record<PaneTab, string>>; legend?: string; onClose?: () => Promise<void>; onFind?: () => Promise<void>; onPriority?: () => Promise<void>; marks?: 'unicode' | 'ascii' | 'words'; Link?: ElementTable<'terminal'>['Link'] } = {},
 ) => {
   const Link = extras.Link
+  // The pane's own marks in the set the icons option and the accessible mode pick (052 #49, #47).
+  const m = (text: string) => markText(text, extras.marks ?? 'unicode')
   return (
   <Box flexDirection="column">
     <Box key="astrolabe-pane-tabs" flexDirection="row">
@@ -49,10 +52,10 @@ export const paneTree = (
         />
       ))}
       {/* f focuses the filter (043 #23); ✕ closes the pane (043 #28). */}
-      {extras.onFind !== undefined && <Button key="find" label="⌕ f" hotkey="f" plain onPress={() => extras.onFind!()} />}
+      {extras.onFind !== undefined && <Button key="find" label={m('⌕ f')} hotkey="f" plain onPress={() => extras.onFind!()} />}
       {/* p cycles the active spec's priority: normal, high, low (051). */}
-      {extras.onPriority !== undefined && <Button key="priority" label="↑↓ p" hotkey="p" plain onPress={() => extras.onPriority!()} />}
-      {extras.onClose !== undefined && <Button key="close-pane" label="✕" plain onPress={() => extras.onClose!()} />}
+      {extras.onPriority !== undefined && <Button key="priority" label={m('↑↓ p')} hotkey="p" plain onPress={() => extras.onPriority!()} />}
+      {extras.onClose !== undefined && <Button key="close-pane" label={m('✕')} plain onPress={() => extras.onClose!()} />}
     </Box>
     <Box key="astrolabe-pane-body" flexDirection="column">
       {header}
@@ -62,14 +65,14 @@ export const paneTree = (
           row.href !== undefined && Link !== undefined ? (
             <Box flexDirection="row">
               <Text color={tokens[row.role]} dimColor={row.dim === true} wrap="truncate-end">
-                {row.text}
+                {m(row.text)}
               </Text>
               <Text> </Text>
-              <Link href={row.href} label="↗" />
+              <Link href={row.href} label={m('↗')} />
             </Box>
           ) : (
             <Text color={tokens[row.role]} dimColor={row.dim === true} wrap="truncate-end">
-              {row.text}
+              {m(row.text)}
             </Text>
           ),
         )}
@@ -78,7 +81,7 @@ export const paneTree = (
     {extras.legend === undefined ? null : (
       <Box key="astrolabe-pane-legend">
         <Text color={tokens.muted} dimColor wrap="truncate-end">
-          {extras.legend}
+          {m(extras.legend)}
         </Text>
       </Box>
     )}
