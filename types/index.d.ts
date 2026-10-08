@@ -84,6 +84,8 @@ export type Snapshot = {
   features: FeatureFiles[]
   /** Enabled Spec Kit extension hooks, read with the full snapshot (020c). */
   extensions?: ExtensionHook[]
+  /** The first line of `.specify/extensions.yml` that cannot be read (054 #16). */
+  extensionsError?: { line: number; reason: 'tab' | 'quote' | 'shape' }
   /** Other Spec Kit roots under the session's directory (020c). */
   otherRoots?: string[]
 }
@@ -143,6 +145,8 @@ export type SpeckitState = {
   otherRoots?: string[]
   /** Extension hooks before and after the next command (020c). */
   nextHooks?: { before: string[]; after: string[] }
+  /** The first line of `.specify/extensions.yml` that cannot be read (054 #16). */
+  extensionsError?: { line: number; reason: 'tab' | 'quote' | 'shape' }
   /** The active feature's tasks, for the pane (the memo stays out of every drawing). */
   activeTasks?: Array<{ id?: string; text: string; isDone: boolean; line?: number; story?: string }>
   /** The feature the git branch names, when one does (044), to catch a stale feature.json. */

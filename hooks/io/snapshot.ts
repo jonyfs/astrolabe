@@ -3,7 +3,7 @@
 import { checklistCounts } from '../core/clarification'
 import { parseFrontMatter } from '../core/front-matter'
 import { joinPath, normalizePath, specsLocation } from '../core/paths'
-import { parseExtensions } from '../core/extensions'
+import { extensionsProblem, parseExtensions } from '../core/extensions'
 import type { ExtensionHook, FeatureFiles, FeatureJson, Snapshot } from '../core/types'
 
 import { type Fs, readOrUndefined, readResult, type ReadResult } from './fs-port'
@@ -111,7 +111,7 @@ export const readSnapshot = async (
   root: string,
   scope: SnapshotScope,
   previous: Readonly<Record<string, FeatureFiles>> = {},
-  last: { constitution?: string; extensions?: ExtensionHook[]; otherRoots?: string[] } = {},
+  last: { constitution?: string; extensions?: ExtensionHook[]; extensionsError?: { line: number; reason: 'tab' | 'quote' | 'shape' }; otherRoots?: string[] } = {},
   /** Past this many features with nothing cached, read the likely active ones now and the rest later (040). */
   deferAbove?: number,
 ): Promise<Snapshot> => {
@@ -142,8 +142,9 @@ export const readSnapshot = async (
   )
   const constitution = textOf(constitutionRead, last.constitution)
   // Extensions change rarely: read with the full snapshot only, kept from the last one otherwise.
-  const extensions =
-    scope === 'full' ? parseExtensions((await readOrUndefined(fs, joinPath(root, '.specify', 'extensions.yml'))) ?? '') : last.extensions
+  const extensionsText = scope === 'full' ? ((await readOrUndefined(fs, joinPath(root, '.specify', 'extensions.yml'))) ?? '') : undefined
+  const extensions = extensionsText === undefined ? last.extensions : parseExtensions(extensionsText)
+  const extensionsError = extensionsText === undefined ? last.extensionsError : extensionsProblem(extensionsText)
   return {
     root,
     featureJson,
@@ -151,6 +152,7 @@ export const readSnapshot = async (
     ...(head.branch === undefined ? {} : { branch: head.branch }),
     ...(head.worktree === undefined ? {} : { worktree: head.worktree }),
     ...(extensions === undefined || extensions.length === 0 ? {} : { extensions }),
+    ...(extensionsError === undefined ? {} : { extensionsError }),
     ...(last.otherRoots === undefined || last.otherRoots.length === 0 ? {} : { otherRoots: last.otherRoots }),
     features,
   }
