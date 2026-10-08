@@ -18,6 +18,8 @@ export type FooterInput = {
   startedAt?: number
   /** Usage points an hour over the session (041 #4). */
   burn?: number
+  /** The skill running now and the model it runs on, when skillModels picks one (054 #45). */
+  skill?: { name: string; model?: string }
   now: number
   icons: Icons
   columns: number
@@ -106,6 +108,10 @@ const parts = (input: FooterInput): Part[] => {
   if (input.model !== undefined) {
     const effort = input.effort === undefined ? '' : ` ${input.effort}`
     out.push({ text: withIcon(icons.model, `${shortModel(input.model)}${effort}`), rank: 3, colour: 'red' })
+  }
+  if (input.skill !== undefined) {
+    const name = input.skill.name.replace(/^[a-z0-9-]+:/, '').replace(/^speckit[-.]/, '')
+    out.push({ text: `⟳ ${name}${input.skill.model === undefined ? '' : ` · ${shortModel(input.skill.model)}`}`, rank: 3.5, colour: 'peach' })
   }
   const git = input.git
   if (git?.branch !== undefined) {

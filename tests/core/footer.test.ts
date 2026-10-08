@@ -62,6 +62,11 @@ describe('the footer (018 FR-001, FR-002)', () => {
     expect(footerText({ ...full, context: { percent: 84 }, icons: iconSet('ascii'), columns: 200 })).not.toContain('compact soon')
   })
 
+  test('the running skill and its model (054 #45)', () => {
+    const text = footerText({ ...full, skill: { name: 'speckit-implement', model: 'claude-sonnet-5-5' }, icons: iconSet('ascii'), columns: 220 })
+    expect(text).toContain('⟳ implement · sonnet 5.5')
+  })
+
   test('nerd icons sit before their values', () => {
     const text = footerText({ ...full, icons: iconSet('nerd'), columns: 200 })
     expect(text).toContain(' main ↑2 ↓1  3')

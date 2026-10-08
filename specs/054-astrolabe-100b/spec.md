@@ -73,7 +73,7 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 - [x] T042 #42 The footer's model chip names the 1M context window when it is on (`opus 5.5 1M`) (P2)
 - [x] T043 #43 A context chip that turns into `compact soon` past 85% (P1)
 - [ ] T044 #44 The footer's git chip shows the PR number as a link when `pullRequest` is on (P2)
-- [ ] T045 #45 A chip for the running skill with its model (`⟳ implement · sonnet`) (P2)
+- [x] T045 #45 A chip for the running skill with its model (`⟳ implement · sonnet`) (P2)
 - [ ] T046 #46 The footer drops its separator row when the pane is under 12 rows (P3)
 - [ ] T047 #47 The status entry under the prompt can show the full footer on one line at 140 columns and wider (P3)
 - [ ] T048 #48 The footer chips' order and colours read from one table the Help tab prints (P3)
