@@ -80,6 +80,27 @@ export const gatesText = (state: Pick<SpeckitState, 'constitution' | 'isAnalyzed
   ].join('  ')
 }
 
+/** A feature's own warnings, drawn under its row (052 #14). */
+const featureWarnings = (f: Feature, lang: Lang): PaneRow[] => {
+  const rows: PaneRow[] = []
+  if (f.warnings.includes('no-spec')) rows.push({ key: `nospec-${f.id}`, text: tr(lang, 'pane.noSpec', { id: f.id, dir: f.dir }), role: 'current' })
+  if (f.warnings.includes('clarification-after-plan')) {
+    rows.push({ key: `warning-${f.id}`, text: tr(lang, 'pane.clarifyLeft', { id: f.id }), role: 'current' })
+  }
+  if (f.clarifications !== undefined && !f.warnings.includes('clarification-after-plan')) {
+    rows.push({ key: `questions-${f.id}`, text: tr(lang, 'pane.questions', { id: f.id, n: f.clarifications }), role: 'current' })
+  }
+  if (f.checklist !== undefined && f.checklist.open > 0 && f.phase !== 'done' && f.phase !== 'abandoned') {
+    rows.push({ key: `checklist-${f.id}`, text: tr(lang, 'pane.checklist', { id: f.id, open: f.checklist.open, total: f.checklist.total }), role: 'current' })
+  }
+  for (const file of ['spec', 'tasks'] as const) {
+    if (f.warnings.includes(`unreadable-${file}`)) {
+      rows.push({ key: `warning-${f.id}-${file}`, text: tr(lang, 'pane.unreadable', { id: f.id, file: `${file}.md` }), role: 'current' })
+    }
+  }
+  return rows
+}
+
 export const specsRows = (
   state: SpeckitState,
   columns: number,
@@ -87,6 +108,8 @@ export const specsRows = (
   priorities: Priorities = {},
   /** Feature id to the worktrees working on it (054 #49). */
   worktrees: Readonly<Record<string, readonly string[]>> = {},
+  /** Fold Done and Abandoned past three features to their heading (052 #10, #11). */
+  fold = false,
 ): PaneRow[] => {
   if (!state.present) return [noSpeckit(lang)]
   if (state.features.length === 0) return [{ key: 'empty', text: tr(lang, 'pane.noFeatures'), role: 'muted' }]
@@ -97,12 +120,15 @@ export const specsRows = (
   }
   const running = state.runningSkill?.name
   const rows: PaneRow[] = []
+  const shown = new Set<string>()
   // Sections by status (044), each only when it has features.
   for (const section of ['progress', 'next', 'done', 'abandoned'] as const) {
     // Within a section, high priority first and low last (051).
     const inSection = byPriority(state.features.filter(f => sectionOf(f, activeDir) === section), priorities)
     if (inSection.length === 0) continue
-    rows.push({ key: `section-${section}`, text: `${tr(lang, `pane.section.${section}`)} (${inSection.length})`, role: 'muted' })
+    const folded = fold && (section === 'done' || section === 'abandoned') && inSection.length > 3 && !inSection.some(f => f.dir === activeDir)
+    rows.push({ key: `section-${section}`, text: `${tr(lang, `pane.section.${section}`)} (${inSection.length})${folded ? ` · ${tr(lang, 'pane.folded.section', { status: section })}` : ''}`, role: 'muted' })
+    if (folded) continue
     for (const f of inSection) {
       const row = featureRow(f, activeDir === f.dir, columns - 2, { ...ctx, ...(running !== undefined && f.dir === activeDir ? { running } : {}), ...(priorities[f.id] === undefined ? {} : { priority: priorities[f.id] }), ...(worktrees[f.id] === undefined ? {} : { worktrees: worktrees[f.id] }) })
       // A link to the feature's spec.md (044 #35).
@@ -112,6 +138,8 @@ export const specsRows = (
       if (activeDir === f.dir && f.phase !== 'done' && f.phase !== 'abandoned' && !f.warnings.includes('loading')) {
         rows.push({ key: 'gates', text: cut(gatesText(state, f, lang), columns), role: 'muted' })
       }
+      rows.push(...featureWarnings(f, lang))
+      shown.add(f.dir)
     }
   }
   // One feature in two worktrees: their work will collide (054 #52).
@@ -128,23 +156,8 @@ export const specsRows = (
     const showing = state.active === undefined ? tr(lang, 'pane.noFeature') : `${state.active.id} (${state.active.source})`
     rows.push({ key: 'warning-active', text: tr(lang, 'pane.showing', { why: tr(lang, WARNING_TEXT[state.activeWarning]), showing }), role: 'current' })
   }
-  for (const f of state.features) {
-    if (f.warnings.includes('no-spec')) rows.push({ key: `nospec-${f.id}`, text: tr(lang, 'pane.noSpec', { id: f.id, dir: f.dir }), role: 'current' })
-    if (f.warnings.includes('clarification-after-plan')) {
-      rows.push({ key: `warning-${f.id}`, text: tr(lang, 'pane.clarifyLeft', { id: f.id }), role: 'current' })
-    }
-    if (f.clarifications !== undefined && !f.warnings.includes('clarification-after-plan')) {
-      rows.push({ key: `questions-${f.id}`, text: tr(lang, 'pane.questions', { id: f.id, n: f.clarifications }), role: 'current' })
-    }
-    if (f.checklist !== undefined && f.checklist.open > 0 && f.phase !== 'done' && f.phase !== 'abandoned') {
-      rows.push({ key: `checklist-${f.id}`, text: tr(lang, 'pane.checklist', { id: f.id, open: f.checklist.open, total: f.checklist.total }), role: 'current' })
-    }
-    for (const file of ['spec', 'tasks'] as const) {
-      if (f.warnings.includes(`unreadable-${file}`)) {
-        rows.push({ key: `warning-${f.id}-${file}`, text: tr(lang, 'pane.unreadable', { id: f.id, file: `${file}.md` }), role: 'current' })
-      }
-    }
-  }
+  // Warnings of features in folded sections still show, at the end (052 #14).
+  for (const f of state.features) if (!shown.has(f.dir)) rows.push(...featureWarnings(f, lang))
   return rows
 }
 
