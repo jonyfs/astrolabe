@@ -90,6 +90,8 @@ describe('help, part two (025)', () => {
     expect(ran.text).toContain('  ✗ gh not signed in: run gh auth login')
     expect(ran.text).toContain('  ✗ specify not found: install Spec Kit')
     expect(ran.text).toContain('  ✓ Spec Kit project at /proj')
+    // 054 #15: the slowest hook work of the session, against the 10 s budget.
+    expect(ran.text).toMatch(/  ✓ slowest hook work: state update, \d+ ms of the 10 s budget/)
   })
 
   test('048 #73: the first session after install toasts once where to start', async ($, on) => {

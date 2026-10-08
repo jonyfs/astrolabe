@@ -97,6 +97,8 @@ async function doctor($: EngineInterface): Promise<string> {
   lines.push(`  · icons: ${icons}${icons === 'nerd' ? ' (needs a Nerd Font in the terminal; set icons to emoji or ascii if glyphs show as boxes)' : ''}`)
   const set = Object.entries(optionsSeen).filter(([, v]) => v !== undefined)
   lines.push(`  · options: ${set.length === 0 ? 'all defaults' : set.map(([k, v]) => `${k}=${String(v)}`).join(', ')} (change them in /config or the Config tab)`)
+  // The hook budget (054 #15): the engine gives each hook 10 s.
+  check(slowestHook === undefined || slowestHook.ms < 5000, slowestHook === undefined ? 'no hook work timed yet' : `slowest hook work: ${slowestHook.name}, ${slowestHook.ms} ms of the 10 s budget`, 'a large project or a slow disk; /astrolabe status still works, and the Specs tab reads the rest later')
   return lines.join('\n')
 }
 
@@ -1186,6 +1188,21 @@ const MAX_ATTEMPTS = 5
  * the session.
  */
 async function guarded($: EngineInterface, work: (previous: Held | undefined) => Promise<Held | undefined>): Promise<Held | undefined> {
+  const started = Date.now()
+  try {
+    return await guardedOnce($, work)
+  } finally {
+    noteSlow('state update', Date.now() - started)
+  }
+}
+
+// The slowest hook work this load of the module, for /astrolabe doctor (054 #15).
+let slowestHook: { name: string; ms: number } | undefined
+const noteSlow = (name: string, ms: number): void => {
+  if (slowestHook === undefined || ms > slowestHook.ms) slowestHook = { name, ms }
+}
+
+async function guardedOnce($: EngineInterface, work: (previous: Held | undefined) => Promise<Held | undefined>): Promise<Held | undefined> {
   try {
     for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
       const { value: memo, version } = await $.state.get(MEMO)

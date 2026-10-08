@@ -340,7 +340,11 @@ the active feature named in its arguments.
   ✓ Spec Kit project at /proj
   · icons: nerd (needs a Nerd Font in the terminal; set icons to emoji or ascii if glyphs show as boxes)
   · options: all defaults (change them in /config or the Config tab)
+  ✓ slowest hook work: state update, 42 ms of the 10 s budget
 ```
+
+The last line times every state update since the plugin loaded and names the slowest. It turns
+into a `✗` past 5 s, half of the 10 s the engine gives each hook.
 
 `/astrolabe status` prints the active feature, the next command and the footer as text, with the
 band drawn above it in the terminal:
