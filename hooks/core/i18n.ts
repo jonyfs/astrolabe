@@ -5,6 +5,11 @@ export const LANGS = ['en', 'pt-BR', 'es', 'fr'] as const
 export type Lang = (typeof LANGS)[number]
 
 const EN = {
+  'pane.section.progress': 'In progress',
+  'pane.section.next': 'Next up',
+  'pane.section.done': 'Done',
+  'pane.section.abandoned': 'Abandoned',
+  'pane.stale': '! .specify/feature.json still names {done}, which is done; the branch is on {branch}: set it to specs/{dir}',
   'help.models': 'Model and effort per skill (the skillModels option, auto, sends them while the skill runs):',
   'tab.prs': 'PRs',
   'help.prsTab': 'open pull requests, their checks and reviews; approve, update and merge',
@@ -179,6 +184,11 @@ export type TextKey = keyof typeof EN
 type Dictionary = Readonly<Record<TextKey, string>>
 
 const PT_BR: Dictionary = {
+  'pane.section.progress': 'Em andamento',
+  'pane.section.next': 'A seguir',
+  'pane.section.done': 'Concluídas',
+  'pane.section.abandoned': 'Abandonadas',
+  'pane.stale': '! .specify/feature.json ainda aponta {done}, que terminou; o branch está em {branch}: aponte para specs/{dir}',
   'help.models': 'Modelo e esforço por skill (a opção skillModels, auto, os usa enquanto a skill roda):',
   'tab.prs': 'PRs',
   'help.prsTab': 'pull requests abertos, checks e revisões; aprovar, atualizar e mergear',
@@ -350,6 +360,11 @@ const PT_BR: Dictionary = {
 }
 
 const ES: Dictionary = {
+  'pane.section.progress': 'En curso',
+  'pane.section.next': 'Siguientes',
+  'pane.section.done': 'Terminadas',
+  'pane.section.abandoned': 'Abandonadas',
+  'pane.stale': '! .specify/feature.json aún nombra {done}, que terminó; la rama está en {branch}: apúntalo a specs/{dir}',
   'help.models': 'Modelo y esfuerzo por skill (la opción skillModels, auto, los usa mientras corre la skill):',
   'tab.prs': 'PRs',
   'help.prsTab': 'pull requests abiertos, checks y revisiones; aprobar, actualizar y fusionar',
@@ -521,6 +536,11 @@ const ES: Dictionary = {
 }
 
 const FR: Dictionary = {
+  'pane.section.progress': 'En cours',
+  'pane.section.next': 'À venir',
+  'pane.section.done': 'Terminées',
+  'pane.section.abandoned': 'Abandonnées',
+  'pane.stale': '! .specify/feature.json nomme encore {done}, terminée ; la branche est sur {branch} : pointez-le vers specs/{dir}',
   'help.models': 'Modèle et effort par skill (l’option skillModels, auto, les envoie pendant que la skill tourne) :',
   'tab.prs': 'PRs',
   'help.prsTab': 'pull requests ouvertes, checks et revues ; approuver, mettre à jour et fusionner',

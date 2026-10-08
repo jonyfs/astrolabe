@@ -378,8 +378,22 @@ switch tabs right away, and Esc closes it. Later, focus it again with a click or
 
 ![The pane, Specs tab](docs/images/pane-specs.svg)
 
-`▸` marks the active feature. `●` is done, `◐` in progress, and `○` abandoned (drawn dim). Under
-the list come warnings: a `~` line when the active feature was guessed because
+Features sit under section headers: `In progress (N)`, `Next up (N)`, `Done (N)` and
+`Abandoned (N)`. Every row has the same columns: id and name, phase, a progress bar, the task
+count and the percent.
+
+```text
+In progress (1)
+▸ ◐ 002 band-hint   implement  ████░░░░░░   9/20  45%  ⟳ speckit-implement
+Done (1)
+  ● 001 core-state  done       ██████████  49/49 100%
+```
+
+`▸` marks the active feature. `●` is done, `◐` in progress, and `○` abandoned (drawn dim). While a
+Spec Kit skill runs, `⟳` and the skill's name follow the active feature. A narrow pane drops the
+bar first, then the count, then cuts the name; the id always stays. If `.specify/feature.json`
+names a done feature while the git branch names one that is not done, a `!` line says so and
+gives the path to set. Under the list come the other warnings: a `~` line when the active feature was guessed because
 `.specify/feature.json` is broken, a `!` line for a spec that still has
 `[NEEDS CLARIFICATION` after its plan exists, a `?` line with how many markers a spec still has
 before its plan, and a `☐` line with the open items of a feature's `checklists/*.md` until the
