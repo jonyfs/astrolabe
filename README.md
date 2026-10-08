@@ -357,6 +357,21 @@ Recent turns on 054:
   14:20  Shipped v0.80.0 after the three CI jobs passed
 ```
 
+`/astrolabe kpis` prints the Dashboard's numbers as a Markdown table you can paste into a pull
+request body: the active feature's tasks, the turns, the tool calls, the pace, the burn rate and the
+rest of the KPI rows the session has. Pipes in a value are escaped so the table stays whole.
+
+```markdown
+### Session numbers for 054 pane-polish
+
+| | |
+|---|---|
+| tasks | 61/99 |
+| turns | 42 |
+| tool calls | 318 |
+| session | 2h10m |
+```
+
 `/astrolabe status` prints the active feature, the next command and the footer as text, with the
 band drawn above it in the terminal:
 
