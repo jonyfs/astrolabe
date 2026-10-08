@@ -27,6 +27,8 @@ export const deriveFeature = (files: FeatureFiles): Feature => {
     ...(files.unreadable?.includes('spec.md') === true ? ['unreadable-spec' as const] : []),
     ...(files.unreadable?.includes('tasks.md') === true ? ['unreadable-tasks' as const] : []),
     ...(files.deferred === true ? ['loading' as const] : []),
+    // A folder with no spec.md says so instead of passing for a feature at specify (054 #19).
+    ...(files.spec === undefined && files.deferred !== true && files.unreadable?.includes('spec.md') !== true ? ['no-spec' as const] : []),
   ]
   const currentTask = currentTaskOf(tasks)
   return {

@@ -464,6 +464,8 @@ The tabs follow Claude during a turn: a Write of `.specify/feature.json` or the 
 Bash command that makes a spec or switches the branch, and a subagent's return all redraw them at
 once, without waiting for the turn to end.
 
+A feature row names the worktrees working on it (`⑂ wt-a`); one feature open in two worktrees gets a `!` line, since their changes will collide. A folder under `specs/` with no `spec.md` gets a `?` line naming it.
+
 When the repository has other git worktrees, the features they work on show under the list, read
 after each turn from the branch name (`026-...`) and that worktree's files:
 

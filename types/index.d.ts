@@ -44,7 +44,7 @@ export type FeatureFiles = {
   tasksInSpec?: true
 }
 
-export type FeatureWarning = 'clarification-after-plan' | 'unreadable-spec' | 'unreadable-tasks' | 'loading'
+export type FeatureWarning = 'clarification-after-plan' | 'unreadable-spec' | 'unreadable-tasks' | 'loading' | 'no-spec'
 
 export type Feature = {
   id: string

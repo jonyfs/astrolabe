@@ -1099,6 +1099,13 @@ async function guarded($: EngineInterface, work: (previous: Held | undefined) =>
 export const canTouchSpecs = (command: string): boolean =>
   /\b(git|mv|cp|rm|mkdir|touch|specify|tee|sed|python3?|node|bun|sh|bash|zsh)\b|\.specify|specs\/|>/.test(command)
 
+/** Feature id to the worktrees working on it (054 #49). */
+const worktreesById = (list: SessionStats['worktrees']): Record<string, string[]> => {
+  const out: Record<string, string[]> = {}
+  for (const w of list ?? []) (out[w.id] ??= []).push(w.name)
+  return out
+}
+
 /** A path under a `.specify/` folder: feature.json, the constitution, extensions.yml (053). */
 const isUnderSpecify = (path: string): boolean => /(^|[\\/])\.specify[\\/]/.test(path)
 
@@ -2093,7 +2100,7 @@ export const register: Register = (on, options) => {
               })),
             ]
           : [
-              ...specsRows(filtered(state, pane.filter, pane.status), columns, currentLang(), (await $.state.get(SESSION)).value?.priorities ?? {}),
+              ...((stats => specsRows(filtered(state, pane.filter, pane.status), columns, currentLang(), stats?.priorities ?? {}, worktreesById(stats?.worktrees)))((await $.state.get(SESSION)).value)),
               // Features other worktrees of this repository work on (037).
               ...((await $.state.get(SESSION)).value?.worktrees ?? []).map(w => ({
                 key: `worktree-${w.name}`,

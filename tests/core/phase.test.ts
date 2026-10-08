@@ -80,3 +80,12 @@ describe('quick spec progress (021 fix)', () => {
     expect([f.phase, f.done, f.total]).toEqual(['implement', 1, 2])
   })
 })
+
+describe('a folder without spec.md (054 #19)', () => {
+  test('is marked no-spec, unless it is still loading or unreadable', () => {
+    expect(deriveFeature({ dir: '004-x', plan: false }).warnings).toContain('no-spec')
+    expect(deriveFeature({ dir: '004-x', plan: false, deferred: true }).warnings).not.toContain('no-spec')
+    expect(deriveFeature({ dir: '004-x', plan: false, unreadable: ['spec.md'] }).warnings).not.toContain('no-spec')
+    expect(deriveFeature({ dir: '004-x', plan: false, spec: '# Feature Specification: X\n' }).warnings).not.toContain('no-spec')
+  })
+})
