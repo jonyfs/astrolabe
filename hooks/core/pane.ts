@@ -223,6 +223,8 @@ export const taskRows = (state: SpeckitState, memo: SessionMemo, rows: number, c
   // Ids padded to the widest shown, so the text column lines up (052 #22).
   const idWidth = Math.max(0, ...shown.map(t => t.id?.length ?? 0))
   let story: string | undefined
+  // Each task links to its line (054 #78); a quick spec keeps its tasks in spec.md.
+  const taskFile = state.root === undefined ? undefined : `${state.root}/specs/${active.dir}/${state.features.find(f => f.dir === active.dir)?.track === 'quick' ? 'spec.md' : 'tasks.md'}`
   for (const [index, t] of shown.entries()) {
     // The user story a run of tasks belongs to (045 #44).
     if (t.story !== undefined && t.story !== story) {
@@ -237,7 +239,7 @@ export const taskRows = (state: SpeckitState, memo: SessionMemo, rows: number, c
     const ran = isCurrent && now !== undefined && current.startedAt !== undefined ? elapsed(now - current.startedAt) : ''
     const tail = ran === '' ? '' : `  ⏱ ${ran}`
     const head = `${isCurrent ? '▸ ' : ''}${groupOf(index)}${t.id === undefined ? '' : `${t.id.padEnd(idWidth)} `}`
-    out.push({ key: `task-${t.id ?? index}`, text: `${head}${cut(cleanTaskText(t.text), columns - width(head) - width(tail))}`.trimEnd() + tail, role: isCurrent ? 'current' : 'text' })
+    out.push({ key: `task-${t.id ?? index}`, text: `${head}${cut(cleanTaskText(t.text), columns - width(head) - width(tail))}`.trimEnd() + tail, role: isCurrent ? 'current' : 'text', ...(taskFile === undefined || t.line === undefined ? {} : { href: `${fileUrl(taskFile)}#L${t.line}` }) })
   }
   if (shown.length < open.length) out.push({ key: 'more', text: tr(lang, 'pane.more', { n: open.length - shown.length }), role: 'muted' })
   return out

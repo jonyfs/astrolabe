@@ -254,3 +254,14 @@ describe('one colour per kind of message (054 #72)', () => {
     expect(rows.find(r => r.key.startsWith('warning-002-'))?.role).toBe('blocked')
   })
 })
+
+describe('a task links to its line (054 #78)', () => {
+  test('tasks.md#L<line>, or spec.md for a quick spec', () => {
+    const tasks = [{ id: 'T010', text: 'task 10', isDone: false, line: 42 }]
+    const rows = taskRows(state({ activeTasks: tasks }), emptyMemo(), 30, 100)
+    expect(rows.find(r => r.key === 'task-T010')?.href).toBe('file:///proj/specs/002-band-hint/tasks.md#L42')
+    const quick = FEATURES.map(x => (x.id === '002' ? { ...x, track: 'quick' as const } : x))
+    const quickRows = taskRows(state({ activeTasks: tasks, features: quick }), emptyMemo(), 30, 100)
+    expect(quickRows.find(r => r.key === 'task-T010')?.href).toBe('file:///proj/specs/002-band-hint/spec.md#L42')
+  })
+})
