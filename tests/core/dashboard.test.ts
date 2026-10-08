@@ -104,3 +104,14 @@ describe('trendRows (046 #53, #57)', () => {
     expect(trendRows([{ at: 1, percent: 10 }])).toEqual([])
   })
 })
+
+describe('pace KPIs (054 #31, #33)', () => {
+  test('tasks an hour and turns a task, once a task is ticked', () => {
+    const NOW2 = Date.UTC(2026, 9, 8, 12)
+    const base = { startedAt: NOW2 - 2 * 3_600_000, turns: 9, toolCalls: 0, drifts: 0, agentsRun: 0, agentsQueued: 0, series: [] }
+    const map = Object.fromEntries(kpiRows({ ...base, turnTicks: [{ ms: 1, n: 2 }, { ms: 1, n: 1 }] }, undefined, NOW2))
+    expect(map['tasks an hour']).toBe('1.5 tasks an hour')
+    expect(map['turns a task']).toBe('3.0')
+    expect(Object.fromEntries(kpiRows(base, undefined, NOW2))['turns a task']).toBeUndefined()
+  })
+})
