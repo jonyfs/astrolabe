@@ -28,3 +28,14 @@ describe('live sync (053)', () => {
     expect(session.held()?.state.features.map(f => f.id)).toContain('004')
   })
 })
+
+describe('live sync costs nothing for a plain command (054 #5)', () => {
+  test('ls reads nothing; git checkout reads again', async ($, on) => {
+    const session = await setup($ as never, on as never)
+    const before = session.counts.read + session.counts.list
+    await $.tool.call({ tool: 'Bash', tool_use_id: 'b1', command: 'ls -la' } as never)
+    expect(session.counts.read + session.counts.list).toBe(before)
+    await $.tool.call({ tool: 'Bash', tool_use_id: 'b2', command: 'git checkout 001-core-state' } as never)
+    expect(session.counts.read + session.counts.list).toBeGreaterThan(before)
+  })
+})

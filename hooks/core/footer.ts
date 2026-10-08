@@ -95,7 +95,12 @@ const parts = (input: FooterInput): Part[] => {
     if (r.kind === binding?.kind) continue
     out.push({ text: windowText(r, now, input.lang ?? 'en'), rank: 2, colour: 'sapphire', level: r.percentUsed })
   }
-  if (input.context !== undefined) out.push({ text: withIcon(icons.context, `${Math.round(input.context.percent)}%`), rank: 1, colour: 'yellow', level: input.context.percent })
+  if (input.context !== undefined) {
+    // Past 85% the context chip says to compact (054 #43).
+    const p = Math.round(input.context.percent)
+    const text = p >= 85 ? `${p}% ${t(input.lang ?? 'en', 'status.compactSoon')}` : `${p}%`
+    out.push({ text: withIcon(icons.context, text), rank: 1, colour: 'yellow', level: input.context.percent })
+  }
   if (input.model !== undefined) {
     const effort = input.effort === undefined ? '' : ` ${input.effort}`
     out.push({ text: withIcon(icons.model, `${shortModel(input.model)}${effort}`), rank: 3, colour: 'red' })

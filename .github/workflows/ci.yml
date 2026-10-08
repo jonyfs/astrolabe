@@ -12,6 +12,8 @@ jobs:
   check:
     name: validate, test, type check (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    # A hung step fails the job instead of holding the merge gate for an hour (054).
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
@@ -28,6 +30,7 @@ jobs:
       - name: Validate the plugin and marketplace
         run: claude plugin validate .
       - name: Run the plugin tests
+        timeout-minutes: 10
         run: claude plugin test .
       - name: Fetch the engine declarations for the type check
         shell: bash
@@ -41,4 +44,5 @@ jobs:
         if: runner.os != 'Windows'
         run: sh scripts/check-release-version.sh "v$(sed -n 's/^[[:space:]]*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' .claude-plugin/plugin.json | head -n 1)"
       - name: Test the image converter
+        timeout-minutes: 3
         run: node scripts/capture/ansi-to-svg.test.mjs
