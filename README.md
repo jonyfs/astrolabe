@@ -552,7 +552,7 @@ changed. `Reset to defaults` puts every option back to its default as a draft th
 every two minutes after a turn while it is shown. Each row links to the pull request and shows its
 checks (`✓` passed, `✗` failed, `…` running), its review state, its labels and its branch. The
 buttons GitHub would allow sit beside it: `Approve`, `Update branch` when the branch is behind its
-base, and `Merge` when it is ready. Each asks for a second press before it runs.
+base, and `Merge` when it is ready. Each asks for a second press before it runs: the button reads `Press again to merge #42`, and after 10 s without it the button asks again from scratch. A merge waits for green checks.
 
 With the `full` preset, the pane also opens by itself once per session, at the end of the
 first turn, but only in a fullscreen terminal at least 144 columns wide. It never opens by
