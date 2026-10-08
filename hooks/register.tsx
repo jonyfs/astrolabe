@@ -2,7 +2,7 @@
 // The engine follows $ only into functions declared in this file, so every $ call lives here.
 import type { ConfigRow, EngineInterface, Hook, Register, RenderNode } from 'claude-code'
 
-import { bandSegments, stepCards } from './core/band'
+import { bandSegments, nextReason, stepCards, type BandDensity } from './core/band'
 import { hintTail } from './core/hint'
 import { phaseToasts } from './core/phase-toast'
 import { sessionRows, specsRows, taskRows, windowUnits } from './core/pane'
@@ -134,7 +134,7 @@ const helpText = (lang: Lang): string =>
     t(lang, 'help.glossary'),
     ...(['constitution', 'specify', 'clarify', 'plan', 'tasks', 'implement'] as const).map(step => `  ${step.padEnd(13)} ${t(lang, `card.${step}`)}`),
   ].join('\n')
-const OPTION_NAMES = ['preset', 'flavor', 'icons', 'language', 'checkUpdates', 'governUsage', 'askOnLimit', 'costBudget', 'pullRequest', 'images', 'autoReload', 'footerIn', 'accessible', 'claudeContext', 'featureSummary', 'humanize', 'terse', 'skillModels'] as const
+const OPTION_NAMES = ['preset', 'flavor', 'icons', 'language', 'bandDensity', 'checkUpdates', 'governUsage', 'askOnLimit', 'costBudget', 'pullRequest', 'images', 'autoReload', 'footerIn', 'accessible', 'claudeContext', 'featureSummary', 'humanize', 'terse', 'skillModels'] as const
 const WELCOMED = 'welcomed'
 const ABOUT: Readonly<Record<PaneTab, TextKey>> = {
   specs: 'help.specs',
@@ -220,6 +220,7 @@ async function footerInput($: EngineInterface, state: Held['state'], width: numb
 // Where the footer goes (035): the pane (the status entry keeps the lead), the status entry, or both.
 let footerIn: 'pane' | 'status' | 'both' = 'pane'
 let noColor = false
+let bandDensity: BandDensity = 'full'
 
 /** Writes what the session counted since the last write, merged with `change`, if anything moved. */
 async function flushStats($: EngineInterface, change: (s: SessionStats) => SessionStats = s => s): Promise<void> {
@@ -1457,6 +1458,7 @@ export const register: Register = (on, options) => {
   featureSummary = options['featureSummary'] === true
   iconsOption = accessible ? 'ascii' : options['icons']
   footerIn = options['footerIn'] === 'status' || options['footerIn'] === 'both' ? options['footerIn'] : 'pane'
+  bandDensity = options['bandDensity'] === 'compact' || options['bandDensity'] === 'minimal' ? options['bandDensity'] : 'full'
   autoReload = options['autoReload'] !== false
   imagesOption = options['images']
   languageOption = options['language']
@@ -1779,9 +1781,12 @@ export const register: Register = (on, options) => {
     isWide = e.viewport?.isFullscreen === true && e.viewport.columns >= 144
     if (!preset.band || e.props.hasSurvey) return next(e)
     const { value } = await $.state.get(SPECKIT)
-    const base = value === undefined ? [] : bandSegments(value, e.props.bodyColumns)
+    const sessionStats = (await $.state.get(SESSION)).value
+    // The active feature's work in another worktree (042 #18).
+    const elsewhere = sessionStats?.worktrees?.find(w => w.id === value?.active?.id)?.name
+    const base = value === undefined ? [] : bandSegments(value, e.props.bodyColumns, { density: bandDensity, ...(elsewhere === undefined ? {} : { worktree: elsewhere }) })
     // The usage sparkline (022 #25): the last readings of the binding window, on a wide band only.
-    const series = (await $.state.get(SESSION)).value?.series ?? []
+    const series = sessionStats?.series ?? []
     const segments =
       base.length > 0 && series.length >= 3 && e.props.bodyColumns >= 70
         ? [...base, { key: 'spark', text: sparkline(series.slice(-12).map(p => p.percent)), role: 'muted' as const }]
@@ -1808,6 +1813,7 @@ export const register: Register = (on, options) => {
             e.props.bodyColumns,
             { next: t(currentLang(), 'status.next'), copy: t(currentLang(), 'next.copy'), pane: t(currentLang(), 'next.pane') },
             () => openPane($),
+            accessible || value === undefined ? undefined : nextReason(value, currentLang()),
           )}
         {buttons.length > 0 && updatesRow({ Box, Text, Button }, buttons, tokens, press, e.props.bodyColumns, () => hideUpdates($), t(currentLang(), 'updates.hide'))}
         {await next(e)}

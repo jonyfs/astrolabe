@@ -253,10 +253,17 @@ many features are in it (`plan: the technical plan, research and data model · 2
 A finished feature shows every mark as `●` and a full bar. An abandoned feature named by
 `feature.json` shows `◆ 003 name  abandoned` instead of the rail.
 
+Below 100 columns the rail shows only the current step's name; the hover cards name the others.
 When the band is narrower, it drops detail in this order and never cuts the id: the labels of
 the finished and later steps, then the name, then the bar. Below that it turns compact: the
 current step and the count (`◆ 002  ◐ implement 14/31 45%`), then the rail alone, then the step
-alone (`◆ 002  ◐ implement`), then `◆ 002`. In a 100-column terminal it looks like this:
+alone (`◆ 002  ◐ implement`), then `◆ 002`. The `bandDensity` option starts lower: `compact` at the
+current step and the count, `minimal` at the step alone. A `+2` after the name counts the other
+features in progress, and `⑂ name` names the worktree where the active feature is being worked on.
+
+On the next-command row, the run button is where the focus starts, so Enter runs it once the band
+has the keyboard, and with the pointer on it a line says why it is next (`the plan is ready: break
+it into tasks`). In a 100-column terminal it looks like this:
 
 ![Astrolabe in a 100-column terminal](docs/images/narrow-100.svg)
 
@@ -355,6 +362,7 @@ reloads the mod right away.
 | `terse` | `off`, `lite`, `full` | `off` | Ask Claude to answer briefly. `lite` keeps full sentences; `full` drops filler and articles. Files, commits and PR text stay normal prose. |
 | `skillModels` | `off`, `auto` | `off` | `auto` sends each Spec Kit and gstack skill's requests with the model and effort it does best with, as the Help tab lists them (Opus for specify, clarify, plan, analyze and review; Sonnet for tasks, implement and ship; Haiku for quick reports). Switching models re-reads the context, so on a long session it costs more. |
 | `accessible` | `true`, `false` | `false` | Text only, for screen readers and plain terminals: ASCII icons, charts as text, no hover styles on the band, no animated dial and no pictures. |
+| `bandDensity` | `full`, `compact`, `minimal` | `full` | How much the band shows: the rail with step names when there is room, the current step and the count, or the id and the step. |
 | `footerIn` | `pane`, `status`, `both` | `pane` | Where the footer goes: the bottom of the `/astrolabe` pane (the status entry keeps the Spec Kit part and the deciding window), the status entry, or both. |
 | `autoReload` | `true`, `false` | `true` | After a turn, when the Astrolabe on disk is newer than the one running (an install from a local clone, an update), run `/reload-plugins` once so the new version loads. Off, a toast says to run it. |
 | `images` | `auto`, `on`, `off` | `auto` | Draw the Dashboard's usage chart as a picture. `auto` does on kitty and Ghostty outside tmux. |
