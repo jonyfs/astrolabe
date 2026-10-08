@@ -84,6 +84,7 @@ export const paneTree = (
               ))}
               {row.href !== undefined && Link !== undefined && <Text> </Text>}
               {row.href !== undefined && Link !== undefined && <Link href={row.href} label={m('↗')} />}
+              {Link !== undefined && (row.links ?? []).map(link => <Link key={`link-${link.label}`} href={link.href} label={` ${link.label}${m('↗')}`} />)}
             </Box>
           ) : row.href !== undefined && Link !== undefined ? (
             <Box flexDirection="row">
@@ -92,6 +93,7 @@ export const paneTree = (
               </Text>
               <Text> </Text>
               <Link href={row.href} label={m('↗')} />
+              {(row.links ?? []).map(link => <Link key={`link-${link.label}`} href={link.href} label={` ${link.label}${m('↗')}`} />)}
             </Box>
           ) : (
             <Text color={tokens[row.role]} dimColor={row.dim === true} bold={row.bold === true} wrap="truncate-end">

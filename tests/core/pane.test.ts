@@ -233,3 +233,17 @@ describe('ids padded to the widest (054 #25)', () => {
     expect(new Set(starts).size).toBe(1)
   })
 })
+
+describe('links to plan.md and tasks.md (054 #77)', () => {
+  test('a feature past tasks links all three files; one still specifying links spec.md only', () => {
+    const features = [f('002', 'band-hint', 'implement', 9, 20), f('004', 'new', 'specify', 0, 0)]
+    const rows = specsRows(state({ features }), 120)
+    const row = (id: string) => rows.find(r => r.key === `feature-${id}`)
+    expect(row('002')?.href).toBe('file:///proj/specs/002-band-hint/spec.md')
+    expect(row('002')?.links).toEqual([
+      { label: 'plan', href: 'file:///proj/specs/002-band-hint/plan.md' },
+      { label: 'tasks', href: 'file:///proj/specs/002-band-hint/tasks.md' },
+    ])
+    expect(row('004')?.links).toBeUndefined()
+  })
+})
