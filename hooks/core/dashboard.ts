@@ -129,15 +129,18 @@ export const kpiRows = (
   const rows: Array<[string, string]> = [
     [tr(lang, 'kpi.turns'), String(stats.turns)],
     [tr(lang, 'kpi.toolCalls'), String(stats.toolCalls)],
-    [
+  ]
+  // Rows that would only say zero are left out (054 #70).
+  if (stats.drifts > 0) {
+    rows.push([
       tr(lang, 'kpi.drifts'),
       // The features they came from, most first (054 #35).
       Object.keys(stats.driftsByFeature ?? {}).length === 0
         ? String(stats.drifts)
         : `${stats.drifts} (${Object.entries(stats.driftsByFeature ?? {}).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([id, n]) => `${id}: ${n}`).join(', ')})`,
-    ],
-    [tr(lang, 'kpi.subagents'), tr(lang, 'kpi.subagentsValue', { run: stats.agentsRun, queued: stats.agentsQueued })],
-  ]
+    ])
+  }
+  if (stats.agentsRun + stats.agentsQueued > 0) rows.push([tr(lang, 'kpi.subagents'), tr(lang, 'kpi.subagentsValue', { run: stats.agentsRun, queued: stats.agentsQueued })])
   if (stats.context !== undefined) rows.push([tr(lang, 'kpi.context'), `${Math.round(stats.context.percent)}%`])
   rows.push([tr(lang, 'kpi.session'), duration(now - stats.startedAt)])
   // Pace (054 #31, #33): tasks ticked an hour, and turns per ticked task to see when Claude spins.
