@@ -353,7 +353,16 @@ function pullsBody(
       const { confirm: _gone, ...rest } = held
       await $.state.set(PANE_STATE, rest)
       $.clock.after(0, run)
-    } else await $.state.set(PANE_STATE, { ...held, confirm: key })
+    } else {
+      await $.state.set(PANE_STATE, { ...held, confirm: key })
+      // The second press must come within 10 s; after that the row asks again from scratch (052 #41).
+      $.clock.after(10_000, async () => {
+        const now = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
+        if (now.confirm !== key) return
+        const { confirm: _late, ...rest } = now
+        await $.state.set(PANE_STATE, rest)
+      })
+    }
   }
   const mark = (c: string) => (c === 'pass' ? '✓' : c === 'fail' ? '✗' : c === 'pending' ? '…' : '·')
   const colour = (c: string) => (c === 'pass' ? tokens0.done : c === 'fail' ? tokens0.accent : c === 'pending' ? tokens0.current : tokens0.muted)
@@ -363,7 +372,7 @@ function pullsBody(
     const buttons: RenderNode[] = []
     const add = (action: 'approve' | 'update' | 'merge') => {
       const key = `pr-${action}-${pr.number}`
-      buttons.push(<Button key={key} label={pane.confirm === key ? t(lang, 'prs.confirm') : t(lang, `prs.${action}`)} onPress={press(key, () => void runPullAction($, action, pr.number, pr.head))} />, <Text> </Text>)
+      buttons.push(<Button key={key} label={pane.confirm === key ? t(lang, 'prs.confirmAction', { action: t(lang, `prs.${action}`).toLowerCase(), n: pr.number }) : t(lang, `prs.${action}`)} onPress={press(key, () => void runPullAction($, action, pr.number, pr.head))} />, <Text> </Text>)
     }
     if (pr.review !== 'approved' && !pr.isDraft) add('approve')
     if (pr.merge === 'BEHIND') add('update')
