@@ -266,6 +266,8 @@ export type SessionStats = {
       labels: string[]
       review: 'approved' | 'changes' | 'required' | 'none'
       checks: 'pass' | 'fail' | 'pending' | 'none'
+      /** Each check with its page (054 #80). */
+      runs?: ReadonlyArray<{ name: string; url: string; result: 'pass' | 'fail' | 'pending' }>
       merge: string
       isDraft: boolean
       /** The head commit listed, so a merge lands only that commit (032 fix). */

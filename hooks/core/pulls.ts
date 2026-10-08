@@ -1,5 +1,5 @@
 // The repository's open pull requests for the PRs tab (032), from `gh pr list --json`. Pure: no $.
-import { checksOf } from './git-status'
+import { checkRunsOf, checksOf } from './git-status'
 import type { PullRequest } from './types'
 
 export type PullRow = {
@@ -10,6 +10,8 @@ export type PullRow = {
   labels: string[]
   review: 'approved' | 'changes' | 'required' | 'none'
   checks: PullRequest['checks']
+  /** Each check with its page (054 #80). */
+  runs?: ReadonlyArray<{ name: string; url: string; result: 'pass' | 'fail' | 'pending' }>
   /** GitHub's mergeStateStatus: CLEAN merges, BEHIND needs an update, the rest wait. */
   merge: string
   isDraft: boolean
@@ -42,6 +44,7 @@ export const parsePullList = (out: string): PullRow[] => {
         labels: Array.isArray(p['labels']) ? p['labels'].flatMap(l => (typeof l === 'object' && l !== null && typeof (l as { name?: unknown }).name === 'string' ? [(l as { name: string }).name] : [])) : [],
         review: decision === 'APPROVED' ? 'approved' : decision === 'CHANGES_REQUESTED' ? 'changes' : decision === 'REVIEW_REQUIRED' ? 'required' : 'none',
         checks: checksOf(p['statusCheckRollup']),
+        ...((runs => (runs.length === 0 ? {} : { runs }))(checkRunsOf(p['statusCheckRollup']))),
         merge: typeof p['mergeStateStatus'] === 'string' ? p['mergeStateStatus'] : 'UNKNOWN',
         isDraft: p['isDraft'] === true,
         ...(typeof p['headRefOid'] === 'string' && /^[0-9a-f]{7,40}$/.test(p['headRefOid']) ? { head: p['headRefOid'] } : {}),

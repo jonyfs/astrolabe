@@ -559,7 +559,8 @@ changed; `•` marks an option saved with a value other than its default. `Reset
 
 **7 PRs** lists the repository's open pull requests, read with `gh` when the tab opens and at most
 every two minutes after a turn while it is shown. Each row links to the pull request and shows its
-checks (`✓` passed, `✗` failed, `…` running), its review state, its labels and its branch. The
+checks (`✓` passed, `✗` failed, `…` running), its review state, its labels and its branch. In the
+terminal a third line links each check to its run page, six at most (`✓ test (macos)`). The
 buttons GitHub would allow sit beside it: `Approve`, `Update branch` when the branch is behind its
 base, and `Merge` when it is ready. When `gh pr list` fails or does not answer in 8 s, the tab says why and names `gh auth status`. Each asks for a second press before it runs: the button reads `Press again to merge #42`, and after 10 s without it the button asks again from scratch. A merge waits for green checks.
 

@@ -53,6 +53,17 @@ export const checksOf = (statusCheckRollup: unknown): PullRequest['checks'] => {
   return results.length === 0 ? 'none' : results.includes('fail') ? 'fail' : results.includes('pending') ? 'pending' : 'pass'
 }
 
+/** Each check of a rollup with its page (054 #80): a check run's detailsUrl, a status's targetUrl. */
+export const checkRunsOf = (statusCheckRollup: unknown): Array<{ name: string; url: string; result: 'pass' | 'fail' | 'pending' }> =>
+  (Array.isArray(statusCheckRollup) ? statusCheckRollup : []).flatMap(c => {
+    const r = (typeof c === 'object' && c !== null ? c : {}) as { name?: unknown; context?: unknown; detailsUrl?: unknown; targetUrl?: unknown; conclusion?: unknown; state?: unknown }
+    const name = typeof r.name === 'string' ? r.name : typeof r.context === 'string' ? r.context : ''
+    const url = typeof r.detailsUrl === 'string' ? r.detailsUrl : typeof r.targetUrl === 'string' ? r.targetUrl : ''
+    if (name === '' || !/^https:\/\//.test(url)) return []
+    const word = typeof r.conclusion === 'string' && r.conclusion !== '' ? r.conclusion : typeof r.state === 'string' ? r.state : ''
+    return [{ name, url, result: FAILED.has(word) ? 'fail' : PASSED.has(word) ? 'pass' : 'pending' } as const]
+  })
+
 /**
  * The web page of a git remote (054 #79): `git@github.com:o/r.git`, `ssh://git@host/o/r` and
  * `https://user:token@host/o/r.git` all give `https://host/o/r`. Credentials never survive.

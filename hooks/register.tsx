@@ -431,6 +431,22 @@ function pullsBody(
           </Box>
         ),
       },
+      // Each check, linked to its run (054 #80), at most 6.
+      ...(Link === undefined || pr.runs === undefined
+        ? []
+        : [
+            {
+              rows: 1,
+              node: (
+                <Box flexDirection="row">
+                  <Text color={tokens0.muted}>{'   '}</Text>
+                  {pr.runs.slice(0, 6).map(run => (
+                    <Link key={`pr-run-${pr.number}-${run.name}`} href={run.url} label={`${mark(run.result)} ${run.name} `} />
+                  ))}
+                </Box>
+              ),
+            },
+          ]),
     ]
   })
 }
