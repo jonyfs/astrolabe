@@ -1,6 +1,6 @@
 ---
 track: quick # quick | full
-status: active # active | done | abandoned
+status: done # active | done | abandoned
 ---
 
 # Quick spec: Commands and keys
@@ -20,8 +20,8 @@ status: active # active | done | abandoned
 - [X] T001 Failing tests in `tests/integration/pane.test.tsx`
 - [X] T002 `HELP` and the `help` branch in `hooks/register.tsx`
 - [X] T003 README and version 0.12.1
-- [ ] T004 #41 A keyboard shortcut for the pane
-- [ ] T005 #42 A rich `/astrolabe status` (CommandOutput render)
-- [ ] T006 #43 The Edit row names the task it ticked (ToolUse render)
-- [ ] T007 #47 A first-run tour
-- [ ] T008 #48 A text-only accessible mode
+- [x] T004 #41 A keyboard shortcut for the pane (`a` on the band once it has the keyboard; a chord from the prompt needs an engine keybinding action, and a plugin cannot declare one)
+- [x] T005 #42 A rich `/astrolabe status` (CommandOutput render)
+- [x] T006 #43 The Edit row names the task it ticked (ToolUse render)
+- [x] T007 #47 A first-run tour
+- [x] T008 #48 A text-only accessible mode

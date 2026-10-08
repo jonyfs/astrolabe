@@ -286,6 +286,23 @@ command. Each time the next command changes, it is also proposed in the empty pr
 Tab (or the right arrow) to take it. `/astrolabe next` runs it from the prompt. The `minimal`
 preset shows none of this.
 
+The row's buttons have keys once the band has the keyboard (ctrl+x tab, or a click): `n` runs
+the next command, `c` copies it, and `a` opens the `/astrolabe` pane (from 70 columns).
+
+`/astrolabe status` prints the active feature, the next command and the footer as text, with the
+band drawn above it in the terminal:
+
+```text
+◆ 002 band-hint: implement, 9/20 tasks (45%)
+
+next: /speckit-implement
+
+◆ 002 · implement 45% · 5h 42% (14:00) · ctx 61% · opus 5.5 high · git:main ~2 · $1.20
+```
+
+When Claude ticks tasks with an Edit, the tool's row in the transcript names them
+(`↳ ticked T010 task 10`).
+
 ## What the prompt hint shows
 
 While the prompt is empty, Astrolabe adds the next Spec Kit command to the end of Claude
@@ -311,6 +328,7 @@ reloads the mod right away.
 | `governUsage` | `true`, `false` | `true` | Usage governance (see [Usage governance](#usage-governance)). Off, the windows still show. |
 | `icons` | `auto`, `nerd`, `emoji`, `ascii` | `auto` | Icons in the footer and the Dashboard. `auto` is Nerd Font glyphs in the terminal and emoji elsewhere. |
 | `language` | `auto`, `en`, `pt-BR`, `es`, `fr` | `auto` | The language of the pane, the Dashboard, the governor's questions, the toasts and `/astrolabe help`. `auto` follows the language you type in, English until a prompt says enough. What Claude reads (refusals, resume prompts) stays in English. |
+| `accessible` | `true`, `false` | `false` | Text only, for screen readers and plain terminals: ASCII icons, charts as text, no hover styles on the band, no animated dial and no pictures. |
 | `footerIn` | `pane`, `status`, `both` | `pane` | Where the footer goes: the bottom of the `/astrolabe` pane (the status entry keeps the Spec Kit part and the deciding window), the status entry, or both. |
 | `autoReload` | `true`, `false` | `true` | After a turn, when the Astrolabe on disk is newer than the one running (an install from a local clone, an update), run `/reload-plugins` once so the new version loads. Off, a toast says to run it. |
 | `images` | `auto`, `on`, `off` | `auto` | Draw the Dashboard's usage chart as a picture. `auto` does on kitty and Ghostty outside tmux. |
@@ -343,6 +361,9 @@ Type `/astrolabe` to open a pane with four tabs (`/astrolabe help` lists every c
 right; otherwise it sits above the prompt. It opens with the keyboard on it, so `1` to `4`
 switch tabs right away, and Esc closes it. Later, focus it again with a click or
 `ctrl+x tab`. The tab you pick stays for the session.
+
+The first time the pane opens, a welcome card above the Specs list explains the band, the keys and
+`/astrolabe help`. `Got it` hides it for good.
 
 **1 Specs** lists every feature:
 

@@ -5,6 +5,15 @@ export const LANGS = ['en', 'pt-BR', 'es', 'fr'] as const
 export type Lang = (typeof LANGS)[number]
 
 const EN = {
+  'help.status': 'the active feature, the next command and the footer, as text',
+  'next.pane': 'pane',
+  'status.none': 'Astrolabe has not read the project yet.',
+  'ticked': 'ticked {tasks}',
+  'welcome.title': 'Welcome to Astrolabe',
+  'welcome.band': 'The band above the prompt follows the active Spec Kit feature; the next command is one press away.',
+  'welcome.keys': 'ctrl+x tab focuses the band: n runs the next command, c copies it, a opens this pane; 1 to 4 switch tabs here.',
+  'welcome.help': 'Type /astrolabe help for every command and option.',
+  'welcome.done': 'Got it',
   'toast.reloading': '🧭 Astrolabe {version} is on disk (running {running}): reloading the plugins',
   'toast.onDisk': '🧭 Astrolabe {version} is on disk (running {running}): run /reload-plugins to load it',
   'card.constitution': 'the rules every other step checks',
@@ -138,6 +147,15 @@ export type TextKey = keyof typeof EN
 type Dictionary = Readonly<Record<TextKey, string>>
 
 const PT_BR: Dictionary = {
+  'help.status': 'a feature ativa, o próximo comando e o rodapé, em texto',
+  'next.pane': 'painel',
+  'status.none': 'O Astrolabe ainda não leu o projeto.',
+  'ticked': 'marcou {tasks}',
+  'welcome.title': 'Boas-vindas ao Astrolabe',
+  'welcome.band': 'A faixa acima do prompt acompanha a feature ativa do Spec Kit; o próximo comando fica a um toque.',
+  'welcome.keys': 'ctrl+x tab foca a faixa: n roda o próximo comando, c copia, a abre este painel; 1 a 4 trocam de aba aqui.',
+  'welcome.help': 'Digite /astrolabe help para ver todos os comandos e opções.',
+  'welcome.done': 'Entendi',
   'toast.reloading': '🧭 O Astrolabe {version} está no disco (rodando {running}): recarregando os plugins',
   'toast.onDisk': '🧭 O Astrolabe {version} está no disco (rodando {running}): rode /reload-plugins para carregá-lo',
   'card.constitution': 'as regras que todo passo confere',
@@ -268,6 +286,15 @@ const PT_BR: Dictionary = {
 }
 
 const ES: Dictionary = {
+  'help.status': 'la feature activa, el siguiente comando y el pie, en texto',
+  'next.pane': 'panel',
+  'status.none': 'Astrolabe aún no leyó el proyecto.',
+  'ticked': 'marcó {tasks}',
+  'welcome.title': 'Bienvenida a Astrolabe',
+  'welcome.band': 'La banda sobre el prompt sigue la feature activa de Spec Kit; el siguiente comando está a un toque.',
+  'welcome.keys': 'ctrl+x tab enfoca la banda: n ejecuta el siguiente comando, c lo copia, a abre este panel; 1 a 4 cambian de pestaña aquí.',
+  'welcome.help': 'Escribe /astrolabe help para ver todos los comandos y opciones.',
+  'welcome.done': 'Entendido',
   'toast.reloading': '🧭 Astrolabe {version} está en disco (en uso {running}): recargando los plugins',
   'toast.onDisk': '🧭 Astrolabe {version} está en disco (en uso {running}): ejecuta /reload-plugins para cargarlo',
   'card.constitution': 'las reglas que revisa cada paso',
@@ -398,6 +425,15 @@ const ES: Dictionary = {
 }
 
 const FR: Dictionary = {
+  'help.status': 'la feature active, la commande suivante et le pied, en texte',
+  'next.pane': 'panneau',
+  'status.none': 'Astrolabe n’a pas encore lu le projet.',
+  'ticked': 'a coché {tasks}',
+  'welcome.title': 'Bienvenue dans Astrolabe',
+  'welcome.band': 'La bande au-dessus du prompt suit la feature Spec Kit active ; la commande suivante est à une touche.',
+  'welcome.keys': 'ctrl+x tab donne le focus à la bande : n lance la commande suivante, c la copie, a ouvre ce panneau ; 1 à 4 changent d’onglet ici.',
+  'welcome.help': 'Tapez /astrolabe help pour toutes les commandes et options.',
+  'welcome.done': 'Compris',
   'toast.reloading': '🧭 Astrolabe {version} est sur le disque (en cours {running}) : rechargement des plugins',
   'toast.onDisk': '🧭 Astrolabe {version} est sur le disque (en cours {running}) : lancez /reload-plugins pour le charger',
   'card.constitution': 'les règles que chaque étape vérifie',
