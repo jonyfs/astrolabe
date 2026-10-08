@@ -93,7 +93,7 @@ describe('the footer (018 FR-001, FR-002)', () => {
 
   test('model names', () => {
     expect(shortModel('claude-opus-5-5')).toBe('opus 5.5')
-    expect(shortModel('claude-sonnet-5-5[1m]')).toBe('sonnet 5.5')
+    expect(shortModel('claude-sonnet-5-5[1m]')).toBe('sonnet 5.5 1M')
     expect(shortModel('claude-haiku-4-5-20251001')).toBe('haiku 4.5')
     expect(shortModel('claude-fable-5-1')).toBe('fable 5.1')
     expect(shortModel('gpt-x')).toBe('gpt-x')

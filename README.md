@@ -133,7 +133,7 @@ Each part, from left to right:
 | Running step | `· plan…` | A Spec Kit skill such as `/speckit-plan` was called during this turn. It disappears when the turn ends. |
 | Usage window | `· 7d 81% hold (Mon 14:00)` | The window that decides, its band when it is not ok, and when it resets: a countdown such as `2h13m` when the reset is less than a day away, else the weekday and time. A window at or past 100% reads `full`. The other window follows. See [Usage governance](#usage-governance). |
 | Context | `·  61%` | How full the context window is. Past 85% it reads `86% compact soon`. |
-| Model and effort | `·  opus 5.5 high` | The model and effort of Claude's last request in the main thread. |
+| Model and effort | `·  opus 5.5 high` | The model and effort of Claude's last request in the main thread. With the 1M context window it reads `opus 5.5 1M`. |
 | Git | `·  main ↑2  3` | The branch, commits to push and to pull, and changed or untracked files, from one `git status` at the end of each turn. Without a repository it is left out. |
 | Burn rate | `· 🔥 12/h → 96%` | Usage points an hour over the session, and where the window that decides will be at its reset at that pace. It shows once the session has two readings that rise. |
 | Duration | `·  1h05m` | How long the session has run, from its first minute on. |
@@ -513,7 +513,7 @@ folder with several Spec Kit projects under it, `other roots` names them, and
 - a line chart of the deciding usage window over the session, 0 to 100%, with a dotted
   projection to the reset at the current burn rate, and a legend under it that says what `●`,
   `│` and `·` mean;
-- the session's counts: turns, tool calls, drift alarms, subagents run and queued, context, tasks an hour, turns a task (to see when Claude spins),
+- the session's counts: turns, tool calls, drift alarms, subagents run and queued, context, tasks an hour, turns a task (to see when Claude spins), compactions and the context they freed,
   duration, burn rate in points an hour, and where the window should be at the reset;
 - a sparkline each for the 5-hour window, the weekly window and the context over the last readings;
 - the slowest task of the active feature, an estimate for its open tasks from the time the ticked

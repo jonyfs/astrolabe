@@ -63,14 +63,14 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 - [ ] T035 #35 Drift alarms per feature (P3)
 - [ ] T036 #36 How long the session sat waiting on the governor (P2)
 - [ ] T037 #37 Subagents run per feature and their share of the window (P3)
-- [ ] T038 #38 Compactions this session, and the context each one freed (P2)
+- [x] T038 #38 Compactions this session, and the context each one freed (P2)
 - [ ] T039 #39 The share of tasks ticked by subagents against the main thread (P3)
 - [ ] T040 #40 A weekly trend line of tasks done over the last 8 weeks (P2)
 
 ### Statusline and footer
 
 - [x] T041 #41 The footer on every tab, Config, PRs and Help included, with a test per tab (P1)
-- [ ] T042 #42 The footer's model chip names the 1M context window when it is on (`opus 5.5 1M`) (P2)
+- [x] T042 #42 The footer's model chip names the 1M context window when it is on (`opus 5.5 1M`) (P2)
 - [x] T043 #43 A context chip that turns into `compact soon` past 85% (P1)
 - [ ] T044 #44 The footer's git chip shows the PR number as a link when `pullRequest` is on (P2)
 - [ ] T045 #45 A chip for the running skill with its model (`⟳ implement · sonnet`) (P2)

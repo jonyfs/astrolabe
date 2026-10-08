@@ -124,3 +124,11 @@ describe('the first row (054 #23)', () => {
     expect(chips.map(c => c.text)).toContain('5h at reset 70%')
   })
 })
+
+describe('compactions (054 #38)', () => {
+  test('count and points freed', () => {
+    const NOW4 = Date.UTC(2026, 9, 8, 12)
+    const map = Object.fromEntries(kpiRows({ startedAt: NOW4, turns: 1, toolCalls: 0, drifts: 0, agentsRun: 0, agentsQueued: 0, series: [], compactions: { n: 2, freed: 120 } }, undefined, NOW4))
+    expect(map['compactions']).toBe('2, 120 points of context freed')
+  })
+})
