@@ -23,7 +23,7 @@ import {
   updateLabel,
 } from './core/updates'
 import { fileUrl, joinPath } from './core/paths'
-import { configMark, GSTACK_SKILLS, nextPriority, OPTION_GROUPS, optionDefaults, optionGroup, parallelPrompt, parsePriority, REVIEW_MODEL, reviewPrompt, withPriority, type OptionGroup, type Priority } from './core/spec-actions'
+import { configMark, focusNote, GSTACK_SKILLS, nextPriority, OPTION_GROUPS, optionDefaults, optionGroup, parallelPrompt, parsePriority, REVIEW_MODEL, reviewPrompt, withPriority, type OptionGroup, type Priority } from './core/spec-actions'
 import { parallelTasks } from './core/extensions'
 import { CHANGES, VERSION } from './core/version'
 import {
@@ -700,6 +700,8 @@ async function refreshWorktrees($: EngineInterface, root: string): Promise<void>
 // Whether Claude is told of the Spec Kit work (026), and what it was last told.
 let claudeContext = true
 let lastTold: string | undefined
+// Focus mode (054 #88), kept in the session's state across a reload.
+let focusMode = false
 
 /** One line on the active feature for Claude (026 #50); undefined without one. */
 /** The note for a prompt that names a feature other than the active one, by its 3-digit id (054 #91). */
@@ -736,6 +738,7 @@ const featureContext = (state: SpeckitState): string | undefined => {
     ...((feature.clarifications ?? 0) > 0 || feature.warnings.includes('clarification-after-plan') ? ['the spec still has [NEEDS CLARIFICATION] markers'] : []),
     ...((feature.checklist?.open ?? 0) > 0 ? [`${feature.checklist!.open} checklist items are open`] : []),
     ...(feature.phase === 'implement' && !state.isAnalyzed && feature.done === 0 ? ['/speckit-analyze has not run on these tasks'] : []),
+    ...(focusMode ? [focusNote(state.currentTask)] : []),
   ]
   return `Astrolabe: ${parts.join('; ')}.`
 }
@@ -1897,6 +1900,7 @@ export const register: Register = (on, options) => {
     // A reload starts the module over: the guess made earlier in the session is in $.state.
     const kept = (await $.state.get(SESSION)).value?.language
     if (kept === 'en' || kept === 'pt-BR' || kept === 'es' || kept === 'fr') guessedLang = kept
+    focusMode = (await $.state.get(SESSION)).value?.focus === true
     const result = await next(e)
     // The governor's queue lives in $.state, so a reload keeps it: say it is still there (054 #18).
     const usageKept = (await $.state.get(USAGE)).value
@@ -2329,6 +2333,14 @@ export const register: Register = (on, options) => {
       const lines = recapOf((await $.state.get(SESSION)).value?.recap ?? [], id)
       if (lines.length === 0) return { text: t(currentLang(), 'recap.none', { id: id ?? '—' }) }
       return { text: [t(currentLang(), 'recap.title', { id: id ?? '—' }), ...lines.map(r => `  ${clockOf(new Date(r.at).toISOString()) ?? ''}  ${r.text}`)].join('\n') }
+    }
+    // Focus mode (054 #88): only the person turns it on or off.
+    if (args === 'focus' || args === 'focus on' || args === 'focus off') {
+      if (args === 'focus') return { text: t(currentLang(), focusMode ? 'focus.isOn' : 'focus.isOff') }
+      if (e.origin?.kind !== 'composer') return { text: t(currentLang(), 'focus.onlyYou') }
+      focusMode = args === 'focus on'
+      await flushStats($, s => ({ ...s, focus: focusMode }))
+      return { text: t(currentLang(), focusMode ? 'focus.on' : 'focus.off') }
     }
     // The Dashboard's numbers as Markdown, to paste in a PR body (054 #99).
     if (args === 'kpis') {
