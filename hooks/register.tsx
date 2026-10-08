@@ -21,7 +21,7 @@ import {
   updateLabel,
 } from './core/updates'
 import { fileUrl, joinPath } from './core/paths'
-import { GSTACK_SKILLS, nextPriority, optionDefaults, parsePriority, REVIEW_MODEL, reviewPrompt, withPriority, type Priority } from './core/spec-actions'
+import { configMark, GSTACK_SKILLS, nextPriority, optionDefaults, parsePriority, REVIEW_MODEL, reviewPrompt, withPriority, type Priority } from './core/spec-actions'
 import { CHANGES, VERSION } from './core/version'
 import {
   ASK_MS,
@@ -224,6 +224,8 @@ async function footerInput($: EngineInterface, state: Held['state'], width: numb
 // Where the footer goes (035): the pane (the status entry keeps the lead), the status entry, or both.
 let footerIn: 'pane' | 'status' | 'both' = 'pane'
 let noColor = false
+// The options' defaults from plugin.json, read once at session start (052 #39).
+let defaultsSeen: Record<string, string | number | boolean> = {}
 let bandDensity: BandDensity = 'full'
 
 /** Writes what the session counted since the last write, merged with `change`, if anything moved. */
@@ -419,7 +421,8 @@ function configBody(
   for (const row of configRows) {
     const shown = row.key in draft ? draft[row.key] : row.value
     const changed = row.key in draft && draft[row.key] !== row.value
-    const label = `${changed ? '● ' : '  '}${row.label}`.padEnd(30)
+    // ● a change not saved yet; • a saved value that differs from the option's default (052 #39).
+    const label = `${configMark(changed, row.value, defaultsSeen, row.key)}${row.label}`.padEnd(30)
     const key = `config-${row.key}`
     let control: RenderNode
     if (row.isLocked) control = <Text color={tokens0.muted}>{`${String(shown)} (${t(lang, 'config.locked')})`}</Text>
@@ -1694,6 +1697,7 @@ export const register: Register = (on, options) => {
     } catch {
       // A store that fails only skips the welcome.
     }
+    defaultsSeen = await defaults($).catch(() => ({}))
     // NO_COLOR (041 #9): no chip backgrounds, the thin separator. Read once, here.
     noColor = ((await $.env.get('NO_COLOR').catch(() => undefined)) ?? '') !== ''
     const fs = fsOf($)

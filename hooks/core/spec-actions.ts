@@ -67,3 +67,7 @@ export const optionDefaults = (pluginJson: string): Record<string, string | numb
     return {}
   }
 }
+
+/** The mark before a Config row (052 #39): ● a change not saved yet, • a saved value off its default. */
+export const configMark = (changed: boolean, value: unknown, defaults: Readonly<Record<string, unknown>>, key: string): string =>
+  changed ? '● ' : key in defaults && defaults[key] !== value ? '• ' : '  '

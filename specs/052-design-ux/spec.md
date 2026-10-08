@@ -67,7 +67,7 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 - [ ] T036 #36 Help in titled blocks (Commands, Keys, Options, Marks, Steps, Models) the filter can jump between (P2)
 - [ ] T037 #37 Each command in Help copies itself on press (P3)
 - [ ] T038 #38 Config rows show the default and the description of the option under the pointer (P2)
-- [ ] T039 #39 Config marks a value changed from its default with `•` (P2)
+- [x] T039 #39 Config marks a value changed from its default with `•` (P2)
 - [ ] T040 #40 PR rows show the age and the author next to the checks (P3)
 - [x] T041 #41 A PR action waiting for its second press says so on the row (`press again to merge #42`) and clears after 10 s (P1)
 - [ ] T042 #42 `/astrolabe doctor`'s checks also as a Health block in the Help tab (P3)

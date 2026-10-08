@@ -546,7 +546,7 @@ language.
 for a choice, a toggle for on and off, a field for a number or a text. A changed row is marked `●`.
 `Save N changes` applies them through Claude Code's settings, and Astrolabe reloads with the new
 values; `Cancel` drops them. A row your organization's policy locks shows its value and cannot be
-changed. `Reset to defaults` puts every option back to its default as a draft that Save applies; `/astrolabe config reset`, typed by you, does it at once.
+changed; `•` marks an option saved with a value other than its default. `Reset to defaults` puts every option back to its default as a draft that Save applies; `/astrolabe config reset`, typed by you, does it at once.
 
 **7 PRs** lists the repository's open pull requests, read with `gh` when the tab opens and at most
 every two minutes after a turn while it is shown. Each row links to the pull request and shows its
