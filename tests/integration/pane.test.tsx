@@ -317,6 +317,17 @@ describe('the advisor answer in the Session tab (055 T004)', () => {
   })
 })
 
+describe('a broken extensions.yml in the Session tab (054 #16)', () => {
+  test('names the file, the line and why', async ($, on) => {
+    const tree = project({ constitution: RATIFIED, featureJson: featureJson('specs/001-a'), features: { '001-a': { spec: spec() } }, extra: { '.specify/extensions.yml': 'hooks:\n  before_plan:\n  - command speckit.git.commit\n' } })
+    await setup($ as never, on as never, { ...halfDone, tree, cwd: '/proj' })
+    const ui = await mountPane($ as never, 'terminal', 140, 40)
+    await ui.press('tab-session')
+    expect(await ui.body()).toContain('.specify/extensions.yml line 3: not an event, an item or a key: value; its hooks are not read')
+    await ui.unmount()
+  })
+})
+
 describe('the Session tab in blocks (052 #24, #25)', () => {
   test('Project, then Governor once there is a reading; the state row takes the band colour', async ($, on) => {
     const { session } = await setup($ as never, on as never)

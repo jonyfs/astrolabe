@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import { hooksFor, parallelTasks, parseExtensions } from '../../hooks/core/extensions'
+import { extensionsProblem, hooksFor, parallelTasks, parseExtensions } from '../../hooks/core/extensions'
 
 const YAML = `installed:
 - agent-context
@@ -51,5 +51,19 @@ describe('[P] tasks (020c #19)', () => {
   })
   test('one [P] task alone is not a parallel run', () => {
     expect(parallelTasks([t('T002', '[P] a'), t('T003', 'b')])).toEqual([])
+  })
+})
+
+describe('a broken extensions.yml (054 #16)', () => {
+  test('a well-formed file, block scalars included, has no problem', () => {
+    expect(extensionsProblem(YAML)).toBeUndefined()
+    expect(extensionsProblem('hooks:\n  before_plan:\n  - command: a\n    prompt: |\n      free text: here, "even" this\n      - and this\n    optional: true\n')).toBeUndefined()
+    expect(extensionsProblem('')).toBeUndefined()
+  })
+
+  test('the first bad line is named', () => {
+    expect(extensionsProblem('hooks:\n\tbefore_plan:\n')).toEqual({ line: 2, reason: 'tab' })
+    expect(extensionsProblem('hooks:\n  before_plan:\n  - command: "speckit.git.commit\n')).toEqual({ line: 3, reason: 'quote' })
+    expect(extensionsProblem('hooks:\n  before_plan:\n  - command speckit.git.commit\n')).toEqual({ line: 3, reason: 'shape' })
   })
 })

@@ -1,5 +1,5 @@
 // What each tab of the /astrolabe pane says (contracts/pane.md). Pure: no $.
-import { t as tr, type Lang } from './i18n'
+import { t as tr, type Lang, type TextKey } from './i18n'
 import { formatElapsed, cleanTaskText } from './spinner'
 import { parallelTasks } from './extensions'
 import { fileUrl } from './paths'
@@ -263,7 +263,9 @@ export const sessionRows = (state: SpeckitState, now: number, lang: Lang = 'en')
   if (state.otherRoots !== undefined) pairs.push(['other-roots', tr(lang, 'session.otherRoots'), `${state.otherRoots.join(', ')} (/astrolabe root <folder>)`])
   if (state.nextHooks !== undefined && state.nextHooks.before.length > 0) pairs.push(['hooks-before', tr(lang, 'session.hooksBefore'), state.nextHooks.before.join(', ')])
   if (state.nextHooks !== undefined && state.nextHooks.after.length > 0) pairs.push(['hooks-after', tr(lang, 'session.hooksAfter'), state.nextHooks.after.join(', ')])
-  return pairs.map(([key, label, value]) => ({ key: `session-${key}`, text: `${label.padEnd(14)}${value}`, role: 'text' }))
+  const broken = state.extensionsError
+  if (broken !== undefined) pairs.push(['extensions', tr(lang, 'session.extensions'), tr(lang, 'session.extensionsBroken', { line: broken.line, reason: tr(lang, `ext.${broken.reason}` as TextKey) })])
+  return pairs.map(([key, label, value]) => ({ key: `session-${key}`, text: `${label.padEnd(14)}${value}`, role: key === 'extensions' ? 'blocked' : 'text' }))
 }
 
 /**

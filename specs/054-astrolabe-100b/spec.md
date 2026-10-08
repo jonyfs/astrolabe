@@ -35,7 +35,7 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 - [ ] T013 #13 A tasks.md over 2 MB is read once and summarized instead of re-read on each write (P2)
 - [x] T014 #14 A `gh` that hangs is cut at 8 s everywhere it runs, with the PRs tab saying so (P1)
 - [ ] T015 #15 `/astrolabe doctor` also checks the hook budget: the slowest hook of the session in ms (P2)
-- [ ] T016 #16 A broken `.specify/extensions.yml` is named in the Session tab with its line (P2)
+- [x] T016 #16 A broken `.specify/extensions.yml` is named in the Session tab with its line (P2)
 - [ ] T017 #17 A reload keeps the pane's scroll, filter and tab (state survives; module values rebuilt) (P2)
 - [ ] T018 #18 The governor's queue survives a reload and says so (`3 waiting since 14:02`) (P2)
 - [x] T019 #19 A feature folder without spec.md shows as `?` with the reason, never as `specify` silently (P1)

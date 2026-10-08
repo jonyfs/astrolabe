@@ -54,6 +54,42 @@ export const parseExtensions = (yaml: string): ExtensionHook[] => {
   return out
 }
 
+/** Why a line of extensions.yml cannot be read: a tab, an unclosed quote, or an unknown shape. */
+export type ExtensionsReason = 'tab' | 'quote' | 'shape'
+
+/**
+ * The first line of `.specify/extensions.yml` that cannot be read (054 #16): a tab in the
+ * indentation, an unclosed quote, or a line under `hooks:` that is not an event, an item or a
+ * `key: value`. Block scalars (`key: |` or `key: >`) and their lines are skipped.
+ */
+export const extensionsProblem = (yaml: string): { line: number; reason: ExtensionsReason } | undefined => {
+  let inHooks = false
+  let blockIndent: number | undefined
+  const lines = yaml.split(/\r?\n/)
+  for (let i = 0; i < lines.length; i += 1) {
+    const raw = lines[i]!
+    if (raw.trim() === '' || raw.trimStart().startsWith('#')) continue
+    const lead = /^[ \t]*/.exec(raw)![0]
+    if (blockIndent !== undefined && lead.length > blockIndent) continue
+    blockIndent = undefined
+    if (lead.includes('\t')) return { line: i + 1, reason: 'tab' }
+    const line = raw.trim()
+    const quotes = (line.replace(/\s#.*$/, '').match(/"/g) ?? []).length
+    if (quotes % 2 === 1) return { line: i + 1, reason: 'quote' }
+    if (lead.length === 0) {
+      inHooks = line === 'hooks:'
+      continue
+    }
+    if (!inHooks) continue
+    const body = line.startsWith('-') ? line.replace(/^-\s*/, '') : line
+    if (body === '') continue
+    const kv = /^[A-Za-z_][\w-]*:(\s+(.*))?$/.exec(body)
+    if (kv === null) return { line: i + 1, reason: 'shape' }
+    if (/^[|>][+-]?$/.test((kv[2] ?? '').trim())) blockIndent = lead.length
+  }
+  return undefined
+}
+
 /** The hooks around a next command, as slash commands: `speckit.git.commit` reads `/speckit-git-commit`. */
 export const hooksFor = (hooks: readonly ExtensionHook[], nextCommand: string | undefined): { before: string[]; after: string[] } => {
   const step = /^\/speckit-([a-z]+)$/.exec(nextCommand ?? '')?.[1]

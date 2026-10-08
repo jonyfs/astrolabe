@@ -79,6 +79,7 @@ export const deriveSpeckitState = (
     ...base,
     ...(next === undefined ? {} : { nextCommand: next }),
     ...(snapshot.otherRoots === undefined ? {} : { otherRoots: snapshot.otherRoots }),
+    ...(snapshot.extensionsError === undefined ? {} : { extensionsError: snapshot.extensionsError }),
     ...(() => {
       const hooks = hooksFor(snapshot.extensions ?? [], next)
       return hooks.before.length + hooks.after.length === 0 ? {} : { nextHooks: hooks }
