@@ -83,6 +83,12 @@
       "description": "When the governor queues a subagent or pauses Claude, ask you with a list of answers (queue, run now, lift for a while); the cautious default applies at once, and your answer changes it",
       "default": true
     },
+    "claudeContext": {
+      "type": "boolean",
+      "title": "Tell Claude about the Spec Kit work",
+      "description": "Add one line on the active feature, its current task and the next command to your prompt when it changed, and the constitution's principles when a Spec Kit skill runs",
+      "default": true
+    },
     "accessible": {
       "type": "boolean",
       "title": "Accessible mode",
