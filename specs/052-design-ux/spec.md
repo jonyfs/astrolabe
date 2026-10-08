@@ -38,7 +38,7 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 
 - [x] T017 #17 A header row names the feature, its phase and its count (`026 claude-context · implement · 9/20`) (P1)
 - [x] T018 #18 Each story heading carries its own count (`Phase 3: User Story 1 · 2/5`) (P1)
-- [ ] T019 #19 The last turn's diff shows at most 6 lines, with `+N lines` (P2)
+- [x] T019 #19 The last turn's diff shows at most 6 lines, with `+N lines` (P2)
 - [ ] T020 #20 The current task row is bold, with `⏱` aligned at the right edge (P3)
 - [x] T021 #21 The `⇉ … can run in parallel` line drops when the brackets already show the run (P1)
 - [ ] T022 #22 Task ids padded to one width (`T9 ` and `T10`) so the text column lines up (P2)
