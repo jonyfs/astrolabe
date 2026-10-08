@@ -2,6 +2,7 @@ import { describe, expect, test } from 'claude-code/testing'
 
 import { featureJson, project, RATIFIED, spec, tasks } from '../fixtures/build'
 import { completeTurn, installEngine, installTree, startSession } from '../helpers/fake-fs'
+import { installPaneEngine, installRenderEngine, mountPane } from '../helpers/render'
 
 const planOnly = () =>
   project({ constitution: RATIFIED, featureJson: featureJson('specs/002-b'), features: { '002-b': { spec: spec() } } })
@@ -107,6 +108,22 @@ describe('the drift alarm (US2)', () => {
     tree['/proj/specs/002-b/tasks.md'] = tree['/proj/specs/002-b/tasks.md']!.replace('- [ ] T015', '- [x] T015')
     await $.tool.call(tickEdit('e2', 'T015'))
     expect(session.toasts.length).toBe(1)
+  })
+
+  test('054 #35: the Dashboard counts the alarm against the active feature', async ($, on) => {
+    const tree = implementing('Write the parser')
+    installTree(on, tree, '/proj')
+    installEngine(on)
+    installRenderEngine(on)
+    installPaneEngine(on)
+    await startSession($, '/proj')
+    tickT014(tree)
+    await $.tool.call(tickEdit('e1', 'T014'))
+    await completeTurn($)
+    const ui = await mountPane($ as never, 'terminal', 120, 60)
+    await ui.press('tab-dashboard')
+    expect(await ui.body()).toMatch(/drift alarms\s+1 \(002: 1\)/)
+    await ui.unmount()
   })
 
   test('a reload keeps the window: a Bash call before the reload still counts', async ($, on) => {

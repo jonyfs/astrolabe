@@ -60,7 +60,7 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 - [ ] T032 #32 Time from specify to done for each finished feature (P2)
 - [x] T033 #33 Turns per ticked task, to see when Claude spins (P1)
 - [x] T034 #34 Context used per ticked task (P2)
-- [ ] T035 #35 Drift alarms per feature (P3)
+- [x] T035 #35 Drift alarms per feature (P3)
 - [x] T036 #36 How long the session sat waiting on the governor (P2)
 - [ ] T037 #37 Subagents run per feature and their share of the window (P3)
 - [x] T038 #38 Compactions this session, and the context each one freed (P2)
