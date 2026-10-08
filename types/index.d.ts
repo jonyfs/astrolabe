@@ -145,10 +145,10 @@ export type SpeckitState = {
   activeDocs?: Array<'spec.md' | 'plan.md' | 'tasks.md'>
 }
 
-export type PaneTab = 'specs' | 'tasks' | 'session' | 'dashboard'
+export type PaneTab = 'specs' | 'tasks' | 'session' | 'dashboard' | 'help'
 
 /** The /astrolabe pane's session state: the tab shown and whether it opened unasked already. */
-export type PaneState = { tab: PaneTab; autoOpened: boolean; filter?: string; welcomed?: boolean }
+export type PaneState = { tab: PaneTab; autoOpened: boolean; filter?: string }
 
 export type UpdateId = 'gstack' | 'specify' | 'speckit-skills' | 'astrolabe'
 

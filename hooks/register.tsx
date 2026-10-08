@@ -89,6 +89,8 @@ const helpText = (lang: Lang): string =>
     `  2 ${t(lang, 'tab.tasks').padEnd(10)} ${t(lang, 'help.tasksTab')}`,
     `  3 ${t(lang, 'tab.session').padEnd(10)} ${t(lang, 'help.sessionTab')}`,
     `  4 ${t(lang, 'tab.dashboard').padEnd(10)} ${t(lang, 'help.dashboardTab')}`,
+    `  5 ${t(lang, 'tab.help').padEnd(10)} ${t(lang, 'help.helpTab')}`,
+    t(lang, 'help.keys'),
     `${t(lang, 'help.options')} (preset, flavor, icons, language, checkUpdates, governUsage, askOnLimit, costBudget, pullRequest, images, autoReload, footerIn, accessible).`,
   ].join('\n')
 const ASK = { plugin: 'astrolabe', key: 'ask' } as const
@@ -208,9 +210,6 @@ let prRunning = false
 let tokens0: ReturnType<typeof themeOf> = themeOf({})
 // The accessible mode (025 #48): ascii icons, text charts, no hover, no animation, no pictures.
 let accessible = false
-// Whether the person dismissed the welcome card (025 #47), read from $.store at session start.
-let welcomed = false
-const WELCOMED = 'welcomed'
 
 /**
  * Opened on request: it takes the keys (1 to 4 at once) and Esc closes it. An unasked open never
@@ -303,28 +302,6 @@ function paneHeader(
   const active = state.active
   if (pane.tab === 'specs') {
     const out: RenderNode[] = []
-    if (!welcomed && pane.welcomed !== true) {
-      const { Box, Text, Button } = elements
-      const lang = currentLang()
-      out.push(
-        <Box key="astrolabe-welcome" flexDirection="column">
-          <Text color={tokens0.accent}>{t(lang, 'welcome.title')}</Text>
-          <Text>{t(lang, 'welcome.band')}</Text>
-          <Text>{t(lang, 'welcome.keys')}</Text>
-          <Text>{t(lang, 'welcome.help')}</Text>
-          <Button
-            key="welcome-done"
-            label={t(lang, 'welcome.done')}
-            onPress={async () => {
-              welcomed = true
-              await $.store.set(WELCOMED, true).catch(() => undefined)
-              const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
-              await $.state.set(PANE_STATE, { ...held, welcomed: true })
-            }}
-          />
-        </Box>,
-      )
-    }
     if (Input !== undefined) {
       // Each keystroke filters; Enter keeps the text the same way.
       const setFilter = async (value: string) => {
@@ -1093,7 +1070,6 @@ export const register: Register = (on, options) => {
     const now = await $.clock.now()
     const started = await guarded($, previous => reconcileStart(fs, e.cwd, previous, now))
     await afterReconcile($, preset, started)
-    welcomed = (await $.store.get(WELCOMED).catch(() => undefined)) === true
     // The baseline for the next turn's tasks diff, and the theme's lightness for the charts (024).
     turnTasks = started?.state.active === undefined || started.state.activeTasks === undefined ? undefined : { dir: started.state.active.dir, tasks: started.state.activeTasks }
     try {
@@ -1435,7 +1411,11 @@ export const register: Register = (on, options) => {
     const state = value ?? { present: false, constitution: 'missing' as const, features: [], isAnalyzed: false }
     const columns = e.props.bodyColumns
     const rows =
-      pane.tab === 'tasks'
+      pane.tab === 'help'
+        ? helpText(currentLang())
+            .split('\n')
+            .map((text, i) => ({ key: `help-${i}`, text, role: (i === 0 || !text.startsWith(' ') ? 'accent' : 'text') as 'accent' | 'text' }))
+        : pane.tab === 'tasks'
         ? taskRows(state, emptyMemo(), Math.max(3, (e.viewport?.rows ?? 24) - 4), columns, currentLang())
         : pane.tab === 'session'
           ? [
