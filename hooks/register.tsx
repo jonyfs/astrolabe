@@ -59,7 +59,7 @@ import { emptyMemo, type PaneState, type PaneTab, type UpdateId, type UpdateItem
 import type { Preset } from './core/presets'
 import type { Fs } from './io/fs-port'
 import { findRoot } from './io/root'
-import { applyFileTouch, applyRead, applyShell, applySkill, type Held, reconcileDeferred, reconcileStart, reconcileTurn } from './io/reconcile'
+import { applyFileTouch, applyRead, applyShell, applySkill, type Held, reconcileDeferred, reconcileNow, reconcileStart, reconcileTurn } from './io/reconcile'
 import { bandRow, nextRow, updatesRow } from './surfaces/band'
 import { askTree } from './surfaces/ask'
 import { dashboardSections, dashboardTree } from './surfaces/dashboard'
@@ -1073,6 +1073,16 @@ async function guarded($: EngineInterface, work: (previous: Held | undefined) =>
   return undefined
 }
 
+/** A path under a `.specify/` folder: feature.json, the constitution, extensions.yml (053). */
+const isUnderSpecify = (path: string): boolean => /(^|[\\/])\.specify[\\/]/.test(path)
+
+/** Brings the Spec Kit state up to date mid-turn (053); writes only when something moved. */
+async function syncNow($: EngineInterface): Promise<void> {
+  const fs = fsOf($)
+  const now = await $.clock.now()
+  await guarded($, async previous => (previous === undefined ? undefined : reconcileNow(fs, previous, now)))
+}
+
 async function touchFile(
   $: EngineInterface,
   preset: Preset,
@@ -1783,12 +1793,18 @@ export const register: Register = (on, options) => {
   // Bash and Agent change files the mod cannot see, so drift stays quiet for this window.
   on('tool.call', { tool: 'Bash' }, async ($, e, next) => {
     await guarded($, async previous => (previous === undefined ? undefined : applyShell(previous)))
-    return next(e)
+    const result = await next(e)
+    // The command may have made a spec or switched the branch: the tabs follow now (053).
+    await syncNow($)
+    return result
   }).catch(($, e, next) => next(e))
 
   on('tool.call', { tool: 'Agent' }, async ($, e, next) => {
     await guarded($, async previous => (previous === undefined ? undefined : applyShell(previous)))
-    return next(e)
+    const result = await next(e)
+    // A subagent may have written specs or tasks: the tabs follow when it returns (053).
+    await syncNow($)
+    return result
   }).catch(($, e, next) => next(e))
 
   // Before the read runs, so the narration shows while the file loads.
@@ -1802,12 +1818,14 @@ export const register: Register = (on, options) => {
     const result = await next(e)
     // The Edit's own strings say what it ticked, so a box ticked elsewhere is not blamed on it.
     await touchFile($, preset, e.file_path, true, { before: e.old_string, after: e.new_string })
+    if (isUnderSpecify(e.file_path)) await syncNow($)
     return result
   }).catch(($, e, next) => next(e))
 
   on('tool.call', { tool: 'Write' }, async ($, e, next) => {
     const result = await next(e)
     await touchFile($, preset, e.file_path, true)
+    if (isUnderSpecify(e.file_path)) await syncNow($)
     return result
   }).catch(($, e, next) => next(e))
 
@@ -2073,6 +2091,7 @@ export const register: Register = (on, options) => {
       },
       // What the tab is for, then its keys (048 #72).
       onClose: () => $.ui.close({ id: PANE_ID }).then(() => undefined),
+      marks: accessible ? ('words' as const) : iconsFor(iconsOption, e.surface) === 'ascii' ? ('ascii' as const) : ('unicode' as const),
       ...(pane.tab === 'specs' && state.active !== undefined
         ? {
             onPriority: async () => {

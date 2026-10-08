@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import { ICON_KEYS, iconSet, iconsFor } from '../../hooks/core/icons'
+import { ICON_KEYS, iconSet, iconsFor, markText } from '../../hooks/core/icons'
 
 describe('icon sets (018 FR-004)', () => {
   test('auto is Nerd Font in the terminal and emoji elsewhere', () => {
@@ -24,5 +24,14 @@ describe('icon sets (018 FR-004)', () => {
       const glyph = iconSet('nerd')[key]
       expect([...glyph].length).toBe(1)
     }
+  })
+})
+
+describe('the pane marks (052 #47, #49)', () => {
+  test('ascii and words', () => {
+    expect(markText('▸ ◐↑002 b  ⟳ x', 'unicode')).toBe('▸ ◐↑002 b  ⟳ x')
+    expect(markText('▸ ◐↑002 b  ⟳ x', 'ascii')).toBe('> *^002 b  ~ x')
+    expect(markText('┌ T002 b', 'ascii')).toBe('/ T002 b')
+    expect(markText('↑ 002', 'words')).toBe('priority high: 002')
   })
 })

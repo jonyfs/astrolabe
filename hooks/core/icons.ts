@@ -75,3 +75,41 @@ export const iconsFor = (option: unknown, surface: RenderSurface | null | undefi
   option === 'nerd' || option === 'emoji' || option === 'ascii' ? option : surface === 'terminal' ? 'nerd' : 'emoji'
 
 export const iconSet = (name: IconSetName): Icons => SETS[name]
+
+// The pane's own marks (052 #49, #47): drawn as is, as ASCII with the ascii icon set, or
+// spelled out in the accessible mode. Box-drawing runs (the footer's rule) are left alone.
+const MARKS: ReadonlyArray<[string, string, string]> = [
+  ['▸', '>', 'active:'],
+  ['◆', '*', ''],
+  ['●', '#', 'done:'],
+  ['◐', '*', 'open:'],
+  ['○', 'o', 'later:'],
+  ['↑', '^', 'priority high:'],
+  ['↓', 'v', 'priority low:'],
+  ['⇉', '=>', 'parallel:'],
+  ['┌', '/', 'parallel:'],
+  ['│', '|', 'parallel:'],
+  ['└', '\\', 'parallel:'],
+  ['↗', '->', 'open spec.md'],
+  ['✕', 'x', 'close'],
+  ['⏱', 't', 'running for'],
+  ['⟳', '~', 'running'],
+  ['✓', '+', 'done:'],
+  ['☐', '[ ]', 'open checklist items:'],
+  ['⑂', 'wt:', 'worktree'],
+  ['⌕', '/', 'find'],
+  ['█', '#', ''],
+  ['░', '.', ''],
+]
+
+/** A pane text in the marks a set draws: `unicode` as is, `ascii`, or `words` spelled out. */
+export const markText = (text: string, set: 'unicode' | 'ascii' | 'words'): string => {
+  if (set === 'unicode') return text
+  let out = text
+  for (const [glyph, ascii, word] of MARKS) {
+    if (!out.includes(glyph)) continue
+    if (set === 'ascii' || word === '') out = out.split(glyph).join(ascii)
+    else out = out.split(glyph).join(word)
+  }
+  return out
+}
