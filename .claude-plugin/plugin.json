@@ -1,6 +1,6 @@
 {
   "name": "astrolabe",
-  "version": "0.32.1",
+  "version": "0.33.0",
   "description": "Spec Kit progress and usage governance for Claude Code: a phase rail above the prompt, the next command in the prompt hint, the current task on the spinner, a /astrolabe pane, toasts, update buttons, and a status entry with your usage window.",
   "author": {
     "name": "Jony Santos"
@@ -107,6 +107,13 @@
       "description": "Ask Claude to answer briefly: lite keeps full sentences, full drops filler and articles; files and commits stay normal prose",
       "default": "off",
       "options": ["off", "lite", "full"]
+    },
+    "skillModels": {
+      "type": "string",
+      "title": "Model per skill",
+      "description": "auto sends each Spec Kit and gstack skill's requests with the model and effort it does best with (see the Help tab); switching models re-reads the context, so it costs more on long sessions",
+      "default": "off",
+      "options": ["off", "auto"]
     },
     "accessible": {
       "type": "boolean",

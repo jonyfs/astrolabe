@@ -5,6 +5,7 @@ export const LANGS = ['en', 'pt-BR', 'es', 'fr'] as const
 export type Lang = (typeof LANGS)[number]
 
 const EN = {
+  'help.models': 'Model and effort per skill (the skillModels option, auto, sends them while the skill runs):',
   'tab.prs': 'PRs',
   'help.prsTab': 'open pull requests, their checks and reviews; approve, update and merge',
   'prs.loading': 'Reading the open pull requests with gh…',
@@ -178,6 +179,7 @@ export type TextKey = keyof typeof EN
 type Dictionary = Readonly<Record<TextKey, string>>
 
 const PT_BR: Dictionary = {
+  'help.models': 'Modelo e esforço por skill (a opção skillModels, auto, os usa enquanto a skill roda):',
   'tab.prs': 'PRs',
   'help.prsTab': 'pull requests abertos, checks e revisões; aprovar, atualizar e mergear',
   'prs.loading': 'Lendo os pull requests abertos com o gh…',
@@ -348,6 +350,7 @@ const PT_BR: Dictionary = {
 }
 
 const ES: Dictionary = {
+  'help.models': 'Modelo y esfuerzo por skill (la opción skillModels, auto, los usa mientras corre la skill):',
   'tab.prs': 'PRs',
   'help.prsTab': 'pull requests abiertos, checks y revisiones; aprobar, actualizar y fusionar',
   'prs.loading': 'Leyendo los pull requests abiertos con gh…',
@@ -518,6 +521,7 @@ const ES: Dictionary = {
 }
 
 const FR: Dictionary = {
+  'help.models': 'Modèle et effort par skill (l’option skillModels, auto, les envoie pendant que la skill tourne) :',
   'tab.prs': 'PRs',
   'help.prsTab': 'pull requests ouvertes, checks et revues ; approuver, mettre à jour et fusionner',
   'prs.loading': 'Lecture des pull requests ouvertes avec gh…',

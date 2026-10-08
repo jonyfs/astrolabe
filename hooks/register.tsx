@@ -48,6 +48,7 @@ import { CHIPS, FLAVORS, flavorOf, isThemeKeys, themeOf } from './core/theme'
 import { tasksDiff } from './core/summary'
 import { styleSections } from './core/style'
 import { parsePullList, pullAction, PR_LIST_FIELDS } from './core/pulls'
+import { SKILL_MODELS, skillModelFor } from './core/skill-models'
 import { featureDirFor, parseWorktrees, worktreeName } from './core/worktrees'
 import { readFeature } from './io/snapshot'
 import { deriveFeature } from './core/phase'
@@ -99,7 +100,9 @@ const helpText = (lang: Lang): string =>
     `  6 ${t(lang, 'tab.config').padEnd(10)} ${t(lang, 'help.configTab')}`,
     `  7 ${t(lang, 'tab.prs').padEnd(10)} ${t(lang, 'help.prsTab')}`,
     t(lang, 'help.keys'),
-    `${t(lang, 'help.options')} (preset, flavor, icons, language, checkUpdates, governUsage, askOnLimit, costBudget, pullRequest, images, autoReload, footerIn, accessible, claudeContext, featureSummary, humanize, terse).`,
+    `${t(lang, 'help.options')} (preset, flavor, icons, language, checkUpdates, governUsage, askOnLimit, costBudget, pullRequest, images, autoReload, footerIn, accessible, claudeContext, featureSummary, humanize, terse, skillModels).`,
+    t(lang, 'help.models'),
+    ...Object.entries(SKILL_MODELS).map(([skill, m]) => `  ${skill.padEnd(22)} ${m.model.replace(/^claude-/, '').padEnd(12)} ${m.effort.padEnd(7)} ${m.why}`),
   ].join('\n')
 const ASK = { plugin: 'astrolabe', key: 'ask' } as const
 const DEFAULT_PANE: PaneState = { tab: 'specs', autoOpened: false }
@@ -213,6 +216,11 @@ async function readGit($: EngineInterface, root: string | undefined, branch: str
 }
 
 let prRunning = false
+
+// skillModels (030): off, or auto to send a skill's requests with the model and effort it does best with.
+let skillModels: unknown = 'off'
+// The skill the main thread last started this turn, cleared when the turn ends (030).
+let skillRunning: string | undefined
 
 const PULLS_TTL_MS = 120_000
 let pullsRunning = false
@@ -676,11 +684,14 @@ const withPr = (git: GitState, pr: PullRequest | undefined): GitState => {
 
 /** Notes the model and effort of each main-thread request (018), leaving the request untouched. */
 async function* noteModel($: Parameters<Hook<'turn.step'>>[0], e: Parameters<Hook<'turn.step'>>[1], next: Parameters<Hook<'turn.step'>>[2]) {
+  // skillModels auto (030): while a skill with an entry runs, its model and effort.
+  const pick = skillModels === 'auto' && e.agentId === undefined ? skillModelFor(skillRunning) : undefined
+  const step = pick === undefined ? e : { ...e, model: pick.model, effort: pick.effort }
   if (e.agentId === undefined) {
-    live.model = e.model
-    live.effort = e.effort === undefined ? undefined : String(e.effort)
+    live.model = step.model
+    live.effort = step.effort === undefined ? undefined : String(step.effort)
   }
-  return yield* next(e)
+  return yield* next(step)
 }
 
 /** Read-modify-write of astrolabe.usage with ifVersion, retried like `guarded`. */
@@ -1356,6 +1367,7 @@ export const register: Register = (on, options) => {
   budget = typeof options['costBudget'] === 'number' && options['costBudget'] > 0 ? options['costBudget'] : 0
   accessible = options['accessible'] === true
   claudeContext = options['claudeContext'] !== false
+  skillModels = options['skillModels']
   featureSummary = options['featureSummary'] === true
   iconsOption = accessible ? 'ascii' : options['icons']
   footerIn = options['footerIn'] === 'status' || options['footerIn'] === 'both' ? options['footerIn'] : 'pane'
@@ -1451,6 +1463,7 @@ export const register: Register = (on, options) => {
   on('turn.complete', async ($, e, next) => {
     const result = await next(e)
     if (e.agentId === undefined) {
+      skillRunning = undefined
       const fs = fsOf($)
       const cwd = await $.session.cwd()
       const now = await $.clock.now()
@@ -1499,6 +1512,7 @@ export const register: Register = (on, options) => {
   on('tool.call', { tool: 'Skill' }, async ($, e, next) => {
     // A subagent's skill may outlive the main turn, so only main-thread calls set a marker.
     if (e.agentId === undefined) {
+      skillRunning = e.skill
       const now = await $.clock.now()
       await guarded($, async previous => (previous === undefined ? undefined : applySkill(previous, e.skill, now)))
     }
