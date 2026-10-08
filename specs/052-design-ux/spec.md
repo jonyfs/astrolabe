@@ -46,8 +46,8 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 
 ### Session tab
 
-- [ ] T024 #24 Rows grouped under Project, Governor, Activity and Updates headings (P1)
-- [ ] T025 #25 The governor's state row takes the band's colour: green ok, yellow throttle and hold, red stop and ceiling (P1)
+- [x] T024 #24 Rows grouped under Project, Governor, Activity and Updates headings (P1)
+- [x] T025 #25 The governor's state row takes the band's colour: green ok, yellow throttle and hold, red stop and ceiling (P1)
 - [ ] T026 #26 Each queued subagent has a run button beside `/astrolabe run`, pressable only from the keyboard (P2)
 - [ ] T027 #27 The review heading names the model and its age (`review 002 · opus · 5m ago`) (P2)
 - [ ] T028 #28 Long values wrap under their value column instead of being cut (P2)
