@@ -1,6 +1,6 @@
 // Wires engine events to the io layer, the core and the status surface. No business logic.
 // The engine follows $ only into functions declared in this file, so every $ call lives here.
-import type { EngineInterface, Hook, Register, RenderNode } from 'claude-code'
+import type { ConfigRow, EngineInterface, Hook, Register, RenderNode } from 'claude-code'
 
 import { bandSegments, stepCards } from './core/band'
 import { hintTail } from './core/hint'
@@ -94,6 +94,7 @@ const helpText = (lang: Lang): string =>
     `  3 ${t(lang, 'tab.session').padEnd(10)} ${t(lang, 'help.sessionTab')}`,
     `  4 ${t(lang, 'tab.dashboard').padEnd(10)} ${t(lang, 'help.dashboardTab')}`,
     `  5 ${t(lang, 'tab.help').padEnd(10)} ${t(lang, 'help.helpTab')}`,
+    `  6 ${t(lang, 'tab.config').padEnd(10)} ${t(lang, 'help.configTab')}`,
     t(lang, 'help.keys'),
     `${t(lang, 'help.options')} (preset, flavor, icons, language, checkUpdates, governUsage, askOnLimit, costBudget, pullRequest, images, autoReload, footerIn, accessible, claudeContext, featureSummary).`,
   ].join('\n')
@@ -209,6 +210,92 @@ async function readGit($: EngineInterface, root: string | undefined, branch: str
 }
 
 let prRunning = false
+
+// Astrolabe's own /config rows (028), read at session start and after a save.
+let configRows: ConfigRow[] = []
+
+/** The Config tab's rows (028): one per option, its control, and Save / Cancel. */
+function configBody(
+  $: Parameters<Hook<'ui.render'>>[0],
+  e: Parameters<Hook<'ui.render'>>[1],
+  pane: PaneState,
+): Array<{ node: RenderNode; rows: number }> {
+  const elements = $.ui.resolve(e)
+  const { Box, Text, Button } = elements
+  const Select = 'Select' in elements ? elements.Select : undefined
+  const Input = 'Input' in elements ? elements.Input : undefined
+  const lang = currentLang()
+  const draft = pane.draft ?? {}
+  const setDraft = async (key: string, value: string | number | boolean) => {
+    const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
+    await $.state.set(PANE_STATE, { ...held, draft: { ...(held.draft ?? {}), [key]: value } })
+  }
+  const rows: Array<{ node: RenderNode; rows: number }> = []
+  if (configRows.length === 0) return [{ rows: 1, node: <Text color={tokens0.muted}>{t(lang, 'config.none')}</Text> }]
+  for (const row of configRows) {
+    const shown = row.key in draft ? draft[row.key] : row.value
+    const changed = row.key in draft && draft[row.key] !== row.value
+    const label = `${changed ? '● ' : '  '}${row.label}`.padEnd(30)
+    const key = `config-${row.key}`
+    let control: RenderNode
+    if (row.isLocked) control = <Text color={tokens0.muted}>{`${String(shown)} (${t(lang, 'config.locked')})`}</Text>
+    else if (row.kind === 'boolean') control = <Button key={key} label={shown === true ? '[x] on' : '[ ] off'} onPress={() => setDraft(row.key, shown !== true)} />
+    else if (row.kind === 'choice' && row.options !== undefined && Select !== undefined)
+      control = <Select key={key} options={row.options.map(value => ({ value }))} value={String(shown)} onSelect={(value: string) => setDraft(row.key, value)} />
+    else if (row.kind === 'choice' && row.options !== undefined) {
+      const options = row.options
+      const next = options[(options.indexOf(String(shown)) + 1) % options.length] ?? String(shown)
+      control = <Button key={key} label={`${String(shown)} ▸`} onPress={() => setDraft(row.key, next)} />
+    } else if (Input !== undefined) {
+      const save = (value: string) => setDraft(row.key, row.kind === 'number' ? Number(value) : value)
+      control = <Input key={key} value={String(shown)} onInput={save} onSubmit={save} />
+    } else control = <Text>{String(shown)}</Text>
+    rows.push({
+      rows: 1,
+      node: (
+        <Box flexDirection="row">
+          <Text color={changed ? tokens0.current : tokens0.text}>{label}</Text>
+          {control}
+        </Box>
+      ),
+    })
+  }
+  const pending = Object.keys(draft).filter(k => draft[k] !== configRows.find(r => r.key === k)?.value)
+  rows.push({
+    rows: 1,
+    node: (
+      <Box flexDirection="row">
+        <Button key="config-save" label={pending.length === 0 ? t(lang, 'config.saved') : t(lang, 'config.save', { n: pending.length })} variant="primary" onPress={() => saveConfig($)} />
+        <Text> </Text>
+        <Button key="config-cancel" label={t(lang, 'config.cancel')} onPress={async () => {
+          const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
+          const { draft: _gone, ...rest } = held
+          await $.state.set(PANE_STATE, rest)
+        }} />
+      </Box>
+    ),
+  })
+  return rows
+}
+
+/** Applies the Config tab's changes through $.config.set (028); options reload the mod. */
+async function saveConfig($: EngineInterface): Promise<void> {
+  const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
+  const draft = held.draft ?? {}
+  const refused: string[] = []
+  let saved = 0
+  for (const [key, value] of Object.entries(draft)) {
+    if (configRows.find(r => r.key === key)?.value === value) continue
+    const result = await $.config.set({ key, value }).catch((error: unknown) => ({ deny: error instanceof Error ? error.message : String(error) }))
+    if ('deny' in result && result.deny !== undefined) refused.push(`${key}: ${result.deny}`)
+    else saved += 1
+  }
+  const { draft: _gone, ...rest } = held
+  await $.state.set(PANE_STATE, rest)
+  configRows = (await $.config.list().catch(() => [] as ConfigRow[])).filter(row => row.key.startsWith('astrolabe.'))
+  const lang = currentLang()
+  $.ui.toast(refused.length === 0 ? t(lang, 'config.applied', { n: saved }) : t(lang, 'config.refused', { list: refused.join('; ') }))
+}
 
 // The options as loaded, for drawings that need more than one (039).
 let optionsSeen: Readonly<Record<string, unknown>> = {}
@@ -1241,7 +1328,9 @@ export const register: Register = (on, options) => {
       isImageTerminal = false
     }
     try {
-      const theme = (await $.config.list()).find(row => row.key === 'theme')
+      const listed = await $.config.list()
+      configRows = listed.filter(row => row.key.startsWith('astrolabe.'))
+      const theme = listed.find(row => row.key === 'theme')
       isLightTheme = typeof theme?.value === 'string' && theme.value.startsWith('light')
     } catch {
       isLightTheme = false
@@ -1669,6 +1758,16 @@ export const register: Register = (on, options) => {
         pad: room - shownRows - arrows,
         nav: { above: win.start, below: heights.length - win.end, up: () => scrollBy(-step), down: () => scrollBy(step), labels: { more: t(currentLang(), 'pane.scrollMore') } },
       }
+    }
+    if (pane.tab === 'config') {
+      const units = configBody($, e, pane)
+      const { win, pad, nav } = navFor(units.map(u => u.rows), bodyRows - 1 - (footerIn === 'status' ? 0 : 2))
+      const body = (
+        <Box key="astrolabe-config" flexDirection="column">
+          {units.slice(win.start, win.end).map(u => u.node)}
+        </Box>
+      )
+      return paneTree({ Box, Text, Button }, pane.tab, rows, tokens, select, body, currentLang(), [], await footerFor(pad), nav)
     }
     if (pane.tab !== 'dashboard') {
       const stats = (await $.state.get(SESSION)).value

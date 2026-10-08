@@ -13,6 +13,7 @@ export const PANE_TABS: ReadonlyArray<{ tab: PaneTab; label: TextKey; hotkey: st
   { tab: 'session', label: 'tab.session', hotkey: '3' },
   { tab: 'dashboard', label: 'tab.dashboard', hotkey: '4' },
   { tab: 'help', label: 'tab.help', hotkey: '5' },
+  { tab: 'config', label: 'tab.config', hotkey: '6' },
 ]
 
 export const paneTree = (
