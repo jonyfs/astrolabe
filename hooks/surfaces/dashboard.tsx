@@ -23,6 +23,8 @@ export type DashboardView = {
   chartNote: string
   progress?: string
   kpis: ReadonlyArray<[string, string]>
+  /** Short KPI chips drawn first (046 #51). */
+  chips?: readonly string[]
   /** The usage chart as pixels, where the terminal draws pictures (024 #5). */
   chartImage?: { rgba: string; width: number; height: number; columns: number; rows: number; alt: string }
   /** The dial's frames for the animated dial (024 #6). */
@@ -46,6 +48,21 @@ const chart = (el: Elements, key: string, grid: Grid, alt: string, tokens: Token
 /** The Dashboard as sections, each with the rows it takes, so the pane can window them (038). */
 export const dashboardSections = (el: Elements, view: DashboardView, tokens: Tokens, ascii: boolean, lang: Lang = 'en') => {
   const out: Array<{ node: unknown; rows: number }> = []
+  if (view.chips !== undefined && view.chips.length > 0) {
+    const chips = view.chips
+    out.push({
+      rows: 1,
+      node: (
+        <el.Box key="astrolabe-kpi-chips" flexDirection="row">
+          {chips.map((chip, i) => (
+            <el.Text key={`kpi-chip-${i}`} color={ascii ? tokens.text : tokens.accent} bold>
+              {ascii ? `[${chip}]${i < chips.length - 1 ? ' ' : ''}` : ` ${chip} ${i < chips.length - 1 ? '│' : ''}`}
+            </el.Text>
+          ))}
+        </el.Box>
+      ),
+    })
+  }
   out.push({
     rows: 1 + view.dial.rows,
     node: (
@@ -91,6 +108,8 @@ export const dashboardSections = (el: Elements, view: DashboardView, tokens: Tok
       </el.Box>
     ),
   })
+  // What the chart's marks mean (046 #52), only under a drawn chart.
+  if (view.chart !== undefined) out.push({ rows: 1, node: <el.Text key="astrolabe-chart-legend" color={tokens.muted} wrap="truncate-end">{t(lang, 'dash.legend')}</el.Text> })
   out.push({ rows: 1, node: <el.Text color={tokens.accent}>{t(lang, 'dash.session')}</el.Text> })
   for (const [label, value] of view.kpis) out.push({ rows: 1, node: <el.Text color={tokens.text} wrap="truncate-end">{`${label.padEnd(14)}${value}`}</el.Text> })
   return out

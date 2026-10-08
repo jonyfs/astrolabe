@@ -62,7 +62,7 @@ import { applyFileTouch, applyRead, applyShell, applySkill, type Held, reconcile
 import { bandRow, nextRow, updatesRow } from './surfaces/band'
 import { askTree } from './surfaces/ask'
 import { dashboardSections, dashboardTree } from './surfaces/dashboard'
-import { dial, kpiRows, phaseBars, sparkline, usageChart } from './core/dashboard'
+import { dial, kpiChips, kpiRows, phaseBars, sparkline, usageChart } from './core/dashboard'
 import { addWeek, estimateLeft, slowest, weekKey, type Weeks } from './core/history'
 import { footerChips, footerText, type FooterInput } from './core/footer'
 import { parseGitStatus, parsePullRequest } from './core/git-status'
@@ -1975,6 +1975,7 @@ export const register: Register = (on, options) => {
       chartNote: t(currentLang(), stats === undefined || stats.series.length === 0 ? 'dash.noReading' : columns < 30 ? 'dash.narrow' : 'dash.chartNote'),
       ...(activeFeature === undefined || activeFeature.total === 0 ? {} : { progress: t(currentLang(), 'dash.progress', { id: activeFeature.id, name: activeFeature.name, done: activeFeature.done, total: activeFeature.total }) }),
       kpis: stats === undefined ? [] : [...kpiRows(stats, binding, now, currentLang()), ...historyRows(stats, activeFeature)],
+      chips: kpiChips(stats, activeFeature, currentLang()),
     }
     const sections = dashboardSections(
       {

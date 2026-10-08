@@ -41,6 +41,9 @@ describe('the Dashboard tab (018 US3)', () => {
     await ui.press('tab-dashboard')
     const body = await ui.body()
     expect(body).toContain('turns         3')
+    // KPI chips first (046 #51).
+    expect(body).toContain(' tasks 9/20 │')
+    expect(body).toContain('context 61%')
     expect(body).toContain('tool calls    3')
     expect(body).toContain('002 band-hint: 9/20 tasks done')
     // The rest is below: the body scrolls under a pinned footer (038).
@@ -48,6 +51,7 @@ describe('the Dashboard tab (018 US3)', () => {
     await ui.press('scroll-down')
     const below = await ui.body()
     expect(`${body}${below}`).toContain('context       61%')
+    expect(`${body}${below}`).toContain('● a reading · │ the climb between readings')
     expect(below).toContain('cost          $1.20')
     expect(below).toMatch(/burn rate {5}\d+ points an hour/)
     expect(below).toMatch(/▲ \d+ more \(k\)/)

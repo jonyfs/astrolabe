@@ -145,6 +145,17 @@ export const kpiRows = (
   return rows
 }
 
+/** The Dashboard's first row (046 #51): tasks done, burn rate, context and cost, as short chips. */
+export const kpiChips = (stats: SessionStats | undefined, feature: Feature | undefined, lang: Lang = 'en'): string[] => {
+  const out: string[] = []
+  if (feature !== undefined && feature.total > 0) out.push(tr(lang, 'chip.tasks', { done: feature.done, total: feature.total }))
+  const rate = stats === undefined ? undefined : burnRate(stats.series)
+  if (rate !== undefined) out.push(tr(lang, 'chip.burn', { n: Math.round(rate) }))
+  if (stats?.context !== undefined) out.push(`${tr(lang, 'kpi.context')} ${Math.round(stats.context.percent)}%`)
+  if (stats?.cost !== undefined) out.push(`$${stats.cost.toFixed(2)}`)
+  return out
+}
+
 const BLOCKS = '▁▂▃▄▅▆▇█'
 
 /** A sparkline of percentages, one block per point (022 #25). */
