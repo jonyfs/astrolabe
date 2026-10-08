@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import { footerText, resetOf, shortModel } from '../../hooks/core/footer'
+import { footerChips, footerText, resetOf, shortModel } from '../../hooks/core/footer'
 import { iconSet } from '../../hooks/core/icons'
 
 const NOW = Date.UTC(2026, 9, 7, 12, 0)
@@ -39,6 +39,13 @@ describe('the footer (018 FR-001, FR-002)', () => {
     const later = new Date(now + 3 * 86_400_000)
     expect(resetOf(later.toISOString(), now)).toMatch(/^(Sun|Mon|Tue|Wed|Thu|Fri|Sat) \d\d:\d\d$/)
     expect(resetOf(new Date(now - 1000).toISOString(), now)).toBeUndefined()
+  })
+
+  test('paused: the first chip, in red, says until when (047 #65)', () => {
+    const chips = footerChips({ ...full, readings: [{ kind: 'five_hour', percentUsed: 92, resetsAt: reset }], icons: iconSet('nerd'), columns: 200 })
+    expect(chips[0]?.colour).toBe('red')
+    expect(chips[0]?.text).toMatch(/^5h 92% ceiling · paused until \d\d:\d\d$/)
+    expect(chips[1]?.key).toBe('speckit')
   })
 
   test('nerd icons sit before their values', () => {

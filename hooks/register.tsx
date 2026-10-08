@@ -91,6 +91,7 @@ const helpText = (lang: Lang): string =>
     `  /astrolabe root <folder>    ${t(lang, 'help.root')}`,
     `  /astrolabe allow <90-99> <30m-12h>   ${t(lang, 'help.allow')}`,
     `  /astrolabe revoke           ${t(lang, 'help.revoke')}`,
+    `  /astrolabe run <id>         ${t(lang, 'help.run')}`,
     t(lang, 'help.tabs'),
     `  1 ${t(lang, 'tab.specs').padEnd(10)} ${t(lang, 'help.specs')}`,
     `  2 ${t(lang, 'tab.tasks').padEnd(10)} ${t(lang, 'help.tasksTab')}`,
@@ -1785,6 +1786,17 @@ export const register: Register = (on, options) => {
       // A command does not run another from inside its own dispatch: start it from a timer.
       $.clock.after(0, () => void runNext($, command))
       return { text: t(currentLang(), 'next.running', { cmd: command }) }
+    }
+    // Runs one queued subagent now (047 #64): only from the composer, like the ceiling.
+    const runMatch = /^run\s+(\S+)$/.exec(args)
+    if (runMatch !== null) {
+      if (e.origin?.kind !== 'composer') return { text: '🧭 only you can run a queued subagent: type the command yourself' }
+      const item = ((await $.state.get(USAGE)).value ?? DEFAULT_USAGE).queue.find(q => q.id === runMatch[1])
+      if (item === undefined) return { text: `🧭 nothing queued as ${runMatch[1]}` }
+      await updateUsage($, u => ({ ...u, queue: u.queue.filter(q => q.id !== item.id), passes: [...(u.passes ?? []), item.prompt] }))
+      await logGovernor($, `→ run ${item.id} now`)
+      $.clock.after(0, () => void $.prompt.submit({ text: runPrompt(item) }))
+      return { text: `🧭 running ${item.id} now: ${item.description}` }
     }
     if (args !== '') {
       const parsed = parseAllow(args)

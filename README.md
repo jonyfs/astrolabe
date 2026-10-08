@@ -713,6 +713,13 @@ subagents so Claude dispatches them again, and a paused session continues. A run
 is never stopped. The cap counts subagents running in the foreground; one started in the
 background returns at once and is not counted.
 
+The Session tab says where the governor stands in plain words, for example
+`holding (7d at 83%): new subagents wait until 14:00; other tools run`, and, at the pace of the
+recent readings, when the next band comes (`hold at 80% in about 30m at this pace`). It lists
+each queued subagent with the command that sends it now: type `/astrolabe run q1` yourself
+(Claude, a plugin or a script cannot). While the session is paused, the footer's first chip turns
+red and says until when: `5h 92% ceiling · paused until 14:00`.
+
 Only you can lift stop and the ceiling, by typing the command yourself (a command sent by
 Claude, a plugin or a script is refused):
 

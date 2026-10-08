@@ -11,10 +11,10 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 
 ## Tasks
 
-- [ ] T001 #61 The state in plain words: what waits from where, and the level now (P1)
-- [ ] T002 #62 Time to the next band at the current pace (P1)
-- [ ] T003 #64 The queue listed with a key to run one now (P1)
-- [ ] T004 #65 When paused, the footer's first chip says until when, in red (P1)
+- [x] T001 #61 The state in plain words: what waits from where, and the level now (P1)
+- [x] T002 #62 Time to the next band at the current pace (P1)
+- [x] T003 #64 The queue listed with a key to run one now (P1)
+- [x] T004 #65 When paused, the footer's first chip says until when, in red (P1)
 - [ ] T005 #63 Allow and revoke buttons in the Session tab (P2)
 - [ ] T006 #69 A gateway spend limit ramped like the windows (P2)
 - [ ] T007 #70 `governUsage: observe` logs what would be held (P2)

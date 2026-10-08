@@ -222,12 +222,13 @@ export const usageRows = (usage: UsageState, now: number): Array<[string, string
     .map(r => (isRenewed(r, now) ? `${labelOf(r.kind)} renewed` : `${labelOf(r.kind)} ${Math.round(r.percentUsed)}%`))
     .join(' · ')
   const clock = (at: number) => clockOf(new Date(at).toISOString()) ?? '?'
+  const next = nextBand(usage.readings, usage.history, now)
   return [
+    ['state', stateText(d)],
     ...(windows === '' ? [] : [['usage', `${windows}: ${d.band}`] as [string, string]]),
     ['subagents', `${usage.inFlight} running, cap ${d.cap}`],
-    ...(usage.queue.length === 0
-      ? []
-      : [['queue', `${usage.queue.length} waiting: ${usage.queue.map(q => `${q.id} ${q.description}`).join(', ')}`] as [string, string]]),
+    // The queue, one row each, with the command that runs it now (047 #64).
+    ...usage.queue.map((q, i) => [i === 0 ? 'queue' : '', `${q.id} ${q.description} · /astrolabe run ${q.id}`] as [string, string]),
     ...(isOverride && usage.override !== undefined
       ? [
           [
@@ -238,7 +239,37 @@ export const usageRows = (usage: UsageState, now: number): Array<[string, string
       : []),
     ...(isLift && usage.holdLift !== undefined ? [['lift', `subagents one at a time until ${clock(usage.holdLift)}`] as [string, string]] : []),
     ...((pace => (pace === undefined ? [] : [['pace', pace] as [string, string]]))(paceRow(usage.readings, usage.history, now))),
+    ...(next === undefined ? [] : [['next band', next] as [string, string]]),
   ]
+}
+
+/** The governor's state in plain words (047 #61): what waits, from where, and the level now. */
+export const stateText = (d: Decision): string => {
+  const from = d.highest === undefined ? '' : d.highest.renewed === true ? ` (${labelOf(d.highest.kind)} renewed)` : ` (${labelOf(d.highest.kind)} at ${Math.round(d.highest.percent)}%)`
+  const until = d.highest?.resetsAt === undefined ? 'the reset' : (clockOf(d.highest.resetsAt) ?? 'the reset')
+  if (isPaused(d)) return `paused${from}: only read-only tools run until ${until}`
+  if (d.band === 'hold') return `holding${from}: new subagents wait until ${until}; other tools run`
+  if (d.band === 'throttle') return `slowing down${from}: at most ${d.cap} subagent${d.cap === 1 ? '' : 's'} at a time`
+  return `all clear${from}: up to ${d.cap} subagents at a time`
+}
+
+const BANDS: ReadonlyArray<[number, Band]> = [[60, 'throttle'], [80, 'hold'], [88, 'stop'], [90, 'ceiling']]
+
+/** Time to the next band at the pace of the recent readings (047 #62), or undefined with no pace. */
+export const nextBand = (readings: readonly UsageReading[], history: ReadonlyArray<{ at: number; percent: number }>, now: number): string | undefined => {
+  const top = [...readings].filter(r => !isRenewed(r, now)).sort((a, b) => b.percentUsed - a.percentUsed)[0]
+  const first = history[0]
+  const last = history.at(-1)
+  if (top === undefined || first === undefined || last === undefined || last.at <= first.at) return undefined
+  const rate = (last.percent - first.percent) / (last.at - first.at)
+  const ahead = BANDS.find(([at]) => at > top.percentUsed)
+  if (rate <= 0 || ahead === undefined) return undefined
+  const ms = (ahead[0] - top.percentUsed) / rate
+  const reset = top.resetsAt === undefined ? Number.NaN : Date.parse(top.resetsAt)
+  if (!Number.isNaN(reset) && now + ms >= reset) return `${ahead[1]} at ${ahead[0]}%: not before the reset at this pace`
+  const minutes = Math.max(1, Math.round(ms / 60_000))
+  const span = minutes < 60 ? `${minutes}m` : `${Math.floor(minutes / 60)}h${String(minutes % 60).padStart(2, '0')}m`
+  return `${ahead[1]} at ${ahead[0]}% in about ${span} at this pace`
 }
 
 /** Where the deciding window should be at its reset, at the pace of the recent readings (022 #32). */
