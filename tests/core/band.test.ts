@@ -105,3 +105,16 @@ describe('segments carry keys and theme roles', () => {
     expect(bandSegments(state(feature('plan', 0, 0)), 200).find(x => x.key === 'mark-tasks')?.role).toBe('pending')
   })
 })
+
+describe('blocked (042 #13)', () => {
+  test('clarifications left after the plan turn the current step red with a ?', () => {
+    const segments = bandSegments(state(feature('tasks', 0, 0, { warnings: ['clarification-after-plan'] })), 200)
+    const mark = segments.find(s => s.key === 'mark-tasks')
+    expect(mark).toEqual({ key: 'mark-tasks', text: '?', role: 'blocked' })
+    expect(segments.find(s => s.key === 'label-tasks')?.role).toBe('blocked')
+    expect(segments.find(s => s.key === 'mark-plan')?.text).toBe('●')
+  })
+  test('without the warning the step stays ◐', () => {
+    expect(bandSegments(state(feature('tasks', 0, 0)), 200).find(s => s.key === 'mark-tasks')?.text).toBe('◐')
+  })
+})

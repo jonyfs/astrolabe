@@ -239,7 +239,7 @@ The band is the row directly above the prompt (the first row in the image at the
 | Part | Example | What it means |
 |---|---|---|
 | Id and name | `◆ 002 band-hint` | The active feature, from `specs/002-band-hint/`. A `~` before the id means the feature was guessed, as in the status entry. |
-| The rail | `constitution ● specify ● … implement ◐` | The six Spec Kit steps in order. `●` is finished, `◐` is the step the feature is in now, `○` is still ahead. The constitution is `●` once it is ratified; while it is missing or still the template it is `◐` and every later step is `○`. |
+| The rail | `constitution ● specify ● … implement ◐` | The six Spec Kit steps in order. `●` is finished, `◐` is the step the feature is in now, `○` is still ahead. The constitution is `●` once it is ratified; while it is missing or still the template it is `◐` and every later step is `○`. When a spec still has `[NEEDS CLARIFICATION` after its plan exists, the current step turns red and shows `?` instead of `◐`. |
 | `…` after a mark | `plan ◐…` | A Spec Kit skill for that step is running in this turn. |
 | The bar | `███████░░░` | Ten cells, one per tenth of the tasks ticked, rounded down. It appears once `tasks.md` has tasks. |
 | The count | `9/20 45%` | Ticked tasks, all tasks, and the percentage rounded down. |
@@ -422,7 +422,7 @@ after each turn from the branch name (`026-...`) and that worktree's files:
 
 ![The pane, Tasks tab](docs/images/pane-tasks.svg)
 
-When more tasks are open than the pane has rows, the last line says `+N more`. A feature with
+The task being worked on is marked `▸` and shows how long it has run (`▸ T010 Write x.ts  ⏱ 12m`). When more tasks are open than the pane has rows, the last line says `+N more`. A feature with
 no `tasks.md` yet says so; a quick spec (`track: quick`) uses the `## Tasks` section of its
 `spec.md` instead. When two or more `[P]` tasks come first among the open ones, a `⇉` line names
 them: they can go to subagents at once.

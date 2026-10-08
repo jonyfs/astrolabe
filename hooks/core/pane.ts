@@ -102,7 +102,12 @@ export const specsRows = (state: SpeckitState, columns: number, lang: Lang = 'en
   return rows
 }
 
-export const taskRows = (state: SpeckitState, memo: SessionMemo, rows: number, columns: number, lang: Lang = 'en'): PaneRow[] => {
+const elapsed = (ms: number): string => {
+  const minutes = Math.max(0, Math.floor(ms / 60_000))
+  return minutes < 60 ? `${minutes}m` : `${Math.floor(minutes / 60)}h${String(minutes % 60).padStart(2, '0')}m`
+}
+
+export const taskRows = (state: SpeckitState, memo: SessionMemo, rows: number, columns: number, lang: Lang = 'en', now?: number): PaneRow[] => {
   const active = state.active
   if (!state.present) return [noSpeckit(lang)]
   if (active === undefined) return [{ key: 'none', text: tr(lang, 'pane.noActive'), role: 'muted' }]
@@ -117,8 +122,13 @@ export const taskRows = (state: SpeckitState, memo: SessionMemo, rows: number, c
   const room = Math.max(1, rows - 1)
   const shown = open.length <= room ? open : open.slice(0, room - 1)
   for (const [index, t] of shown.entries()) {
-    const head = t.id === undefined ? '' : `${t.id} `
-    out.push({ key: `task-${t.id ?? index}`, text: `${head}${cut(cleanTaskText(t.text), columns - width(head))}`.trimEnd(), role: 'text' })
+    // The task being worked on (045 #42): marked, with how long it has run.
+    const current = state.currentTask
+    const isCurrent = current !== undefined && t.id !== undefined && current.id === t.id
+    const ran = isCurrent && now !== undefined && current.startedAt !== undefined ? elapsed(now - current.startedAt) : ''
+    const tail = ran === '' ? '' : `  ⏱ ${ran}`
+    const head = `${isCurrent ? '▸ ' : ''}${t.id === undefined ? '' : `${t.id} `}`
+    out.push({ key: `task-${t.id ?? index}`, text: `${head}${cut(cleanTaskText(t.text), columns - width(head) - width(tail))}`.trimEnd() + tail, role: isCurrent ? 'current' : 'text' })
   }
   if (shown.length < open.length) out.push({ key: 'more', text: tr(lang, 'pane.more', { n: open.length - shown.length }), role: 'muted' })
   return out

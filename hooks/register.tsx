@@ -1826,7 +1826,7 @@ export const register: Register = (on, options) => {
             .split('\n')
             .map((text, i) => ({ key: `help-${i}`, text, role: (i === 0 || !text.startsWith(' ') ? 'accent' : 'text') as 'accent' | 'text' }))
         : pane.tab === 'tasks'
-        ? taskRows(state, emptyMemo(), 1000, columns, currentLang())
+        ? taskRows(state, emptyMemo(), 1000, columns, currentLang(), await $.clock.now())
         : pane.tab === 'session'
           ? [
               ...sessionRows(state, await $.clock.now(), currentLang()),

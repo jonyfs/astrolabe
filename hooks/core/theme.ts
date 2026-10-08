@@ -1,8 +1,8 @@
 // The only place colors live (Principle IX): Catppuccin roles per flavor. Pure: no $.
 // Values are Catppuccin's palette: done green, current peach, accent mauve, pending
-// overlay0, muted subtext0, bar empty surface1.
+// overlay0, muted subtext0, bar empty surface1, blocked red.
 
-export const ROLES = ['accent', 'text', 'muted', 'done', 'current', 'pending', 'barFill', 'barEmpty'] as const
+export const ROLES = ['accent', 'text', 'muted', 'done', 'current', 'pending', 'barFill', 'barEmpty', 'blocked'] as const
 export type ThemeRole = (typeof ROLES)[number]
 export type Tokens = Readonly<Record<ThemeRole, string>>
 export type FlavorName = 'mocha' | 'frappe' | 'macchiato' | 'latte'
@@ -17,6 +17,7 @@ export const THEME_TOKENS: Tokens = {
   pending: 'inactive',
   barFill: 'suggestion',
   barEmpty: 'subtle',
+  blocked: 'error',
 }
 
 /** Whether the tokens are theme keys, which a Raster or an Svg cannot take: they need RGB. */
@@ -32,6 +33,7 @@ export const FLAVORS: Readonly<Record<FlavorName, Tokens>> = {
     pending: '#6c7086',
     barFill: '#89b4fa',
     barEmpty: '#45475a',
+    blocked: '#f38ba8',
   },
   frappe: {
     accent: '#ca9ee6',
@@ -42,6 +44,7 @@ export const FLAVORS: Readonly<Record<FlavorName, Tokens>> = {
     pending: '#737994',
     barFill: '#8caaee',
     barEmpty: '#51576d',
+    blocked: '#e78284',
   },
   macchiato: {
     accent: '#c6a0f6',
@@ -52,6 +55,7 @@ export const FLAVORS: Readonly<Record<FlavorName, Tokens>> = {
     pending: '#6e738d',
     barFill: '#8aadf4',
     barEmpty: '#494d64',
+    blocked: '#ed8796',
   },
   latte: {
     accent: '#8839ef',
@@ -62,6 +66,7 @@ export const FLAVORS: Readonly<Record<FlavorName, Tokens>> = {
     pending: '#9ca0b0',
     barFill: '#1e66f5',
     barEmpty: '#bcc0cc',
+    blocked: '#d20f39',
   },
 }
 
