@@ -1,5 +1,5 @@
 // The repository's open pull requests for the PRs tab (032), from `gh pr list --json`. Pure: no $.
-import { checkRunsOf, checksOf } from './git-status'
+import { checkRunsOf, checksOf, plainText, safeHttpsUrl } from './git-status'
 import type { PullRequest } from './types'
 
 export type PullRow = {
@@ -38,10 +38,11 @@ export const parsePullList = (out: string): PullRow[] => {
     return [
       {
         number: p['number'],
-        title: p['title'],
-        branch: typeof p['headRefName'] === 'string' ? p['headRefName'] : '',
-        url: typeof p['url'] === 'string' ? p['url'] : '',
-        labels: Array.isArray(p['labels']) ? p['labels'].flatMap(l => (typeof l === 'object' && l !== null && typeof (l as { name?: unknown }).name === 'string' ? [(l as { name: string }).name] : [])) : [],
+        // Text from GitHub reaches the terminal without control characters (054 #80 review).
+        title: plainText(p['title'], 200),
+        branch: typeof p['headRefName'] === 'string' ? plainText(p['headRefName'], 120) : '',
+        url: typeof p['url'] === 'string' ? (safeHttpsUrl(p['url']) ?? '') : '',
+        labels: Array.isArray(p['labels']) ? p['labels'].flatMap(l => (typeof l === 'object' && l !== null && typeof (l as { name?: unknown }).name === 'string' ? [plainText((l as { name: string }).name, 40)] : [])) : [],
         review: decision === 'APPROVED' ? 'approved' : decision === 'CHANGES_REQUESTED' ? 'changes' : decision === 'REVIEW_REQUIRED' ? 'required' : 'none',
         checks: checksOf(p['statusCheckRollup']),
         ...((runs => (runs.length === 0 ? {} : { runs }))(checkRunsOf(p['statusCheckRollup']))),
