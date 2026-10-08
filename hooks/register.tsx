@@ -21,7 +21,7 @@ import {
   updateLabel,
 } from './core/updates'
 import { joinPath } from './core/paths'
-import { VERSION } from './core/version'
+import { CHANGES, VERSION } from './core/version'
 import {
   ASK_MS,
   clockOf,
@@ -104,6 +104,8 @@ async function doctor($: EngineInterface): Promise<string> {
 const helpText = (lang: Lang): string =>
   [
     t(lang, 'help.title'),
+    // What this version changed (048 #80).
+    t(lang, 'help.changes', { version: VERSION, changes: CHANGES }),
     `  /astrolabe                  ${t(lang, 'help.open')}`,
     `  /astrolabe help             ${t(lang, 'help.help')}`,
     `  /astrolabe next             ${t(lang, 'help.next')}`,
@@ -123,7 +125,8 @@ const helpText = (lang: Lang): string =>
     `  6 ${t(lang, 'tab.config').padEnd(10)} ${t(lang, 'help.configTab')}`,
     `  7 ${t(lang, 'tab.prs').padEnd(10)} ${t(lang, 'help.prsTab')}`,
     t(lang, 'help.keys'),
-    `${t(lang, 'help.options')} (preset, flavor, icons, language, checkUpdates, governUsage, askOnLimit, costBudget, pullRequest, images, autoReload, footerIn, accessible, claudeContext, featureSummary, humanize, terse, skillModels).`,
+    // Each option with its value now (048 #75).
+    `${t(lang, 'help.options')}: ${OPTION_NAMES.map(name => `${name}=${optionsSeen[name] === undefined ? 'default' : String(optionsSeen[name])}`).join(', ')}.`,
     t(lang, 'help.models'),
     ...Object.entries(SKILL_MODELS).map(([skill, m]) => `  ${skill.padEnd(22)} ${m.model.replace(/^claude-/, '').padEnd(12)} ${m.effort.padEnd(7)} ${m.why}`),
     t(lang, 'help.marks'),
@@ -131,6 +134,8 @@ const helpText = (lang: Lang): string =>
     t(lang, 'help.glossary'),
     ...(['constitution', 'specify', 'clarify', 'plan', 'tasks', 'implement'] as const).map(step => `  ${step.padEnd(13)} ${t(lang, `card.${step}`)}`),
   ].join('\n')
+const OPTION_NAMES = ['preset', 'flavor', 'icons', 'language', 'checkUpdates', 'governUsage', 'askOnLimit', 'costBudget', 'pullRequest', 'images', 'autoReload', 'footerIn', 'accessible', 'claudeContext', 'featureSummary', 'humanize', 'terse', 'skillModels'] as const
+const WELCOMED = 'welcomed'
 const ABOUT: Readonly<Record<PaneTab, TextKey>> = {
   specs: 'help.specs',
   tasks: 'help.tasksTab',
@@ -1502,6 +1507,15 @@ export const register: Register = (on, options) => {
       await $.command.register({ name: 'astrolabe', description: 'Open the Astrolabe pane: every Spec Kit feature, the open tasks and the session' })
     } catch (error) {
       $.ui.log(`astrolabe: ${error instanceof Error ? error.message : String(error)}`, { to: 'debug' })
+    }
+    // The first session after install says where to start, once (048 #73).
+    try {
+      if ((await $.store.get(WELCOMED)) === undefined) {
+        $.ui.toast(t(currentLang(), 'toast.welcome'))
+        await $.store.set(WELCOMED, VERSION)
+      }
+    } catch {
+      // A store that fails only skips the welcome.
     }
     // NO_COLOR (041 #9): no chip backgrounds, the thin separator. Read once, here.
     noColor = ((await $.env.get('NO_COLOR').catch(() => undefined)) ?? '') !== ''

@@ -89,6 +89,21 @@ describe('help, part two (025)', () => {
     expect(ran.text).toContain('  ✓ Spec Kit project at /proj')
   })
 
+  test('048 #73: the first session after install toasts once where to start', async ($, on) => {
+    const session = installTree(on as never, halfDone.tree, '/proj', {})
+    installEngine(on as never)
+    await startSession($ as never, '/proj')
+    expect(session.toasts).toEqual(['🧭 Astrolabe is on: /astrolabe opens the pane, /astrolabe help lists the commands'])
+    expect(session.store.has('welcomed')).toBe(true)
+  })
+
+  test('048 #75 #80: help names what changed and each option with its value', { options: { footerIn: 'both' } }, async ($, on) => {
+    await setup($ as never, on as never)
+    const ran = (await $.command.run({ command: 'astrolabe', args: 'help' } as never)) as { text: string }
+    expect(ran.text).toMatch(/New in \d+\.\d+\.\d+: /)
+    expect(ran.text).toContain('footerIn=both')
+  })
+
   test('T008: accessible mode draws text only', { options: { accessible: true } }, async ($, on) => {
     await setup($ as never, on as never)
     const band = JSON.stringify((await drawBand($ as never, 'terminal', 120)).tree)

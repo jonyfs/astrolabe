@@ -383,6 +383,9 @@ The current values, from a shell:
 
 ## The /astrolabe pane
 
+The first session after you install Astrolabe shows one toast: `/astrolabe opens the pane,
+/astrolabe help lists the commands`.
+
 Type `/astrolabe` to open a pane with seven tabs (`/astrolabe help` lists every command and key). In a fullscreen terminal it docks at the
 right; otherwise it sits above the prompt. It opens with the keyboard on it, so `1` to `7`
 switch tabs right away, and Esc closes it. Later, focus it again with a click or
@@ -395,7 +398,8 @@ tab is for and lists its keys, such as
 nothing to show says what would fill it and the command that does, for example
 `No active feature. Run /speckit-specify to start one.`
 
-The Help tab (and `/astrolabe help`) ends with a legend of every mark Astrolabe draws (`◆`, `●`,
+The Help tab (and `/astrolabe help`) starts with what this version changed, lists every option
+with its value now (`footerIn=pane`), and ends with a legend of every mark Astrolabe draws (`◆`, `●`,
 `◐`, `○`, `?`, `▸`, `⟳`, `~`, `!`, `☐`, `⑂`, `⇉`, `⏱`) and a glossary of the six Spec Kit steps.
 A toast about a failure names the command that fixes it, for example
 `🧭 #42: not mergeable; run gh pr merge 42 --merge`.

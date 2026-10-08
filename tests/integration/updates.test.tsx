@@ -26,7 +26,7 @@ const allCurrent = (session: Session) => {
 }
 
 const start = async ($: never, on: never, seed: Record<string, unknown> = {}) => {
-  const session = installTree(on, { ...halfDone.tree, [MANIFEST]: '{ "version": "1.1.1" }', [GSTACK]: '#!/bin/sh\n' }, '/proj', seed)
+  const session = installTree(on, { ...halfDone.tree, [MANIFEST]: '{ "version": "1.1.1" }', [GSTACK]: '#!/bin/sh\n' }, '/proj', { welcomed: 'seeded', ...seed })
   const engine = installEngine(on)
   installRenderEngine(on)
   const pane = installPaneEngine(on)
