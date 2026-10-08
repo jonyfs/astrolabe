@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import { FLAVORS, ROLES, themeOf } from '../../hooks/core/theme'
+import { FLAVORS, ROLES, STATUS_ROLE, themeOf } from '../../hooks/core/theme'
 
 describe('theme tokens (FR-009)', () => {
   test('four flavors, each with every role as #rrggbb', () => {
@@ -38,5 +38,11 @@ describe('contrast (052 #48, 054 #74)', () => {
         expect({ flavor, role, ok: ratio(tokens[role], base) >= 4.5 }).toEqual({ flavor, role, ok: true })
       }
     }
+  })
+})
+
+describe('STATUS_ROLE (054 #72)', () => {
+  test('warnings peach, errors red, success green', () => {
+    expect(STATUS_ROLE).toEqual({ warning: 'current', error: 'blocked', success: 'done' })
   })
 })

@@ -247,3 +247,10 @@ describe('links to plan.md and tasks.md (054 #77)', () => {
     expect(row('004')?.links).toBeUndefined()
   })
 })
+
+describe('one colour per kind of message (054 #72)', () => {
+  test('a file that cannot be read is an error, drawn red', () => {
+    const rows = specsRows(state({ features: [f('002', 'band-hint', 'implement', 9, 20, ['unreadable-spec'])] }), 120)
+    expect(rows.find(r => r.key.startsWith('warning-002-'))?.role).toBe('blocked')
+  })
+})

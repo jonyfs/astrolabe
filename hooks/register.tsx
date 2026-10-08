@@ -45,7 +45,7 @@ import {
   type Decision,
   type Question,
 } from './core/governor'
-import { CHIPS, FLAVORS, flavorOf, isThemeKeys, themeOf, type ThemeRole } from './core/theme'
+import { CHIPS, FLAVORS, flavorOf, isThemeKeys, STATUS_ROLE, themeOf, type ThemeRole } from './core/theme'
 import { capDiff, tasksDiff } from './core/summary'
 import { styleSections } from './core/style'
 import { parsePullList, pullAction, PR_LIST_FIELDS } from './core/pulls'
@@ -374,7 +374,7 @@ function pullsBody(
   const lang = currentLang()
   const rows = stats?.pulls?.rows
   if (rows === undefined) return [{ rows: 1, node: <Text color={tokens0.muted}>{t(lang, 'prs.loading')}</Text> }]
-  if (stats?.pulls?.error !== undefined && rows.length === 0) return [{ rows: 1, node: <Text color={tokens0.current}>{t(lang, 'prs.listFailed', { error: stats.pulls.error })}</Text> }]
+  if (stats?.pulls?.error !== undefined && rows.length === 0) return [{ rows: 1, node: <Text color={tokens0[STATUS_ROLE.error]}>{t(lang, 'prs.listFailed', { error: stats.pulls.error })}</Text> }]
   if (rows.length === 0) return [{ rows: 1, node: <Text color={tokens0.muted}>{t(lang, 'prs.none')}</Text> }]
   const press = (key: string, run: () => void) => async () => {
     const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
@@ -394,7 +394,7 @@ function pullsBody(
     }
   }
   const mark = (c: string) => (c === 'pass' ? '✓' : c === 'fail' ? '✗' : c === 'pending' ? '…' : '·')
-  const colour = (c: string) => (c === 'pass' ? tokens0.done : c === 'fail' ? tokens0.accent : c === 'pending' ? tokens0.current : tokens0.muted)
+  const colour = (c: string) => (c === 'pass' ? tokens0[STATUS_ROLE.success] : c === 'fail' ? tokens0[STATUS_ROLE.error] : c === 'pending' ? tokens0[STATUS_ROLE.warning] : tokens0.muted)
   return rows.flatMap(pr => {
     const title = `${mark(pr.checks)} #${pr.number} ${pr.isDraft ? `[${t(lang, 'prs.draft')}] ` : ''}${pr.title}`
     const facts = [t(lang, `prs.review.${pr.review}`), ...pr.labels.map(l => `#${l}`), pr.branch].filter(s => s !== '').join('  ')
