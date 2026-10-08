@@ -59,6 +59,8 @@ export const paneTree = (
           onPress={() => onSelect(item.tab)}
         />
       ))}
+      {/* h opens Help from any tab (052 #50). */}
+      {tab !== 'help' && <Button key="help-key" label="? h" hotkey="h" plain onPress={() => onSelect('help')} />}
       {/* f focuses the filter (043 #23); ✕ closes the pane (043 #28). */}
       {extras.onFind !== undefined && <Button key="find" label={m('⌕ f')} hotkey="f" plain onPress={() => extras.onFind!()} />}
       {/* s cycles the status filter (054 #21). */}
