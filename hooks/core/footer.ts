@@ -15,7 +15,6 @@ export type FooterInput = {
   model?: string
   effort?: string
   git?: GitState
-  cost?: number
   startedAt?: number
   /** Usage points an hour over the session (041 #4). */
   burn?: number
@@ -114,10 +113,6 @@ const parts = (input: FooterInput): Part[] => {
     ].filter(s => s !== '')
     const branch = icons.branch.endsWith(':') ? `${icons.branch}${git.branch}` : withIcon(icons.branch, git.branch)
     out.push({ text: [branch, ...counts].join(' '), rank: 4, colour: 'lavender' })
-  }
-  if (input.cost !== undefined && input.cost > 0) {
-    const amount = input.cost.toFixed(2)
-    out.push({ text: icons.cost === '$' ? `$${amount}` : withIcon(icons.cost, amount), rank: 5, colour: 'teal' })
   }
   // Burn rate (041 #4): points an hour, and where the deciding window lands at its reset.
   if (input.burn !== undefined && input.burn > 0) {

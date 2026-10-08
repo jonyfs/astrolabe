@@ -19,7 +19,6 @@ const full = {
   model: 'claude-opus-5-5',
   effort: 'high',
   git: { branch: 'main', ahead: 2, behind: 1, changed: 3, conflicts: 0 },
-  cost: 1.2,
   startedAt: NOW - 65 * 60_000,
   now: NOW,
 }
@@ -28,7 +27,7 @@ describe('the footer (018 FR-001, FR-002)', () => {
   test('every part in order, ascii icons', () => {
     const text = footerText({ ...full, icons: iconSet('ascii'), columns: 200 })
     expect(text).toBe(
-      `◆ 002 · implement 45% · 7d 83% hold (${resetOf(full.readings[1]!.resetsAt, full.now)}) · 5h 42% (${resetOf(reset, full.now)}) · ctx 61% · opus 5.5 high · git:main ^2 v1 ~3 · $1.20 · t 1h05m`,
+      `◆ 002 · implement 45% · 7d 83% hold (${resetOf(full.readings[1]!.resetsAt, full.now)}) · 5h 42% (${resetOf(reset, full.now)}) · ctx 61% · opus 5.5 high · git:main ^2 v1 ~3 · t 1h05m`,
     )
   })
 
@@ -65,7 +64,7 @@ describe('the footer (018 FR-001, FR-002)', () => {
     expect(text).toContain(' 61%')
   })
 
-  test('narrow: duration, then cost, then git, then model go first; Spec Kit and the binding window stay', () => {
+  test('narrow: duration, then git, then model go first; Spec Kit and the binding window stay', () => {
     const widths = [200, 110, 90, 70, 50, 30]
     const texts = widths.map(columns => footerText({ ...full, icons: iconSet('ascii'), columns }))
     for (const [i, text] of texts.entries()) {

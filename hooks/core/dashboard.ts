@@ -133,7 +133,6 @@ export const kpiRows = (
     [tr(lang, 'kpi.subagents'), tr(lang, 'kpi.subagentsValue', { run: stats.agentsRun, queued: stats.agentsQueued })],
   ]
   if (stats.context !== undefined) rows.push([tr(lang, 'kpi.context'), `${Math.round(stats.context.percent)}%`])
-  if (stats.cost !== undefined) rows.push([tr(lang, 'kpi.cost'), `$${stats.cost.toFixed(2)}`])
   rows.push([tr(lang, 'kpi.session'), duration(now - stats.startedAt)])
   const rate = burnRate(stats.series)
   if (rate !== undefined) rows.push([tr(lang, 'kpi.burn'), tr(lang, 'kpi.burnValue', { n: Math.round(rate) })])
@@ -145,14 +144,13 @@ export const kpiRows = (
   return rows
 }
 
-/** The Dashboard's first row (046 #51): tasks done, burn rate, context and cost, as short chips. */
+/** The Dashboard's first row (046 #51): tasks done, burn rate and context, as short chips. */
 export const kpiChips = (stats: SessionStats | undefined, feature: Feature | undefined, lang: Lang = 'en'): string[] => {
   const out: string[] = []
   if (feature !== undefined && feature.total > 0) out.push(tr(lang, 'chip.tasks', { done: feature.done, total: feature.total }))
   const rate = stats === undefined ? undefined : burnRate(stats.series)
   if (rate !== undefined) out.push(tr(lang, 'chip.burn', { n: Math.round(rate) }))
   if (stats?.context !== undefined) out.push(`${tr(lang, 'kpi.context')} ${Math.round(stats.context.percent)}%`)
-  if (stats?.cost !== undefined) out.push(`$${stats.cost.toFixed(2)}`)
   return out
 }
 

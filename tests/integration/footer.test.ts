@@ -37,7 +37,7 @@ const setup = async ($: never, on: never, tree = halfDone.tree) => {
 }
 
 describe('the footer (018 US1)', () => {
-  test('model and effort from the last main request, context and cost from the measure', { options: { footerIn: 'status', icons: 'ascii' } }, async ($, on) => {
+  test('model and effort from the last main request, context from the measure, never the cost (054)', { options: { footerIn: 'status', icons: 'ascii' } }, async ($, on) => {
     const session = await setup($ as never, on as never)
     await step($ as never, 'claude-opus-5-5', 'high')
     await step($ as never, 'claude-haiku-4-5-20251001', 'low', 'sub-1')
@@ -48,7 +48,7 @@ describe('the footer (018 US1)', () => {
     expect(text).toContain('ctx 61%')
     expect(text).toContain('opus 5.5 high')
     expect(text).not.toContain('haiku')
-    expect(text).toContain('$1.20')
+    expect(text).not.toContain('$1.20')
   })
 
   test('git: one query per main turn, never while drawing; the counts show', { options: { footerIn: 'status', icons: 'ascii' } }, async ($, on) => {

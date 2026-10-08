@@ -21,16 +21,10 @@ const setup = async ($: never, on: never) => {
 }
 
 describe('usage and cost (022)', () => {
-  test('cost budget: one toast at 80%, one at 100%', { options: { costBudget: 10 } }, async ($, on) => {
+  test('054: no cost toast, even with a large spend', { options: { costBudget: 10 } }, async ($, on) => {
     const session = await setup($ as never, on as never)
-    await measure($ as never, 10, 5)
-    await measure($ as never, 10, 8.5)
-    await measure($ as never, 10, 9)
-    await measure($ as never, 10, 10.2)
-    expect(session.toasts.filter(t => t.includes('budget'))).toEqual([
-      '🧭 The session has cost $8.50, 85% of its $10.00 budget',
-      '🧭 The session has cost $10.20, past its $10.00 budget',
-    ])
+    await measure($ as never, 10, 50)
+    expect(session.toasts.filter(t => t.includes('$'))).toEqual([])
   })
   test('no budget, no cost toast', async ($, on) => {
     const session = await setup($ as never, on as never)

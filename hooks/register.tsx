@@ -137,7 +137,7 @@ const helpText = (lang: Lang): string =>
     t(lang, 'help.glossary'),
     ...(['constitution', 'specify', 'clarify', 'plan', 'tasks', 'implement'] as const).map(step => `  ${step.padEnd(13)} ${t(lang, `card.${step}`)}`),
   ].join('\n')
-const OPTION_NAMES = ['preset', 'flavor', 'icons', 'language', 'bandDensity', 'checkUpdates', 'governUsage', 'askOnLimit', 'costBudget', 'pullRequest', 'images', 'autoReload', 'footerIn', 'accessible', 'claudeContext', 'featureSummary', 'humanize', 'terse', 'skillModels'] as const
+const OPTION_NAMES = ['preset', 'flavor', 'icons', 'language', 'bandDensity', 'checkUpdates', 'governUsage', 'askOnLimit', 'pullRequest', 'images', 'autoReload', 'footerIn', 'accessible', 'claudeContext', 'featureSummary', 'humanize', 'terse', 'skillModels'] as const
 const WELCOMED = 'welcomed'
 const ABOUT: Readonly<Record<PaneTab, TextKey>> = {
   specs: 'help.specs',
@@ -211,7 +211,6 @@ async function footerInput($: EngineInterface, state: Held['state'], width: numb
       ...(stats?.model === undefined ? {} : { model: stats.model }),
       ...(stats?.effort === undefined ? {} : { effort: stats.effort }),
       ...(stats?.git === undefined ? {} : { git: stats.git }),
-      ...(stats?.cost === undefined ? {} : { cost: stats.cost }),
       ...(stats === undefined ? {} : { startedAt: stats.startedAt }),
       ...((rate => (rate === undefined ? {} : { burn: rate }))(stats === undefined ? undefined : burnRate(stats.series))),
       now,
@@ -847,24 +846,12 @@ async function resume($: EngineInterface, why: string): Promise<void> {
   }
 }
 
-/** The cost budget and context warnings (022 #30, #33), each once a session; the context one again after a compact. */
-async function warnUsage($: EngineInterface, percent: number | undefined, usd: number | undefined): Promise<void> {
+/** The context warning (022 #33), once a session and again after a compact. Cost is not shown (054): on a subscription it means nothing. */
+async function warnUsage($: EngineInterface, percent: number | undefined): Promise<void> {
   const lang = currentLang()
   const stats = (await $.state.get(SESSION)).value
   const warned = { ...(stats?.warned ?? {}) }
   const toasts: string[] = []
-  if (budget > 0 && usd !== undefined) {
-    const p = Math.round((usd * 100) / budget)
-    const money = { cost: usd.toFixed(2), budget: budget.toFixed(2), p }
-    if (usd >= budget && warned.cost100 !== true) {
-      toasts.push(t(lang, 'toast.cost100', money))
-      warned.cost100 = true
-      warned.cost80 = true
-    } else if (p >= 80 && warned.cost80 !== true) {
-      toasts.push(t(lang, 'toast.cost80', money))
-      warned.cost80 = true
-    }
-  }
   if (percent !== undefined) {
     if (percent >= 85 && warned.context !== true) {
       toasts.push(t(lang, 'toast.context', { p: Math.round(percent) }))
@@ -880,8 +867,6 @@ async function warnUsage($: EngineInterface, percent: number | undefined, usd: n
 let imagesOption: unknown
 // Whether the footer asks gh for the branch's pull request (023), off by default.
 let pullRequests = false
-// The cost budget in USD from the option, 0 for none (022).
-let budget = 0
 // When the last main turn ended; the prompt cache timer fires only if no turn came after it (022 #34).
 let lastTurnAt = 0
 const CACHE_WARN_MS = 270_000
@@ -1513,7 +1498,6 @@ export const register: Register = (on, options) => {
   governs = options['governUsage'] !== false
   asks = governs && options['askOnLimit'] !== false
   pullRequests = options['pullRequest'] === true
-  budget = typeof options['costBudget'] === 'number' && options['costBudget'] > 0 ? options['costBudget'] : 0
   accessible = options['accessible'] === true
   claudeContext = options['claudeContext'] !== false
   skillModels = options['skillModels']
@@ -1728,13 +1712,12 @@ export const register: Register = (on, options) => {
         }
       })
       const decision = decisionOf(usage, now)
-      // The footer's context and cost, and the Dashboard's usage series (018).
+      // The footer's context and the Dashboard's usage series (018).
       const percent = e.context.percent ?? (e.context.tokens === undefined || e.context.window === 0 ? undefined : (e.context.tokens * 100) / e.context.window)
       const binding = decision.highest
       await flushStats($, s => ({
         ...s,
         ...(percent === undefined ? {} : { context: { percent } }),
-        ...(e.cost === undefined ? {} : { cost: e.cost.usd }),
         ...(binding === undefined || binding.renewed === true ? {} : {
               series: [
                 ...s.series,
@@ -1748,7 +1731,7 @@ export const register: Register = (on, options) => {
               ].slice(-SERIES_POINTS),
             }),
       }))
-      await warnUsage($, percent, e.cost?.usd)
+      await warnUsage($, percent)
       const speckit = (await $.state.get(SPECKIT)).value
       if (speckit !== undefined) await showStatus($, speckit)
       if (!governs) return result
