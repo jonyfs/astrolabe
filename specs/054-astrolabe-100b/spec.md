@@ -91,7 +91,7 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 ### Gates
 
 - [x] T056 #56 A gate row per feature: constitution, clarifications, checklist, analyze, tests, each ✓ or ✗ (P1)
-- [ ] T057 #57 `/speckit-implement` refused while the feature has open clarifications, with the reason and an override command (P2)
+- [x] T057 #57 `/speckit-implement` refused while the feature has open clarifications, with the reason and an override command (P2)
 - [x] T058 #58 A PR merge refused from the PRs tab while its checks are pending or failing (P1)
 - [ ] T059 #59 The analyze gate turns green only after `/speckit-analyze` ran on the current tasks.md (P2)
 - [ ] T060 #60 A release gate check in the PRs tab: version in plugin.json matches the tag about to be made (P3)

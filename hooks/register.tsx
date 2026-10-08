@@ -626,6 +626,20 @@ export const otherFeatureNamed = (text: string, state: SpeckitState): string | u
   return named === undefined ? undefined : `Astrolabe: this prompt names feature ${named.id} ${named.name}, but the active one is ${active.id} ${active.name}; .specify/feature.json decides which one Spec Kit skills work on.`
 }
 
+// Features whose implement step was refused once this session (054 #57): a repeat call goes through.
+const implementWaived = new Set<string>()
+
+/** Why `/speckit-implement` is refused while the active spec has open clarifications (054 #57); undefined to let it run. */
+export const implementRefusal = (skill: string, state: SpeckitState | undefined, waived: ReadonlySet<string>): string | undefined => {
+  if (!/^speckit[-.]implement$/.test(skill) || state === undefined) return undefined
+  const feature = state.features.find(f => f.dir === state.active?.dir)
+  if (feature === undefined || waived.has(feature.dir)) return undefined
+  const open = feature.clarifications ?? 0
+  if (open === 0 && !feature.warnings.includes('clarification-after-plan')) return undefined
+  const count = open === 0 ? 'open [NEEDS CLARIFICATION] markers' : `${open} open [NEEDS CLARIFICATION] marker${open === 1 ? '' : 's'}`
+  return `Astrolabe: feature ${feature.id} ${feature.name} still has ${count} in spec.md. Run /speckit-clarify first. To implement anyway, call /speckit-implement again.`
+}
+
 const featureContext = (state: SpeckitState): string | undefined => {
   const feature = state.features.find(f => f.dir === state.active?.dir)
   if (!state.present || feature === undefined) return undefined
@@ -1720,6 +1734,7 @@ export const register: Register = (on, options) => {
   on('session.start', async ($, e, next) => {
     isInteractive = e.isInteractive !== false
     surfaceSeen = e.surface
+    implementWaived.clear()
     // A reload starts the module over: the guess made earlier in the session is in $.state.
     const kept = (await $.state.get(SESSION)).value?.language
     if (kept === 'en' || kept === 'pt-BR' || kept === 'es' || kept === 'fr') guessedLang = kept
@@ -1852,6 +1867,16 @@ export const register: Register = (on, options) => {
   })
 
   on('tool.call', { tool: 'Skill' }, async ($, e, next) => {
+    // An implement step on a spec with open questions is refused once (054 #57).
+    // Only that skill reads the state here, so others keep their order against concurrent writes.
+    if (/^speckit[-.]implement$/.test(e.skill)) {
+      const speckit = (await $.state.get(SPECKIT)).value
+      const refusal = implementRefusal(e.skill, speckit, implementWaived)
+      if (refusal !== undefined) {
+        implementWaived.add(speckit!.active!.dir)
+        return { deny: refusal }
+      }
+    }
     // A subagent's skill may outlive the main turn, so only main-thread calls set a marker.
     if (e.agentId === undefined) {
       skillRunning = e.skill
