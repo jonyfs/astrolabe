@@ -52,3 +52,18 @@ export const checksOf = (statusCheckRollup: unknown): PullRequest['checks'] => {
   })
   return results.length === 0 ? 'none' : results.includes('fail') ? 'fail' : results.includes('pending') ? 'pending' : 'pass'
 }
+
+/**
+ * The web page of a git remote (054 #79): `git@github.com:o/r.git`, `ssh://git@host/o/r` and
+ * `https://user:token@host/o/r.git` all give `https://host/o/r`. Credentials never survive.
+ */
+export const remoteWebUrl = (remote: string): string | undefined => {
+  const text = remote.trim()
+  const scp = /^[\w.-]+@([\w.-]+):(.+?)(?:\.git)?\/?$/.exec(text)
+  if (scp !== null) return `https://${scp[1]}/${scp[2]}`
+  const url = /^(?:https?|ssh|git):\/\/(?:[^@/]+@)?([\w.-]+)(?::\d+)?\/(.+?)(?:\.git)?\/?$/.exec(text)
+  return url === null ? undefined : `https://${url[1]}/${url[2]}`
+}
+
+/** A branch's page on the remote, each path segment encoded. */
+export const branchWebUrl = (web: string, branch: string): string => `${web}/tree/${branch.split('/').map(encodeURIComponent).join('/')}`

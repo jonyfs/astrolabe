@@ -11,7 +11,9 @@ lists everything it touches; the code in `hooks/` is the place to check it.
   reads its `spec.md` and `tasks.md` in full.
 - Git: the `HEAD` file to find the branch, then `git status --porcelain=v2 --branch
   --show-stash` and `git worktree list --porcelain` after a turn. In each other worktree it reads
-  only the feature its branch names.
+  only the feature its branch names. Once a session, `git remote get-url origin` gives the address
+  the Session tab's branch row links to; any user name or token in that address is dropped and
+  never stored.
 - GitHub, through `gh`, and only when you ask for it: `gh pr view` for the footer's pull request
   (the `pullRequest` option) and `gh pr list` for the PRs tab while it is open.
 - Its own install: `.claude-plugin/plugin.json` in its folder, to see whether a newer version is

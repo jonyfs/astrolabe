@@ -204,6 +204,8 @@ export type UsageState = {
 /** What `git status --porcelain=v2 --branch` said at the end of the last main turn (018). */
 export type GitState = {
   branch?: string
+  /** The remote's web page, from `git remote get-url origin` (054 #79). */
+  remote?: string
   ahead: number
   behind: number
   changed: number
