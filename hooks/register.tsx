@@ -52,7 +52,7 @@ import { capDiff, tasksDiff } from './core/summary'
 import { styleSections } from './core/style'
 import { parsePullList, pullAction, PR_LIST_FIELDS } from './core/pulls'
 import { SKILL_MODELS, skillModelFor } from './core/skill-models'
-import { featureDirFor, mergedBranches, parseWorktrees, uncommittedCount, worktreeName, worktreeState } from './core/worktrees'
+import { featureDirFor, mergedBranches, parseWorktrees, uncommittedCount, withWorktreeProgress, worktreeName, worktreeState } from './core/worktrees'
 import { readFeature } from './io/snapshot'
 import { deriveFeature } from './core/phase'
 import { parseTasks } from './core/tasks-parser'
@@ -2387,7 +2387,7 @@ export const register: Register = (on, options) => {
         : pane.tab === 'session'
           ? await sessionTabRows($, state)
           : [
-              ...((stats => specsRows(filtered(state, pane.filter, pane.status), columns, currentLang(), stats?.priorities ?? {}, worktreesById(stats?.worktrees), (pane.filter ?? '').trim() === '' && (pane.status ?? 'all') === 'all'))((await $.state.get(SESSION)).value)),
+              ...((stats => specsRows(((s: SpeckitState) => ({ ...s, features: withWorktreeProgress(s.features, stats?.worktrees) }))(filtered(state, pane.filter, pane.status)), columns, currentLang(), stats?.priorities ?? {}, worktreesById(stats?.worktrees), (pane.filter ?? '').trim() === '' && (pane.status ?? 'all') === 'all'))((await $.state.get(SESSION)).value)),
               // Features other worktrees of this repository work on (037).
               ...((await $.state.get(SESSION)).value?.worktrees ?? []).map(w => ({
                 key: `worktree-${w.name}`,
