@@ -5,7 +5,7 @@ import type { ConfigRow, EngineInterface, Hook, Register, RenderNode } from 'cla
 import { bandSegments, nextReason, stepCards, type BandDensity } from './core/band'
 import { hintTail } from './core/hint'
 import { phaseToasts } from './core/phase-toast'
-import { sessionRows, specsRows, taskRows, windowUnits } from './core/pane'
+import { filterFeatures, nextStatus, sessionRows, specsRows, taskRows, windowUnits } from './core/pane'
 import { presetOf } from './core/presets'
 import { spinnerSuffix } from './core/spinner'
 import {
@@ -21,7 +21,7 @@ import {
   updateLabel,
 } from './core/updates'
 import { fileUrl, joinPath } from './core/paths'
-import { GSTACK_SKILLS, nextPriority, parsePriority, REVIEW_MODEL, reviewPrompt, withPriority, type Priority } from './core/spec-actions'
+import { GSTACK_SKILLS, nextPriority, optionDefaults, parsePriority, REVIEW_MODEL, reviewPrompt, withPriority, type Priority } from './core/spec-actions'
 import { CHANGES, VERSION } from './core/version'
 import {
   ASK_MS,
@@ -119,6 +119,9 @@ const helpText = (lang: Lang): string =>
     `  /astrolabe doctor           ${t(lang, 'help.doctor')}`,
     `  /astrolabe priority <id> <high|normal|low>   ${t(lang, 'help.priority')}`,
     `  /astrolabe review [id]      ${t(lang, 'help.review')}`,
+    `  /astrolabe config reset     ${t(lang, 'help.configReset')}`,
+    // Each option with its value now (048 #75).
+    `${t(lang, 'help.options')}: ${OPTION_NAMES.map(name => `${name}=${optionsSeen[name] === undefined ? 'default' : String(optionsSeen[name])}`).join(', ')}.`,
     t(lang, 'help.tabs'),
     `  1 ${t(lang, 'tab.specs').padEnd(10)} ${t(lang, 'help.specs')}`,
     `  2 ${t(lang, 'tab.tasks').padEnd(10)} ${t(lang, 'help.tasksTab')}`,
@@ -128,8 +131,6 @@ const helpText = (lang: Lang): string =>
     `  6 ${t(lang, 'tab.config').padEnd(10)} ${t(lang, 'help.configTab')}`,
     `  7 ${t(lang, 'tab.prs').padEnd(10)} ${t(lang, 'help.prsTab')}`,
     t(lang, 'help.keys'),
-    // Each option with its value now (048 #75).
-    `${t(lang, 'help.options')}: ${OPTION_NAMES.map(name => `${name}=${optionsSeen[name] === undefined ? 'default' : String(optionsSeen[name])}`).join(', ')}.`,
     t(lang, 'help.models'),
     ...Object.entries(SKILL_MODELS).map(([skill, m]) => `  ${skill.padEnd(22)} ${m.model.replace(/^claude-/, '').padEnd(12)} ${m.effort.padEnd(7)} ${m.why}`),
     t(lang, 'help.marks'),
@@ -434,6 +435,9 @@ function configBody(
       <Box flexDirection="row">
         <Button key="config-save" label={pending.length === 0 ? t(lang, 'config.saved') : t(lang, 'config.save', { n: pending.length })} variant="primary" onPress={() => saveConfig($)} />
         <Text> </Text>
+        {/* Every option back to its default, as a draft Save applies (054 #63). */}
+        <Button key="config-reset" label={t(lang, 'config.reset')} onPress={() => draftDefaults($)} />
+        <Text> </Text>
         <Button key="config-cancel" label={t(lang, 'config.cancel')} onPress={async () => {
           const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
           const { draft: _gone, ...rest } = held
@@ -446,6 +450,35 @@ function configBody(
 }
 
 /** Applies the Config tab's changes through $.config.set (028); options reload the mod. */
+/** The options' defaults from our own plugin.json (054 #63). */
+async function defaults($: EngineInterface): Promise<Record<string, string | number | boolean>> {
+  const text = await fsOf($).read(`${$.plugin.root}/.claude-plugin/plugin.json`).catch(() => '')
+  return optionDefaults(text)
+}
+
+/** Puts every option that differs from its default in the draft, for Save to apply (054 #63). */
+async function draftDefaults($: EngineInterface): Promise<void> {
+  const wanted = await defaults($)
+  const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
+  const draft = { ...(held.draft ?? {}) }
+  for (const row of configRows) if (!row.isLocked && row.key in wanted && wanted[row.key] !== row.value) draft[row.key] = wanted[row.key]!
+  await $.state.set(PANE_STATE, { ...held, draft })
+}
+
+/** `/astrolabe config reset`: every option back to its default now (054 #63). */
+async function resetConfig($: EngineInterface): Promise<string> {
+  const wanted = await defaults($)
+  const rows = (await $.config.list().catch(() => [] as ConfigRow[])).filter(row => row.key.startsWith('astrolabe.'))
+  const changed: string[] = []
+  for (const row of rows) {
+    if (row.isLocked || !(row.key in wanted) || wanted[row.key] === row.value) continue
+    const result = await $.config.set({ key: row.key, value: wanted[row.key]! }).catch(() => ({ deny: 'refused' }))
+    if (!('deny' in result && result.deny !== undefined)) changed.push(row.key.replace(/^astrolabe\./, ''))
+  }
+  configRows = (await $.config.list().catch(() => [] as ConfigRow[])).filter(row => row.key.startsWith('astrolabe.'))
+  return t(currentLang(), changed.length === 0 ? 'config.resetNone' : 'config.resetDone', { list: changed.join(', ') })
+}
+
 async function saveConfig($: EngineInterface): Promise<void> {
   const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
   const draft = held.draft ?? {}
@@ -697,10 +730,8 @@ let pictureCache: { key: string; picture: { rgba: string; width: number; height:
 let turnTasks: { dir: string; tasks: NonNullable<SpeckitState['activeTasks']> } | undefined
 
 /** Keeps the features whose id or name holds the filter (024 #49). */
-const filtered = (state: SpeckitState, filter: string | undefined): SpeckitState => {
-  const words = (filter ?? '').trim().toLowerCase()
-  return words === '' ? state : { ...state, features: state.features.filter(f => `${f.id} ${f.name}`.toLowerCase().includes(words)) }
-}
+const filtered = (state: SpeckitState, filter: string | undefined, status: PaneState['status'] = 'all'): SpeckitState =>
+  (filter ?? '').trim() === '' && status === 'all' ? state : { ...state, features: filterFeatures(state.features, filter, state.active?.dir, status) }
 
 
 /**
@@ -1944,6 +1975,10 @@ export const register: Register = (on, options) => {
       return { text: t(currentLang(), 'ask.asking', { feature: about }) }
     }
     if (args === 'doctor') return { text: await doctor($) }
+    if (args === 'config reset') {
+      if (e.origin?.kind !== 'composer') return { text: t(currentLang(), 'config.resetOnlyYou') }
+      return { text: await resetConfig($) }
+    }
     const priority = parsePriority(args)
     if (priority !== undefined) return { text: await setPriority($, priority.id, priority.level) }
     if (args === 'review' || args.startsWith('review ')) {
@@ -2047,7 +2082,7 @@ export const register: Register = (on, options) => {
               })),
             ]
           : [
-              ...specsRows(filtered(state, pane.filter), columns, currentLang(), (await $.state.get(SESSION)).value?.priorities ?? {}),
+              ...specsRows(filtered(state, pane.filter, pane.status), columns, currentLang(), (await $.state.get(SESSION)).value?.priorities ?? {}),
               // Features other worktrees of this repository work on (037).
               ...((await $.state.get(SESSION)).value?.worktrees ?? []).map(w => ({
                 key: `worktree-${w.name}`,
@@ -2057,8 +2092,8 @@ export const register: Register = (on, options) => {
             ]
     // A filter that keeps nothing says so (052 #7).
     const matchesNone =
-      needle !== '' &&
-      (pane.tab === 'specs' ? filtered(state, pane.filter).features.length === 0 && state.features.length > 0 : (pane.tab === 'tasks' || pane.tab === 'help') && rows.every(r => r.key === 'count'))
+      (needle !== '' || (pane.tab === 'specs' && (pane.status ?? 'all') !== 'all')) &&
+      (pane.tab === 'specs' ? filtered(state, pane.filter, pane.status).features.length === 0 && state.features.length > 0 : (pane.tab === 'tasks' || pane.tab === 'help') && rows.every(r => r.key === 'count'))
     if (matchesNone && pane.tab === 'specs') rows.splice(0, rows.length, ...rows.filter(r => r.key !== 'empty'))
     if (matchesNone) rows.push({ key: 'no-match', text: t(currentLang(), 'pane.noMatch', { filter: pane.filter?.trim() ?? '' }), role: 'muted' } as never)
     const { Box, Text, Button } = $.ui.resolve(e)
@@ -2075,6 +2110,15 @@ export const register: Register = (on, options) => {
       // What the tab is for, then its keys (048 #72).
       onClose: () => $.ui.close({ id: PANE_ID }).then(() => undefined),
       marks: accessible ? ('words' as const) : iconsFor(iconsOption, e.surface) === 'ascii' ? ('ascii' as const) : ('unicode' as const),
+      // s cycles the Specs tab's status filter (054 #21).
+      ...(pane.tab === 'specs'
+        ? {
+            status: { label: t(currentLang(), `pane.status.${pane.status ?? 'all'}` as TextKey), onPress: async () => {
+              const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
+              await $.state.set(PANE_STATE, { ...held, status: nextStatus(held.status) })
+            } },
+          }
+        : {}),
       ...(pane.tab === 'specs' && state.active !== undefined
         ? {
             onPriority: async () => {
@@ -2088,7 +2132,7 @@ export const register: Register = (on, options) => {
       // What the tab is for, then its keys; a narrow pane keeps the keys whole (052 #3).
       legend: ((about: string, keys: string) => ([...`${about} · ${keys}`].length <= columns ? `${about} · ${keys}` : keys))(
         t(currentLang(), ABOUT[pane.tab]),
-        t(currentLang(), pane.tab === 'specs' || pane.tab === 'tasks' || pane.tab === 'help' ? 'legend.specs' : pane.tab === 'config' ? 'legend.config' : 'legend.default'),
+        t(currentLang(), pane.tab === 'specs' ? 'legend.specs' : pane.tab === 'tasks' || pane.tab === 'help' ? 'legend.filter' : pane.tab === 'config' ? 'legend.config' : 'legend.default'),
       ),
     }
     const select = async (tab: PaneTab) => {

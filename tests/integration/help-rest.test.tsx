@@ -60,7 +60,10 @@ describe('help, part two (025)', () => {
     expect(await ui.tabs()).toContain('Help')
     expect(await ui.body()).not.toContain('Welcome')
     await ui.press('tab-help')
-    const body = await ui.body()
+    const first = await ui.body()
+    // Help is longer than the pane: the rest is one scroll away.
+    await ui.press('scroll-down')
+    const body = `${first}${await ui.body()}`
     expect(body).toContain('/astrolabe status')
     expect(body).toContain('n runs the next command')
     expect(body).toContain('footerIn')

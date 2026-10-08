@@ -414,12 +414,12 @@ right; otherwise it sits above the prompt. It opens with the keyboard on it, so 
 switch tabs right away, and Esc closes it. Later, focus it again with a click or
 `ctrl+x tab`. The tab you pick stays for the session, and the next session of the same project opens on it.
 On Specs, Tasks and Help, `f` puts the cursor in one filter that keeps the rows holding what you
-type (a filter that keeps nothing says so); in a narrow pane the legend keeps only the keys; `✕` at the end of the tab row closes the pane.
+type (a filter that keeps nothing says so); on Specs, `s` cycles a status filter (all, in progress, next up, done, abandoned), and `is:done` in the filter does the same; in a narrow pane the legend keeps only the keys; `✕` at the end of the tab row closes the pane.
 
 A tab label carries a count when there is one: `Specs 3` features in progress, `Tasks 11` open
 tasks of the active feature, `PRs 2` open pull requests. Above the footer, a dim row says what the
 tab is for and lists its keys, such as
-`every feature, its phase and progress · 1-7 tabs · f filters · j/k scroll · Esc closes`. A tab with
+`every feature, its phase and progress · 1-7 tabs · f filters · s status · j/k scroll · Esc closes`. A tab with
 nothing to show says what would fill it and the command that does, for example
 `No active feature. Run /speckit-specify to start one.`
 
@@ -537,7 +537,7 @@ language.
 for a choice, a toggle for on and off, a field for a number or a text. A changed row is marked `●`.
 `Save N changes` applies them through Claude Code's settings, and Astrolabe reloads with the new
 values; `Cancel` drops them. A row your organization's policy locks shows its value and cannot be
-changed.
+changed. `Reset to defaults` puts every option back to its default as a draft that Save applies; `/astrolabe config reset`, typed by you, does it at once.
 
 **7 PRs** lists the repository's open pull requests, read with `gh` when the tab opens and at most
 every two minutes after a turn while it is shown. Each row links to the pull request and shows its

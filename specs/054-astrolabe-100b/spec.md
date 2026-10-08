@@ -43,7 +43,7 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 
 ### Information organized
 
-- [ ] T021 #21 The Specs tab filters by status: All, In progress, Next up, Done, Abandoned (`s` cycles; `is:done` in the filter) (P1)
+- [x] T021 #21 The Specs tab filters by status: All, In progress, Next up, Done, Abandoned (`s` cycles; `is:done` in the filter) (P1)
 - [ ] T022 #22 The Session tab in four blocks: Project, Governor, Activity, Updates (P1)
 - [ ] T023 #23 The Dashboard's first screen holds only what changes decisions: tasks left, usage now, at the reset, context (P1)
 - [ ] T024 #24 The footer's parts in a fixed order the Help tab lists, so nothing moves between turns (P2)
@@ -69,7 +69,7 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 
 ### Statusline and footer
 
-- [ ] T041 #41 The footer on every tab, Config, PRs and Help included, with a test per tab (P1)
+- [x] T041 #41 The footer on every tab, Config, PRs and Help included, with a test per tab (P1)
 - [ ] T042 #42 The footer's model chip names the 1M context window when it is on (`opus 5.5 1M`) (P2)
 - [ ] T043 #43 A context chip that turns into `compact soon` past 85% (P1)
 - [ ] T044 #44 The footer's git chip shows the PR number as a link when `pullRequest` is on (P2)
@@ -100,7 +100,7 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 
 ### Interface
 
-- [ ] T063 #63 Config reset: a `Reset to defaults` button on the Config tab, pressed twice, and `/astrolabe config reset` (P1)
+- [x] T063 #63 Config reset: a `Reset to defaults` button on the Config tab, pressed twice, and `/astrolabe config reset` (P1)
 - [ ] T064 #64 The Config tab groups options: Display, Governor, Claude, Integrations (P2)
 - [ ] T065 #65 Number keys show on the tab labels (`1 Specs`) only while the pane has the keyboard (P3)
 - [ ] T066 #66 A row selected with the arrows on Specs, with Enter opening its spec.md link (P2)

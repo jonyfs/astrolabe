@@ -52,3 +52,18 @@ export const reviewPrompt = (feature: { id: string; name: string }, files: { spe
 
 /** The gstack skills offered on the active feature (051 T004), in the order drawn. */
 export const GSTACK_SKILLS = ['investigate', 'review', 'health', 'qa-only', 'retro'] as const
+
+/** Each option's default from plugin.json's userConfig, keyed `astrolabe.<field>` (054 #63). */
+export const optionDefaults = (pluginJson: string): Record<string, string | number | boolean> => {
+  try {
+    const parsed = JSON.parse(pluginJson) as { userConfig?: Record<string, { default?: unknown }> }
+    const out: Record<string, string | number | boolean> = {}
+    for (const [field, spec] of Object.entries(parsed.userConfig ?? {})) {
+      const value = spec.default
+      if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') out[`astrolabe.${field}`] = value
+    }
+    return out
+  } catch {
+    return {}
+  }
+}

@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'claude-code/testing'
 
 import { scenario as halfDone } from '../fixtures/half-done'
-import { installEngine, installTree, startSession } from '../helpers/fake-fs'
+import { completeTurn, installEngine, installTree, startSession } from '../helpers/fake-fs'
 import { installPaneEngine, installRenderEngine } from '../helpers/render'
 
 // Spec 028: the Config tab edits every Astrolabe option and saves through $.config.set.
@@ -55,5 +55,35 @@ describe('the Config tab (028)', () => {
     ])
     expect(session.toasts.at(-1)).toBe('🧭 2 options saved; Astrolabe reloads with them')
     await ui.unmount()
+  })
+
+  test('054 #63: Reset to defaults drafts the defaults; /astrolabe config reset applies them, from the composer only', async ($, on) => {
+    const tree: Record<string, string> = { ...halfDone.tree }
+    const session = installTree(on, tree, '/proj')
+    installEngine(on)
+    installRenderEngine(on)
+    installPaneEngine(on)
+    const set: Array<{ key: string; value: unknown }> = []
+    on('config.list', () => ({ value: ROWS }) as never)
+    on('config.set', ($$, e) => {
+      set.push({ key: e.key, value: e.value })
+      return { value: e.value } as never
+    })
+    await startSession($ as never, '/proj')
+    await completeTurn($ as never)
+    await session.clock.advance(1000)
+    const manifest = session.counts.reads.find(r => r.endsWith('/.claude-plugin/plugin.json'))
+    expect(manifest).toBeDefined()
+    tree[manifest!] = JSON.stringify({ version: '0.0.0', userConfig: { preset: { default: 'full' }, checkUpdates: { default: true } } })
+    const ui = await mount($ as never)
+    await ui.press({ key: 'tab-config' })
+    await ui.press({ key: 'config-reset' })
+    expect((await ui.find({ key: 'astrolabe-pane-body' }))?.text).toContain('Save 1 change')
+    await ui.unmount()
+    const fromClaude = (await $.command.run({ command: 'astrolabe', args: 'config reset' } as never)) as { text: string }
+    expect(fromClaude.text).toContain('Only you can reset the options')
+    const ran = (await $.command.run({ command: 'astrolabe', args: 'config reset', origin: { kind: 'composer' } } as never)) as { text: string }
+    expect(set).toEqual([{ key: 'astrolabe.preset', value: 'full' }])
+    expect(ran.text).toBe('🧭 back to defaults: preset')
   })
 })

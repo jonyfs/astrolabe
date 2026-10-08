@@ -154,7 +154,7 @@ export type SpeckitState = {
 export type PaneTab = 'specs' | 'tasks' | 'session' | 'dashboard' | 'help' | 'config' | 'prs'
 
 /** The /astrolabe pane's session state: the tab shown and whether it opened unasked already. */
-export type PaneState = { tab: PaneTab; autoOpened: boolean; filter?: string; scroll?: { tab: PaneTab; offset: number }; draft?: Record<string, string | number | boolean>; confirm?: string }
+export type PaneState = { tab: PaneTab; autoOpened: boolean; filter?: string; status?: 'all' | 'progress' | 'next' | 'done' | 'abandoned'; scroll?: { tab: PaneTab; offset: number }; draft?: Record<string, string | number | boolean>; confirm?: string }
 
 export type UpdateId = 'gstack' | 'specify' | 'speckit-skills' | 'astrolabe'
 
