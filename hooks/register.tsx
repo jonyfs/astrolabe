@@ -67,7 +67,7 @@ import { dashboardSections, dashboardTree } from './surfaces/dashboard'
 import { burnRate, dial, kpiChips, kpiRows, phaseBars, sparkline, trendRows, usageChart } from './core/dashboard'
 import { addDay, addWeek, dayKey, estimateLeft, pastReset, slowest, weekKey, weekdays, type Days, type Weeks } from './core/history'
 import { footerChips, footerText, type FooterInput } from './core/footer'
-import { parseGitStatus, parsePullRequest } from './core/git-status'
+import { branchWebUrl, parseGitStatus, parsePullRequest, remoteWebUrl } from './core/git-status'
 import { iconSet, iconsFor } from './core/icons'
 import { guessLang, langOf, t, type Lang, type TextKey } from './core/i18n'
 import { paneTree } from './surfaces/pane'
@@ -283,11 +283,21 @@ async function readGit($: EngineInterface, root: string | undefined, branch: str
   if (root === undefined || branch === undefined) return undefined
   try {
     const run = await $.process.run(GIT_STATUS, { cwd: root, timeoutMs: 2000 })
-    return run.exitCode === 0 ? parseGitStatus(run.stdout) : undefined
+    if (run.exitCode !== 0) return undefined
+    // The remote's web page, asked once per session (054 #79).
+    if (remoteWeb === undefined) {
+      const remote = await $.process.run(['git', 'remote', 'get-url', 'origin'], { cwd: root, timeoutMs: 2000 }).catch(() => undefined)
+      remoteWeb = remote?.exitCode === 0 ? (remoteWebUrl(remote.stdout) ?? null) : null
+    }
+    const state = parseGitStatus(run.stdout)
+    return remoteWeb === null ? state : { ...state, remote: remoteWeb }
   } catch {
     return undefined
   }
 }
+
+// The remote's web page for this session; null once asked and there is none.
+let remoteWeb: string | null | undefined
 
 let prRunning = false
 
@@ -1256,7 +1266,12 @@ async function sessionTabRows($: EngineInterface, state: SpeckitState): Promise<
   const label = (text: string) => text.padEnd(14)
   const band = decisionOf(usage, now).band
   const bandRole: ThemeRole = band === 'ok' ? 'done' : band === 'stop' || band === 'ceiling' ? 'blocked' : 'current'
-  const project = sessionRows(state, now, lang)
+  const branch = stats?.git?.branch
+  const project = [
+    ...sessionRows(state, now, lang),
+    // The branch, linked to its page on the remote (054 #79).
+    ...(branch === undefined ? [] : [{ key: 'session-branch', text: `${label(t(lang, 'session.branch'))}${branch}`, role: 'text' as ThemeRole, ...(stats?.git?.remote === undefined ? {} : { href: branchWebUrl(stats.git.remote, branch) }) }]),
+  ]
   const governor = [
     ...usageRows(usage, now).map(([name, text]) => ({ key: `usage-${name}`, text: `${label(name)}${text}`, role: (name === 'state' ? bandRole : 'text') as ThemeRole })),
     // Today's governor steps, at most 10 (054 #62).
@@ -1797,6 +1812,7 @@ export const register: Register = (on, options) => {
     isInteractive = e.isInteractive !== false
     surfaceSeen = e.surface
     implementWaived.clear()
+    remoteWeb = undefined
     // A reload starts the module over: the guess made earlier in the session is in $.state.
     const kept = (await $.state.get(SESSION)).value?.language
     if (kept === 'en' || kept === 'pt-BR' || kept === 'es' || kept === 'fr') guessedLang = kept
