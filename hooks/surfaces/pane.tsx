@@ -34,7 +34,7 @@ export const paneTree = (
   /** What is above and below the rows shown, with the presses that scroll (038). */
   nav?: { above: number; below: number; up: () => Promise<void>; down: () => Promise<void>; labels: { more: string } },
   /** Counts beside the tab labels (043 #21) and the keys of the tab shown (043 #25). */
-  extras: { badges?: Partial<Record<PaneTab, string>>; legend?: string; onClose?: () => Promise<void>; onFind?: () => Promise<void>; onPriority?: () => Promise<void>; marks?: 'unicode' | 'ascii' | 'words'; Link?: ElementTable<'terminal'>['Link'] } = {},
+  extras: { badges?: Partial<Record<PaneTab, string>>; legend?: string; onClose?: () => Promise<void>; onFind?: () => Promise<void>; onPriority?: () => Promise<void>; status?: { label: string; onPress: () => Promise<void> }; marks?: 'unicode' | 'ascii' | 'words'; Link?: ElementTable<'terminal'>['Link'] } = {},
 ) => {
   const Link = extras.Link
   // The pane's own marks in the set the icons option and the accessible mode pick (052 #49, #47).
@@ -53,6 +53,8 @@ export const paneTree = (
       ))}
       {/* f focuses the filter (043 #23); ✕ closes the pane (043 #28). */}
       {extras.onFind !== undefined && <Button key="find" label={m('⌕ f')} hotkey="f" plain onPress={() => extras.onFind!()} />}
+      {/* s cycles the status filter (054 #21). */}
+      {extras.status !== undefined && <Button key="status-filter" label={`s ${extras.status.label}`} hotkey="s" plain onPress={() => extras.status!.onPress()} />}
       {/* p cycles the active spec's priority: normal, high, low (051). */}
       {extras.onPriority !== undefined && <Button key="priority" label={m('↑↓ p')} hotkey="p" plain onPress={() => extras.onPriority!()} />}
       {extras.onClose !== undefined && <Button key="close-pane" label={m('✕')} plain onPress={() => extras.onClose!()} />}

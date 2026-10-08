@@ -32,7 +32,7 @@ describe('the footer in the pane (035)', () => {
     const session = await setup($ as never, on as never)
     expect(session.last()).toMatch(/^◆ 002 · implement 45% · 5h 42% \(\d+h\d\dm\)$/)
   })
-  for (const tab of ['specs', 'tasks', 'session', 'dashboard']) {
+  for (const tab of ['specs', 'tasks', 'session', 'dashboard', 'help', 'config', 'prs']) {
     test(`default: the ${tab} tab ends with the footer`, { options: { icons: 'ascii' } }, async ($, on) => {
       await setup($ as never, on as never)
       const ui = await mountPane($ as never, 'terminal', 100, 80)

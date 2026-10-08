@@ -56,7 +56,7 @@ const featureRow = (f: Feature, isActive: boolean, columns: number, ctx: RowCont
 }
 
 /** Which section a feature belongs to (044): working on it, next up, done, abandoned. */
-const sectionOf = (f: Feature, activeDir: string | undefined): 'progress' | 'next' | 'done' | 'abandoned' =>
+export const sectionOf = (f: Pick<Feature, 'phase' | 'dir' | 'done'>, activeDir: string | undefined): 'progress' | 'next' | 'done' | 'abandoned' =>
   f.phase === 'done' ? 'done' : f.phase === 'abandoned' ? 'abandoned' : f.dir === activeDir || f.done > 0 || f.phase === 'implement' ? 'progress' : 'next'
 
 const WARNING_TEXT = {
@@ -220,4 +220,27 @@ export const windowUnits = (heights: readonly number[], offset: number, room: nu
     end += 1
   }
   return { start, end: Math.max(end, start + 1) }
+}
+
+export type StatusFilter = 'all' | 'progress' | 'next' | 'done' | 'abandoned'
+const STATUS_CYCLE: Readonly<Record<StatusFilter, StatusFilter>> = { all: 'progress', progress: 'next', next: 'done', done: 'abandoned', abandoned: 'all' }
+
+/** The next status the Specs tab's `s` shows (054 #21): all, in progress, next up, done, abandoned. */
+export const nextStatus = (status: StatusFilter | undefined): StatusFilter => STATUS_CYCLE[status ?? 'all']
+
+/**
+ * The features a filter keeps (054 #21): words match the id or name, and `is:done`,
+ * `is:progress`, `is:next` or `is:abandoned` keep one status; `status` does the same from `s`.
+ */
+export const filterFeatures = <F extends Pick<Feature, 'id' | 'name' | 'phase' | 'dir' | 'done'>>(
+  features: readonly F[],
+  filter: string | undefined,
+  activeDir: string | undefined,
+  status: StatusFilter = 'all',
+): F[] => {
+  const tokens = (filter ?? '').trim().toLowerCase().split(/\s+/).filter(x => x !== '')
+  const is = tokens.find(x => x.startsWith('is:'))?.slice(3)
+  const words = tokens.filter(x => !x.startsWith('is:')).join(' ')
+  const wanted = is === 'progress' || is === 'next' || is === 'done' || is === 'abandoned' ? is : status === 'all' ? undefined : status
+  return features.filter(f => (words === '' || `${f.id} ${f.name}`.toLowerCase().includes(words)) && (wanted === undefined || sectionOf(f, activeDir) === wanted))
 }

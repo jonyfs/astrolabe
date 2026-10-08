@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import { sessionRows, specsRows, taskRows } from '../../hooks/core/pane'
+import { filterFeatures, sessionRows, specsRows, taskRows } from '../../hooks/core/pane'
 import { emptyMemo, type Feature, type SessionMemo, type SpeckitState } from '../../hooks/core/types'
 
 const f = (id: string, name: string, phase: Feature['phase'], done: number, total: number, warnings: Feature['warnings'] = []): Feature => ({
@@ -157,5 +157,15 @@ describe('spec chips (044 #39)', () => {
     const doing = { ...f('002', 'band-hint', 'implement', 9, 20), clarifications: 2, checklist: { open: 3, total: 5 } }
     const rows = specsRows(state({ features: [doing] }), 120)
     expect(texts(rows).find(t => t.includes('002'))).toBe('▸ ◐ 002 band-hint  implement  ████░░░░░░  9/20  45%  ?2 ☐3')
+  })
+})
+
+describe('filterFeatures (054 #21)', () => {
+  test('words and is:status', () => {
+    const fs = [f('001', 'core-state', 'done', 49, 49), f('002', 'band-hint', 'implement', 9, 20), f('003', 'dropped', 'abandoned', 0, 3)]
+    expect(filterFeatures(fs, 'is:done', '002-band-hint').map(x => x.id)).toEqual(['001'])
+    expect(filterFeatures(fs, 'band is:progress', '002-band-hint').map(x => x.id)).toEqual(['002'])
+    expect(filterFeatures(fs, '', '002-band-hint', 'abandoned').map(x => x.id)).toEqual(['003'])
+    expect(filterFeatures(fs, 'is:done', '002-band-hint', 'abandoned').map(x => x.id)).toEqual(['001'])
   })
 })
