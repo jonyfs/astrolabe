@@ -46,7 +46,7 @@ import {
   type Question,
 } from './core/governor'
 import { CHIPS, FLAVORS, flavorOf, isThemeKeys, themeOf, type ThemeRole } from './core/theme'
-import { tasksDiff } from './core/summary'
+import { capDiff, tasksDiff } from './core/summary'
 import { styleSections } from './core/style'
 import { parsePullList, pullAction, PR_LIST_FIELDS } from './core/pulls'
 import { SKILL_MODELS, skillModelFor } from './core/skill-models'
@@ -784,7 +784,7 @@ function paneHeader(
       )
     }
     if (pane.tab === 'tasks' && Code !== undefined && stats?.tasksDiff !== undefined && stats.tasksDiff.dir === active?.dir) {
-      out.push(<Code source={stats.tasksDiff.text} format="diff" path={stats.tasksDiff.file} />)
+      out.push(<Code source={capDiff(stats.tasksDiff.text, currentLang())} format="diff" path={stats.tasksDiff.file} />)
     }
     // gstack's skills on the active feature, when gstack is installed (051).
     const Button = 'Button' in elements ? elements.Button : undefined
@@ -2298,7 +2298,7 @@ export const register: Register = (on, options) => {
         (pane.tab === 'specs'
           ? state.activeSummary === undefined ? 0 : state.activeSummary.split('\n').length + 2
           : pane.tab === 'tasks' && stats?.tasksDiff !== undefined && stats.tasksDiff.dir === state.active?.dir
-            ? stats.tasksDiff.text.split('\n').length
+            ? capDiff(stats.tasksDiff.text, currentLang()).split('\n').length
             : 0)
       const room = bodyRows - 1 - headerRows - (footerIn === 'status' ? 1 : 3)
       const { win, pad, nav } = navFor(rows.map(() => 1), room)

@@ -1,4 +1,5 @@
 // The active spec's summary for the pane (024 #7) and the turn's tasks.md diff (024 #8).
+import { t, type Lang } from './i18n'
 // Pure: no $. Never throws.
 
 const MAX_PARAGRAPH = 400
@@ -51,3 +52,11 @@ export const tasksDiff = (before: readonly TaskLine[], after: readonly TaskLine[
   })
   return hunks.length === 0 ? undefined : hunks.join('')
 }
+
+/** The last turn's tasks diff, at most 6 lines and a `+N lines` line (052 #19). */
+const DIFF_LINES = 6
+export const capDiff = (text: string, lang: Lang): string => {
+  const lines = text.split('\n')
+  return lines.length <= DIFF_LINES ? text : [...lines.slice(0, DIFF_LINES), t(lang, 'pane.diffMore', { n: lines.length - DIFF_LINES })].join('\n')
+}
+
