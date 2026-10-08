@@ -59,7 +59,7 @@ describe('the pane tabs (US1, US2)', () => {
   test('without Spec Kit the pane says so', async ($, on) => {
     await setup($ as never, on as never, noSpeckit)
     const ui = await mountPane($ as never, 'terminal')
-    expect(await ui.body()).toBe('This project does not use Spec Kit.')
+    expect((await ui.body()).endsWith('This project does not use Spec Kit.')).toBe(true)
     await ui.unmount()
   })
 })

@@ -1,6 +1,6 @@
 {
   "name": "astrolabe",
-  "version": "0.23.0",
+  "version": "0.24.0",
   "description": "Spec Kit progress and usage governance for Claude Code: a phase rail above the prompt, the next command in the prompt hint, the current task on the spinner, a /astrolabe pane, toasts, update buttons, and a status entry with your usage window.",
   "author": {
     "name": "Jony Santos"
@@ -82,6 +82,12 @@
       "title": "Ask before holding or pausing",
       "description": "When the governor queues a subagent or pauses Claude, ask you with a list of answers (queue, run now, lift for a while); the cautious default applies at once, and your answer changes it",
       "default": true
+    },
+    "accessible": {
+      "type": "boolean",
+      "title": "Accessible mode",
+      "description": "Text only: ASCII icons, charts as text, no hover styles, no animation and no pictures, for screen readers and plain terminals",
+      "default": false
     },
     "footerIn": {
       "type": "string",

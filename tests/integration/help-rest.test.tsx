@@ -1,0 +1,76 @@
+import { describe, expect, test } from 'claude-code/testing'
+
+import { scenario as halfDone } from '../fixtures/half-done'
+import { installEngine, installTree, startSession } from '../helpers/fake-fs'
+import { drawBand, installPaneEngine, installRenderEngine, mountPane } from '../helpers/render'
+
+// Spec 025, T004 to T008.
+type Found = { text: string; props: Record<string, unknown> } | undefined
+type Mounted = { find: (q: { key?: string; type?: string }) => Promise<Found>; drawn: () => Promise<unknown>; press: (q: { key: string }) => Promise<unknown>; unmount: () => Promise<void> }
+const mount = ($: never, component: string, props: unknown) =>
+  ($ as unknown as { ui: { mount: (t: never) => Promise<Mounted> } }).ui.mount({ plugin: 'astrolabe', surface: 'terminal', component, props } as never)
+
+const setup = async ($: never, on: never) => {
+  const session = installTree(on, halfDone.tree, '/proj')
+  installEngine(on)
+  installRenderEngine(on)
+  const pane = installPaneEngine(on)
+  await startSession($, '/proj')
+  return { session, pane }
+}
+
+describe('help, part two (025)', () => {
+  test('T004: hotkeys on the band: a opens the pane, n runs the next command, c copies it', async ($, on) => {
+    const { pane } = await setup($ as never, on as never)
+    const band = JSON.stringify((await drawBand($ as never, 'terminal', 120)).tree)
+    for (const key of ['a', 'n', 'c']) expect(band).toContain(`"hotkey":"${key}"`)
+    const ui = await mount($ as never, 'AbovePrompt', { hasSurvey: false, isWorking: false, maxRows: 10, bodyColumns: 120, scroll: { bodyRows: 9, top: 0 } })
+    await ui.press({ key: 'open-pane' })
+    expect(pane.opened.at(-1)).toEqual({ id: 'astrolabe', title: '🧭 Astrolabe', focus: true, closeOnEscape: true })
+    await ui.unmount()
+  })
+
+  test('T005: /astrolabe status answers in text, and draws as a rich row', async ($, on) => {
+    await setup($ as never, on as never)
+    const ran = (await $.command.run({ command: 'astrolabe', args: 'status' } as never)) as { text?: string }
+    expect(ran.text).toContain('◆ 002 band-hint: implement, 9/20 tasks (45%)')
+    expect(ran.text).toContain('next: /speckit-implement')
+    const ui = await mount($ as never, 'CommandOutput', { command: 'astrolabe', args: 'status', text: ran.text ?? '', isErrored: false })
+    expect(await ui.find({ key: 'astrolabe-status' })).toBeDefined()
+    await ui.unmount()
+  })
+
+  test('T006: an Edit that ticks a task names it under its row', async ($, on) => {
+    await setup($ as never, on as never)
+    const ui = await mount($ as never, 'ToolUse', {
+      tool_use_id: 'e1',
+      tool: 'Edit',
+      input: { file_path: '/proj/specs/002-band-hint/tasks.md', old_string: '- [ ] T010 task 10', new_string: '- [x] T010 task 10' },
+      isRunning: false,
+      isErrored: false,
+      isInterrupted: false,
+    })
+    expect((await ui.find({ key: 'astrolabe-ticked' }))?.text).toBe('  ↳ ticked T010 task 10')
+    await ui.unmount()
+  })
+
+  test('T007: a welcome card on the first run, gone for good once dismissed', async ($, on) => {
+    const { session } = await setup($ as never, on as never)
+    const ui = await mountPane($ as never, 'terminal', 100, 40)
+    expect(await ui.body()).toContain('/astrolabe help')
+    await ui.press('welcome-done')
+    expect(await ui.body()).not.toContain('/astrolabe help')
+    await ui.unmount()
+    expect(session.store.get('welcomed')).toBe(true)
+  })
+
+  test('T008: accessible mode draws text only', { options: { accessible: true } }, async ($, on) => {
+    await setup($ as never, on as never)
+    const band = JSON.stringify((await drawBand($ as never, 'terminal', 120)).tree)
+    expect(band).not.toContain('astrolabe-step-')
+    const ui = await mountPane($ as never, 'terminal', 100, 60)
+    await ui.press('tab-dashboard')
+    expect(await ui.body()).toContain('* implement')
+    await ui.unmount()
+  })
+})

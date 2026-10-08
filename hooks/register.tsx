@@ -46,6 +46,7 @@ import {
 } from './core/governor'
 import { FLAVORS, isThemeKeys, themeOf } from './core/theme'
 import { tasksDiff } from './core/summary'
+import { parseTasks } from './core/tasks-parser'
 import { chartImage, dialFrames, imagesFor } from './core/pixels'
 import { emptyMemo, type PaneState, type PaneTab, type UpdateId, type UpdateItem, type UpdatesState, type UsageState, type UsageReading, type QueuedAgent, type SessionStats, type GitState, type PullRequest, type SpeckitState } from './core/types'
 import type { Preset } from './core/presets'
@@ -79,6 +80,7 @@ const helpText = (lang: Lang): string =>
     `  /astrolabe                  ${t(lang, 'help.open')}`,
     `  /astrolabe help             ${t(lang, 'help.help')}`,
     `  /astrolabe next             ${t(lang, 'help.next')}`,
+    `  /astrolabe status           ${t(lang, 'help.status')}`,
     `  /astrolabe root <folder>    ${t(lang, 'help.root')}`,
     `  /astrolabe allow <90-99> <30m-12h>   ${t(lang, 'help.allow')}`,
     `  /astrolabe revoke           ${t(lang, 'help.revoke')}`,
@@ -87,7 +89,7 @@ const helpText = (lang: Lang): string =>
     `  2 ${t(lang, 'tab.tasks').padEnd(10)} ${t(lang, 'help.tasksTab')}`,
     `  3 ${t(lang, 'tab.session').padEnd(10)} ${t(lang, 'help.sessionTab')}`,
     `  4 ${t(lang, 'tab.dashboard').padEnd(10)} ${t(lang, 'help.dashboardTab')}`,
-    `${t(lang, 'help.options')} (preset, flavor, icons, language, checkUpdates, governUsage, askOnLimit, costBudget, pullRequest, images, autoReload, footerIn).`,
+    `${t(lang, 'help.options')} (preset, flavor, icons, language, checkUpdates, governUsage, askOnLimit, costBudget, pullRequest, images, autoReload, footerIn, accessible).`,
   ].join('\n')
 const ASK = { plugin: 'astrolabe', key: 'ask' } as const
 const DEFAULT_PANE: PaneState = { tab: 'specs', autoOpened: false }
@@ -202,6 +204,43 @@ async function readGit($: EngineInterface, root: string | undefined, branch: str
 
 let prRunning = false
 
+// The theme tokens, for drawings outside register's closure (025).
+let tokens0: ReturnType<typeof themeOf> = themeOf({})
+// The accessible mode (025 #48): ascii icons, text charts, no hover, no animation, no pictures.
+let accessible = false
+// Whether the person dismissed the welcome card (025 #47), read from $.store at session start.
+let welcomed = false
+const WELCOMED = 'welcomed'
+
+/**
+ * Opened on request: it takes the keys (1 to 4 at once) and Esc closes it. An unasked open never
+ * takes focus (Principle VII).
+ */
+async function openPane($: EngineInterface): Promise<void> {
+  await $.ui.open({ id: PANE_ID, title: PANE_TITLE, focus: true, closeOnEscape: true })
+}
+
+/** `/astrolabe status` (025 #42): the active feature, the next command and the footer, as text. */
+/** The tasks an edit ticks: unticked in the old text, ticked in the new (025 #43). */
+const tickedBy = (before: string, after: string): string[] => {
+  const was = new Map(parseTasks(before).map(task => [task.id ?? task.text, task.isDone]))
+  return parseTasks(after)
+    .filter(task => task.isDone && was.get(task.id ?? task.text) === false)
+    .map(task => `${task.id === undefined ? '' : `${task.id} `}${task.text}`)
+}
+
+const statusText = (state: SpeckitState, footer: string, lang: Lang): string => {
+  const feature = state.features.find(f => f.dir === state.active?.dir)
+  const lines = [
+    feature === undefined
+      ? t(lang, 'status.noActive')
+      : `◆ ${feature.id} ${feature.name}: ${feature.phase}${feature.total === 0 ? '' : `, ${feature.done}/${feature.total} tasks (${Math.floor((feature.done * 100) / feature.total)}%)`}`,
+    ...(state.nextCommand === undefined ? [] : [`${t(lang, 'status.next')}: ${state.nextCommand}`]),
+    footer,
+  ]
+  return lines.join('\n\n')
+}
+
 // Whether the plugins reload by themselves when a new version lands on disk (034).
 let autoReload = true
 // The version on disk this module last acted on, so one version reloads at most once (034).
@@ -264,6 +303,28 @@ function paneHeader(
   const active = state.active
   if (pane.tab === 'specs') {
     const out: RenderNode[] = []
+    if (!welcomed && pane.welcomed !== true) {
+      const { Box, Text, Button } = elements
+      const lang = currentLang()
+      out.push(
+        <Box key="astrolabe-welcome" flexDirection="column">
+          <Text color={tokens0.accent}>{t(lang, 'welcome.title')}</Text>
+          <Text>{t(lang, 'welcome.band')}</Text>
+          <Text>{t(lang, 'welcome.keys')}</Text>
+          <Text>{t(lang, 'welcome.help')}</Text>
+          <Button
+            key="welcome-done"
+            label={t(lang, 'welcome.done')}
+            onPress={async () => {
+              welcomed = true
+              await $.store.set(WELCOMED, true).catch(() => undefined)
+              const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
+              await $.state.set(PANE_STATE, { ...held, welcomed: true })
+            }}
+          />
+        </Box>,
+      )
+    }
     if (Input !== undefined) {
       // Each keystroke filters; Enter keeps the text the same way.
       const setFilter = async (value: string) => {
@@ -986,6 +1047,7 @@ async function gate($: GateArgs[0], e: GateArgs[1], next: GateArgs[2]): Promise<
 export const register: Register = (on, options) => {
   const preset = presetOf(options)
   const tokens = themeOf(options)
+  tokens0 = tokens
   // Whether the last band draw saw a fullscreen terminal of 144 columns or more. The pane
   // never opens unasked below that (Principle VII); session.start reports no width.
   let isWide = false
@@ -994,7 +1056,8 @@ export const register: Register = (on, options) => {
   asks = governs && options['askOnLimit'] !== false
   pullRequests = options['pullRequest'] === true
   budget = typeof options['costBudget'] === 'number' && options['costBudget'] > 0 ? options['costBudget'] : 0
-  iconsOption = options['icons']
+  accessible = options['accessible'] === true
+  iconsOption = accessible ? 'ascii' : options['icons']
   footerIn = options['footerIn'] === 'status' || options['footerIn'] === 'both' ? options['footerIn'] : 'pane'
   autoReload = options['autoReload'] !== false
   imagesOption = options['images']
@@ -1030,6 +1093,7 @@ export const register: Register = (on, options) => {
     const now = await $.clock.now()
     const started = await guarded($, previous => reconcileStart(fs, e.cwd, previous, now))
     await afterReconcile($, preset, started)
+    welcomed = (await $.store.get(WELCOMED).catch(() => undefined)) === true
     // The baseline for the next turn's tasks diff, and the theme's lightness for the charts (024).
     turnTasks = started?.state.active === undefined || started.state.activeTasks === undefined ? undefined : { dir: started.state.active.dir, tasks: started.state.activeTasks }
     try {
@@ -1223,6 +1287,37 @@ export const register: Register = (on, options) => {
     return result
   }).catch(($, e, next) => next(e))
 
+  // `/astrolabe status` as a rich row (025 #42): the band above the text.
+  on('ui.render', { component: 'CommandOutput' }, async ($, e, next) => {
+    if (e.props.command !== 'astrolabe' || e.props.args.trim() !== 'status' || e.props.isErrored) return next(e)
+    const { value } = await $.state.get(SPECKIT)
+    const segments = value === undefined ? [] : bandSegments(value, 100)
+    const { Box, Text } = $.ui.resolve(e)
+    return (
+      <Box key="astrolabe-status" flexDirection="column">
+        {segments.length > 0 && bandRow({ Box, Text }, segments, tokens, [], false)}
+        {await next(e)}
+      </Box>
+    )
+  })
+
+  // An Edit that ticks tasks names them under its row (025 #43).
+  on('ui.render', { component: 'ToolUse' }, async ($, e, next) => {
+    const input = e.props.input as { file_path?: unknown; old_string?: unknown; new_string?: unknown } | undefined
+    if (e.props.tool !== 'Edit' || e.props.isErrored || typeof input?.file_path !== 'string' || !/(^|\/)(tasks|spec)\.md$/.test(input.file_path)) return next(e)
+    const ticked = typeof input.old_string === 'string' && typeof input.new_string === 'string' ? tickedBy(input.old_string, input.new_string) : []
+    if (ticked.length === 0) return next(e)
+    const { Box, Text } = $.ui.resolve(e)
+    return (
+      <Box flexDirection="column">
+        {await next(e)}
+        <Box key="astrolabe-ticked">
+          <Text color={tokens.done} wrap="truncate-end">{`  ↳ ${t(currentLang(), 'ticked', { tasks: ticked.join(', ') })}`}</Text>
+        </Box>
+      </Box>
+    )
+  })
+
   // Drawing reads only $.state (Principle XII); a reconcile's write redraws these sites.
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     columnsSeen = e.viewport?.columns ?? columnsSeen
@@ -1247,7 +1342,7 @@ export const register: Register = (on, options) => {
     const press = (key: string) => runUpdate($, key.replace(/^update-/, '') as UpdateId)
     return (
       <Box flexDirection="column">
-        {segments.length > 0 && bandRow({ Box, Text }, segments, tokens, stepCards(value?.features ?? [], currentLang()))}
+        {segments.length > 0 && bandRow({ Box, Text }, segments, tokens, accessible ? [] : stepCards(value?.features ?? [], currentLang()), !accessible)}
         {command !== undefined &&
           nextRow(
             { Box, Text, Button },
@@ -1256,7 +1351,8 @@ export const register: Register = (on, options) => {
             () => runNext($, command),
             surface => copyNext($, command, surface),
             e.props.bodyColumns,
-            { next: t(currentLang(), 'status.next'), copy: t(currentLang(), 'next.copy') },
+            { next: t(currentLang(), 'status.next'), copy: t(currentLang(), 'next.copy'), pane: t(currentLang(), 'next.pane') },
+            () => openPane($),
           )}
         {buttons.length > 0 && updatesRow({ Box, Text, Button }, buttons, tokens, press, e.props.bodyColumns, () => hideUpdates($), t(currentLang(), 'updates.hide'))}
         {await next(e)}
@@ -1302,6 +1398,11 @@ export const register: Register = (on, options) => {
       if (held?.state.root === undefined) return { text: t(currentLang(), 'root.none', { path: target }) }
       return { text: t(currentLang(), 'root.switched', { root: held.state.root }) }
     }
+    if (args === 'status') {
+      const state = (await $.state.get(SPECKIT)).value
+      if (state === undefined) return { text: t(currentLang(), 'status.none') }
+      return { text: statusText(state, footerText(await footerInput($, state, 200)), currentLang()) }
+    }
     if (args === 'next') {
       const command = (await $.state.get(SPECKIT)).value?.nextCommand
       if (command === undefined) return { text: t(currentLang(), 'next.none') }
@@ -1324,9 +1425,7 @@ export const register: Register = (on, options) => {
       if (speckit !== undefined) await showStatus($, speckit)
       return { text: `🧭 stop and ceiling raised to ${parsed.allow.target}% until ${clockOf(new Date(now + parsed.allow.ms).toISOString())}; new subagents still wait from 80%` }
     }
-    // Opened on request: it takes the keys (1, 2, 3 at once) and Esc closes it. An unasked
-    // open never takes focus (Principle VII).
-    await $.ui.open({ id: PANE_ID, title: PANE_TITLE, focus: true, closeOnEscape: true })
+    await openPane($)
     return { text: 'Astrolabe pane opened.' }
   })
 

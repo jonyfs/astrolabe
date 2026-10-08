@@ -12,13 +12,15 @@ export const bandRow = (
   tokens: Tokens,
   /** One card per rail step, shown while the pointer is on that step (024 #10). */
   cards: ReadonlyArray<{ step: string; text: string }> = [],
+  /** Off in the accessible mode (025 #48): no hover styles, no cards. */
+  hover = true,
 ) => {
   const steps = new Set(segments.map(stepOf).filter(s => s !== undefined))
   const row = (
     <Box key="astrolabe-band" flexDirection="row">
       {segments.map(segment => {
         const step = stepOf(segment)
-        return step === undefined ? (
+        return step === undefined || !hover ? (
           <Text color={tokens[segment.role]} wrap="truncate-end">
             {segment.text}
           </Text>
@@ -30,7 +32,7 @@ export const bandRow = (
       })}
     </Box>
   )
-  const shown = cards.filter(card => steps.has(card.step as never))
+  const shown = hover ? cards.filter(card => steps.has(card.step as never)) : []
   if (shown.length === 0) return row
   return (
     <Box flexDirection="column">
@@ -79,12 +81,16 @@ export const nextRow = (
   onRun: () => Promise<void>,
   onCopy: (surface: string) => Promise<void>,
   columns: number,
-  labels: { next: string; copy: string },
+  labels: { next: string; copy: string; pane: string },
+  /** Opens the pane (025 #41): `a` once the band has the focus (ctrl+x tab). */
+  onOpen?: () => Promise<void>,
 ) => (
   <Box key="astrolabe-next" flexDirection="row">
     <Text color={tokens.muted}>{`${labels.next}: `}</Text>
-    <Button key="next-run" label={`▶ ${command}`} onPress={() => onRun()} />
+    <Button key="next-run" label={`▶ ${command}`} hotkey="n" onPress={() => onRun()} />
     {columns >= 60 && <Text> </Text>}
-    {columns >= 60 && <Button key="next-copy" label={labels.copy} onPress={press => onCopy(press.surface)} />}
+    {columns >= 60 && <Button key="next-copy" label={labels.copy} hotkey="c" onPress={press => onCopy(press.surface)} />}
+    {onOpen !== undefined && columns >= 70 && <Text> </Text>}
+    {onOpen !== undefined && columns >= 70 && <Button key="open-pane" label={labels.pane} hotkey="a" onPress={() => onOpen()} />}
   </Box>
 )
