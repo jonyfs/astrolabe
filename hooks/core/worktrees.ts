@@ -38,3 +38,16 @@ export const worktreeState = (w: { path?: string; changed?: number; merged?: tru
     ...(w.changed !== undefined && w.changed > 0 ? [`${w.changed} uncommitted`] : []),
     ...(w.merged === true && w.path !== undefined ? [`merged · git worktree remove ${plainText(w.path, 200)}`] : []),
   ].map(part => `  · ${part}`).join('')
+
+/**
+ * A feature's progress counting the worktrees that work on it (054 #55): a worktree with more of the
+ * same task list ticked lends its count. A different total means a different list, so it is left alone.
+ */
+export const withWorktreeProgress = <F extends { id: string; done: number; total: number }>(
+  features: readonly F[],
+  worktrees: ReadonlyArray<{ id: string; done: number; total: number }> | undefined,
+): F[] =>
+  features.map(f => {
+    const best = (worktrees ?? []).filter(w => w.id === f.id && w.total === f.total && w.done > f.done).reduce((m, w) => Math.max(m, w.done), f.done)
+    return best === f.done ? f : { ...f, done: best }
+  })

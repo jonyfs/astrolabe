@@ -3,7 +3,7 @@ import { describe, expect, test } from 'claude-code/testing'
 import { featureJson, project, RATIFIED, spec, tasks } from '../fixtures/build'
 import { completeTurn, installEngine, installTree, startSession } from '../helpers/fake-fs'
 import { installPaneEngine, installRenderEngine, mountPane } from '../helpers/render'
-import { featureDirFor, mergedBranches, parseWorktrees, uncommittedCount, worktreeState } from '../../hooks/core/worktrees'
+import { featureDirFor, mergedBranches, parseWorktrees, uncommittedCount, withWorktreeProgress, worktreeState } from '../../hooks/core/worktrees'
 
 // Spec 037: the Specs tab shows the features the repository's other worktrees work on.
 const WORKTREES = 'git worktree list --porcelain'
@@ -60,5 +60,12 @@ describe('worktree specs (037)', () => {
     const ui = await mountPane($ as never, 'terminal', 140, 40)
     expect(await ui.body()).toContain('⑂ dev  ◐ 026 claude-context  implement 1/3  · 1 uncommitted  · merged · git worktree remove /wt/dev')
     await ui.unmount()
+  })
+
+  test('054 #55: a worktree with more of the same tasks ticked lends its count to the feature', () => {
+    const features = [{ id: '026', done: 1, total: 3 }, { id: '027', done: 2, total: 5 }]
+    const worktrees = [{ id: '026', done: 2, total: 3 }, { id: '027', done: 4, total: 6 }]
+    expect(withWorktreeProgress(features, worktrees)).toEqual([{ id: '026', done: 2, total: 3 }, { id: '027', done: 2, total: 5 }])
+    expect(withWorktreeProgress(features, undefined)).toEqual(features)
   })
 })
