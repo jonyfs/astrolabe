@@ -18,11 +18,11 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 ### Speed and efficiency
 
 - [ ] T001 #1 One `$.state` read per render: the Pane handler reads SPECKIT, SESSION, USAGE and PANE once and passes them down (P1)
-- [ ] T002 #2 The help text built once per language and option set, not on every render (P2)
+- [x] T002 #2 The help text built once per language and option set, not on every render (P2)
 - [ ] T003 #3 `specsRows` for an unchanged state and width memoized by memo version (P2)
 - [ ] T004 #4 The worktree refresh skips worktrees whose HEAD did not move since the last read (P2)
 - [x] T005 #5 `reconcileNow` after a Bash command only when the command can touch specs, `.specify` or the branch (`git`, `mv`, `cp`, `rm`, `mkdir`, `bash .specify/…`) (P1)
-- [ ] T006 #6 The PR list cached for 60 s across tab switches (P2)
+- [x] T006 #6 The PR list cached for 60 s across tab switches (P2)
 - [ ] T007 #7 The dial frames computed once per phase, not per render (P3)
 - [ ] T008 #8 `flushStats` merges writes within one tool call into one state write (P2)
 - [ ] T009 #9 The usage chart grid reused when the series and size did not change (P3)

@@ -244,6 +244,8 @@ export type SessionStats = {
   /** The repository's open pull requests for the PRs tab (032), and when they were read. */
   pulls?: {
     at: number
+    /** Why the last `gh pr list` gave nothing (054 #14). */
+    error?: string
     rows: Array<{
       number: number
       title: string
