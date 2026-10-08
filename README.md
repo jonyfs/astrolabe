@@ -316,7 +316,14 @@ Astrolabe's own store; nothing is written in the project.
 The answer lands in the Session tab under `review`, and a toast says when. Only you can start
 it, by typing the command, since it costs that model's tokens.
 
-When gstack is installed, the Specs tab draws a row of its skills above the active feature's
+`/astrolabe advisor` (or `/astrolabe advisor 3`) asks Claude to review the spec with its advisor:
+Claude reads `spec.md`, `plan.md` and `tasks.md`, calls the advisor, reports what it finds and
+proposes changes without editing anything. A mod cannot call the advisor itself, since the API
+runs it inside Claude's own request, so this takes one turn. The `advisor review` button above
+the active feature's summary does the same, and the Session tab counts the advisor's runs this
+session. Only you can start it.
+
+When gstack is installed, that row also holds its skills, above the active feature's
 summary: `investigate`, `review`, `health`, `qa-only` and `retro`. A press runs that skill with
 the active feature named in its arguments.
 

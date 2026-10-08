@@ -254,3 +254,21 @@ describe('the status filter (054 #21)', () => {
     await ui.unmount()
   })
 })
+
+describe('the advisor reviews a spec (055)', () => {
+  test('/astrolabe advisor asks Claude to call its advisor on the spec, from the composer only; the Specs tab has a button', async ($, on) => {
+    const { session } = await setup($ as never, on as never)
+    const fromClaude = (await $.command.run({ command: 'astrolabe', args: 'advisor' } as never)) as { text: string }
+    expect(fromClaude.text).toContain('Only you can start an advisor review')
+    const ran = (await $.command.run({ command: 'astrolabe', args: 'advisor 2', origin: { kind: 'composer' } } as never)) as { text: string }
+    expect(ran.text).toBe('🧭 asking Claude to have the advisor review 002 band-hint')
+    await session.clock.settle()
+    expect(session.submitted.at(-1)).toContain('specs/002-band-hint/spec.md')
+    expect(session.submitted.at(-1)).toContain('call the advisor tool')
+    const ui = await mountPane($ as never, 'terminal', 100, 40)
+    await ui.press('advisor-review')
+    await session.clock.settle()
+    expect(session.submitted.filter(t => t.includes('call the advisor tool'))).toHaveLength(2)
+    await ui.unmount()
+  })
+})
