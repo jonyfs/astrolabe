@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import { addWeek, estimateLeft, slowest, weekKey } from '../../hooks/core/history'
+import { addWeek, estimateLeft, pastReset, slowest, weekKey } from '../../hooks/core/history'
 
 describe('time per task and the estimate (021 #17, #18)', () => {
   const times = [
@@ -31,5 +31,19 @@ describe('weeks (021 #23)', () => {
     for (let w = 1; w <= 20; w += 1) h = addWeek(h, `2027-W${String(w).padStart(2, '0')}`, 1, 0)
     expect(Object.keys(h).length).toBe(12)
     expect(h['2026-W41']).toBeUndefined()
+  })
+})
+
+describe('pastReset (045 #50)', () => {
+  const times = [{ dir: 'd', id: 'T001', ms: 30 * 60_000 }]
+  const NOW = Date.UTC(2026, 9, 7, 12)
+  test('the time left when the open tasks end after the reset', () => {
+    expect(pastReset(times, 'd', 11, new Date(NOW + 3_600_000).toISOString(), NOW)).toBe(11 * 30 * 60_000)
+  })
+  test('nothing when they end before it, or with no pace or reset', () => {
+    expect(pastReset(times, 'd', 1, new Date(NOW + 3_600_000).toISOString(), NOW)).toBeUndefined()
+    expect(pastReset([], 'd', 11, new Date(NOW + 3_600_000).toISOString(), NOW)).toBeUndefined()
+    expect(pastReset(times, 'd', 11, undefined, NOW)).toBeUndefined()
+    expect(pastReset(times, 'd', 11, new Date(NOW - 1).toISOString(), NOW)).toBeUndefined()
   })
 })

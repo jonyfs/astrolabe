@@ -4,11 +4,13 @@ import type { Task } from './types'
 const CHECKBOX = /^\s*[-*]\s+\[( |x|X)\]\s+(.*)$/
 const FENCE = /^\s*(```|~~~)/
 const ID = /^\**(T\d+)\**[:.]?(?=\s|$)/
+const HEADING = /^#{2,4}\s+(.+?)\s*#*$/
 
 export const parseTasks = (text: string): Task[] => {
   const tasks: Task[] = []
   let fence: string | undefined
   let hasId = false
+  let story: string | undefined
   const lines = text.split('\n')
   for (let index = 0; index < lines.length; index += 1) {
     const raw = lines[index] ?? ''
@@ -20,6 +22,11 @@ export const parseTasks = (text: string): Task[] => {
         continue
       }
     }
+    if (fence === undefined && raw.startsWith('#')) {
+      const heading = HEADING.exec(raw.trimEnd())?.[1]
+      if (heading !== undefined) story = heading
+      continue
+    }
     if (fence !== undefined || !raw.includes('[')) continue
     const match = CHECKBOX.exec(raw.endsWith('\r') ? raw.slice(0, -1) : raw)
     if (!match) continue
@@ -27,10 +34,10 @@ export const parseTasks = (text: string): Task[] => {
     const idMatch = rest.startsWith('T') || rest.startsWith('*') ? ID.exec(rest) : null
     const isDone = match[1] !== ' '
     if (idMatch === null) {
-      tasks.push({ text: rest, isDone, line: index + 1 })
+      tasks.push({ text: rest, isDone, line: index + 1, ...(story === undefined ? {} : { story }) })
     } else {
       hasId = true
-      tasks.push({ id: idMatch[1] ?? '', text: rest.slice(idMatch[0].length).trim(), isDone, line: index + 1 })
+      tasks.push({ id: idMatch[1] ?? '', text: rest.slice(idMatch[0].length).trim(), isDone, line: index + 1, ...(story === undefined ? {} : { story }) })
     }
   }
   return hasId ? tasks.filter(t => t.id !== undefined) : tasks

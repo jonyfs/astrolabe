@@ -18,6 +18,8 @@ export type Task = {
   isDone: boolean
   /** 1-based line number in tasks.md. */
   line: number
+  /** The heading the task sits under, such as `Phase 3: User Story 1` (045 #44). */
+  story?: string
 }
 
 /** What was read from disk for one `specs/NNN-<name>/` directory. */
@@ -140,7 +142,7 @@ export type SpeckitState = {
   /** Extension hooks before and after the next command (020c). */
   nextHooks?: { before: string[]; after: string[] }
   /** The active feature's tasks, for the pane (the memo stays out of every drawing). */
-  activeTasks?: Array<{ id?: string; text: string; isDone: boolean; line?: number }>
+  activeTasks?: Array<{ id?: string; text: string; isDone: boolean; line?: number; story?: string }>
   /** The feature the git branch names, when one does (044), to catch a stale feature.json. */
   branchFeature?: string
   /** The active spec's summary as markdown (024). */

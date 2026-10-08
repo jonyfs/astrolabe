@@ -145,3 +145,4 @@ describe('pane navigation (043)', () => {
     await ui.unmount()
   })
 })
+

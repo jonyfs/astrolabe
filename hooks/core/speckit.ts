@@ -61,7 +61,7 @@ export const deriveSpeckitState = (
       : parseTasks(activeFiles.tasks).map((t, i) => {
           // Quick specs keep their tasks in spec.md: the line is the one there (024).
           const line = activeFiles.taskLines?.[i] ?? t.line
-          return { ...(t.id === undefined ? {} : { id: t.id }), text: t.text, isDone: t.isDone, ...(line === undefined ? {} : { line }) }
+          return { ...(t.id === undefined ? {} : { id: t.id }), text: t.text, isDone: t.isDone, ...(line === undefined ? {} : { line }), ...(t.story === undefined ? {} : { story: t.story }) }
         })
   const activeSummary = activeFiles === undefined ? undefined : activeFiles.compact === true ? activeFiles.summary : activeFiles.spec === undefined ? undefined : specSummary(activeFiles.spec)
   const activeDocs =

@@ -19,6 +19,14 @@ export const estimateLeft = (times: readonly TaskTime[], dir: string, open: numb
   return Math.round(own.reduce((sum, t) => sum + t.ms, 0) / own.length) * open
 }
 
+/** When the open tasks, at the feature's pace, end after the window's reset (045 #50): the time left, else undefined. */
+export const pastReset = (times: readonly TaskTime[], dir: string, open: number, resetsAt: string | undefined, now: number): number | undefined => {
+  const left = estimateLeft(times, dir, open)
+  const reset = resetsAt === undefined ? Number.NaN : Date.parse(resetsAt)
+  if (left === undefined || Number.isNaN(reset) || reset <= now || now + left <= reset) return undefined
+  return left
+}
+
 /** The ISO 8601 week of a time, as `2026-W41` (weeks start on Monday, in UTC). */
 export const weekKey = (at: number): string => {
   const d = new Date(at)

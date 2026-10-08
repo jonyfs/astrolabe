@@ -63,7 +63,7 @@ import { bandRow, nextRow, updatesRow } from './surfaces/band'
 import { askTree } from './surfaces/ask'
 import { dashboardSections, dashboardTree } from './surfaces/dashboard'
 import { burnRate, dial, kpiChips, kpiRows, phaseBars, sparkline, usageChart } from './core/dashboard'
-import { addWeek, estimateLeft, slowest, weekKey, type Weeks } from './core/history'
+import { addWeek, estimateLeft, pastReset, slowest, weekKey, type Weeks } from './core/history'
 import { footerChips, footerText, type FooterInput } from './core/footer'
 import { parseGitStatus, parsePullRequest } from './core/git-status'
 import { iconSet, iconsFor } from './core/icons'
@@ -1146,6 +1146,17 @@ function historyRows(stats: SessionStats, feature: { dir: string; done: number; 
   return rows
 }
 
+/** A warning when the open tasks, at this feature's pace, run past the 5h reset (045 #50). */
+async function pastResetRows($: EngineInterface, state: Held['state']): Promise<Array<{ key: string; text: string; role: 'current' }>> {
+  const feature = state.features.find(f => f.dir === state.active?.dir)
+  const stats = (await $.state.get(SESSION)).value
+  const window = ((await $.state.get(USAGE)).value ?? DEFAULT_USAGE).readings.find(r => r.kind === 'five_hour')
+  if (feature === undefined || stats === undefined || window?.resetsAt === undefined) return []
+  const left = pastReset(stats.taskTimes ?? [], feature.dir, feature.total - feature.done, window.resetsAt, await $.clock.now())
+  if (left === undefined) return []
+  return [{ key: 'past-reset', text: t(currentLang(), 'tasks.pastReset', { time: minutes(left), n: feature.total - feature.done, at: clockOf(window.resetsAt) ?? '' }), role: 'current' }]
+}
+
 /** One line of the governor's history (021): what it asked, what was answered, when it resumed. */
 async function logGovernor($: EngineInterface, text: string): Promise<void> {
   const at = await $.clock.now()
@@ -1878,7 +1889,7 @@ export const register: Register = (on, options) => {
             .split('\n')
             .map((text, i) => ({ key: `help-${i}`, text, role: (i === 0 || !text.startsWith(' ') ? 'accent' : 'text') as 'accent' | 'text' }))
         : pane.tab === 'tasks'
-        ? taskRows(state, emptyMemo(), 1000, columns, currentLang(), await $.clock.now())
+        ? [...taskRows(state, emptyMemo(), 1000, columns, currentLang(), await $.clock.now()), ...(await pastResetRows($, state))]
         : pane.tab === 'session'
           ? [
               ...sessionRows(state, await $.clock.now(), currentLang()),
