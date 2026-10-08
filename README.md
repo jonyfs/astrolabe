@@ -499,7 +499,7 @@ list again.
 ![The pane, Session tab](docs/images/pane-session.svg)
 
 `chosen by` is how the active feature was picked (`feature.json`, `branch` or `latest`).
-`analyzed` says whether `/speckit-analyze` ran in this session. `hooks before` and `hooks after`
+`analyzed` says whether `/speckit-analyze` ran in this session on the current `tasks.md`. Ticking a task keeps it; adding, removing or rewording a task sets it back to `no` until analyze runs again. `hooks before` and `hooks after`
 list the Spec Kit extension hooks (`.specify/extensions.yml`) around the next command. In a
 folder with several Spec Kit projects under it, `other roots` names them, and
 `/astrolabe root <folder>` reads one of them as the session's project.

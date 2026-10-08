@@ -6,6 +6,13 @@ const FENCE = /^\s*(```|~~~)/
 const ID = /^\**(T\d+)\**[:.]?(?=\s|$)/
 const HEADING = /^#{2,4}\s+(.+?)\s*#*$/
 
+/** The task list without its ticks (054 #59): changes when a task is added, removed or reworded, not when one is ticked. */
+export const tasksFingerprint = (text: string | undefined): string => {
+  let hash = 5381
+  for (const t of parseTasks(text ?? '')) for (const ch of `${t.id ?? ''} ${t.text}\n`) hash = ((hash * 33) ^ ch.charCodeAt(0)) >>> 0
+  return hash.toString(36)
+}
+
 export const parseTasks = (text: string): Task[] => {
   const tasks: Task[] = []
   let fence: string | undefined

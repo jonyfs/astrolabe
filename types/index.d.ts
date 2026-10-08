@@ -101,6 +101,8 @@ export type SessionMemo = {
   files: Record<string, FeatureFiles>
   /** Feature dirs for which speckit-analyze ran this session. */
   analyzed: string[]
+  /** Each analyzed feature's task fingerprint when analyze ran (054 #59); a changed tasks.md clears the flag. */
+  analyzedTasks?: Record<string, string>
   runningSkill?: { name: string; step: Step }
   /** Feature dirs a tool call touched during the current turn. */
   touched: string[]
