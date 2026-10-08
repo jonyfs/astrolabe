@@ -304,6 +304,23 @@ preset shows none of this.
 The row's buttons have keys once the band has the keyboard (ctrl+x tab, or a click): `n` runs
 the next command, `c` copies it, and `a` opens the `/astrolabe` pane (from 70 columns).
 
+### Acting on a spec
+
+`/astrolabe priority 3 high` (or `normal`, `low`) orders a spec within its section of the Specs
+tab: high ones first with `↑` before the id, low ones last with `↓`. On the Specs tab, `p`
+cycles the active spec through normal, high and low. Priorities are kept per project in
+Astrolabe's own store; nothing is written in the project.
+
+`/astrolabe review` (or `/astrolabe review 3`) sends the spec's `spec.md`, `plan.md` and
+`tasks.md`, with the names of the constitution's principles, to a stronger model (`opus`, effort
+`xhigh`) and asks for at most 10 findings: what is missing, ambiguous, inconsistent or risky.
+The answer lands in the Session tab under `review`, and a toast says when. Only you can start
+it, by typing the command, since it costs that model's tokens.
+
+When gstack is installed, the Specs tab draws a row of its skills above the active feature's
+summary: `investigate`, `review`, `health`, `qa-only` and `retro`. A press runs that skill with
+the active feature named in its arguments.
+
 `/astrolabe doctor` checks what Astrolabe needs and prints the fix next to anything missing:
 
 ```text

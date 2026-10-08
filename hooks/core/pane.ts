@@ -3,6 +3,7 @@ import { t as tr, type Lang } from './i18n'
 import { formatElapsed, cleanTaskText } from './spinner'
 import { parallelTasks } from './extensions'
 import { fileUrl } from './paths'
+import { byPriority, priorityMark, type Priorities, type Priority } from './spec-actions'
 import { parseTasks } from './tasks-parser'
 import type { ThemeRole } from './theme'
 import type { Feature, SessionMemo, SpeckitState } from './types'
@@ -19,12 +20,13 @@ const cut = (text: string, room: number): string =>
 const markOf = (f: Feature): string => (f.phase === 'done' ? '●' : f.phase === 'abandoned' ? '○' : '◐')
 
 /** What a row shows besides the feature: the name column's width and the skill running on it (044). */
-type RowContext = { nameWidth: number; countWidth: number; running?: string }
+type RowContext = { nameWidth: number; countWidth: number; running?: string; priority?: Priority }
 
 const featureRow = (f: Feature, isActive: boolean, columns: number, ctx: RowContext): PaneRow => {
   // Not read yet in a large project (040): a mark and no phase until its batch lands.
   if (f.warnings.includes('loading')) return { key: `feature-${f.id}`, text: `${isActive ? '▸' : ' '} … ${f.id} ${f.name}`, role: 'muted', dim: true }
-  const head = `${isActive ? '▸' : ' '} ${markOf(f)} ${f.id} `
+  // `↑` high, `↓` low in the space before the id (051).
+  const head = `${isActive ? '▸' : ' '} ${markOf(f)}${priorityMark(ctx.priority)}${f.id} `
   const percent = f.total > 0 ? `${Math.floor((f.done * 100) / f.total)}%`.padStart(4) : ''
   const count = f.total > 0 ? `${f.done}/${f.total}`.padStart(ctx.countWidth) : ''
   const filled = f.total > 0 ? Math.floor((f.done * BAR_CELLS) / f.total) : 0
@@ -62,7 +64,7 @@ const WARNING_TEXT = {
   'feature-json-malformed': 'pane.jsonMalformed',
 } as const
 
-export const specsRows = (state: SpeckitState, columns: number, lang: Lang = 'en'): PaneRow[] => {
+export const specsRows = (state: SpeckitState, columns: number, lang: Lang = 'en', priorities: Priorities = {}): PaneRow[] => {
   if (!state.present) return [noSpeckit(lang)]
   if (state.features.length === 0) return [{ key: 'empty', text: tr(lang, 'pane.noFeatures'), role: 'muted' }]
   const activeDir = state.active?.dir
@@ -74,11 +76,12 @@ export const specsRows = (state: SpeckitState, columns: number, lang: Lang = 'en
   const rows: PaneRow[] = []
   // Sections by status (044), each only when it has features.
   for (const section of ['progress', 'next', 'done', 'abandoned'] as const) {
-    const inSection = state.features.filter(f => sectionOf(f, activeDir) === section)
+    // Within a section, high priority first and low last (051).
+    const inSection = byPriority(state.features.filter(f => sectionOf(f, activeDir) === section), priorities)
     if (inSection.length === 0) continue
     rows.push({ key: `section-${section}`, text: `${tr(lang, `pane.section.${section}`)} (${inSection.length})`, role: 'muted' })
     for (const f of inSection) {
-      const row = featureRow(f, activeDir === f.dir, columns - 2, { ...ctx, ...(running !== undefined && f.dir === activeDir ? { running } : {}) })
+      const row = featureRow(f, activeDir === f.dir, columns - 2, { ...ctx, ...(running !== undefined && f.dir === activeDir ? { running } : {}), ...(priorities[f.id] === undefined ? {} : { priority: priorities[f.id] }) })
       // A link to the feature's spec.md (044 #35).
       const root = state.root
       rows.push(root === undefined || f.warnings.includes('loading') ? row : { ...row, href: fileUrl(`${root}/specs/${f.dir}/spec.md`) })

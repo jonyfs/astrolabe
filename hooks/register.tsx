@@ -21,6 +21,7 @@ import {
   updateLabel,
 } from './core/updates'
 import { fileUrl, joinPath } from './core/paths'
+import { GSTACK_SKILLS, nextPriority, parsePriority, REVIEW_MODEL, reviewPrompt, withPriority, type Priority } from './core/spec-actions'
 import { CHANGES, VERSION } from './core/version'
 import {
   ASK_MS,
@@ -116,6 +117,8 @@ const helpText = (lang: Lang): string =>
     `  /astrolabe revoke           ${t(lang, 'help.revoke')}`,
     `  /astrolabe run <id>         ${t(lang, 'help.run')}`,
     `  /astrolabe doctor           ${t(lang, 'help.doctor')}`,
+    `  /astrolabe priority <id> <high|normal|low>   ${t(lang, 'help.priority')}`,
+    `  /astrolabe review [id]      ${t(lang, 'help.review')}`,
     t(lang, 'help.tabs'),
     `  1 ${t(lang, 'tab.specs').padEnd(10)} ${t(lang, 'help.specs')}`,
     `  2 ${t(lang, 'tab.tasks').padEnd(10)} ${t(lang, 'help.tasksTab')}`,
@@ -577,6 +580,43 @@ const principlesOf = (text: string): string[] => {
 }
 
 /** `/astrolabe ask` (026 #54): one question over the session's own transcript, answered in a toast. */
+/** Runs one of gstack's skills on a feature (051), from a timer: a command does not run inside a render. */
+async function runSkill($: EngineInterface, skill: string, about: string): Promise<void> {
+  await $.command.run({ command: skill, args: `Spec Kit feature ${about}` }).catch((error: unknown) => {
+    $.ui.toast(t(currentLang(), 'gstack.failed', { skill }))
+    $.ui.log(`astrolabe: ${error instanceof Error ? error.message : String(error)}`, { to: 'debug' })
+  })
+}
+
+/** Sets a spec's priority in this project's store and the session (051). */
+async function setPriority($: EngineInterface, id: string, level: Priority): Promise<string> {
+  const state = (await $.state.get(SPECKIT)).value
+  const feature = state?.features.find(f => f.id === id)
+  if (state?.root === undefined || feature === undefined) return t(currentLang(), 'priority.none', { id })
+  const map = withPriority((await $.state.get(SESSION)).value?.priorities ?? {}, id, level)
+  await $.store.set(`priority:${state.root}`, map).catch(() => undefined)
+  await flushStats($, st => ({ ...st, priorities: map }))
+  return t(currentLang(), 'priority.set', { feature: `${feature.id} ${feature.name}`, level })
+}
+
+/** The deep review (051): spec, plan and tasks to a stronger model; the findings to the Session tab. */
+async function deepReview($: EngineInterface, feature: { dir: string; id: string; name: string }): Promise<void> {
+  try {
+    const root = (await $.state.get(SPECKIT)).value?.root
+    if (root === undefined) return
+    const fs = fsOf($)
+    const read = (file: string) => fs.read(`${root}/specs/${feature.dir}/${file}`).catch(() => '')
+    const [spec, plan, tasks] = await Promise.all([read('spec.md'), read('plan.md'), read('tasks.md')])
+    const constitution = await fs.read(`${root}/.specify/memory/constitution.md`).catch(() => '')
+    const reply = await $.model.complete({ ...REVIEW_MODEL, prompt: reviewPrompt(feature, { spec, plan, tasks }, principlesOf(constitution)) })
+    const text = reply.isAnswered ? reply.text.trim() : t(currentLang(), 'ask.failed', { reason: reply.reason })
+    await flushStats($, st => ({ ...st, lastReview: { id: feature.id, text: text.split('\n').slice(0, 12).join('\n'), at: Date.now() } }))
+    $.ui.toast(t(currentLang(), 'review.ready', { feature: `${feature.id} ${feature.name}` }), { timeoutMs: 15_000 })
+  } catch (error) {
+    $.ui.log(`astrolabe: ${error instanceof Error ? error.message : String(error)}`, { to: 'debug' })
+  }
+}
+
 async function askFork($: EngineInterface, question: string, about: string): Promise<void> {
   try {
     const reply = await $.model.fork({ prompt: `About the Spec Kit feature ${about}, answer in at most three sentences, plain text: ${question}` })
@@ -695,6 +735,18 @@ function paneHeader(
     }
     if (pane.tab === 'tasks' && Code !== undefined && stats?.tasksDiff !== undefined && stats.tasksDiff.dir === active?.dir) {
       out.push(<Code source={stats.tasksDiff.text} format="diff" path={stats.tasksDiff.file} />)
+    }
+    // gstack's skills on the active feature, when gstack is installed (051).
+    const Button = 'Button' in elements ? elements.Button : undefined
+    if (pane.tab === 'specs' && stats?.gstack === true && active !== undefined && Button !== undefined) {
+      const about = `${active.id} ${active.name}`
+      out.push(
+        <elements.Box key="astrolabe-gstack" flexDirection="row">
+          {GSTACK_SKILLS.map(skill => (
+            <Button key={`gstack-${skill}`} label={skill} plain onPress={() => void $.clock.after(0, () => void runSkill($, skill, about))} />
+          ))}
+        </elements.Box>,
+      )
     }
     if (pane.tab === 'specs' && Markdown !== undefined && active !== undefined && state.activeSummary !== undefined && state.root !== undefined) {
       const links = (state.activeDocs ?? []).map(file => `[${file}](${fileUrl(`${state.root}/specs/${active.dir}/${file}`)})`).join(' · ')
@@ -1525,6 +1577,16 @@ export const register: Register = (on, options) => {
     const now = await $.clock.now()
     const started = await guarded($, previous => reconcileStart(fs, e.cwd, previous, now))
     await afterReconcile($, preset, started)
+    // Spec priorities for this project, and whether gstack's skills are there (051).
+    try {
+      const root = started?.state.root
+      const saved = root === undefined ? undefined : await $.store.get(`priority:${root}`)
+      const priorities = typeof saved === 'object' && saved !== null && !Array.isArray(saved) ? (saved as Record<string, Priority>) : undefined
+      const gstack = (await gstackCheck($)) !== undefined
+      if (priorities !== undefined || gstack) await flushStats($, st => ({ ...st, ...(priorities === undefined ? {} : { priorities }), ...(gstack ? { gstack } : {}) }))
+    } catch {
+      // No priorities, no gstack row.
+    }
     // The tab this project had last (043 #22).
     try {
       const root = started?.state.root
@@ -1881,6 +1943,18 @@ export const register: Register = (on, options) => {
       return { text: t(currentLang(), 'ask.asking', { feature: about }) }
     }
     if (args === 'doctor') return { text: await doctor($) }
+    const priority = parsePriority(args)
+    if (priority !== undefined) return { text: await setPriority($, priority.id, priority.level) }
+    if (args === 'review' || args.startsWith('review ')) {
+      // The deep review costs a stronger model's tokens: only the person starts it (051).
+      if (e.origin?.kind !== 'composer') return { text: t(currentLang(), 'review.onlyYou') }
+      const state = (await $.state.get(SPECKIT)).value
+      const wanted = args.slice(6).trim()
+      const feature = wanted === '' ? state?.features.find(f => f.dir === state.active?.dir) : state?.features.find(f => f.id === wanted.padStart(3, '0'))
+      if (feature === undefined) return { text: t(currentLang(), 'review.usage') }
+      $.clock.after(0, () => void deepReview($, feature))
+      return { text: t(currentLang(), 'review.started', { feature: `${feature.id} ${feature.name}`, model: REVIEW_MODEL.model }) }
+    }
     if (args === 'status') {
       const state = (await $.state.get(SPECKIT)).value
       if (state === undefined) return { text: t(currentLang(), 'status.none') }
@@ -1959,6 +2033,7 @@ export const register: Register = (on, options) => {
                 role: 'muted' as const,
               })),
               ...(((summary) => (summary === undefined ? [] : summary.text.split('\n').map((line, i) => ({ key: `summary-${i}`, text: `${(i === 0 ? `${t(currentLang(), 'session.summary')} ${summary.dir}` : '').padEnd(14)}${line}`, role: 'muted' as const }))))((await $.state.get(SESSION)).value?.lastSummary)),
+              ...(((review) => (review === undefined ? [] : review.text.split('\n').map((line, i) => ({ key: `review-${i}`, text: `${(i === 0 ? `${t(currentLang(), 'session.review')} ${review.id}` : '').padEnd(14)}${line}`, role: 'text' as const }))))((await $.state.get(SESSION)).value?.lastReview)),
               ...usageRows((await $.state.get(USAGE)).value ?? DEFAULT_USAGE, await $.clock.now()).map(([label, text]) => ({
                 key: `usage-${label}`,
                 text: `${label.padEnd(14)}${text}`,
@@ -1971,7 +2046,7 @@ export const register: Register = (on, options) => {
               })),
             ]
           : [
-              ...specsRows(filtered(state, pane.filter), columns, currentLang()),
+              ...specsRows(filtered(state, pane.filter), columns, currentLang(), (await $.state.get(SESSION)).value?.priorities ?? {}),
               // Features other worktrees of this repository work on (037).
               ...((await $.state.get(SESSION)).value?.worktrees ?? []).map(w => ({
                 key: `worktree-${w.name}`,
@@ -1992,6 +2067,14 @@ export const register: Register = (on, options) => {
       },
       // What the tab is for, then its keys (048 #72).
       onClose: () => $.ui.close({ id: PANE_ID }).then(() => undefined),
+      ...(pane.tab === 'specs' && state.active !== undefined
+        ? {
+            onPriority: async () => {
+              const id = state.active!.id
+              await setPriority($, id, nextPriority((await $.state.get(SESSION)).value?.priorities?.[id]))
+            },
+          }
+        : {}),
       ...((el => ('Link' in el ? { Link: el.Link } : {}))($.ui.resolve(e))),
       onFind: pane.tab === 'specs' || pane.tab === 'tasks' || pane.tab === 'help' ? () => $.ui.focus({ requestId: PANE_ID, key: 'astrolabe-filter' }).then(() => undefined) : undefined,
       legend: `${t(currentLang(), ABOUT[pane.tab])} · ${t(currentLang(), pane.tab === 'specs' || pane.tab === 'tasks' || pane.tab === 'help' ? 'legend.specs' : pane.tab === 'config' ? 'legend.config' : 'legend.default')}`,
@@ -2066,6 +2149,7 @@ export const register: Register = (on, options) => {
       // Rows the header takes: the filter, the summary's lines and links, the diff's lines.
       const headerRows =
         ('Input' in $.ui.resolve(e) && pane.tab !== 'session' ? 1 : 0) +
+        (pane.tab === 'specs' && stats?.gstack === true && state.active !== undefined ? 1 : 0) +
         (pane.tab === 'specs'
           ? state.activeSummary === undefined ? 0 : state.activeSummary.split('\n').length + 2
           : pane.tab === 'tasks' && stats?.tasksDiff !== undefined && stats.tasksDiff.dir === state.active?.dir
