@@ -99,3 +99,12 @@ export const fitUpdateButtons = (labels: readonly string[], columns: number): { 
   }
   return { shown, more: labels.length - shown }
 }
+
+/** Where a new version's release notes are (054 #82); undefined when there is no known page. */
+export const releaseNotesUrl = (item: Pick<UpdateItem, 'id' | 'latest'>): string | undefined => {
+  const tag = `v${item.latest.replace(/^v/, '')}`
+  if (item.latest === '') return undefined
+  if (item.id === 'astrolabe') return `https://github.com/jonyfs/astrolabe/releases/tag/${tag}`
+  if (item.id === 'specify' || item.id === 'speckit-skills') return `https://github.com/github/spec-kit/releases/tag/${tag}`
+  return undefined
+}

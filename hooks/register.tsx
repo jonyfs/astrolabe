@@ -17,6 +17,7 @@ import {
   parseCliVersion,
   parseGstackCheck,
   parseSelfCheck,
+  releaseNotesUrl,
   skillsUpdate,
   updateLabel,
 } from './core/updates'
@@ -1270,7 +1271,8 @@ async function sessionTabRows($: EngineInterface, state: SpeckitState): Promise<
     ...(advisor?.last === undefined ? [] : advisor.last.text.split('\n').map((line, i) => ({ key: `advisor-${i}`, text: `${label(i === 0 ? `${t(lang, 'session.advisor')} ${advisor.last!.id}` : '')}${line}`, role: 'text' as ThemeRole }))),
     ...(review === undefined ? [] : review.text.split('\n').map((line, i) => ({ key: `review-${i}`, text: `${label(i === 0 ? `${t(lang, 'session.review')} ${review.id}` : '')}${line}`, role: 'text' as ThemeRole }))),
   ]
-  const updateRows = updates.map(item => ({ key: `update-${item.id}`, text: `${label('update')}${updateLabel(item, false)} (installed ${item.installed})`, role: 'current' as ThemeRole }))
+  // Each with a link to the new version's release notes when there is one (054 #82).
+  const updateRows = updates.map(item => ((url => ({ key: `update-${item.id}`, text: `${label('update')}${updateLabel(item, false)} (installed ${item.installed})`, role: 'current' as ThemeRole, ...(url === undefined ? {} : { href: url }) }))(releaseNotesUrl(item))))
   // Without Spec Kit the project rows say so on their own; no headings then.
   if (!state.present) return [...project, ...governor, ...activity, ...updateRows]
   const block = (key: string, rows: Array<{ key: string; text: string; role: ThemeRole; dim?: boolean; bold?: boolean }>) =>

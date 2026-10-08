@@ -499,7 +499,7 @@ Above the count, the last main turn's change to the task list shows as a diff: e
 ticked or unticked, with its line number in the file. It stays until a later turn changes the
 list again.
 
-**3 Session** shows how Astrolabe sees the project right now, and any updates: Its rows sit under four headings: Project, Governor, Activity (summaries, reviews, advisor runs) and Updates. The governor's `state` row is green when all is clear, yellow while it slows down or holds, and red when paused.
+**3 Session** shows how Astrolabe sees the project right now, and any updates: Its rows sit under four headings: Project, Governor, Activity (summaries, reviews, advisor runs) and Updates. In the terminal, an update to Astrolabe or Spec Kit ends with `↗`, a link to that version's release notes. The governor's `state` row is green when all is clear, yellow while it slows down or holds, and red when paused.
 
 ![The pane, Session tab](docs/images/pane-session.svg)
 

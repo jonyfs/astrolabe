@@ -1,16 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import {
-  astrolabeUpdate,
-  compareVersions,
-  isDue,
-  localDay,
-  parseCliVersion,
-  parseGstackCheck,
-  parseSelfCheck,
-  skillsUpdate,
-  updateLabel,
-} from '../../hooks/core/updates'
+import { astrolabeUpdate, compareVersions, isDue, localDay, parseCliVersion, parseGstackCheck, parseSelfCheck, releaseNotesUrl, skillsUpdate, updateLabel } from '../../hooks/core/updates'
 
 describe('parsers', () => {
   test('gstack-update-check', () => {
@@ -77,5 +67,14 @@ describe('fitUpdateButtons (band width)', () => {
   })
   test('at least one button shows, so the row stays usable', () => {
     expect(fitUpdateButtons(labels, 10)).toEqual({ shown: 1, more: 3 })
+  })
+})
+
+describe('release notes links (054 #82)', () => {
+  test('Astrolabe and Spec Kit have a page; gstack has none', () => {
+    expect(releaseNotesUrl({ id: 'astrolabe', latest: 'v0.95.0' })).toBe('https://github.com/jonyfs/astrolabe/releases/tag/v0.95.0')
+    expect(releaseNotesUrl({ id: 'specify', latest: '0.4.2' })).toBe('https://github.com/github/spec-kit/releases/tag/v0.4.2')
+    expect(releaseNotesUrl({ id: 'speckit-skills', latest: '0.4.2' })).toBe('https://github.com/github/spec-kit/releases/tag/v0.4.2')
+    expect(releaseNotesUrl({ id: 'gstack', latest: '1.2.0' })).toBeUndefined()
   })
 })
