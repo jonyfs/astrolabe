@@ -11,11 +11,11 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 
 ## Tasks
 
-- [ ] T001 #71 A legend of every mark the mod draws (P1)
-- [ ] T002 #72 A one-line explanation at the bottom of each tab (P1)
-- [ ] T003 #74 A glossary of the Spec Kit steps (P1)
-- [ ] T004 #78 Every failure toast names the command that fixes it (P1)
-- [ ] T005 #79 `/astrolabe doctor`: git, gh, Spec Kit, fonts and options (P1)
+- [x] T001 #71 A legend of every mark the mod draws (P1)
+- [x] T002 #72 A one-line explanation at the bottom of each tab (P1)
+- [x] T003 #74 A glossary of the Spec Kit steps (P1)
+- [x] T004 #78 Every failure toast names the command that fixes it (P1)
+- [x] T005 #79 `/astrolabe doctor`: git, gh, Spec Kit, fonts and options (P1)
 - [ ] T006 #73 One toast on first install pointing at /astrolabe (P2)
 - [ ] T007 #75 The Help tab shows each option's current value (P2)
 - [ ] T008 #80 The Help tab shows what changed in this version (P2)

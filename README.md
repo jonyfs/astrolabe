@@ -296,6 +296,19 @@ preset shows none of this.
 The row's buttons have keys once the band has the keyboard (ctrl+x tab, or a click): `n` runs
 the next command, `c` copies it, and `a` opens the `/astrolabe` pane (from 70 columns).
 
+`/astrolabe doctor` checks what Astrolabe needs and prints the fix next to anything missing:
+
+```text
+🧭 Astrolabe doctor
+  ✓ git version 2.50.0
+  ✓ gh version 2.80.0
+  ✗ gh not signed in: run gh auth login
+  ✓ specify 0.4.2
+  ✓ Spec Kit project at /proj
+  · icons: nerd (needs a Nerd Font in the terminal; set icons to emoji or ascii if glyphs show as boxes)
+  · options: all defaults (change them in /config or the Config tab)
+```
+
 `/astrolabe status` prints the active feature, the next command and the footer as text, with the
 band drawn above it in the terminal:
 
@@ -375,10 +388,16 @@ switch tabs right away, and Esc closes it. Later, focus it again with a click or
 `ctrl+x tab`. The tab you pick stays for the session.
 
 A tab label carries a count when there is one: `Specs 3` features in progress, `Tasks 11` open
-tasks of the active feature, `PRs 2` open pull requests. Above the footer, a dim row lists the
-keys of the tab shown, such as `1-7 tabs · type to filter · j/k scroll · Esc closes`. A tab with
+tasks of the active feature, `PRs 2` open pull requests. Above the footer, a dim row says what the
+tab is for and lists its keys, such as
+`every feature, its phase and progress · 1-7 tabs · type to filter · j/k scroll · Esc closes`. A tab with
 nothing to show says what would fill it and the command that does, for example
 `No active feature. Run /speckit-specify to start one.`
+
+The Help tab (and `/astrolabe help`) ends with a legend of every mark Astrolabe draws (`◆`, `●`,
+`◐`, `○`, `?`, `▸`, `⟳`, `~`, `!`, `☐`, `⑂`, `⇉`, `⏱`) and a glossary of the six Spec Kit steps.
+A toast about a failure names the command that fixes it, for example
+`🧭 #42: not mergeable; run gh pr merge 42 --merge`.
 
 **1 Specs** lists every feature:
 

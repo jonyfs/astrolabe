@@ -67,6 +67,28 @@ describe('help, part two (025)', () => {
     await ui.unmount()
   })
 
+  test('048 #71 #74: /astrolabe help lists the marks and the Spec Kit steps', async ($, on) => {
+    await setup($ as never, on as never)
+    const ran = (await $.command.run({ command: 'astrolabe', args: 'help' } as never)) as { text: string }
+    expect(ran.text).toContain('Marks:')
+    expect(ran.text).toContain('? blocked by clarifications')
+    expect(ran.text).toContain('Spec Kit steps:')
+    expect(ran.text).toContain('  specify       what to build and why, by user story')
+    expect(ran.text).toContain('/astrolabe doctor')
+  })
+
+  test('048 #79: /astrolabe doctor names what is missing and how to fix it', async ($, on) => {
+    const { session } = await setup($ as never, on as never)
+    session.script.processes['git --version'] = { stdout: 'git version 2.50.0\n' }
+    session.script.processes['gh --version'] = { stdout: 'gh version 2.80.0\n' }
+    session.script.processes['gh auth status'] = { exitCode: 1, stderr: 'not logged in' }
+    const ran = (await $.command.run({ command: 'astrolabe', args: 'doctor' } as never)) as { text: string }
+    expect(ran.text).toContain('  ✓ git version 2.50.0')
+    expect(ran.text).toContain('  ✗ gh not signed in: run gh auth login')
+    expect(ran.text).toContain('  ✗ specify not found: install Spec Kit')
+    expect(ran.text).toContain('  ✓ Spec Kit project at /proj')
+  })
+
   test('T008: accessible mode draws text only', { options: { accessible: true } }, async ($, on) => {
     await setup($ as never, on as never)
     const band = JSON.stringify((await drawBand($ as never, 'terminal', 120)).tree)

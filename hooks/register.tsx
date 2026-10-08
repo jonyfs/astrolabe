@@ -67,7 +67,7 @@ import { addWeek, estimateLeft, slowest, weekKey, type Weeks } from './core/hist
 import { footerChips, footerText, type FooterInput } from './core/footer'
 import { parseGitStatus, parsePullRequest } from './core/git-status'
 import { iconSet, iconsFor } from './core/icons'
-import { guessLang, langOf, t, type Lang } from './core/i18n'
+import { guessLang, langOf, t, type Lang, type TextKey } from './core/i18n'
 import { paneTree } from './surfaces/pane'
 import { formatStatus } from './core/status-text'
 
@@ -78,6 +78,27 @@ const PANE_STATE = { plugin: 'astrolabe', key: 'pane' } as const
 const PANE_ID = 'astrolabe'
 const PANE_TITLE = '🧭 Astrolabe'
 const ASK_ID = 'astrolabe-usage'
+/** `/astrolabe doctor` (048 #79): what Astrolabe needs, each line with the fix when it is missing. */
+async function doctor($: EngineInterface): Promise<string> {
+  const probe = (argv: string[]) =>
+    $.process.run(argv, { timeoutMs: 3000 }).catch(() => ({ exitCode: 127, stdout: '', stderr: 'not found' }))
+  const [git, gh, specify] = await Promise.all([probe(['git', '--version']), probe(['gh', '--version']), probe(['specify', 'version'])])
+  const auth = gh.exitCode === 0 ? await probe(['gh', 'auth', 'status']) : undefined
+  const state = (await $.state.get(SPECKIT)).value
+  const lines = ['🧭 Astrolabe doctor']
+  const check = (isOk: boolean, text: string, fix: string) => lines.push(isOk ? `  ✓ ${text}` : `  ✗ ${text}: ${fix}`)
+  check(git.exitCode === 0, git.exitCode === 0 ? firstLine(git.stdout) : 'git not found', 'install git from https://git-scm.com')
+  check(gh.exitCode === 0, gh.exitCode === 0 ? firstLine(gh.stdout) : 'gh not found', 'install the GitHub CLI from https://cli.github.com for the PRs tab and the pullRequest option')
+  if (auth !== undefined) check(auth.exitCode === 0, auth.exitCode === 0 ? 'gh signed in' : 'gh not signed in', 'run gh auth login')
+  check(specify.exitCode === 0, specify.exitCode === 0 ? `specify ${firstLine(specify.stdout)}` : 'specify not found', 'install Spec Kit: uv tool install specify-cli --from git+https://github.com/github/spec-kit.git')
+  check(state?.present === true, state?.present === true ? `Spec Kit project at ${state.root ?? '?'}` : 'no Spec Kit project here', 'run specify init --here')
+  const icons = iconsFor(iconsOption, 'terminal')
+  lines.push(`  · icons: ${icons}${icons === 'nerd' ? ' (needs a Nerd Font in the terminal; set icons to emoji or ascii if glyphs show as boxes)' : ''}`)
+  const set = Object.entries(optionsSeen).filter(([, v]) => v !== undefined)
+  lines.push(`  · options: ${set.length === 0 ? 'all defaults' : set.map(([k, v]) => `${k}=${String(v)}`).join(', ')} (change them in /config or the Config tab)`)
+  return lines.join('\n')
+}
+
 // /astrolabe help (025, roadmap #39): the commands, the pane's tabs and their keys, in the
 // person's language (019).
 const helpText = (lang: Lang): string =>
@@ -92,6 +113,7 @@ const helpText = (lang: Lang): string =>
     `  /astrolabe allow <90-99> <30m-12h>   ${t(lang, 'help.allow')}`,
     `  /astrolabe revoke           ${t(lang, 'help.revoke')}`,
     `  /astrolabe run <id>         ${t(lang, 'help.run')}`,
+    `  /astrolabe doctor           ${t(lang, 'help.doctor')}`,
     t(lang, 'help.tabs'),
     `  1 ${t(lang, 'tab.specs').padEnd(10)} ${t(lang, 'help.specs')}`,
     `  2 ${t(lang, 'tab.tasks').padEnd(10)} ${t(lang, 'help.tasksTab')}`,
@@ -104,7 +126,20 @@ const helpText = (lang: Lang): string =>
     `${t(lang, 'help.options')} (preset, flavor, icons, language, checkUpdates, governUsage, askOnLimit, costBudget, pullRequest, images, autoReload, footerIn, accessible, claudeContext, featureSummary, humanize, terse, skillModels).`,
     t(lang, 'help.models'),
     ...Object.entries(SKILL_MODELS).map(([skill, m]) => `  ${skill.padEnd(22)} ${m.model.replace(/^claude-/, '').padEnd(12)} ${m.effort.padEnd(7)} ${m.why}`),
+    t(lang, 'help.marks'),
+    ...t(lang, 'help.marksList').split('\n').map(line => `  ${line}`),
+    t(lang, 'help.glossary'),
+    ...(['constitution', 'specify', 'clarify', 'plan', 'tasks', 'implement'] as const).map(step => `  ${step.padEnd(13)} ${t(lang, `card.${step}`)}`),
   ].join('\n')
+const ABOUT: Readonly<Record<PaneTab, TextKey>> = {
+  specs: 'help.specs',
+  tasks: 'help.tasksTab',
+  session: 'help.sessionTab',
+  dashboard: 'help.dashboardTab',
+  help: 'help.helpTab',
+  config: 'help.configTab',
+  prs: 'help.prsTab',
+}
 const ASK = { plugin: 'astrolabe', key: 'ask' } as const
 const DEFAULT_PANE: PaneState = { tab: 'specs', autoOpened: false }
 const UPDATES = { plugin: 'astrolabe', key: 'updates' } as const
@@ -271,7 +306,7 @@ async function runPullAction($: EngineInterface, action: 'approve' | 'update' | 
     const root = (await $.state.get(SPECKIT)).value?.root ?? (await $.session.cwd())
     const run = await $.process.run(pullAction(action, n, head), { cwd: root, timeoutMs: 30_000 })
     const lang = currentLang()
-    $.ui.toast(run.exitCode === 0 ? t(lang, `prs.done.${action}`, { n }) : t(lang, 'prs.failed', { n, error: (run.stderr || run.stdout).trim().split('\n')[0] ?? '' }))
+    $.ui.toast(run.exitCode === 0 ? t(lang, `prs.done.${action}`, { n }) : t(lang, 'prs.failed', { n, error: (run.stderr || run.stdout).trim().split('\n')[0] ?? '', fix: pullAction(action, n).join(' ') }))
     await refreshPulls($, true)
   } catch (error) {
     $.ui.log(`astrolabe: ${error instanceof Error ? error.message : String(error)}`, { to: 'debug' })
@@ -1237,7 +1272,7 @@ async function runUpdate($: EngineInterface, id: UpdateId): Promise<void> {
       // Engine rule: a slash command runs through $.command.run, not as a prompt.
       await $.command.run({ command: 'gstack-upgrade', args: '' }).catch((error: unknown) => {
         logError($, error)
-        failure = '🧭 could not start /gstack-upgrade'
+        failure = '🧭 could not start /gstack-upgrade; type /gstack-upgrade yourself'
       })
     } else {
       const root = (await $.state.get(SPECKIT)).value?.root
@@ -1254,7 +1289,7 @@ async function runUpdate($: EngineInterface, id: UpdateId): Promise<void> {
             ? `🧭 specify upgrade failed: ${line}; run specify self upgrade`
             : id === 'astrolabe'
               ? `🧭 Astrolabe update failed: ${line}; run claude plugin update astrolabe`
-              : `🧭 Spec Kit skills refresh failed: ${line}`
+              : `🧭 Spec Kit skills refresh failed: ${line}; run ${SKILLS_REFRESH.join(' ')} in ${cwd ?? 'the project'}`
       }
     }
     if (failure !== undefined) {
@@ -1775,6 +1810,7 @@ export const register: Register = (on, options) => {
       $.clock.after(0, () => void askFork($, question, about))
       return { text: t(currentLang(), 'ask.asking', { feature: about }) }
     }
+    if (args === 'doctor') return { text: await doctor($) }
     if (args === 'status') {
       const state = (await $.state.get(SPECKIT)).value
       if (state === undefined) return { text: t(currentLang(), 'status.none') }
@@ -1879,7 +1915,8 @@ export const register: Register = (on, options) => {
         ...(activeOpen === undefined || activeOpen.total - activeOpen.done <= 0 ? {} : { tasks: String(activeOpen.total - activeOpen.done) }),
         ...(pullCount === undefined || pullCount === 0 ? {} : { prs: String(pullCount) }),
       },
-      legend: t(currentLang(), pane.tab === 'specs' ? 'legend.specs' : pane.tab === 'config' ? 'legend.config' : 'legend.default'),
+      // What the tab is for, then its keys (048 #72).
+      legend: `${t(currentLang(), ABOUT[pane.tab])} · ${t(currentLang(), pane.tab === 'specs' ? 'legend.specs' : pane.tab === 'config' ? 'legend.config' : 'legend.default')}`,
     }
     const select = async (tab: PaneTab) => {
       const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
