@@ -1,6 +1,6 @@
 // Astrolabe's own version, for the update check. scripts/check-release-version.sh fails a
 // release when this differs from .claude-plugin/plugin.json.
-export const VERSION = '0.109.0'
+export const VERSION = '0.110.0'
 
 /** What this version changed, one line, for the Help tab (048 #80). */
-export const CHANGES = 'opening a PR from the session offers gstack /review on it'
+export const CHANGES = '/astrolabe kpis prints the Dashboard numbers as a Markdown table for a PR body'

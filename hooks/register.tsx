@@ -66,7 +66,7 @@ import { applyFileTouch, applyRead, applyShell, applySkill, type Held, reconcile
 import { bandRow, nextRow, updatesRow } from './surfaces/band'
 import { askTree } from './surfaces/ask'
 import { dashboardSections, dashboardTree } from './surfaces/dashboard'
-import { burnRate, dial, kpiChips, kpiRows, phaseBars, sparkline, trendRows, usageChart } from './core/dashboard'
+import { burnRate, dial, kpiChips, kpiRows, kpisMarkdown, phaseBars, sparkline, trendRows, usageChart } from './core/dashboard'
 import { addDay, addWeek, dayKey, estimateLeft, lastWeeks, pastReset, slowest, weekKey, weekdays, type Days, type Weeks } from './core/history'
 import { footerChips, footerText, type FooterInput } from './core/footer'
 import { branchWebUrl, parseGitStatus, parsePullRequest, remoteWebUrl } from './core/git-status'
@@ -2329,6 +2329,21 @@ export const register: Register = (on, options) => {
       const lines = recapOf((await $.state.get(SESSION)).value?.recap ?? [], id)
       if (lines.length === 0) return { text: t(currentLang(), 'recap.none', { id: id ?? '—' }) }
       return { text: [t(currentLang(), 'recap.title', { id: id ?? '—' }), ...lines.map(r => `  ${clockOf(new Date(r.at).toISOString()) ?? ''}  ${r.text}`)].join('\n') }
+    }
+    // The Dashboard's numbers as Markdown, to paste in a PR body (054 #99).
+    if (args === 'kpis') {
+      const stats = (await $.state.get(SESSION)).value
+      if (stats === undefined) return { text: t(currentLang(), 'kpis.none') }
+      const state = (await $.state.get(SPECKIT)).value
+      const feature = state?.features.find(f => f.dir === state.active?.dir)
+      const now = await $.clock.now()
+      const binding = decisionOf((await $.state.get(USAGE)).value ?? DEFAULT_USAGE, now).highest
+      const rows = [
+        ...(feature === undefined || feature.total === 0 ? [] : [[t(currentLang(), 'kpis.tasks'), `${feature.done}/${feature.total}`] as [string, string]]),
+        ...kpiRows(stats, binding, now, currentLang()),
+        ...historyRows(stats, feature),
+      ]
+      return { text: kpisMarkdown(t(currentLang(), 'kpis.title', { feature: feature === undefined ? '—' : `${feature.id} ${feature.name}` }), rows) }
     }
     if (args === 'advisor' || args.startsWith('advisor ')) {
       // A whole turn with the advisor: only the person starts it (055).

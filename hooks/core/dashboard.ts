@@ -166,6 +166,12 @@ export const kpiRows = (
   return rows
 }
 
+/** The Dashboard's numbers as a Markdown table for a PR body (054 #99); pipes in a value are escaped. */
+export const kpisMarkdown = (title: string, rows: ReadonlyArray<readonly [string, string]>): string => {
+  const cell = (text: string) => text.replace(/[\u0000-\u001f\u007f-\u009f]/g, '').replace(/\|/g, '\\|')
+  return [`### ${cell(title)}`, '', '| | |', '|---|---|', ...rows.map(([label, value]) => `| ${cell(label)} | ${cell(value)} |`)].join('\n')
+}
+
 /** The Dashboard's first row (046 #51): tasks done, burn rate and context, as short chips; a level ramps the colour (052 #30). */
 export const kpiChips = (
   stats: SessionStats | undefined,
