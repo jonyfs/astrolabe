@@ -112,15 +112,18 @@ export const isReadOnlyTool = (name: string): boolean => READ_ONLY.has(name)
 
 export const isPaused = (d: Decision): boolean => d.band === 'stop' || d.band === 'ceiling'
 
+/** Where a refused subagent went: its queue id, or a full queue (049 #85). */
+const queuedText = (id: string | undefined): string => (id === '' ? 'the queue is full: dispatch it again after the reset' : `queued as ${id ?? '?'}`)
+
 export const refusal = (d: Decision, ctx: { queuedAs?: string; inFlight?: number; resetClock?: string }): string => {
   const usage = usageText(d)
   const until = ctx.resetClock === undefined ? 'the reset' : ctx.resetClock
   if (isPaused(d)) return `🧭 ${usage} (${d.band}): paused until ${until}; only read-only tools run`
   if (d.band === 'throttle') {
     const n = ctx.inFlight ?? 0
-    return `🧭 ${usage} (throttle, cap ${d.cap}): ${n} ${n === 1 ? 'subagent' : 'subagents'} running; queued as ${ctx.queuedAs ?? '?'}`
+    return `🧭 ${usage} (throttle, cap ${d.cap}): ${n} ${n === 1 ? 'subagent' : 'subagents'} running; ${queuedText(ctx.queuedAs)}`
   }
-  return `🧭 ${usage} (${d.band}): new subagents are queued until ${until}; queued as ${ctx.queuedAs ?? '?'}`
+  return `🧭 ${usage} (${d.band}): new subagents are queued until ${until}; ${queuedText(ctx.queuedAs)}`
 }
 
 /** The refusal for a subagent the owner chose to drop (015). */

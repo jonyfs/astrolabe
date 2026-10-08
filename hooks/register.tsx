@@ -148,6 +148,7 @@ const RELEASES_URL = 'https://api.github.com/repos/jonyfs/astrolabe/releases/lat
 const UPDATES_HIDDEN = 'updates:hidden'
 const SKILLS_REFRESH = ['specify', 'init', '--here', '--integration', 'claude', '--force']
 const USAGE = { plugin: 'astrolabe', key: 'usage' } as const
+const QUEUE_MAX = 20
 const DEFAULT_USAGE: UsageState = { readings: [], history: [], inFlight: 0, queue: [], paused: false }
 const HISTORY_POINTS = 10
 const SESSION = { plugin: 'astrolabe', key: 'session' } as const
@@ -900,7 +901,7 @@ async function answer($: EngineInterface, question: Question, value: string, ite
     return
   }
   if (value === 'run' && item !== undefined) {
-    await updateUsage($, u => ({ ...u, queue: u.queue.filter(q => q.id !== item.id), passes: [...(u.passes ?? []), item.prompt] }))
+    await updateUsage($, u => ({ ...u, queue: u.queue.filter(q => q.id !== item.id), passes: [...(u.passes ?? []), item.prompt].slice(-QUEUE_MAX) }))
     await $.prompt.submit({ text: runPrompt(item) })
     return
   }
@@ -1388,7 +1389,10 @@ async function gate($: GateArgs[0], e: GateArgs[1], next: GateArgs[2]): Promise<
       let queuedAs = ''
       live.agentsQueued += 1
       await updateUsage($, u => {
-        queuedAs = `q${u.queue.length + 1}`
+        // The next free number, so an id never repeats after one leaves (049); at most QUEUE_MAX wait (049 #85).
+        const full = u.queue.length >= QUEUE_MAX
+        queuedAs = full ? '' : `q${Math.max(0, ...u.queue.map(q => Number(q.id.slice(1)) || 0)) + 1}`
+        if (full) return { ...u, paused: u.paused || isPaused(decision) }
         return {
           ...u,
           paused: u.paused || isPaused(decision),
@@ -1405,7 +1409,7 @@ async function gate($: GateArgs[0], e: GateArgs[1], next: GateArgs[2]): Promise<
       })
       await armResume($, decision)
       const refused = refusal(decision, { queuedAs, inFlight: running, ...(resetClock === undefined ? {} : { resetClock }) })
-      if (isAsked && remembered === undefined) {
+      if (isAsked && remembered === undefined && queuedAs !== '') {
         askLater($, holdQuestion(decision, input.description ?? 'subagent', resetClock, currentLang()), {
           id: queuedAs,
           description: input.description ?? 'subagent',
@@ -1864,7 +1868,7 @@ export const register: Register = (on, options) => {
       if (e.origin?.kind !== 'composer') return { text: '🧭 only you can run a queued subagent: type the command yourself' }
       const item = ((await $.state.get(USAGE)).value ?? DEFAULT_USAGE).queue.find(q => q.id === runMatch[1])
       if (item === undefined) return { text: `🧭 nothing queued as ${runMatch[1]}` }
-      await updateUsage($, u => ({ ...u, queue: u.queue.filter(q => q.id !== item.id), passes: [...(u.passes ?? []), item.prompt] }))
+      await updateUsage($, u => ({ ...u, queue: u.queue.filter(q => q.id !== item.id), passes: [...(u.passes ?? []), item.prompt].slice(-QUEUE_MAX) }))
       await logGovernor($, `→ run ${item.id} now`)
       $.clock.after(0, () => void $.prompt.submit({ text: runPrompt(item) }))
       return { text: `🧭 running ${item.id} now: ${item.description}` }
