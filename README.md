@@ -551,7 +551,7 @@ sections, so a chart is never cut in half.
 **5 Help** lists the `/astrolabe` commands, the pane and band keys, and the options, in your
 language.
 
-**6 Config** lists every Astrolabe option as `/config` holds it, with a control for each: a picker
+**6 Config** lists every Astrolabe option as `/config` holds it, under four headings (Display, Governor, Claude, Integrations), with a control for each: a picker
 for a choice, a toggle for on and off, a field for a number or a text. A changed row is marked `●`.
 `Save N changes` applies them through Claude Code's settings, and Astrolabe reloads with the new
 values; `Cancel` drops them. A row your organization's policy locks shows its value and cannot be

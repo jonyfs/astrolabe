@@ -101,7 +101,7 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 ### Interface
 
 - [x] T063 #63 Config reset: a `Reset to defaults` button on the Config tab, pressed twice, and `/astrolabe config reset` (P1)
-- [ ] T064 #64 The Config tab groups options: Display, Governor, Claude, Integrations (P2)
+- [x] T064 #64 The Config tab groups options: Display, Governor, Claude, Integrations (P2)
 - [ ] T065 #65 Number keys show on the tab labels (`1 Specs`) only while the pane has the keyboard (P3)
 - [ ] T066 #66 A row selected with the arrows on Specs, with Enter opening its spec.md link (P2)
 - [ ] T067 #67 Long names wrap on Desktop and cut with `…` in the terminal, consistently (P2)

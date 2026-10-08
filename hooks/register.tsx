@@ -21,7 +21,7 @@ import {
   updateLabel,
 } from './core/updates'
 import { fileUrl, joinPath } from './core/paths'
-import { configMark, GSTACK_SKILLS, nextPriority, optionDefaults, parsePriority, REVIEW_MODEL, reviewPrompt, withPriority, type Priority } from './core/spec-actions'
+import { configMark, GSTACK_SKILLS, nextPriority, OPTION_GROUPS, optionDefaults, optionGroup, parsePriority, REVIEW_MODEL, reviewPrompt, withPriority, type OptionGroup, type Priority } from './core/spec-actions'
 import { CHANGES, VERSION } from './core/version'
 import {
   ASK_MS,
@@ -445,7 +445,10 @@ function configBody(
   }
   const rows: Array<{ node: RenderNode; rows: number }> = []
   if (configRows.length === 0) return [{ rows: 1, node: <Text color={tokens0.muted}>{t(lang, 'config.none')}</Text> }]
-  for (const row of configRows) {
+  // Under a heading per group (054 #64).
+  const ordered = (Object.keys(OPTION_GROUPS) as OptionGroup[]).flatMap(group => configRows.filter(row => optionGroup(row.key) === group).map((row, i) => ({ row, heading: i === 0 ? group : undefined })))
+  for (const { row, heading } of ordered) {
+    if (heading !== undefined) rows.push({ rows: 1, node: <Text key={`config-group-${heading}`} color={tokens0.accent} bold>{t(lang, `config.group.${heading}` as TextKey)}</Text> })
     const shown = row.key in draft ? draft[row.key] : row.value
     const changed = row.key in draft && draft[row.key] !== row.value
     // ● a change not saved yet; • a saved value that differs from the option's default (052 #39).

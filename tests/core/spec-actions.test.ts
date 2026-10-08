@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import { byPriority, configMark, nextPriority, parsePriority, priorityMark, reviewPrompt, withPriority } from '../../hooks/core/spec-actions'
+import { byPriority, configMark, nextPriority, optionGroup, parsePriority, priorityMark, reviewPrompt, withPriority } from '../../hooks/core/spec-actions'
 
 describe('spec priorities (051)', () => {
   test('parse, cycle and store only what is not normal', () => {
@@ -33,5 +33,15 @@ describe('configMark (052 #39)', () => {
     expect(configMark(false, 'full', d, 'astrolabe.preset')).toBe('• ')
     expect(configMark(false, 'compact', d, 'astrolabe.preset')).toBe('  ')
     expect(configMark(false, 'x', d, 'astrolabe.other')).toBe('  ')
+  })
+})
+
+describe('option groups (054 #64)', () => {
+  test('each option has one group; an unknown one goes last', () => {
+    expect(optionGroup('astrolabe.preset')).toBe('display')
+    expect(optionGroup('governUsage')).toBe('governor')
+    expect(optionGroup('astrolabe.terse')).toBe('claude')
+    expect(optionGroup('astrolabe.pullRequest')).toBe('integrations')
+    expect(optionGroup('astrolabe.someday')).toBe('integrations')
   })
 })
