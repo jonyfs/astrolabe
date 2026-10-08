@@ -34,7 +34,7 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 - [ ] T012 #12 A stale-state guard: a SPECKIT state older than its memo is redrawn from the memo (P2)
 - [ ] T013 #13 A tasks.md over 2 MB is read once and summarized instead of re-read on each write (P2)
 - [x] T014 #14 A `gh` that hangs is cut at 8 s everywhere it runs, with the PRs tab saying so (P1)
-- [ ] T015 #15 `/astrolabe doctor` also checks the hook budget: the slowest hook of the session in ms (P2)
+- [x] T015 #15 `/astrolabe doctor` also checks the hook budget: the slowest hook of the session in ms (P2)
 - [x] T016 #16 A broken `.specify/extensions.yml` is named in the Session tab with its line (P2)
 - [x] T017 #17 A reload keeps the pane's scroll, filter and tab (state survives; module values rebuilt) (P2)
 - [x] T018 #18 The governor's queue survives a reload and says so (`3 waiting since 14:02`) (P2)
