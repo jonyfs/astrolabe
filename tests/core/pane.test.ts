@@ -224,3 +224,12 @@ describe('warning order (054 #29)', () => {
     expect(rows.findIndex(t => t.includes('could not be read'))).toBeLessThan(rows.findIndex(t => t.includes('[NEEDS CLARIFICATION] markers')))
   })
 })
+
+describe('ids padded to the widest (054 #25)', () => {
+  test('every name starts in the same column when the ids differ in length', () => {
+    const features = [f('001', 'core', 'implement', 1, 2), f('20261008-1200', 'stamped', 'implement', 1, 2)]
+    const rows = specsRows(state({ features, active: { dir: '001-core', id: '001', name: 'core', source: 'feature.json' } }), 120).filter(r => r.key.startsWith('feature-'))
+    const starts = rows.map(r => r.text.indexOf(r.text.includes('core') ? 'core' : 'stamped'))
+    expect(new Set(starts).size).toBe(1)
+  })
+})
