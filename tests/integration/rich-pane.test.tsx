@@ -49,6 +49,18 @@ describe('the rich pane (024)', () => {
     await ui.unmount()
   })
 
+  test('052 #7: a filter that keeps nothing says so, on Specs and on Tasks', async ($, on) => {
+    await setup($ as never, on as never)
+    const ui = await mount($ as never)
+    await ui.input({ key: 'astrolabe-filter', text: 'zzz', kind: 'change' })
+    const body = (await ui.find({ key: 'astrolabe-pane-body' }))?.text ?? ''
+    expect(body).toContain('No rows hold "zzz"; empty the filter to see them all.')
+    expect(body).not.toContain('No features yet')
+    await ui.press({ key: 'tab-tasks' })
+    expect((await ui.find({ key: 'astrolabe-pane-body' }))?.text).toContain('No rows hold "zzz"')
+    await ui.unmount()
+  })
+
   test('Specs: the filter keeps the features whose id or name match', async ($, on) => {
     await setup($ as never, on as never)
     const ui = await mount($ as never)

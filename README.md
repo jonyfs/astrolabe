@@ -416,7 +416,7 @@ right; otherwise it sits above the prompt. It opens with the keyboard on it, so 
 switch tabs right away, and Esc closes it. Later, focus it again with a click or
 `ctrl+x tab`. The tab you pick stays for the session, and the next session of the same project opens on it.
 On Specs, Tasks and Help, `f` puts the cursor in one filter that keeps the rows holding what you
-type; `✕` at the end of the tab row closes the pane.
+type (a filter that keeps nothing says so); in a narrow pane the legend keeps only the keys; `✕` at the end of the tab row closes the pane.
 
 A tab label carries a count when there is one: `Specs 3` features in progress, `Tasks 11` open
 tasks of the active feature, `PRs 2` open pull requests. Above the footer, a dim row says what the
@@ -473,7 +473,7 @@ after each turn from the branch name (`026-...`) and that worktree's files:
 
 ![The pane, Tasks tab](docs/images/pane-tasks.svg)
 
-The task being worked on is marked `▸` and shows how long it has run (`▸ T010 Write x.ts  ⏱ 12m`). Ticked tasks fold into one dim row (`✓ T001…T009`). Headings of `tasks.md`, such as `Phase 3: User Story 1`, head their tasks, and a run of `[P]` tasks is bracketed with `┌`, `│` and `└` (a lone one gets `⇉`). When the open tasks, at the time the ticked ones took, would end after the 5-hour window resets, a `⚠` line says so. When more tasks are open than the pane has rows, the last line says `+N more`. A feature with
+The task being worked on is marked `▸` and shows how long it has run (`▸ T010 Write x.ts  ⏱ 12m`). The first row names the feature, its phase and its count (`026 claude-context · implement · 9/20 done`). Ticked tasks fold into one dim row (`✓ 9 done · T001…T009`). Headings of `tasks.md`, such as `Phase 3: User Story 1 · 2/5`, head their tasks with their own count, and a run of `[P]` tasks is bracketed with `┌`, `│` and `└` (a lone one gets `⇉`); the `⇉ … can run in parallel` line shows only when no bracket does. When the open tasks, at the time the ticked ones took, would end after the 5-hour window resets, a `⚠` line says so. When more tasks are open than the pane has rows, the last line says `+N more`. A feature with
 no `tasks.md` yet says so; a quick spec (`track: quick`) uses the `## Tasks` section of its
 `spec.md` instead. When two or more `[P]` tasks come first among the open ones, a `⇉` line names
 them: they can go to subagents at once.

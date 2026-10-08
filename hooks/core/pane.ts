@@ -128,16 +128,22 @@ export const taskRows = (state: SpeckitState, memo: SessionMemo, rows: number, c
   const tasks = state.activeTasks ?? parseTasks(memo.files[active.dir]?.tasks ?? '')
   if (tasks.length === 0) return [{ key: 'no-tasks', text: tr(lang, 'pane.noTasks'), role: 'muted' }]
   const open = tasks.filter(t => !t.isDone)
-  const out: PaneRow[] = [{ key: 'count', text: tr(lang, 'pane.count', { done: tasks.length - open.length, total: tasks.length }), role: 'muted' }]
+  // Which feature these are, its phase and its count (052 #17).
+  const phase = state.features.find(f => f.dir === active.dir)?.phase
+  const count = tr(lang, 'pane.count', { done: tasks.length - open.length, total: tasks.length })
+  const out: PaneRow[] = [{ key: 'count', text: cut([`${active.id} ${active.name}`, phase, count].filter(x => x !== undefined).join(' · '), columns), role: 'muted' }]
   if (open.length === 0) return [...out, { key: 'all-done', text: tr(lang, 'pane.allTicked'), role: 'done' }]
   // Done tasks folded under one row (045 #41).
   const done = tasks.filter(t => t.isDone && t.id !== undefined).map(t => t.id!)
-  if (done.length > 0) out.push({ key: 'done-folded', text: cut(`✓ ${done.length === 1 ? done[0]! : `${done[0]}…${done.at(-1)}`}`, columns), role: 'done', dim: true })
-  // A run of [P] tasks at the head can go to subagents at once (020c #19).
-  const parallel = parallelTasks(tasks)
-  if (parallel.length > 0) out.push({ key: 'parallel', text: tr(lang, 'pane.parallel', { ids: parallel.join(', ') }), role: 'accent' })
+  // The fold row counts what it folds (052 #23).
+  if (done.length > 0) out.push({ key: 'done-folded', text: cut(tr(lang, 'pane.folded', { n: done.length, ids: done.length === 1 ? done[0]! : `${done[0]}…${done.at(-1)}` }), columns), role: 'done', dim: true })
   const room = Math.max(1, rows - 1)
   const shown = open.length <= room ? open : open.slice(0, room - 1)
+  // A run of [P] tasks at the head can go to subagents at once (020c #19); the line drops when
+  // brackets already draw a run of two or more (052 #21).
+  const parallel = parallelTasks(tasks)
+  const bracketed = shown.some((t, i) => t.text.includes('[P]') && shown[i + 1]?.text.includes('[P]') === true)
+  if (parallel.length > 0 && !bracketed) out.push({ key: 'parallel', text: tr(lang, 'pane.parallel', { ids: parallel.join(', ') }), role: 'accent' })
   // [P] tasks (045 #43): a run of them is bracketed, a lone one is marked ⇉.
   const isP = (i: number) => shown[i]?.text.includes('[P]') === true
   const groupOf = (i: number): string => {
@@ -151,7 +157,9 @@ export const taskRows = (state: SpeckitState, memo: SessionMemo, rows: number, c
     // The user story a run of tasks belongs to (045 #44).
     if (t.story !== undefined && t.story !== story) {
       story = t.story
-      out.push({ key: `story-${t.line ?? index}`, text: cut(t.story, columns), role: 'muted' })
+      // Each story carries its own count (052 #18).
+      const inStory = tasks.filter(x => x.story === t.story)
+      out.push({ key: `story-${t.line ?? index}`, text: cut(`${t.story} · ${inStory.filter(x => x.isDone).length}/${inStory.length}`, columns), role: 'muted' })
     }
     // The task being worked on (045 #42): marked, with how long it has run.
     const current = state.currentTask

@@ -2054,6 +2054,12 @@ export const register: Register = (on, options) => {
                 role: 'current' as const,
               })),
             ]
+    // A filter that keeps nothing says so (052 #7).
+    const matchesNone =
+      needle !== '' &&
+      (pane.tab === 'specs' ? filtered(state, pane.filter).features.length === 0 && state.features.length > 0 : (pane.tab === 'tasks' || pane.tab === 'help') && rows.every(r => r.key === 'count'))
+    if (matchesNone && pane.tab === 'specs') rows.splice(0, rows.length, ...rows.filter(r => r.key !== 'empty'))
+    if (matchesNone) rows.push({ key: 'no-match', text: t(currentLang(), 'pane.noMatch', { filter: pane.filter?.trim() ?? '' }), role: 'muted' } as never)
     const { Box, Text, Button } = $.ui.resolve(e)
     // Counts beside the tabs (043 #21) and the keys of the tab shown, one row above the footer (043 #25).
     const activeOpen = state.features.find(f => f.dir === state.active?.dir)
@@ -2077,7 +2083,11 @@ export const register: Register = (on, options) => {
         : {}),
       ...((el => ('Link' in el ? { Link: el.Link } : {}))($.ui.resolve(e))),
       onFind: pane.tab === 'specs' || pane.tab === 'tasks' || pane.tab === 'help' ? () => $.ui.focus({ requestId: PANE_ID, key: 'astrolabe-filter' }).then(() => undefined) : undefined,
-      legend: `${t(currentLang(), ABOUT[pane.tab])} · ${t(currentLang(), pane.tab === 'specs' || pane.tab === 'tasks' || pane.tab === 'help' ? 'legend.specs' : pane.tab === 'config' ? 'legend.config' : 'legend.default')}`,
+      // What the tab is for, then its keys; a narrow pane keeps the keys whole (052 #3).
+      legend: ((about: string, keys: string) => ([...`${about} · ${keys}`].length <= columns ? `${about} · ${keys}` : keys))(
+        t(currentLang(), ABOUT[pane.tab]),
+        t(currentLang(), pane.tab === 'specs' || pane.tab === 'tasks' || pane.tab === 'help' ? 'legend.specs' : pane.tab === 'config' ? 'legend.config' : 'legend.default'),
+      ),
     }
     const select = async (tab: PaneTab) => {
       const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
