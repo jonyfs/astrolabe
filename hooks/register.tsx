@@ -48,7 +48,7 @@ import {
   type Question,
 } from './core/governor'
 import { CHIPS, FLAVORS, flavorOf, isThemeKeys, STATUS_ROLE, themeOf, type ThemeRole } from './core/theme'
-import { capDiff, tasksDiff } from './core/summary'
+import { capDiff, recapLine, recapOf, tasksDiff } from './core/summary'
 import { styleSections } from './core/style'
 import { parsePullList, pullAction, PR_LIST_FIELDS } from './core/pulls'
 import { SKILL_MODELS, skillModelFor } from './core/skill-models'
@@ -138,6 +138,7 @@ const buildHelp = (lang: Lang): string =>
     `  /astrolabe advisor [id]     ${t(lang, 'help.advisor')}`,
     `  /astrolabe config reset     ${t(lang, 'help.configReset')}`,
     `  /astrolabe worktrees        ${t(lang, 'help.worktrees')}`,
+    `  /astrolabe recap [id]       ${t(lang, 'help.recap')}`,
     // Each option with its value now (048 #75).
     `${t(lang, 'help.options')}: ${OPTION_NAMES.map(name => `${name}=${optionsSeen[name] === undefined ? 'default' : String(optionsSeen[name])}`).join(', ')}.`,
     t(lang, 'help.tabs'),
@@ -1977,7 +1978,11 @@ export const register: Register = (on, options) => {
       const git = found === undefined || worktree === undefined ? found : { ...found, worktree }
       await flushStats($, ({ git: _old, ...s }) => {
         const cached = s.prCache !== undefined && s.prCache.branch === git?.branch ? s.prCache.pr : undefined
-        return { ...s, turns: s.turns + 1, ...(git === undefined ? {} : { git: withPr(git, cached) }) }
+        // The answer's first line for /astrolabe recap (054 #92), the last 20 turns, in $.state only.
+        const line = recapLine(e.answer)
+        const id = held?.state.active?.id
+        const recap = line === '' ? s.recap : [...(s.recap ?? []), { at: now, ...(id === undefined ? {} : { id }), text: line }].slice(-20)
+        return { ...s, turns: s.turns + 1, ...(git === undefined ? {} : { git: withPr(git, cached) }), ...(recap === undefined ? {} : { recap }) }
       })
       if (root !== undefined && git?.branch !== undefined) {
         const repoRoot = root
@@ -2283,6 +2288,15 @@ export const register: Register = (on, options) => {
       return { text: t(currentLang(), 'ask.asking', { feature: about }) }
     }
     if (args === 'doctor') return { text: await doctor($) }
+    // The last 5 turns of the active feature, or of the one named (054 #92).
+    if (args === 'recap' || args.startsWith('recap ')) {
+      const state = (await $.state.get(SPECKIT)).value
+      const wanted = args.slice(5).trim()
+      const id = wanted === '' ? state?.active?.id : wanted.padStart(3, '0')
+      const lines = recapOf((await $.state.get(SESSION)).value?.recap ?? [], id)
+      if (lines.length === 0) return { text: t(currentLang(), 'recap.none', { id: id ?? '—' }) }
+      return { text: [t(currentLang(), 'recap.title', { id: id ?? '—' }), ...lines.map(r => `  ${clockOf(new Date(r.at).toISOString()) ?? ''}  ${r.text}`)].join('\n') }
+    }
     if (args === 'advisor' || args.startsWith('advisor ')) {
       // A whole turn with the advisor: only the person starts it (055).
       if (e.origin?.kind !== 'composer') return { text: t(currentLang(), 'advisor.onlyYou') }

@@ -347,6 +347,16 @@ the active feature named in its arguments.
 The last line times every state update since the plugin loaded and names the slowest. It turns
 into a `✗` past 5 s, half of the 10 s the engine gives each hook.
 
+`/astrolabe recap` lists the last 5 turns on the active feature, one line each: the time and the
+first line of Claude's answer. `/astrolabe recap 026` does the same for feature 026. It keeps the
+last 20 answers' first lines in the session's state only.
+
+```text
+Recent turns on 054:
+  14:02  Done: T057 ticked, the implement guard refuses once
+  14:20  Shipped v0.80.0 after the three CI jobs passed
+```
+
 `/astrolabe status` prints the active feature, the next command and the footer as text, with the
 band drawn above it in the terminal:
 

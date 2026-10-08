@@ -1,6 +1,6 @@
 // Astrolabe's own version, for the update check. scripts/check-release-version.sh fails a
 // release when this differs from .claude-plugin/plugin.json.
-export const VERSION = '0.105.0'
+export const VERSION = '0.106.0'
 
 /** What this version changed, one line, for the Help tab (048 #80). */
-export const CHANGES = 'under 60 columns the Specs tab draws no bars'
+export const CHANGES = '/astrolabe recap lists the last 5 turns on a feature'

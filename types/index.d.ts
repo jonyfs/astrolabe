@@ -240,6 +240,8 @@ export type SessionStats = {
   week?: { tasks: number; features: number }
   /** Tasks done in each of the last 8 weeks, oldest first (054 #40). */
   weeksTrend?: number[]
+  /** Each main turn's answer, as one line, with the feature it ran on: the last 20 (054 #92). */
+  recap?: Array<{ at: number; id?: string; text: string }>
   /** Tasks ticked on each day of this week, Monday first (046 #54). */
   weekdays?: number[]
   /** Tasks done in each recent main turn, by the turn's duration (021), at most 20. */
