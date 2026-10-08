@@ -121,6 +121,7 @@ const buildHelp = (lang: Lang): string =>
     `  /astrolabe review [id]      ${t(lang, 'help.review')}`,
     `  /astrolabe advisor [id]     ${t(lang, 'help.advisor')}`,
     `  /astrolabe config reset     ${t(lang, 'help.configReset')}`,
+    `  /astrolabe worktrees        ${t(lang, 'help.worktrees')}`,
     // Each option with its value now (048 #75).
     `${t(lang, 'help.options')}: ${OPTION_NAMES.map(name => `${name}=${optionsSeen[name] === undefined ? 'default' : String(optionsSeen[name])}`).join(', ')}.`,
     t(lang, 'help.tabs'),
@@ -138,6 +139,9 @@ const buildHelp = (lang: Lang): string =>
     ...t(lang, 'help.marksList').split('\n').map(line => `  ${line}`),
     t(lang, 'help.glossary'),
     ...(['constitution', 'specify', 'clarify', 'plan', 'tasks', 'implement'] as const).map(step => `  ${step.padEnd(13)} ${t(lang, `card.${step}`)}`),
+    // The gates row under the active feature, each one explained (054 #61).
+    t(lang, 'help.gates'),
+    ...(['constitution', 'clarify', 'checklist', 'tasks', 'analyze'] as const).map(gate => `  ${t(lang, `gate.${gate}`).padEnd(13)} ${t(lang, `help.gate.${gate}`)}`),
   ].join('\n')
 const OPTION_NAMES = ['preset', 'flavor', 'icons', 'language', 'bandDensity', 'checkUpdates', 'governUsage', 'askOnLimit', 'pullRequest', 'images', 'autoReload', 'footerIn', 'accessible', 'claudeContext', 'featureSummary', 'humanize', 'terse', 'skillModels'] as const
 const WELCOMED = 'welcomed'
@@ -2115,6 +2119,12 @@ export const register: Register = (on, options) => {
       if (feature === undefined) return { text: t(currentLang(), 'advisor.usage') }
       $.clock.after(0, () => void $.prompt.submit({ text: advisorPrompt(feature) }).catch(() => undefined))
       return { text: t(currentLang(), 'advisor.started', { feature: `${feature.id} ${feature.name}` }) }
+    }
+    // Every worktree working on a feature, as text (054 #53).
+    if (args === 'worktrees') {
+      const list = (await $.state.get(SESSION)).value?.worktrees ?? []
+      if (list.length === 0) return { text: t(currentLang(), 'worktrees.none') }
+      return { text: list.map(w => `⑂ ${w.name}  ${w.id} ${w.featureName}  ${w.phase}${w.total === 0 ? '' : ` ${w.done}/${w.total}`}${w.branch === undefined ? '' : `  (${w.branch})`}`).join('\n') }
     }
     if (args === 'config reset') {
       if (e.origin?.kind !== 'composer') return { text: t(currentLang(), 'config.resetOnlyYou') }
