@@ -1864,6 +1864,10 @@ export const register: Register = (on, options) => {
       await flushStats($, s => ({
         ...s,
         ...(percent === undefined ? {} : { context: { percent } }),
+        // A drop of 20 points or more is a compaction (054 #38): count it and what it freed.
+        ...(percent !== undefined && s.context !== undefined && s.context.percent - percent >= 20
+          ? { compactions: { n: (s.compactions?.n ?? 0) + 1, freed: (s.compactions?.freed ?? 0) + Math.round(s.context.percent - percent) } }
+          : {}),
         ...(binding === undefined || binding.renewed === true ? {} : {
               series: [
                 ...s.series,

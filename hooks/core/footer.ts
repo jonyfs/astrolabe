@@ -36,7 +36,9 @@ export const textWidth = (text: string): number =>
 /** `claude-opus-5-5` reads `opus 5.5`; anything else is kept. */
 export const shortModel = (model: string): string => {
   const m = /^claude-([a-z]+)-(\d+)-(\d+)/.exec(model.replace(/\[.*\]$/, ''))
-  return m === null ? model : `${m[1]} ${m[2]}.${m[3]}`
+  // The 1M context window shows (054 #42).
+  const wide = /\[1m\]$/i.test(model) ? ' 1M' : ''
+  return m === null ? model : `${m[1]} ${m[2]}.${m[3]}${wide}`
 }
 
 const withIcon = (icon: string, text: string) => (icon === '' ? text : `${icon} ${text}`)
