@@ -99,6 +99,12 @@ export const gatesText = (state: Pick<SpeckitState, 'constitution' | 'isAnalyzed
 /** A feature's own warnings, drawn under its row (052 #14). */
 const featureWarnings = (f: Feature, lang: Lang): PaneRow[] => {
   const rows: PaneRow[] = []
+  // Blocking first: a file that cannot be read, then a missing spec, then open questions and checklists (054 #29).
+  for (const file of ['spec', 'tasks'] as const) {
+    if (f.warnings.includes(`unreadable-${file}`)) {
+      rows.push({ key: `warning-${f.id}-${file}`, text: tr(lang, 'pane.unreadable', { id: f.id, file: `${file}.md` }), role: 'current' })
+    }
+  }
   if (f.warnings.includes('no-spec')) rows.push({ key: `nospec-${f.id}`, text: tr(lang, 'pane.noSpec', { id: f.id, dir: f.dir }), role: 'current' })
   if (f.warnings.includes('clarification-after-plan')) {
     rows.push({ key: `warning-${f.id}`, text: tr(lang, 'pane.clarifyLeft', { id: f.id }), role: 'current' })
@@ -108,11 +114,6 @@ const featureWarnings = (f: Feature, lang: Lang): PaneRow[] => {
   }
   if (f.checklist !== undefined && f.checklist.open > 0 && f.phase !== 'done' && f.phase !== 'abandoned') {
     rows.push({ key: `checklist-${f.id}`, text: tr(lang, 'pane.checklist', { id: f.id, open: f.checklist.open, total: f.checklist.total }), role: 'current' })
-  }
-  for (const file of ['spec', 'tasks'] as const) {
-    if (f.warnings.includes(`unreadable-${file}`)) {
-      rows.push({ key: `warning-${f.id}-${file}`, text: tr(lang, 'pane.unreadable', { id: f.id, file: `${file}.md` }), role: 'current' })
-    }
   }
   return rows
 }
