@@ -21,16 +21,17 @@ const cut = (text: string, room: number): string =>
 const markOf = (f: Feature): string => (f.phase === 'done' ? '●' : f.phase === 'abandoned' ? '○' : '◐')
 
 /** What a row shows besides the feature: the name column's width and the skill running on it (044). */
-type RowContext = { nameWidth: number; countWidth: number; running?: string; priority?: Priority; worktrees?: readonly string[] }
+type RowContext = { nameWidth: number; countWidth: number; idWidth?: number; running?: string; priority?: Priority; worktrees?: readonly string[] }
 
 /** One colour per phase, the rail's (054 #71). */
 const PHASE_ROLE: Partial<Record<Feature['phase'], ThemeRole>> = { specify: 'muted', clarify: 'current', plan: 'barFill', tasks: 'accent', implement: 'current', done: 'done' }
 
 const featureRow = (f: Feature, isActive: boolean, columns: number, ctx: RowContext): PaneRow => {
   // Not read yet in a large project (040): a mark and no phase until its batch lands.
-  if (f.warnings.includes('loading')) return { key: `feature-${f.id}`, text: `${isActive ? '▸' : ' '} … ${f.id} ${f.name}`, role: 'muted', dim: true }
+  if (f.warnings.includes('loading')) return { key: `feature-${f.id}`, text: `${isActive ? '▸' : ' '} … ${f.id.padEnd(ctx.idWidth ?? 0)} ${f.name}`, role: 'muted', dim: true }
   // `↑` high, `↓` low in the space before the id (051).
-  const head = `${isActive ? '▸' : ' '} ${markOf(f)}${priorityMark(ctx.priority)}${f.id} `
+  // Ids padded to the widest, so every name starts in one column (054 #25).
+  const head = `${isActive ? '▸' : ' '} ${markOf(f)}${priorityMark(ctx.priority)}${f.id.padEnd(ctx.idWidth ?? 0)} `
   const percent = f.total > 0 ? `${Math.floor((f.done * 100) / f.total)}%`.padStart(4) : ''
   const count = f.total > 0 ? `${f.done}/${f.total}`.padStart(ctx.countWidth) : ''
   const filled = f.total > 0 ? Math.floor((f.done * BAR_CELLS) / f.total) : 0
@@ -132,6 +133,7 @@ export const specsRows = (
   if (state.features.length === 0) return [{ key: 'empty', text: tr(lang, 'pane.noFeatures'), role: 'muted' }]
   const activeDir = state.active?.dir
   const ctx = {
+    idWidth: Math.max(0, ...state.features.map(f => width(f.id))),
     nameWidth: Math.min(24, Math.max(...state.features.map(f => width(f.name)))),
     countWidth: Math.max(0, ...state.features.filter(f => f.total > 0).map(f => width(`${f.done}/${f.total}`))),
   }
