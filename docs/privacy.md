@@ -38,6 +38,7 @@ In Claude Code's plugin store on your machine (kept across sessions):
 | `reloaded` | The last version it reloaded for |
 | `welcomed` | The version that showed the first-run toast |
 | `tab:<project folder>` | The pane tab you last picked in that project |
+| `priority:<project folder>` | The specs you marked high or low in that project |
 | `summaries` | Finished features' summaries, when `featureSummary` is on |
 
 ## What it sends
@@ -47,7 +48,8 @@ In Claude Code's plugin store on your machine (kept across sessions):
 - To Claude, through Claude Code: with `claudeContext` on, one line about the active feature
   next to your prompt, and the constitution's principle names when a Spec Kit skill runs; with
   `featureSummary` on, a finished feature's spec and tasks to `haiku`; with `/astrolabe ask`, your
-  question to a fork of the session. These go through your own Claude Code session and account,
+  question to a fork of the session; with `/astrolabe review`, the spec's `spec.md`, `plan.md` and
+  `tasks.md` and the constitution's principle names to `opus`. These go through your own Claude Code session and account,
   like any prompt you type.
 - To `gh` and `git`: the commands above, run in your project folder. Approve, update branch and
   merge run only after you press the button twice.

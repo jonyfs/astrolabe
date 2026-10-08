@@ -258,6 +258,12 @@ export type SessionStats = {
   }
   /** The last finished feature's summary from a small model (026). */
   lastSummary?: { dir: string; text: string }
+  /** Spec priorities for this project, by feature id; normal is no entry (051). */
+  priorities?: Record<string, 'high' | 'normal' | 'low'>
+  /** The last deep review (051): the feature, the model's findings, when. */
+  lastReview?: { id: string; text: string; at: number }
+  /** gstack's skills are installed under the home directory (051). */
+  gstack?: boolean
   /** The features the repository's other worktrees work on (037), read after each main turn. */
   worktrees?: Array<{ name: string; branch?: string; dir: string; id: string; featureName: string; phase: Phase; done: number; total: number }>
   /** The last main turn's change to the active tasks, as unified-diff hunks (024). */

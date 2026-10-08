@@ -33,7 +33,7 @@ export const paneTree = (
   /** What is above and below the rows shown, with the presses that scroll (038). */
   nav?: { above: number; below: number; up: () => Promise<void>; down: () => Promise<void>; labels: { more: string } },
   /** Counts beside the tab labels (043 #21) and the keys of the tab shown (043 #25). */
-  extras: { badges?: Partial<Record<PaneTab, string>>; legend?: string; onClose?: () => Promise<void>; onFind?: () => Promise<void>; Link?: ElementTable<'terminal'>['Link'] } = {},
+  extras: { badges?: Partial<Record<PaneTab, string>>; legend?: string; onClose?: () => Promise<void>; onFind?: () => Promise<void>; onPriority?: () => Promise<void>; Link?: ElementTable<'terminal'>['Link'] } = {},
 ) => {
   const Link = extras.Link
   return (
@@ -50,6 +50,8 @@ export const paneTree = (
       ))}
       {/* f focuses the filter (043 #23); ✕ closes the pane (043 #28). */}
       {extras.onFind !== undefined && <Button key="find" label="⌕ f" hotkey="f" plain onPress={() => extras.onFind!()} />}
+      {/* p cycles the active spec's priority: normal, high, low (051). */}
+      {extras.onPriority !== undefined && <Button key="priority" label="↑↓ p" hotkey="p" plain onPress={() => extras.onPriority!()} />}
       {extras.onClose !== undefined && <Button key="close-pane" label="✕" plain onPress={() => extras.onClose!()} />}
     </Box>
     <Box key="astrolabe-pane-body" flexDirection="column">

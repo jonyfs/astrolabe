@@ -171,3 +171,58 @@ describe('pane navigation, part two (043)', () => {
     await ui.unmount()
   })
 })
+
+describe('acting on a spec (051)', () => {
+  test('priority: the command stores it per project; the row gets ↑; p cycles the active one', async ($, on) => {
+    const { session } = await setup($ as never, on as never)
+    const ran = (await $.command.run({ command: 'astrolabe', args: 'priority 2 high' } as never)) as { text: string }
+    expect(ran.text).toBe('🧭 002 band-hint: priority high')
+    expect(session.store.get('priority:/proj')).toEqual({ '002': 'high' })
+    const ui = await mountPane($ as never, 'terminal', 100, 30)
+    expect(await ui.body()).toContain('▸ ◐↑002 band-hint')
+    await ui.press('priority')
+    expect(session.store.get('priority:/proj')).toEqual({ '002': 'low' })
+    await ui.unmount()
+  })
+  test('review: only from the composer; the findings land in the Session tab', async ($, on) => {
+    const asked: Array<{ model: string; effort?: string }> = []
+    on('model.complete', ($$, e) => {
+      asked.push(e as never)
+      return { value: { isAnswered: true, text: 'spec.md US2: no acceptance scenario\nplan.md: no rollback' } } as never
+    })
+    const { session } = await setup($ as never, on as never)
+    const fromClaude = (await $.command.run({ command: 'astrolabe', args: 'review' } as never)) as { text: string }
+    expect(fromClaude.text).toContain('Only you can start a deep review')
+    const ran = (await $.command.run({ command: 'astrolabe', args: 'review', origin: { kind: 'composer' } } as never)) as { text: string }
+    expect(ran.text).toBe('🧭 reviewing 002 band-hint with opus; the findings land in the Session tab')
+    await session.clock.settle()
+    expect(asked[0]).toMatchObject({ model: 'opus', effort: 'xhigh' })
+    expect(session.toasts.at(-1)).toBe('🧭 the review of 002 band-hint is in the Session tab')
+    const ui = await mountPane($ as never, 'terminal', 120, 40)
+    await ui.press('tab-session')
+    expect(await ui.body()).toContain('review 002    spec.md US2: no acceptance scenario')
+    await ui.unmount()
+  })
+})
+
+describe('gstack on the Specs tab (051)', () => {
+  test('with gstack installed, a row of its skills runs one on the active feature', async ($, on) => {
+    const session = installTree(on, { ...halfDone.tree, '/home/u/.claude/skills/gstack/bin/gstack-update-check': '#!/bin/sh\n' }, halfDone.cwd)
+    session.script.env['HOME'] = '/home/u'
+    installEngine(on)
+    installRenderEngine(on)
+    installPaneEngine(on)
+    await startSession($ as never, halfDone.cwd)
+    const ui = await mountPane($ as never, 'terminal', 100, 40)
+    await ui.press('gstack-investigate')
+    await session.clock.settle()
+    expect(session.prompts).toContain('/investigate')
+    await ui.unmount()
+  })
+  test('without gstack there is no row', async ($, on) => {
+    await setup($ as never, on as never)
+    const ui = await mountPane($ as never, 'terminal', 100, 40)
+    await expect(ui.press('gstack-investigate')).rejects.toThrow()
+    await ui.unmount()
+  })
+})
