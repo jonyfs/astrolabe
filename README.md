@@ -366,8 +366,8 @@ The current values, from a shell:
 
 ## The /astrolabe pane
 
-Type `/astrolabe` to open a pane with five tabs (`/astrolabe help` lists every command and key). In a fullscreen terminal it docks at the
-right; otherwise it sits above the prompt. It opens with the keyboard on it, so `1` to `5`
+Type `/astrolabe` to open a pane with six tabs (`/astrolabe help` lists every command and key). In a fullscreen terminal it docks at the
+right; otherwise it sits above the prompt. It opens with the keyboard on it, so `1` to `6`
 switch tabs right away, and Esc closes it. Later, focus it again with a click or
 `ctrl+x tab`. The tab you pick stays for the session.
 
@@ -452,6 +452,12 @@ sections, so a chart is never cut in half.
 
 **5 Help** lists the `/astrolabe` commands, the pane and band keys, and the options, in your
 language.
+
+**6 Config** lists every Astrolabe option as `/config` holds it, with a control for each: a picker
+for a choice, a toggle for on and off, a field for a number or a text. A changed row is marked `●`.
+`Save N changes` applies them through Claude Code's settings, and Astrolabe reloads with the new
+values; `Cancel` drops them. A row your organization's policy locks shows its value and cannot be
+changed.
 
 With the `full` preset, the pane also opens by itself once per session, at the end of the
 first turn, but only in a fullscreen terminal at least 144 columns wide. It never opens by

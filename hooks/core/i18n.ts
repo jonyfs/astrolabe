@@ -5,6 +5,15 @@ export const LANGS = ['en', 'pt-BR', 'es', 'fr'] as const
 export type Lang = (typeof LANGS)[number]
 
 const EN = {
+  'tab.config': 'Config',
+  'help.configTab': 'every Astrolabe option, edited and saved here',
+  'config.none': 'No Astrolabe options were listed by /config.',
+  'config.locked': 'locked by policy',
+  'config.save': 'Save {n} changes',
+  'config.saved': 'Nothing to save',
+  'config.cancel': 'Cancel',
+  'config.applied': '🧭 {n} options saved; Astrolabe reloads with them',
+  'config.refused': '🧭 not saved: {list}',
   'pane.scrollMore': 'more',
   'summary.ready': '🧭 {feature} is done: its summary is in the Session tab of /astrolabe',
   'session.summary': 'summary',
@@ -152,6 +161,15 @@ export type TextKey = keyof typeof EN
 type Dictionary = Readonly<Record<TextKey, string>>
 
 const PT_BR: Dictionary = {
+  'tab.config': 'Config',
+  'help.configTab': 'todas as opções do Astrolabe, editadas e salvas aqui',
+  'config.none': 'O /config não listou opções do Astrolabe.',
+  'config.locked': 'travada pela política',
+  'config.save': 'Salvar {n} mudanças',
+  'config.saved': 'Nada a salvar',
+  'config.cancel': 'Cancelar',
+  'config.applied': '🧭 {n} opções salvas; o Astrolabe recarrega com elas',
+  'config.refused': '🧭 não salvo: {list}',
   'pane.scrollMore': 'mais',
   'summary.ready': '🧭 {feature} terminou: o resumo está na aba Sessão do /astrolabe',
   'session.summary': 'resumo',
@@ -296,6 +314,15 @@ const PT_BR: Dictionary = {
 }
 
 const ES: Dictionary = {
+  'tab.config': 'Config',
+  'help.configTab': 'todas las opciones de Astrolabe, editadas y guardadas aquí',
+  'config.none': '/config no listó opciones de Astrolabe.',
+  'config.locked': 'bloqueada por la política',
+  'config.save': 'Guardar {n} cambios',
+  'config.saved': 'Nada que guardar',
+  'config.cancel': 'Cancelar',
+  'config.applied': '🧭 {n} opciones guardadas; Astrolabe se recarga con ellas',
+  'config.refused': '🧭 no guardado: {list}',
   'pane.scrollMore': 'más',
   'summary.ready': '🧭 {feature} terminó: el resumen está en la pestaña Sesión de /astrolabe',
   'session.summary': 'resumen',
@@ -440,6 +467,15 @@ const ES: Dictionary = {
 }
 
 const FR: Dictionary = {
+  'tab.config': 'Config',
+  'help.configTab': 'toutes les options d’Astrolabe, modifiées et enregistrées ici',
+  'config.none': '/config n’a listé aucune option d’Astrolabe.',
+  'config.locked': 'verrouillée par la politique',
+  'config.save': 'Enregistrer {n} changements',
+  'config.saved': 'Rien à enregistrer',
+  'config.cancel': 'Annuler',
+  'config.applied': '🧭 {n} options enregistrées ; Astrolabe se recharge avec elles',
+  'config.refused': '🧭 non enregistré : {list}',
   'pane.scrollMore': 'de plus',
   'summary.ready': '🧭 {feature} est terminée : le résumé est dans l’onglet Session de /astrolabe',
   'session.summary': 'résumé',
