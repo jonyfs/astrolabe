@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import { byPriority, nextPriority, parsePriority, priorityMark, reviewPrompt, withPriority } from '../../hooks/core/spec-actions'
+import { byPriority, configMark, nextPriority, parsePriority, priorityMark, reviewPrompt, withPriority } from '../../hooks/core/spec-actions'
 
 describe('spec priorities (051)', () => {
   test('parse, cycle and store only what is not normal', () => {
@@ -23,5 +23,15 @@ describe('spec priorities (051)', () => {
     expect(text).toContain('--- spec.md\nSPEC')
     expect(text).not.toContain('--- plan.md')
     expect(text).toContain('--- tasks.md\nTASKS')
+  })
+})
+
+describe('configMark (052 #39)', () => {
+  test('● a draft change, • a saved value off its default, blank otherwise', () => {
+    const d = { 'astrolabe.preset': 'compact' }
+    expect(configMark(true, 'full', d, 'astrolabe.preset')).toBe('● ')
+    expect(configMark(false, 'full', d, 'astrolabe.preset')).toBe('• ')
+    expect(configMark(false, 'compact', d, 'astrolabe.preset')).toBe('  ')
+    expect(configMark(false, 'x', d, 'astrolabe.other')).toBe('  ')
   })
 })
