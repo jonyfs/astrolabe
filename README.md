@@ -131,11 +131,12 @@ Each part, from left to right:
 | Phase | `implement` | The first Spec Kit step this feature has not finished. See [Phases](#phases). |
 | Percentage | `87%` | Ticked tasks out of all tasks in the feature's `tasks.md`, rounded down. 43 of 49 is `87%`. It appears only once `tasks.md` has tasks. |
 | Running step | `· plan…` | A Spec Kit skill such as `/speckit-plan` was called during this turn. It disappears when the turn ends. |
-| Usage window | `· 7d 81% hold (Mon 14:00)` | The window that decides, its band when it is not ok, and when it resets: a countdown such as `2h13m` when the reset is less than a day away, else the weekday and time. The other window follows. See [Usage governance](#usage-governance). |
+| Usage window | `· 7d 81% hold (Mon 14:00)` | The window that decides, its band when it is not ok, and when it resets: a countdown such as `2h13m` when the reset is less than a day away, else the weekday and time. A window at or past 100% reads `full`. The other window follows. See [Usage governance](#usage-governance). |
 | Context | `·  61%` | How full the context window is. |
 | Model and effort | `·  opus 5.5 high` | The model and effort of Claude's last request in the main thread. |
 | Git | `·  main ↑2  3` | The branch, commits to push and to pull, and changed or untracked files, from one `git status` at the end of each turn. Without a repository it is left out. |
 | Cost | `·  1.20` | What the session has cost so far, in US dollars, when Claude Code reports it. |
+| Burn rate | `· 🔥 12/h → 96%` | Usage points an hour over the session, and where the window that decides will be at its reset at that pace. It shows once the session has two readings that rise. |
 | Duration | `·  1h05m` | How long the session has run, from its first minute on. |
 
 ### The footer in place of a statusline
@@ -151,10 +152,10 @@ In the pane the footer is drawn the way the [statusline](https://github.com/jony
 project draws its bar: Powerline chips in Catppuccin colours. Spec Kit is mauve, the model red, git
 lavender, the cost teal, and the usage windows and the context follow statusline's ramp: green below
 60%, yellow to 85% (`5h 72%▵`), red above (`5h 94%▴`). The context takes the colour without the
-mark. The `flavor` option picks the palette; with `ascii` icons or the accessible mode the footer
-is plain text.
+mark. The `flavor` option picks the palette; with `ascii` icons, the accessible mode or the
+`NO_COLOR` environment variable set, the footer is plain text with ` · ` between the parts.
 
-When the room is too narrow, the parts go from the end: duration first, then cost, git, model,
+When the room is too narrow, the parts go from the end: duration first, then the burn rate, cost, git, model,
 the other window and the context. The Spec Kit part and the window that decides always stay.
 
 | A statusline showed | In Astrolabe |

@@ -104,7 +104,7 @@ export const nextHeld = (readings: readonly UsageReading[], held: Held | undefin
 export const usageSegment = (d: Decision, lang: Lang = 'en'): string | undefined => {
   if (d.highest === undefined) return undefined
   if (d.highest.renewed === true) return `${labelOf(d.highest.kind)} ${t(lang, 'status.renewed')}`
-  const text = `${labelOf(d.highest.kind)} ${Math.round(d.highest.percent)}%`
+  const text = `${labelOf(d.highest.kind)} ${d.highest.percent >= 100 ? t(lang, 'status.full') : `${Math.round(d.highest.percent)}%`}`
   return d.band === 'ok' ? text : `${text} ${d.band}`
 }
 

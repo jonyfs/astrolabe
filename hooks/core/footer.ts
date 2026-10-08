@@ -17,6 +17,8 @@ export type FooterInput = {
   git?: GitState
   cost?: number
   startedAt?: number
+  /** Usage points an hour over the session (041 #4). */
+  burn?: number
   now: number
   icons: Icons
   columns: number
@@ -71,7 +73,9 @@ const windowText = (r: UsageReading, now: number, lang: Lang): string => {
   const renewed = r.resetsAt !== undefined && Date.parse(r.resetsAt) <= now
   if (renewed) return `${labelOf(r.kind)} ${t(lang, 'status.renewed')}`
   const at = resetOf(r.resetsAt, now)
-  return `${labelOf(r.kind)} ${Math.round(r.percentUsed)}%${at === undefined ? '' : ` (${at})`}`
+  // At or past 100% a window reads `full` (041 #3).
+  const level = r.percentUsed >= 100 ? t(lang, 'status.full') : `${Math.round(r.percentUsed)}%`
+  return `${labelOf(r.kind)} ${level}${at === undefined ? '' : ` (${at})`}`
 }
 
 const parts = (input: FooterInput): Part[] => {
@@ -114,6 +118,12 @@ const parts = (input: FooterInput): Part[] => {
   if (input.cost !== undefined && input.cost > 0) {
     const amount = input.cost.toFixed(2)
     out.push({ text: icons.cost === '$' ? `$${amount}` : withIcon(icons.cost, amount), rank: 5, colour: 'teal' })
+  }
+  // Burn rate (041 #4): points an hour, and where the deciding window lands at its reset.
+  if (input.burn !== undefined && input.burn > 0) {
+    const reset = binding?.resetsAt === undefined ? Number.NaN : Date.parse(binding.resetsAt)
+    const landing = binding === undefined || binding.renewed === true || Number.isNaN(reset) || reset <= now ? undefined : Math.min(100, Math.round(binding.percent + (input.burn * (reset - now)) / 3_600_000))
+    out.push({ text: `${icons.burn === '' ? '' : `${icons.burn} `}${Math.round(input.burn)}/h${landing === undefined ? '' : ` → ${landing}%`}`, rank: 5.5, colour: 'peach', ...(landing === undefined ? {} : { level: landing }) })
   }
   if (input.startedAt !== undefined && now - input.startedAt >= 60_000) out.push({ text: withIcon(icons.clock, duration(now - input.startedAt)), rank: 6, colour: 'surface1' })
   return out

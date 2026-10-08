@@ -62,7 +62,7 @@ import { applyFileTouch, applyRead, applyShell, applySkill, type Held, reconcile
 import { bandRow, nextRow, updatesRow } from './surfaces/band'
 import { askTree } from './surfaces/ask'
 import { dashboardSections, dashboardTree } from './surfaces/dashboard'
-import { dial, kpiChips, kpiRows, phaseBars, sparkline, usageChart } from './core/dashboard'
+import { burnRate, dial, kpiChips, kpiRows, phaseBars, sparkline, usageChart } from './core/dashboard'
 import { addWeek, estimateLeft, slowest, weekKey, type Weeks } from './core/history'
 import { footerChips, footerText, type FooterInput } from './core/footer'
 import { parseGitStatus, parsePullRequest } from './core/git-status'
@@ -203,6 +203,7 @@ async function footerInput($: EngineInterface, state: Held['state'], width: numb
       ...(stats?.git === undefined ? {} : { git: stats.git }),
       ...(stats?.cost === undefined ? {} : { cost: stats.cost }),
       ...(stats === undefined ? {} : { startedAt: stats.startedAt }),
+      ...((rate => (rate === undefined ? {} : { burn: rate }))(stats === undefined ? undefined : burnRate(stats.series))),
       now,
       icons: iconSet(iconsFor(iconsOption, surfaceSeen as never)),
       columns: width,
@@ -211,6 +212,7 @@ async function footerInput($: EngineInterface, state: Held['state'], width: numb
 
 // Where the footer goes (035): the pane (the status entry keeps the lead), the status entry, or both.
 let footerIn: 'pane' | 'status' | 'both' = 'pane'
+let noColor = false
 
 /** Writes what the session counted since the last write, merged with `change`, if anything moved. */
 async function flushStats($: EngineInterface, change: (s: SessionStats) => SessionStats = s => s): Promise<void> {
@@ -1477,6 +1479,8 @@ export const register: Register = (on, options) => {
     } catch (error) {
       $.ui.log(`astrolabe: ${error instanceof Error ? error.message : String(error)}`, { to: 'debug' })
     }
+    // NO_COLOR (041 #9): no chip backgrounds, the thin separator. Read once, here.
+    noColor = ((await $.env.get('NO_COLOR').catch(() => undefined)) ?? '') !== ''
     const fs = fsOf($)
     const now = await $.clock.now()
     const started = await guarded($, previous => reconcileStart(fs, e.cwd, previous, now))
@@ -1931,7 +1935,7 @@ export const register: Register = (on, options) => {
       // statusline's colours (039); text only in the accessible mode and with ascii icons.
       const palette = CHIPS[flavorOf(optionsSeen, isLightTheme)]
       const chips =
-        accessible || set === 'ascii'
+        accessible || set === 'ascii' || noColor
           ? undefined
           : footerChips(input).map(chip => {
               const bg = palette[chip.colour] ?? palette['surface1']!
