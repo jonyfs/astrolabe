@@ -115,3 +115,23 @@ export const sessionRows = (state: SpeckitState, now: number, lang: Lang = 'en')
   if (state.nextHooks !== undefined && state.nextHooks.after.length > 0) pairs.push(['hooks-after', tr(lang, 'session.hooksAfter'), state.nextHooks.after.join(', ')])
   return pairs.map(([key, label, value]) => ({ key: `session-${key}`, text: `${label.padEnd(14)}${value}`, role: 'text' }))
 }
+
+/**
+ * A window over units of known height (038): from `offset`, as many units as fit in `room` rows,
+ * keeping a row for each arrow that says more is above or below. Never empty while units remain.
+ */
+export const windowUnits = (heights: readonly number[], offset: number, room: number): { start: number; end: number } => {
+  const n = heights.length
+  if (heights.reduce((a, b) => a + b, 0) <= room) return { start: 0, end: n }
+  const start = Math.max(0, Math.min(n - 1, Math.floor(offset)))
+  const space = room - (start > 0 ? 1 : 0)
+  let end = start
+  let used = 0
+  while (end < n) {
+    const below = end + 1 < n ? 1 : 0
+    if (used + heights[end]! + below > space) break
+    used += heights[end]!
+    end += 1
+  }
+  return { start, end: Math.max(end, start + 1) }
+}

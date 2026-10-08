@@ -43,33 +43,62 @@ const chart = (el: Elements, key: string, grid: Grid, alt: string, tokens: Token
   )
 }
 
-export const dashboardTree = (el: Elements, view: DashboardView, tokens: Tokens, ascii: boolean, lang: Lang = 'en') => (
+/** The Dashboard as sections, each with the rows it takes, so the pane can window them (038). */
+export const dashboardSections = (el: Elements, view: DashboardView, tokens: Tokens, ascii: boolean, lang: Lang = 'en') => {
+  const out: Array<{ node: unknown; rows: number }> = []
+  out.push({
+    rows: 1 + view.dial.rows,
+    node: (
+      <el.Box flexDirection="column">
+        <el.Text color={tokens.accent}>{t(lang, 'dash.cycle')}</el.Text>
+        {!ascii && el.Client !== undefined && view.dialFrames !== undefined ? (
+          <el.Client key="astrolabe-dial" module="./dial-client.tsx" props={{ frames: view.dialFrames }} width={view.dial.columns} height={view.dial.rows} />
+        ) : (
+          chart(el, 'astrolabe-dial', view.dial, t(lang, 'dash.cycleAlt'), tokens, ascii)
+        )}
+      </el.Box>
+    ),
+  })
+  if (view.progress !== undefined) out.push({ rows: 1, node: <el.Text color={tokens.text}>{view.progress}</el.Text> })
+  if (view.bars !== undefined) {
+    out.push({
+      rows: 1 + view.bars.rows,
+      node: (
+        <el.Box flexDirection="column">
+          <el.Text color={tokens.accent}>{t(lang, 'dash.phases')}</el.Text>
+          {chart(el, 'astrolabe-bars', view.bars, t(lang, 'dash.phases'), tokens, ascii)}
+        </el.Box>
+      ),
+    })
+  }
+  out.push({
+    rows: 1 + (view.chart === undefined ? 1 : view.chart.rows),
+    node: (
+      <el.Box flexDirection="column">
+        <el.Text color={tokens.accent}>{t(lang, 'dash.usage')}</el.Text>
+        {view.chart === undefined ? (
+          <el.Text color={tokens.muted}>{view.chartNote}</el.Text>
+        ) : !ascii && el.Image !== undefined && view.chartImage !== undefined ? (
+          <el.Image
+            source={{ rgba: view.chartImage.rgba, width: view.chartImage.width, height: view.chartImage.height }}
+            columns={view.chartImage.columns}
+            rows={view.chartImage.rows}
+            alt={view.chartImage.alt}
+          />
+        ) : (
+          chart(el, 'astrolabe-usage-chart', view.chart, view.chartNote, tokens, ascii)
+        )}
+      </el.Box>
+    ),
+  })
+  out.push({ rows: 1, node: <el.Text color={tokens.accent}>{t(lang, 'dash.session')}</el.Text> })
+  for (const [label, value] of view.kpis) out.push({ rows: 1, node: <el.Text color={tokens.text} wrap="truncate-end">{`${label.padEnd(14)}${value}`}</el.Text> })
+  return out
+}
+
+/** The sections drawn as one column. */
+export const dashboardTree = (el: Elements, sections: ReadonlyArray<{ node: unknown }>) => (
   <el.Box key="astrolabe-dashboard" flexDirection="column">
-    <el.Text color={tokens.accent}>{t(lang, 'dash.cycle')}</el.Text>
-    {!ascii && el.Client !== undefined && view.dialFrames !== undefined ? (
-      <el.Client key="astrolabe-dial" module="./dial-client.tsx" props={{ frames: view.dialFrames }} width={view.dial.columns} height={view.dial.rows} />
-    ) : (
-      chart(el, 'astrolabe-dial', view.dial, t(lang, 'dash.cycleAlt'), tokens, ascii)
-    )}
-    {view.progress === undefined ? null : <el.Text color={tokens.text}>{view.progress}</el.Text>}
-    {view.bars === undefined ? null : <el.Text color={tokens.accent}>{t(lang, 'dash.phases')}</el.Text>}
-    {view.bars === undefined ? null : chart(el, 'astrolabe-bars', view.bars, t(lang, 'dash.phases'), tokens, ascii)}
-    <el.Text color={tokens.accent}>{t(lang, 'dash.usage')}</el.Text>
-    {view.chart === undefined ? (
-      <el.Text color={tokens.muted}>{view.chartNote}</el.Text>
-    ) : !ascii && el.Image !== undefined && view.chartImage !== undefined ? (
-      <el.Image
-        source={{ rgba: view.chartImage.rgba, width: view.chartImage.width, height: view.chartImage.height }}
-        columns={view.chartImage.columns}
-        rows={view.chartImage.rows}
-        alt={view.chartImage.alt}
-      />
-    ) : (
-      chart(el, 'astrolabe-usage-chart', view.chart, view.chartNote, tokens, ascii)
-    )}
-    <el.Text color={tokens.accent}>{t(lang, 'dash.session')}</el.Text>
-    {view.kpis.map(([label, value]) => (
-      <el.Text color={tokens.text} wrap="truncate-end">{`${label.padEnd(14)}${value}`}</el.Text>
-    ))}
+    {sections.map(section => section.node as never)}
   </el.Box>
 )

@@ -28,6 +28,8 @@ export const paneTree = (
   header: readonly RenderNode[] = [],
   /** The footer under every tab (035), after `pad` blank rows that hold it at the bottom. */
   footer?: { text: string; pad: number; columns: number },
+  /** What is above and below the rows shown, with the presses that scroll (038). */
+  nav?: { above: number; below: number; up: () => Promise<void>; down: () => Promise<void>; labels: { more: string } },
 ) => (
   <Box flexDirection="column">
     <Box key="astrolabe-pane-tabs" flexDirection="row">
@@ -43,11 +45,13 @@ export const paneTree = (
     </Box>
     <Box key="astrolabe-pane-body" flexDirection="column">
       {header}
+      {nav !== undefined && nav.above > 0 && <Button key="scroll-up" label={`▲ ${nav.above} ${nav.labels.more} (k)`} hotkey="k" plain onPress={() => nav.up()} />}
       {body ?? rows.map(row => (
         <Text color={tokens[row.role]} dimColor={row.dim === true} wrap="truncate-end">
           {row.text}
         </Text>
       ))}
+      {nav !== undefined && nav.below > 0 && <Button key="scroll-down" label={`▼ ${nav.below} ${nav.labels.more} (j)`} hotkey="j" plain onPress={() => nav.down()} />}
     </Box>
     {footer === undefined ? null : (
       <Box flexDirection="column">

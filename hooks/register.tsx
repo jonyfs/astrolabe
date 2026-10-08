@@ -5,7 +5,7 @@ import type { EngineInterface, Hook, Register, RenderNode } from 'claude-code'
 import { bandSegments, stepCards } from './core/band'
 import { hintTail } from './core/hint'
 import { phaseToasts } from './core/phase-toast'
-import { sessionRows, specsRows, taskRows } from './core/pane'
+import { sessionRows, specsRows, taskRows, windowUnits } from './core/pane'
 import { presetOf } from './core/presets'
 import { spinnerSuffix } from './core/spinner'
 import {
@@ -58,7 +58,7 @@ import { findRoot } from './io/root'
 import { applyFileTouch, applyRead, applyShell, applySkill, type Held, reconcileStart, reconcileTurn } from './io/reconcile'
 import { bandRow, nextRow, updatesRow } from './surfaces/band'
 import { askTree } from './surfaces/ask'
-import { dashboardTree } from './surfaces/dashboard'
+import { dashboardSections, dashboardTree } from './surfaces/dashboard'
 import { dial, kpiRows, phaseBars, sparkline, usageChart } from './core/dashboard'
 import { addWeek, estimateLeft, slowest, weekKey, type Weeks } from './core/history'
 import { footerText, type FooterInput } from './core/footer'
@@ -209,6 +209,9 @@ async function readGit($: EngineInterface, root: string | undefined, branch: str
 }
 
 let prRunning = false
+
+// How many units each pane tab drew last (038), to clamp a scroll that arrives between draws.
+const unitsShown: Partial<Record<string, number>> = {}
 
 // Whether a finished feature gets a summary from a small model (026 #53), off by default.
 let featureSummary = false
@@ -1560,6 +1563,16 @@ export const register: Register = (on, options) => {
     return { text: 'Astrolabe pane opened.' }
   })
 
+  // The wheel and the arrow keys scroll the pane's body, not the whole pane, so the footer stays (038).
+  on('ui.scroll', { component: 'Pane', requestId: PANE_ID }, async ($, e) => {
+    const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
+    const from = held.scroll?.tab === held.tab ? held.scroll.offset : 0
+    const by = e.by === 0 ? 0 : Math.sign(e.by) * Math.max(1, Math.round(Math.abs(e.by)))
+    const to = Math.max(0, Math.min(Math.max(0, (unitsShown[held.tab] ?? 1) - 1), from + by))
+    if (to !== from) await $.state.set(PANE_STATE, { ...held, scroll: { tab: held.tab, offset: to } })
+    return {}
+  })
+
   on('ui.render', { component: 'Pane', requestId: PANE_ID }, async ($, e) => {
     const { value } = await $.state.get(SPECKIT)
     const pane = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
@@ -1571,7 +1584,7 @@ export const register: Register = (on, options) => {
             .split('\n')
             .map((text, i) => ({ key: `help-${i}`, text, role: (i === 0 || !text.startsWith(' ') ? 'accent' : 'text') as 'accent' | 'text' }))
         : pane.tab === 'tasks'
-        ? taskRows(state, emptyMemo(), Math.max(3, (e.viewport?.rows ?? 24) - 4), columns, currentLang())
+        ? taskRows(state, emptyMemo(), 1000, columns, currentLang())
         : pane.tab === 'session'
           ? [
               ...sessionRows(state, await $.clock.now(), currentLang()),
@@ -1607,11 +1620,30 @@ export const register: Register = (on, options) => {
       await $.state.set(PANE_STATE, { ...held, tab })
     }
     // The footer under every tab (035), held at the bottom when the tab is shorter than the pane.
-    const footerFor = async (contentRows: number) => {
+    const footerFor = async (pad: number) => {
       if (footerIn === 'status') return undefined
-      const text = footerText(await footerInput($, state, columns))
-      const room = e.props.scroll?.bodyRows ?? 0
-      return { text, columns, pad: Math.max(0, room - contentRows - 2) }
+      return { text: footerText(await footerInput($, state, columns)), columns, pad: Math.max(0, pad) }
+    }
+    // The body scrolls inside the pane and the footer stays on the last rows (038).
+    const bodyRows = e.props.scroll?.bodyRows ?? 24
+    const offset = pane.scroll?.tab === pane.tab ? pane.scroll.offset : 0
+    const scrollBy = async (by: number) => {
+      const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
+      const from = held.scroll?.tab === held.tab ? held.scroll.offset : 0
+      const to = Math.max(0, Math.min(Math.max(0, (unitsShown[held.tab] ?? 1) - 1), from + by))
+      if (to !== from) await $.state.set(PANE_STATE, { ...held, scroll: { tab: held.tab, offset: to } })
+    }
+    const navFor = (heights: readonly number[], room: number) => {
+      const win = windowUnits(heights, offset, room)
+      unitsShown[pane.tab] = heights.length
+      const step = Math.max(1, win.end - win.start - 1)
+      const shownRows = heights.slice(win.start, win.end).reduce((a, b) => a + b, 0)
+      const arrows = (win.start > 0 ? 1 : 0) + (win.end < heights.length ? 1 : 0)
+      return {
+        win,
+        pad: room - shownRows - arrows,
+        nav: { above: win.start, below: heights.length - win.end, up: () => scrollBy(-step), down: () => scrollBy(step), labels: { more: t(currentLang(), 'pane.scrollMore') } },
+      }
     }
     if (pane.tab !== 'dashboard') {
       const stats = (await $.state.get(SESSION)).value
@@ -1623,8 +1655,10 @@ export const register: Register = (on, options) => {
           : pane.tab === 'tasks' && stats?.tasksDiff !== undefined && stats.tasksDiff.dir === state.active?.dir
             ? stats.tasksDiff.text.split('\n').length
             : 0
-      const footer = await footerFor(1 + headerRows + rows.length)
-      return paneTree({ Box, Text, Button }, pane.tab, rows, tokens, select, undefined, currentLang(), header, footer)
+      const room = bodyRows - 1 - headerRows - (footerIn === 'status' ? 0 : 2)
+      const { win, pad, nav } = navFor(rows.map(() => 1), room)
+      const footer = await footerFor(pad)
+      return paneTree({ Box, Text, Button }, pane.tab, rows.slice(win.start, win.end), tokens, select, undefined, currentLang(), header, footer, nav)
     }
     // The Dashboard (018): numbers from $.state only, charts sized to the pane.
     const elements = $.ui.resolve(e)
@@ -1656,7 +1690,7 @@ export const register: Register = (on, options) => {
       ...(activeFeature === undefined || activeFeature.total === 0 ? {} : { progress: t(currentLang(), 'dash.progress', { id: activeFeature.id, name: activeFeature.name, done: activeFeature.done, total: activeFeature.total }) }),
       kpis: stats === undefined ? [] : [...kpiRows(stats, binding, now, currentLang()), ...historyRows(stats, activeFeature)],
     }
-    const body = dashboardTree(
+    const sections = dashboardSections(
       {
         Box: elements.Box,
         Text: elements.Text,
@@ -1670,7 +1704,9 @@ export const register: Register = (on, options) => {
       ascii,
       currentLang(),
     )
-    // The Dashboard is taller than most panes: its footer follows the charts.
-    return paneTree({ Box, Text, Button }, pane.tab, rows, tokens, select, body, currentLang(), [], await footerFor(Number.MAX_SAFE_INTEGER))
+    // The Dashboard scrolls by section, so a chart is never cut in half (038).
+    const { win, pad, nav } = navFor(sections.map(section => section.rows), bodyRows - 1 - (footerIn === 'status' ? 0 : 2))
+    const body = dashboardTree({ Box: elements.Box, Text: elements.Text }, sections.slice(win.start, win.end))
+    return paneTree({ Box, Text, Button }, pane.tab, rows, tokens, select, body, currentLang(), [], await footerFor(pad), nav)
   })
 }
