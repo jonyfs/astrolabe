@@ -4,7 +4,8 @@ import { FLAVORS } from '../../hooks/core/theme'
 import { scenario as halfDone } from '../fixtures/half-done'
 import { scenario as noSpeckit } from '../fixtures/no-speckit'
 import { scenario as allDone } from '../fixtures/all-done'
-import { installEngine, installTree, startSession } from '../helpers/fake-fs'
+import { scenario as worktree } from '../fixtures/branch-worktree'
+import { completeTurn, installEngine, installTree, startSession } from '../helpers/fake-fs'
 import { drawBand, installRenderEngine, SURFACES } from '../helpers/render'
 
 const BAND_002 = '◆ 002 band-hint  constitution ● specify ● clarify ● plan ● tasks ● implement ◐  ████░░░░░░ 9/20 45%'
@@ -87,4 +88,16 @@ describe('presets and flavors (US4)', () => {
       expect(colors.filter(c => !allowed.has(c))).toEqual([])
     })
   }
+})
+
+describe('the session runs in a linked worktree (054 #54)', () => {
+  test('the band names that worktree', async ($, on) => {
+    installTree(on, worktree.tree, worktree.cwd)
+    installEngine(on)
+    installRenderEngine(on)
+    await startSession($, worktree.cwd)
+    await completeTurn($)
+    const band = await drawBand($ as never, 'terminal', 200)
+    expect(band.text).toContain('⑂ proj-002')
+  })
 })

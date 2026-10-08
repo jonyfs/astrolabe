@@ -259,7 +259,7 @@ the finished and later steps, then the name, then the bar. Below that it turns c
 current step and the count (`◆ 002  ◐ implement 14/31 45%`), then the rail alone, then the step
 alone (`◆ 002  ◐ implement`), then `◆ 002`. The `bandDensity` option starts lower: `compact` at the
 current step and the count, `minimal` at the step alone. A `+2` after the name counts the other
-features in progress, and `⑂ name` names the worktree where the active feature is being worked on.
+features in progress, and `⑂ name` names the linked worktree this session runs in or, from the main checkout, the worktree where the active feature is being worked on.
 
 On the next-command row, the run button is where the focus starts, so Enter runs it once the band
 has the keyboard, and with the pointer on it a line says why it is next (`the plan is ready: break

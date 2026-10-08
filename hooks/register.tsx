@@ -2177,8 +2177,8 @@ export const register: Register = (on, options) => {
     if (!preset.band || e.props.hasSurvey) return next(e)
     const { value } = await $.state.get(SPECKIT)
     const sessionStats = (await $.state.get(SESSION)).value
-    // The active feature's work in another worktree (042 #18).
-    const elsewhere = sessionStats?.worktrees?.find(w => w.id === value?.active?.id)?.name
+    // The linked worktree this session runs in (054 #54), else the active feature's work in another one (042 #18).
+    const elsewhere = sessionStats?.git?.worktree ?? sessionStats?.worktrees?.find(w => w.id === value?.active?.id)?.name
     const base = value === undefined ? [] : bandSegments(value, e.props.bodyColumns, { density: bandDensity, ...(elsewhere === undefined ? {} : { worktree: elsewhere }) })
     // The usage sparkline (022 #25): the last readings of the binding window, on a wide band only.
     const series = sessionStats?.series ?? []
