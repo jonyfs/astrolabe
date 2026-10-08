@@ -37,11 +37,16 @@ const textOf = (result: ReadResult, last: string | undefined): string | undefine
 /** One feature's files. `previous` is the last read of it, kept for a file that cannot be read. */
 export const readFeature = async (fs: Fs, root: string, dir: string, previous?: FeatureFiles): Promise<FeatureFiles> => {
   const base = joinPath(root, 'specs', dir)
+  // One listing says which files exist (040): an absent file costs no call, an unreadable one one.
+  const listed = await fs.list(base).catch(() => undefined)
+  const names = listed === undefined ? undefined : new Set(listed.map(e => e.name))
+  const readIfListed = (name: string): Promise<ReadResult> =>
+    names === undefined ? readResult(fs, joinPath(base, name)) : names.has(name) ? readResult(fs, joinPath(base, name)) : Promise.resolve({ missing: true as const })
   const [specRead, plan, tasksRead, checklists] = await Promise.all([
-    readResult(fs, joinPath(base, 'spec.md')),
-    fs.exists(joinPath(base, 'plan.md')).catch(() => false),
-    readResult(fs, joinPath(base, 'tasks.md')),
-    readChecklists(fs, joinPath(base, 'checklists')),
+    readIfListed('spec.md'),
+    names === undefined ? fs.exists(joinPath(base, 'plan.md')).catch(() => false) : Promise.resolve(names.has('plan.md')),
+    readIfListed('tasks.md'),
+    names === undefined || names.has('checklists') ? readChecklists(fs, joinPath(base, 'checklists')) : Promise.resolve(undefined),
   ])
   const spec = textOf(specRead, previous?.spec)
   // A quick spec keeps its tasks in its own `## Tasks` section when there is no tasks.md (021).
