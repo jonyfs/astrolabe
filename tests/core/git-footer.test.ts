@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'claude-code/testing'
 
 import { footerText } from '../../hooks/core/footer'
-import { parseGitStatus, parsePullRequest } from '../../hooks/core/git-status'
+import { checkRunsOf, plainText, safeHttpsUrl, parseGitStatus, parsePullRequest } from '../../hooks/core/git-status'
 import { iconSet } from '../../hooks/core/icons'
 import { readHead } from '../../hooks/io/git-branch'
 import { treeFs } from '../helpers/fake-fs'
@@ -52,5 +52,31 @@ describe('pull request and CI (023 #35)', () => {
     expect(footerText({ ...base, icons: iconSet('ascii'), git: { ...git, pr: { number: 31, checks: 'pass' } } })).toContain('git:x PR#31 ok')
     expect(footerText({ ...base, icons: iconSet('emoji'), git: { ...git, pr: { number: 31, checks: 'fail' } } })).toContain('#31 ✗')
     expect(footerText({ ...base, icons: iconSet('emoji'), git: { ...git, pr: { number: 31, checks: 'none' } } })).toMatch(/#31( ·|$)/)
+  })
+})
+
+describe('each check with its page (054 #80)', () => {
+  test('check runs and commit statuses, https pages only', () => {
+    expect(
+      checkRunsOf([
+        { name: 'test (macos)', detailsUrl: 'https://github.com/o/r/actions/runs/1', conclusion: 'SUCCESS' },
+        { context: 'ci/legacy', targetUrl: 'https://ci.example/2', state: 'FAILURE' },
+        { name: 'running', detailsUrl: 'https://github.com/o/r/actions/runs/3', conclusion: '' },
+        { name: 'no page', detailsUrl: 'javascript:alert(1)', conclusion: 'SUCCESS' },
+      ]),
+    ).toEqual([
+      { name: 'test (macos)', url: 'https://github.com/o/r/actions/runs/1', result: 'pass' },
+      { name: 'ci/legacy', url: 'https://ci.example/2', result: 'fail' },
+      { name: 'running', url: 'https://github.com/o/r/actions/runs/3', result: 'pending' },
+    ])
+  })
+})
+
+describe('no escape sequences from outside text (054 #80 review)', () => {
+  test('control characters are stripped from names; such a URL is refused', () => {
+    expect(plainText('test\u001b]8;;https://evil\u0007 (macos)')).toBe('test]8;;https://evil (macos)')
+    expect(safeHttpsUrl('https://github.com/o/r/actions/runs/1')).toBe('https://github.com/o/r/actions/runs/1')
+    expect(safeHttpsUrl('https://evil\u001b]8;;x')).toBeUndefined()
+    expect(checkRunsOf([{ name: 'a\u001b[2Jb', detailsUrl: 'https://x/1', conclusion: 'SUCCESS' }])).toEqual([{ name: 'a[2Jb', url: 'https://x/1', result: 'pass' }])
   })
 })

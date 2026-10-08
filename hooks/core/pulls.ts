@@ -1,5 +1,5 @@
 // The repository's open pull requests for the PRs tab (032), from `gh pr list --json`. Pure: no $.
-import { checksOf } from './git-status'
+import { checkRunsOf, checksOf, plainText, safeHttpsUrl } from './git-status'
 import type { PullRequest } from './types'
 
 export type PullRow = {
@@ -10,6 +10,8 @@ export type PullRow = {
   labels: string[]
   review: 'approved' | 'changes' | 'required' | 'none'
   checks: PullRequest['checks']
+  /** Each check with its page (054 #80). */
+  runs?: ReadonlyArray<{ name: string; url: string; result: 'pass' | 'fail' | 'pending' }>
   /** GitHub's mergeStateStatus: CLEAN merges, BEHIND needs an update, the rest wait. */
   merge: string
   isDraft: boolean
@@ -36,12 +38,14 @@ export const parsePullList = (out: string): PullRow[] => {
     return [
       {
         number: p['number'],
-        title: p['title'],
-        branch: typeof p['headRefName'] === 'string' ? p['headRefName'] : '',
-        url: typeof p['url'] === 'string' ? p['url'] : '',
-        labels: Array.isArray(p['labels']) ? p['labels'].flatMap(l => (typeof l === 'object' && l !== null && typeof (l as { name?: unknown }).name === 'string' ? [(l as { name: string }).name] : [])) : [],
+        // Text from GitHub reaches the terminal without control characters (054 #80 review).
+        title: plainText(p['title'], 200),
+        branch: typeof p['headRefName'] === 'string' ? plainText(p['headRefName'], 120) : '',
+        url: typeof p['url'] === 'string' ? (safeHttpsUrl(p['url']) ?? '') : '',
+        labels: Array.isArray(p['labels']) ? p['labels'].flatMap(l => (typeof l === 'object' && l !== null && typeof (l as { name?: unknown }).name === 'string' ? [plainText((l as { name: string }).name, 40)] : [])) : [],
         review: decision === 'APPROVED' ? 'approved' : decision === 'CHANGES_REQUESTED' ? 'changes' : decision === 'REVIEW_REQUIRED' ? 'required' : 'none',
         checks: checksOf(p['statusCheckRollup']),
+        ...((runs => (runs.length === 0 ? {} : { runs }))(checkRunsOf(p['statusCheckRollup']))),
         merge: typeof p['mergeStateStatus'] === 'string' ? p['mergeStateStatus'] : 'UNKNOWN',
         isDraft: p['isDraft'] === true,
         ...(typeof p['headRefOid'] === 'string' && /^[0-9a-f]{7,40}$/.test(p['headRefOid']) ? { head: p['headRefOid'] } : {}),

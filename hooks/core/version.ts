@@ -1,6 +1,6 @@
 // Astrolabe's own version, for the update check. scripts/check-release-version.sh fails a
 // release when this differs from .claude-plugin/plugin.json.
-export const VERSION = '0.98.0'
+export const VERSION = '0.99.0'
 
 /** What this version changed, one line, for the Help tab (048 #80). */
-export const CHANGES = 'each task in the Tasks tab links to its line in tasks.md'
+export const CHANGES = 'the PRs tab links each check run'
