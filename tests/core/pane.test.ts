@@ -28,25 +28,25 @@ const texts = (rows: Array<{ text: string }>) => rows.map(r => r.text)
 const width = (s: string) => [...s].length
 
 describe('specsRows', () => {
-  test('sections by status, aligned columns with counts on every spec, then warnings (044)', () => {
+  test('sections by status, aligned columns with counts on every spec, warnings under their feature (044, 052 #14)', () => {
     expect(texts(specsRows(state(), 80))).toEqual([
       'In progress (1)',
       '▸ ◐ 002 band-hint   implement  ████░░░░░░   9/20  45%',
       '  gates  constitution ✓  clarify ✗  checklist –  tasks ✓  analyze ✓',
+      '! 002: [NEEDS CLARIFICATION] left after the plan',
       'Done (1)',
       '  ● 001 core-state  done       ██████████  49/49 100%',
       'Abandoned (1)',
       '  ○ 003 dropped     abandoned  ░░░░░░░░░░    0/3   0%',
-      '! 002: [NEEDS CLARIFICATION] left after the plan',
     ])
   })
   test('roles: accent for the active one, done, muted and dim for abandoned; sections muted', () => {
     const rows = specsRows(state(), 80).filter(r => r.key.startsWith('feature-') || r.key.startsWith('warning'))
     expect(rows.map(r => [r.role, r.dim === true])).toEqual([
       ['accent', false],
+      ['current', false],
       ['done', false],
       ['muted', true],
-      ['current', false],
     ])
   })
   test('the running skill shows on the active feature (044 #33)', () => {
@@ -185,5 +185,16 @@ describe('gates (054 #56)', () => {
     const f0 = { clarifications: 2, checklist: { open: 3, total: 5 }, total: 0, warnings: [] }
     expect(gatesText({ constitution: 'template', isAnalyzed: false }, f0)).toBe('  gates  constitution ✗  clarify ✗2  checklist ✗3  tasks –  analyze –')
     expect(gatesText({ constitution: 'ratified', isAnalyzed: true }, { total: 4, warnings: [] })).toBe('  gates  constitution ✓  clarify ✓  checklist –  tasks ✓  analyze ✓')
+  })
+})
+
+describe('folded sections (052 #10, #11)', () => {
+  test('Done past three features folds to its heading when asked; the active one keeps it open', () => {
+    const done = ['011', '012', '013', '014'].map(id => f(id, `d${id}`, 'done', 1, 1))
+    const st = state({ features: [f('002', 'band-hint', 'implement', 9, 20), ...done] })
+    const rows = texts(specsRows(st, 120, 'en', {}, {}, true))
+    expect(rows).toContain('Done (4) · folded; s or is:done shows them')
+    expect(rows.some(t => t.includes('011 d011'))).toBe(false)
+    expect(texts(specsRows(st, 120)).some(t => t.includes('011 d011'))).toBe(true)
   })
 })

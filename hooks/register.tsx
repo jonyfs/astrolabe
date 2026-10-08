@@ -2160,7 +2160,7 @@ export const register: Register = (on, options) => {
         : pane.tab === 'session'
           ? await sessionTabRows($, state)
           : [
-              ...((stats => specsRows(filtered(state, pane.filter, pane.status), columns, currentLang(), stats?.priorities ?? {}, worktreesById(stats?.worktrees)))((await $.state.get(SESSION)).value)),
+              ...((stats => specsRows(filtered(state, pane.filter, pane.status), columns, currentLang(), stats?.priorities ?? {}, worktreesById(stats?.worktrees), (pane.filter ?? '').trim() === '' && (pane.status ?? 'all') === 'all'))((await $.state.get(SESSION)).value)),
               // Features other worktrees of this repository work on (037).
               ...((await $.state.get(SESSION)).value?.worktrees ?? []).map(w => ({
                 key: `worktree-${w.name}`,
