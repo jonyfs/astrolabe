@@ -438,6 +438,11 @@ VS Code they are vector images; with `icons: ascii`, or where neither is drawn, 
 text. A pane too narrow for a chart shows its numbers instead. Drawing reads only what the
 session already holds, never a file.
 
+A tab longer than the pane scrolls inside it while the footer stays on the last rows. A
+`▲ 3 more (k)` or `▼ 12 more (j)` row says what is hidden; press it, or `k` and `j` while the
+pane has the keyboard, or use the wheel and the arrow keys. The Dashboard scrolls by whole
+sections, so a chart is never cut in half.
+
 **5 Help** lists the `/astrolabe` commands, the pane and band keys, and the options, in your
 language.
 
