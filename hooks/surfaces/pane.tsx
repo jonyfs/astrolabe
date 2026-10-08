@@ -69,7 +69,18 @@ export const paneTree = (
       {nav !== undefined && nav.above > 0 && <Button key="scroll-up" label={`▲ ${nav.above} ${nav.labels.more} (k)`} hotkey="k" plain onPress={() => nav.up()} />}
       {body ??
         rows.map(row =>
-          row.href !== undefined && Link !== undefined ? (
+          row.segments !== undefined ? (
+            // Parts of the row in their own colours (052 #12).
+            <Box flexDirection="row">
+              {row.segments.map(seg => (
+                <Text color={tokens[seg.role]} dimColor={row.dim === true}>
+                  {m(seg.text)}
+                </Text>
+              ))}
+              {row.href !== undefined && Link !== undefined && <Text> </Text>}
+              {row.href !== undefined && Link !== undefined && <Link href={row.href} label={m('↗')} />}
+            </Box>
+          ) : row.href !== undefined && Link !== undefined ? (
             <Box flexDirection="row">
               <Text color={tokens[row.role]} dimColor={row.dim === true} wrap="truncate-end">
                 {m(row.text)}

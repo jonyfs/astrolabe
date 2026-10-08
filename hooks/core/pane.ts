@@ -8,7 +8,8 @@ import { parseTasks } from './tasks-parser'
 import type { ThemeRole } from './theme'
 import type { Feature, SessionMemo, SpeckitState } from './types'
 
-export type PaneRow = { key: string; text: string; role: ThemeRole; dim?: boolean; href?: string }
+/** A row; `segments`, when given, colour parts of `text` (which stays their join) (052 #12). */
+export type PaneRow = { key: string; text: string; role: ThemeRole; dim?: boolean; href?: string; segments?: ReadonlyArray<{ text: string; role: ThemeRole }> }
 
 const BAR_CELLS = 10
 const noSpeckit = (lang: Lang): PaneRow => ({ key: 'none', text: tr(lang, 'pane.noSpeckit'), role: 'muted' })
@@ -21,6 +22,9 @@ const markOf = (f: Feature): string => (f.phase === 'done' ? '●' : f.phase ===
 
 /** What a row shows besides the feature: the name column's width and the skill running on it (044). */
 type RowContext = { nameWidth: number; countWidth: number; running?: string; priority?: Priority; worktrees?: readonly string[] }
+
+/** One colour per phase, the rail's (054 #71). */
+const PHASE_ROLE: Partial<Record<Feature['phase'], ThemeRole>> = { specify: 'muted', clarify: 'current', plan: 'barFill', tasks: 'accent', implement: 'current', done: 'done' }
 
 const featureRow = (f: Feature, isActive: boolean, columns: number, ctx: RowContext): PaneRow => {
   // Not read yet in a large project (040): a mark and no phase until its batch lands.
@@ -50,6 +54,18 @@ const featureRow = (f: Feature, isActive: boolean, columns: number, ctx: RowCont
     `${head}${name}  ${phase} ${percent}`,
   ].map(text => text.trimEnd())
   const fitting = forms.find(text => width(text) <= columns)
+  // The widest form in colour (052 #12, 054 #71): the phase in its rail colour, the bar in its own.
+  if (fitting !== undefined && fitting === forms[0] && f.total > 0 && f.phase !== 'abandoned') {
+    const segments = [
+      { text: `${head}${name}  `, role },
+      { text: phase, role: PHASE_ROLE[f.phase] ?? role },
+      { text: '  ', role },
+      { text: '█'.repeat(filled), role: 'barFill' as ThemeRole },
+      { text: '░'.repeat(BAR_CELLS - filled), role: 'barEmpty' as ThemeRole },
+      { text: `  ${count} ${percent}${running}`.trimEnd(), role },
+    ]
+    return { key: `feature-${f.id}`, text: fitting, role, ...dim, segments }
+  }
   if (fitting !== undefined) return { key: `feature-${f.id}`, text: fitting, role, ...dim }
   const tail = `  ${f.phase}${percent === '' ? '' : ` ${percent.trim()}`}`
   const cutName = cut(f.name, columns - width(head) - width(tail))
