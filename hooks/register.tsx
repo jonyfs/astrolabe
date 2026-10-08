@@ -51,7 +51,7 @@ import { capDiff, tasksDiff } from './core/summary'
 import { styleSections } from './core/style'
 import { parsePullList, pullAction, PR_LIST_FIELDS } from './core/pulls'
 import { SKILL_MODELS, skillModelFor } from './core/skill-models'
-import { featureDirFor, parseWorktrees, worktreeName } from './core/worktrees'
+import { featureDirFor, mergedBranches, parseWorktrees, uncommittedCount, worktreeName, worktreeState } from './core/worktrees'
 import { readFeature } from './io/snapshot'
 import { deriveFeature } from './core/phase'
 import { parseTasks } from './core/tasks-parser'
@@ -632,6 +632,8 @@ async function refreshWorktrees($: EngineInterface, root: string): Promise<void>
     const rel = main === undefined ? '' : norm(root).startsWith(norm(main.path)) ? norm(root).slice(norm(main.path).length) : ''
     const fs = fsOf($)
     const found: NonNullable<SessionStats['worktrees']> = []
+    // Branches already merged into the main checkout's branch (054 #50), one git call.
+    const merged = main?.branch === undefined ? new Set<string>() : await $.process.run(['git', 'branch', '--merged', main.branch], { cwd: root, timeoutMs: 2000 }).then(r => (r.exitCode === 0 ? mergedBranches(r.stdout) : new Set<string>())).catch(() => new Set<string>())
     for (const wt of list.slice(1, 9)) {
       const specRoot = `${norm(wt.path)}${rel}`
       if (norm(specRoot) === norm(root)) continue
@@ -639,7 +641,22 @@ async function refreshWorktrees($: EngineInterface, root: string): Promise<void>
       const dir = featureDirFor(wt.branch, dirs)
       if (dir === undefined) continue
       const feature = deriveFeature(await readFeature(fs, specRoot, dir))
-      found.push({ name: worktreeName(wt.path), ...(wt.branch === undefined ? {} : { branch: wt.branch }), dir, id: feature.id, featureName: feature.name, phase: feature.phase, done: feature.done, total: feature.total })
+      // Its uncommitted files (054 #51).
+      const status = await $.process.run(['git', 'status', '--porcelain'], { cwd: wt.path, timeoutMs: 2000 }).catch(() => undefined)
+      const changed = status?.exitCode === 0 ? uncommittedCount(status.stdout) : undefined
+      found.push({
+        name: worktreeName(wt.path),
+        ...(wt.branch === undefined ? {} : { branch: wt.branch }),
+        dir,
+        id: feature.id,
+        featureName: feature.name,
+        phase: feature.phase,
+        done: feature.done,
+        total: feature.total,
+        path: wt.path,
+        ...(changed === undefined ? {} : { changed }),
+        ...(wt.branch !== undefined && merged.has(wt.branch) ? { merged: true as const } : {}),
+      })
     }
     await flushStats($, ({ worktrees: _old, ...s }) => (found.length === 0 ? s : { ...s, worktrees: found }))
   } catch (error) {
@@ -2262,7 +2279,7 @@ export const register: Register = (on, options) => {
     if (args === 'worktrees') {
       const list = (await $.state.get(SESSION)).value?.worktrees ?? []
       if (list.length === 0) return { text: t(currentLang(), 'worktrees.none') }
-      return { text: list.map(w => `⑂ ${w.name}  ${w.id} ${w.featureName}  ${w.phase}${w.total === 0 ? '' : ` ${w.done}/${w.total}`}${w.branch === undefined ? '' : `  (${w.branch})`}`).join('\n') }
+      return { text: list.map(w => `⑂ ${w.name}  ${w.id} ${w.featureName}  ${w.phase}${w.total === 0 ? '' : ` ${w.done}/${w.total}`}${w.branch === undefined ? '' : `  (${w.branch})`}${worktreeState(w)}`).join('\n') }
     }
     if (args === 'config reset') {
       if (e.origin?.kind !== 'composer') return { text: t(currentLang(), 'config.resetOnlyYou') }
@@ -2356,7 +2373,7 @@ export const register: Register = (on, options) => {
               // Features other worktrees of this repository work on (037).
               ...((await $.state.get(SESSION)).value?.worktrees ?? []).map(w => ({
                 key: `worktree-${w.name}`,
-                text: `⑂ ${w.name}  ${w.phase === 'done' ? '●' : '◐'} ${w.id} ${w.featureName}  ${w.phase}${w.total === 0 ? '' : ` ${w.done}/${w.total}`}`,
+                text: `⑂ ${w.name}  ${w.phase === 'done' ? '●' : '◐'} ${w.id} ${w.featureName}  ${w.phase}${w.total === 0 ? '' : ` ${w.done}/${w.total}`}${worktreeState(w)}`,
                 role: 'current' as const,
               })),
             ]

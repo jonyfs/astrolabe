@@ -81,8 +81,8 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 ### Worktrees
 
 - [x] T049 #49 The Specs tab marks each feature that has a worktree, with its folder (P1)
-- [ ] T050 #50 A worktree whose branch is merged shows `merged` and the command that removes it (P2)
-- [ ] T051 #51 A worktree with uncommitted changes shows how many (P2)
+- [x] T050 #50 A worktree whose branch is merged shows `merged` and the command that removes it (P2)
+- [x] T051 #51 A worktree with uncommitted changes shows how many (P2)
 - [x] T052 #52 Two worktrees on one feature are flagged as a conflict (P1)
 - [x] T053 #53 `/astrolabe worktrees` lists them all as text (P2)
 - [ ] T054 #54 The band names the worktree the session runs in when it is not the main one (P2)

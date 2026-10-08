@@ -291,7 +291,7 @@ export type SessionStats = {
   /** gstack's skills are installed under the home directory (051). */
   gstack?: boolean
   /** The features the repository's other worktrees work on (037), read after each main turn. */
-  worktrees?: Array<{ name: string; branch?: string; dir: string; id: string; featureName: string; phase: Phase; done: number; total: number }>
+  worktrees?: Array<{ name: string; branch?: string; dir: string; id: string; featureName: string; phase: Phase; done: number; total: number; path?: string; changed?: number; merged?: true }>
   /** The last main turn's change to the active tasks, as unified-diff hunks (024). */
   tasksDiff?: { dir: string; file: 'tasks.md' | 'spec.md'; text: string }
 }
