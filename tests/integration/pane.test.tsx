@@ -272,3 +272,19 @@ describe('the advisor reviews a spec (055)', () => {
     await ui.unmount()
   })
 })
+
+describe('the Session tab in blocks (052 #24, #25)', () => {
+  test('Project, then Governor once there is a reading; the state row takes the band colour', async ($, on) => {
+    const { session } = await setup($ as never, on as never)
+    await ($ as unknown as { session: { measure: (e: never) => Promise<unknown> } }).session.measure({
+      rateLimits: [{ kind: 'five_hour', percentUsed: 83, resetsAt: new Date((await session.clock.now()) + 3_600_000).toISOString() }],
+      changed: ['rateLimits'],
+    } as never)
+    const ui = await mountPane($ as never, 'terminal', 120, 40)
+    await ui.press('tab-session')
+    const body = await ui.body()
+    expect(body.indexOf('Project')).toBeLessThan(body.indexOf('Governor'))
+    expect(body).toContain('holding (5h at 83%)')
+    await ui.unmount()
+  })
+})

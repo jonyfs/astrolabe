@@ -45,7 +45,7 @@ import {
   type Decision,
   type Question,
 } from './core/governor'
-import { CHIPS, FLAVORS, flavorOf, isThemeKeys, themeOf } from './core/theme'
+import { CHIPS, FLAVORS, flavorOf, isThemeKeys, themeOf, type ThemeRole } from './core/theme'
 import { tasksDiff } from './core/summary'
 import { styleSections } from './core/style'
 import { parsePullList, pullAction, PR_LIST_FIELDS } from './core/pulls'
@@ -1122,6 +1122,41 @@ async function guarded($: EngineInterface, work: (previous: Held | undefined) =>
 export const canTouchSpecs = (command: string): boolean =>
   /\b(git|mv|cp|rm|mkdir|touch|specify|tee|sed|python3?|node|bun|sh|bash|zsh)\b|\.specify|specs\/|>/.test(command)
 
+/**
+ * The Session tab in four blocks (052 #24, 054 #22): Project, Governor, Activity, Updates, each
+ * under a heading and only when it has rows. Each state is read once (054 #1). The governor's
+ * state row takes the band's colour (052 #25).
+ */
+async function sessionTabRows($: EngineInterface, state: SpeckitState): Promise<Array<{ key: string; text: string; role: ThemeRole; dim?: boolean }>> {
+  const lang = currentLang()
+  const now = await $.clock.now()
+  const usage = (await $.state.get(USAGE)).value ?? DEFAULT_USAGE
+  const stats = (await $.state.get(SESSION)).value
+  const updates = (await $.state.get(UPDATES)).value?.items ?? []
+  const label = (text: string) => text.padEnd(14)
+  const band = decisionOf(usage, now).band
+  const bandRole: ThemeRole = band === 'ok' ? 'done' : band === 'stop' || band === 'ceiling' ? 'blocked' : 'current'
+  const project = sessionRows(state, now, lang)
+  const governor = [
+    ...usageRows(usage, now).map(([name, text]) => ({ key: `usage-${name}`, text: `${label(name)}${text}`, role: (name === 'state' ? bandRole : 'text') as ThemeRole })),
+    ...(usage.log ?? []).slice(-3).map((entry, i) => ({ key: `governor-log-${i}`, text: `${label(i === 0 ? t(lang, 'session.governor') : '')}${clockOf(new Date(entry.at).toISOString()) ?? ''} ${entry.text}`, role: 'muted' as ThemeRole })),
+  ]
+  const summary = stats?.lastSummary
+  const review = stats?.lastReview
+  const advisor = stats?.advisor
+  const activity = [
+    ...(summary === undefined ? [] : summary.text.split('\n').map((line, i) => ({ key: `summary-${i}`, text: `${label(i === 0 ? `${t(lang, 'session.summary')} ${summary.dir}` : '')}${line}`, role: 'muted' as ThemeRole }))),
+    ...(advisor === undefined ? [] : [{ key: 'advisor', text: `${label(t(lang, 'session.advisor'))}${t(lang, 'advisor.runs', { n: advisor.runs, at: clockOf(new Date(advisor.at).toISOString()) ?? '' })}`, role: 'text' as ThemeRole }]),
+    ...(review === undefined ? [] : review.text.split('\n').map((line, i) => ({ key: `review-${i}`, text: `${label(i === 0 ? `${t(lang, 'session.review')} ${review.id}` : '')}${line}`, role: 'text' as ThemeRole }))),
+  ]
+  const updateRows = updates.map(item => ({ key: `update-${item.id}`, text: `${label('update')}${updateLabel(item, false)} (installed ${item.installed})`, role: 'current' as ThemeRole }))
+  // Without Spec Kit the project rows say so on their own; no headings then.
+  if (!state.present) return [...project, ...governor, ...activity, ...updateRows]
+  const block = (key: string, rows: Array<{ key: string; text: string; role: ThemeRole; dim?: boolean }>) =>
+    rows.length === 0 ? [] : [{ key: `block-${key}`, text: t(lang, `session.block.${key}` as TextKey), role: 'accent' as ThemeRole }, ...rows]
+  return [...block('project', project), ...block('governor', governor), ...block('activity', activity), ...block('updates', updateRows)]
+}
+
 /** Feature id to the worktrees working on it (054 #49). */
 const worktreesById = (list: SessionStats['worktrees']): Record<string, string[]> => {
   const out: Record<string, string[]> = {}
@@ -2123,27 +2158,7 @@ export const register: Register = (on, options) => {
         : pane.tab === 'tasks'
         ? [...keep(taskRows(state, emptyMemo(), 1000, columns, currentLang(), await $.clock.now())), ...(await pastResetRows($, state))]
         : pane.tab === 'session'
-          ? [
-              ...sessionRows(state, await $.clock.now(), currentLang()),
-              ...((await $.state.get(USAGE)).value?.log ?? []).slice(-3).map((entry, i) => ({
-                key: `governor-log-${i}`,
-                text: `${(i === 0 ? t(currentLang(), 'session.governor') : '').padEnd(14)}${clockOf(new Date(entry.at).toISOString()) ?? ''} ${entry.text}`,
-                role: 'muted' as const,
-              })),
-              ...(((summary) => (summary === undefined ? [] : summary.text.split('\n').map((line, i) => ({ key: `summary-${i}`, text: `${(i === 0 ? `${t(currentLang(), 'session.summary')} ${summary.dir}` : '').padEnd(14)}${line}`, role: 'muted' as const }))))((await $.state.get(SESSION)).value?.lastSummary)),
-              ...(((advisor) => (advisor === undefined ? [] : [{ key: 'advisor', text: `${t(currentLang(), 'session.advisor').padEnd(14)}${t(currentLang(), 'advisor.runs', { n: advisor.runs, at: clockOf(new Date(advisor.at).toISOString()) ?? '' })}`, role: 'text' as const }]))((await $.state.get(SESSION)).value?.advisor)),
-              ...(((review) => (review === undefined ? [] : review.text.split('\n').map((line, i) => ({ key: `review-${i}`, text: `${(i === 0 ? `${t(currentLang(), 'session.review')} ${review.id}` : '').padEnd(14)}${line}`, role: 'text' as const }))))((await $.state.get(SESSION)).value?.lastReview)),
-              ...usageRows((await $.state.get(USAGE)).value ?? DEFAULT_USAGE, await $.clock.now()).map(([label, text]) => ({
-                key: `usage-${label}`,
-                text: `${label.padEnd(14)}${text}`,
-                role: 'text' as const,
-              })),
-              ...((await $.state.get(UPDATES)).value?.items ?? []).map(item => ({
-                key: `update-${item.id}`,
-                text: `${'update'.padEnd(14)}${updateLabel(item, false)} (installed ${item.installed})`,
-                role: 'current' as const,
-              })),
-            ]
+          ? await sessionTabRows($, state)
           : [
               ...((stats => specsRows(filtered(state, pane.filter, pane.status), columns, currentLang(), stats?.priorities ?? {}, worktreesById(stats?.worktrees)))((await $.state.get(SESSION)).value)),
               // Features other worktrees of this repository work on (037).

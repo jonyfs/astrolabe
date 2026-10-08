@@ -44,7 +44,7 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 ### Information organized
 
 - [x] T021 #21 The Specs tab filters by status: All, In progress, Next up, Done, Abandoned (`s` cycles; `is:done` in the filter) (P1)
-- [ ] T022 #22 The Session tab in four blocks: Project, Governor, Activity, Updates (P1)
+- [x] T022 #22 The Session tab in four blocks: Project, Governor, Activity, Updates (P1)
 - [ ] T023 #23 The Dashboard's first screen holds only what changes decisions: tasks left, usage now, at the reset, context (P1)
 - [ ] T024 #24 The footer's parts in a fixed order the Help tab lists, so nothing moves between turns (P2)
 - [ ] T025 #25 Feature ids padded to the widest, names aligned in every tab that lists features (P2)
