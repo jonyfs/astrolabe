@@ -238,6 +238,8 @@ export type SessionStats = {
   taskTimes?: Array<{ dir: string; id: string; ms: number }>
   /** This week's tasks and features done, across sessions (021), copied from $.store for drawing. */
   week?: { tasks: number; features: number }
+  /** Tasks done in each of the last 8 weeks, oldest first (054 #40). */
+  weeksTrend?: number[]
   /** Tasks ticked on each day of this week, Monday first (046 #54). */
   weekdays?: number[]
   /** Tasks done in each recent main turn, by the turn's duration (021), at most 20. */

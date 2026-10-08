@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import { addDay, addWeek, estimateLeft, pastReset, slowest, weekKey, weekdays } from '../../hooks/core/history'
+import { addDay, addWeek, estimateLeft, lastWeeks, pastReset, slowest, weekdays, weekKey } from '../../hooks/core/history'
 
 describe('time per task and the estimate (021 #17, #18)', () => {
   const times = [
@@ -56,5 +56,13 @@ describe('days (046 #54)', () => {
     d = addDay(d, '2026-10-07', 2)
     // 2026-10-07 is a Wednesday; the week runs 10-05 to 10-11, and 10-05 and 10-06 fell out of the 14 days.
     expect(weekdays(d, Date.UTC(2026, 9, 7, 12))).toEqual([0, 0, 3, 1, 1, 1, 1])
+  })
+})
+
+describe('the last 8 weeks (054 #40)', () => {
+  test('oldest first, 0 for a week with none', () => {
+    const now = Date.UTC(2026, 9, 8)
+    const weeks = { [weekKey(now)]: { tasks: 5, features: 1 }, [weekKey(now - 14 * 86_400_000)]: { tasks: 2, features: 0 } }
+    expect(lastWeeks(weeks, now)).toEqual([0, 0, 0, 0, 0, 2, 0, 5])
   })
 })
