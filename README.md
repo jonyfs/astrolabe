@@ -443,12 +443,14 @@ folder with several Spec Kit projects under it, `other roots` names them, and
 
 **4 Dashboard** puts the session in numbers and charts:
 
+- a first row of chips: tasks done, burn rate, context and cost (`tasks 9/20 │ burn 12/h │ context 61% │ $1.20`);
 - an astrolabe dial with the six Spec Kit steps around a ring, the active feature's step marked
   `●` with the needle on it, earlier steps ticked `✓`;
 - the active feature's tasks done out of all of them;
 - one bar per phase with how many features are in it;
 - a line chart of the deciding usage window over the session, 0 to 100%, with a dotted
-  projection to the reset at the current burn rate;
+  projection to the reset at the current burn rate, and a legend under it that says what `●`,
+  `│` and `·` mean;
 - the session's counts: turns, tool calls, drift alarms, subagents run and queued, context, cost,
   duration, burn rate in points an hour, and where the window should be at the reset;
 - the slowest task of the active feature, an estimate for its open tasks from the time the ticked

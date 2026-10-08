@@ -11,8 +11,8 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 
 ## Tasks
 
-- [ ] T001 #51 A row of KPI chips: tasks done, burn rate, context, cost (P1)
-- [ ] T002 #52 A legend under the usage chart (P1)
+- [x] T001 #51 A row of KPI chips: tasks done, burn rate, context, cost (P1)
+- [x] T002 #52 A legend under the usage chart (P1)
 - [ ] T003 #53 5h and 7d as two lines (P2)
 - [ ] T004 #54 A bar per weekday for tasks done (P2)
 - [ ] T005 #57 A context sparkline (P2)
