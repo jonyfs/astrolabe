@@ -52,7 +52,7 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 - [ ] T027 #27 The Tasks tab groups by status: current, next, blocked by an earlier one, later (P3)
 - [ ] T028 #28 The Help tab's commands sorted by how often they are used, with the common ones first (P3)
 - [x] T029 #29 Warnings ordered by severity: blocking, then stale, then advisory (P2)
-- [ ] T030 #30 One place for the active feature: the pane title, the band and the footer all name it the same way (P2)
+- [x] T030 #30 One place for the active feature: the pane title, the band and the footer all name it the same way (P2)
 
 ### KPIs
 

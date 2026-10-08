@@ -5,6 +5,10 @@ import type { SpeckitState } from './types'
 const MARK = '◆'
 const width = (text: string): number => [...text].length
 
+/** The one way every surface names the active feature (054 #30): `◆ 002`, `◆ ~002` when it is a guess. */
+export const activeMark = (state: Pick<SpeckitState, 'active' | 'activeWarning'>): string =>
+  state.active === undefined ? MARK : `${MARK} ${state.activeWarning === undefined ? '' : '~'}${state.active.id}`
+
 /** Candidate texts from the fullest to the shortest; the first that fits wins. */
 const candidates = (state: SpeckitState, lang: Lang): string[] => {
   if (!state.present) return [`${MARK} ${t(lang, 'status.noSpeckit')}`]
@@ -15,7 +19,7 @@ const candidates = (state: SpeckitState, lang: Lang): string[] => {
     const none = `${MARK} ${t(lang, 'status.noActive')}`
     return [`${none}${next}${skill}`, `${none}${next}`, none]
   }
-  const id = `${MARK} ${state.activeWarning === undefined ? '' : '~'}${active.id}`
+  const id = activeMark(state)
   const feature = state.features.find(f => f.dir === active.dir)
   if (feature === undefined) return [id]
   const phase = `${id} · ${feature.phase}`

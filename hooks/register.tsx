@@ -70,7 +70,7 @@ import { parseGitStatus, parsePullRequest } from './core/git-status'
 import { iconSet, iconsFor } from './core/icons'
 import { guessLang, langOf, t, type Lang, type TextKey } from './core/i18n'
 import { paneTree } from './surfaces/pane'
-import { formatStatus } from './core/status-text'
+import { activeMark, formatStatus } from './core/status-text'
 
 const SPECKIT = { plugin: 'astrolabe', key: 'speckit' } as const
 // The session memo lives apart from what drawings read, so no redraw carries it (spec 009).
@@ -740,9 +740,9 @@ let accessible = false
  * takes focus (Principle VII).
  */
 async function openPane($: EngineInterface): Promise<void> {
-  // The title names the active feature (052 #4).
-  const active = (await $.state.get(SPECKIT)).value?.active
-  const title = active === undefined ? PANE_TITLE : `${PANE_TITLE} · ${active.id} ${active.name}`
+  // The title names the active feature (052 #4) the way the band and the footer do (054 #30).
+  const state = (await $.state.get(SPECKIT)).value
+  const title = state?.active === undefined ? PANE_TITLE : `${PANE_TITLE} · ${activeMark(state)} ${state.active.name}`
   await $.ui.open({ id: PANE_ID, title, focus: true, closeOnEscape: true })
 }
 

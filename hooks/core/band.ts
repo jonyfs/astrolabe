@@ -1,6 +1,7 @@
 // Lays out the band above the prompt (contracts/band.md). Pure: no $.
 // Returns segments, each with the theme role that colors it; the surface turns them
 // into elements. The first form that fits `columns` wins; an id is never cut.
+import { activeMark } from './status-text'
 import { t, type Lang } from './i18n'
 import type { ThemeRole } from './theme'
 import type { Feature, Phase, SpeckitState, Step } from './types'
@@ -82,7 +83,7 @@ export const bandSegments = (state: SpeckitState, columns: number, extras: BandE
   const active = state.active
   if (!state.present || active === undefined) return []
   const feature = state.features.find(f => f.dir === active.dir)
-  const id: Segment = { key: 'id', text: `◆ ${state.activeWarning === undefined ? '' : '~'}${active.id}`, role: 'accent' }
+  const id: Segment = { key: 'id', text: activeMark(state), role: 'accent' }
   // Other features in progress (042 #17) and the worktree the active one runs in (042 #18).
   const others = state.features.filter(f => f.dir !== active.dir && f.phase !== 'done' && f.phase !== 'abandoned').length
   const tags: Segment[] = [
