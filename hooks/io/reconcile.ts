@@ -2,7 +2,7 @@
 // for (FR-015, FR-016, FR-019) and derives the rest. No $: register.tsx passes an Fs.
 import { detectDrift, newlyTicked, taskKey, withEdit, withShell } from '../core/drift'
 import type { Lang } from '../core/i18n'
-import { parseTasks } from '../core/tasks-parser'
+import { parseTasks, tasksFingerprint } from '../core/tasks-parser'
 import { isWindowsPath, joinPath, relativeTo, specsLocation } from '../core/paths'
 import { skillHint } from '../core/skill-hints'
 import { deriveSpeckitState, snapshotFromMemo } from '../core/speckit'
@@ -35,6 +35,7 @@ export const reconcileStart = async (fs: Fs, cwd: string, previous: Held | undef
   const memo: SessionMemo = {
     ...emptyMemo(),
     analyzed: previous?.memo.analyzed ?? [],
+    ...(previous?.memo.analyzedTasks === undefined ? {} : { analyzedTasks: previous.memo.analyzedTasks }),
     toasted: previous?.memo.toasted ?? [],
     window: previous?.memo.window ?? emptyWindow(),
   }
@@ -116,7 +117,13 @@ export const applySkill = (previous: Held, skill: string, now: number): Held => 
   const active = previous.state.active?.dir
   const memo: SessionMemo =
     'analyze' in hint
-      ? { ...previous.memo, analyzed: active === undefined ? previous.memo.analyzed : unique([...previous.memo.analyzed, active]) }
+      ? active === undefined
+        ? previous.memo
+        : {
+            ...previous.memo,
+            analyzed: unique([...previous.memo.analyzed, active]),
+            analyzedTasks: { ...previous.memo.analyzedTasks, [active]: tasksFingerprint(previous.memo.files[active]?.tasks) },
+          }
       : { ...previous.memo, runningSkill: { name: skill, step: hint.step } }
   return deriveSpeckitState(snapshot, memo, now)
 }

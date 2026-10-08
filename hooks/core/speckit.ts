@@ -6,7 +6,7 @@ import { hooksFor } from './extensions'
 import { nextCommand } from './next-command'
 import { deriveFeature } from './phase'
 import { specSummary } from './summary'
-import { parseTasks } from './tasks-parser'
+import { parseTasks, tasksFingerprint } from './tasks-parser'
 import type { SessionMemo, Snapshot, SpeckitState } from './types'
 
 /** The feature folder a branch names by its number (`026-x`, `feature/026-x`), if any (044). */
@@ -38,7 +38,9 @@ export const deriveSpeckitState = (
       : previous !== undefined && previous.dir === active.dir && previous.id === task.id
         ? previous
         : { dir: active.dir, id: task.id, startedAt: now }
-  const isAnalyzed = active !== undefined && memo.analyzed.includes(active.dir)
+  const ranOn = active === undefined ? undefined : memo.analyzedTasks?.[active.dir]
+  const isAnalyzed =
+    active !== undefined && memo.analyzed.includes(active.dir) && (ranOn === undefined || ranOn === tasksFingerprint(snapshot.features.find(f => f.dir === active.dir)?.tasks))
   const constitution = classifyConstitution(snapshot.constitution)
   const base = {
     present: true,
