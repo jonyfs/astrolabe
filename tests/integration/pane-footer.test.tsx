@@ -39,7 +39,7 @@ describe('the footer in the pane (035)', () => {
       await ui.press(`tab-${tab}`)
       const footer = await ui.footer()
       expect(footer).toContain('ctx 61%')
-      expect(footer).toContain('$1.20')
+      expect(footer).not.toContain('$')
       await ui.unmount()
     })
   }

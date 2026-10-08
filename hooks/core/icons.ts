@@ -2,7 +2,7 @@
 // Nerd Font glyphs are Private Use Area code points: text only, never Raster cells.
 import type { RenderSurface } from 'claude-code'
 
-export const ICON_KEYS = ['speckit', 'branch', 'ahead', 'behind', 'changed', 'conflict', 'stash', 'worktree', 'pr', 'ciPass', 'ciFail', 'ciPending', 'model', 'context', 'window', 'cost', 'clock', 'burn'] as const
+export const ICON_KEYS = ['speckit', 'branch', 'ahead', 'behind', 'changed', 'conflict', 'stash', 'worktree', 'pr', 'ciPass', 'ciFail', 'ciPending', 'model', 'context', 'window', 'clock', 'burn'] as const
 export type IconKey = (typeof ICON_KEYS)[number]
 export type IconSetName = 'nerd' | 'emoji' | 'ascii'
 export type Icons = Readonly<Record<IconKey, string>>
@@ -24,7 +24,6 @@ const SETS: Readonly<Record<IconSetName, Icons>> = {
     model: '', // nf-fa-microchip
     context: '', // nf-fa-database
     window: '', // nf-fa-hourglass_half
-    cost: '', // nf-fa-dollar
     clock: '', // nf-fa-clock_o
     burn: '', // nf-fa-fire
   },
@@ -44,7 +43,6 @@ const SETS: Readonly<Record<IconSetName, Icons>> = {
     model: '🤖',
     context: '🧠',
     window: '⏳',
-    cost: '💰',
     clock: '⏱',
     burn: '🔥',
   },
@@ -64,7 +62,6 @@ const SETS: Readonly<Record<IconSetName, Icons>> = {
     model: '',
     context: 'ctx',
     window: '',
-    cost: '$',
     clock: 't',
     burn: 'burn',
   },

@@ -9,7 +9,6 @@ const ROWS = [
   { key: 'theme', label: 'Theme', kind: 'choice', value: 'dark', options: ['dark', 'light'], provider: { kind: 'engine' }, isLocked: false },
   { key: 'astrolabe.preset', label: 'Preset', kind: 'choice', value: 'compact', options: ['minimal', 'compact', 'full'], provider: { kind: 'plugin', name: 'astrolabe' }, isLocked: false },
   { key: 'astrolabe.checkUpdates', label: 'Check for updates', kind: 'boolean', value: true, provider: { kind: 'plugin', name: 'astrolabe' }, isLocked: false },
-  { key: 'astrolabe.costBudget', label: 'Session cost budget (USD)', kind: 'number', value: 0, provider: { kind: 'plugin', name: 'astrolabe' }, isLocked: false },
 ]
 
 type Ui = {

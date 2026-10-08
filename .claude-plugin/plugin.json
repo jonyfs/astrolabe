@@ -1,6 +1,6 @@
 {
   "name": "astrolabe",
-  "version": "0.53.0",
+  "version": "0.54.0",
   "description": "Spec Kit progress and usage governance for Claude Code: a phase rail above the prompt, the next command in the prompt hint, the current task on the spinner, a /astrolabe pane, toasts, update buttons, and a status entry with your usage window.",
   "author": {
     "name": "Jony Santos"
@@ -161,12 +161,6 @@
       "title": "Pull request in the footer",
       "description": "Show the branch's open pull request and its checks in the footer, from the gh command, asked at most once every five minutes",
       "default": false
-    },
-    "costBudget": {
-      "type": "number",
-      "title": "Session cost budget (USD)",
-      "description": "Warn once when the session's cost passes 80% of this amount and once when it passes it; 0 turns the warning off",
-      "default": 0
     },
     "bandDensity": {
       "type": "string",

@@ -52,7 +52,7 @@ describe('the Dashboard tab (018 US3)', () => {
     const below = await ui.body()
     expect(`${body}${below}`).toContain('context       61%')
     expect(`${body}${below}`).toContain('● a reading · │ the climb between readings')
-    expect(below).toContain('cost          $1.20')
+    expect(`${body}${below}`).not.toContain('$1.20')
     expect(below).toMatch(/burn rate {5}\d+ points an hour/)
     expect(below).toMatch(/▲ \d+ more \(k\)/)
     expect(session.counts.reads.length).toBeGreaterThan(0)

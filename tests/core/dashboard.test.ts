@@ -58,7 +58,7 @@ describe('usage over the session', () => {
 })
 
 describe('KPIs', () => {
-  test('session counts, context, cost, duration, burn and projection', () => {
+  test('session counts, context, duration, burn and projection; no cost (054)', () => {
     const rows = kpiRows(
       { startedAt: NOW - 90 * 60_000, turns: 3, toolCalls: 12, drifts: 1, agentsRun: 2, agentsQueued: 1, context: { percent: 61 }, cost: 1.2, series: [{ at: NOW - 3600_000, percent: 40 }, { at: NOW, percent: 60 }] },
       { kind: 'five_hour', percent: 60, resetsAt: new Date(NOW + 3600_000).toISOString() },
@@ -70,7 +70,7 @@ describe('KPIs', () => {
     expect(map['drift alarms']).toBe('1')
     expect(map['subagents']).toBe('2 run, 1 queued')
     expect(map['context']).toBe('61%')
-    expect(map['cost']).toBe('$1.20')
+    expect(map['cost']).toBeUndefined()
     expect(map['session']).toBe('1h30m')
     expect(map['burn rate']).toBe('20 points an hour')
     expect(map['at the reset']).toBe('5h about 80%')

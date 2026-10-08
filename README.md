@@ -135,7 +135,6 @@ Each part, from left to right:
 | Context | `·  61%` | How full the context window is. |
 | Model and effort | `·  opus 5.5 high` | The model and effort of Claude's last request in the main thread. |
 | Git | `·  main ↑2  3` | The branch, commits to push and to pull, and changed or untracked files, from one `git status` at the end of each turn. Without a repository it is left out. |
-| Cost | `·  1.20` | What the session has cost so far, in US dollars, when Claude Code reports it. |
 | Burn rate | `· 🔥 12/h → 96%` | Usage points an hour over the session, and where the window that decides will be at its reset at that pace. It shows once the session has two readings that rise. |
 | Duration | `·  1h05m` | How long the session has run, from its first minute on. |
 
@@ -150,12 +149,12 @@ pane the footer holds the last rows; the Dashboard is longer, so its footer foll
 
 In the pane the footer is drawn the way the [statusline](https://github.com/jonyfs/statusline)
 project draws its bar: Powerline chips in Catppuccin colours. Spec Kit is mauve, the model red, git
-lavender, the cost teal, and the usage windows and the context follow statusline's ramp: green below
+lavender, and the usage windows and the context follow statusline's ramp: green below
 60%, yellow to 85% (`5h 72%▵`), red above (`5h 94%▴`). The context takes the colour without the
 mark. The `flavor` option picks the palette; with `ascii` icons, the accessible mode or the
 `NO_COLOR` environment variable set, the footer is plain text with ` · ` between the parts.
 
-When the room is too narrow, the parts go from the end: duration first, then the burn rate, cost, git, model,
+When the room is too narrow, the parts go from the end: duration first, then the burn rate, git, model,
 the other window and the context. The Spec Kit part and the window that decides always stay.
 
 | A statusline showed | In Astrolabe |
@@ -163,7 +162,7 @@ the other window and the context. The Spec Kit part and the window that decides 
 | Directory, repository, branch, ahead and behind, changed files, stashes, worktree | The footer's git part (the directory is the project you opened) |
 | Model, effort, context window | The footer |
 | 5-hour and 7-day windows with their resets | The footer, and the governor acts on them |
-| Session cost and duration | The footer |
+| Session duration | The footer (Astrolabe shows no cost: on a subscription it means nothing) |
 | Burn rate and projection | The Dashboard tab |
 | Todo progress, Claude working or idle | The band, the spinner and the Tasks tab |
 | Skills in use | The band and the prompt hint show the running Spec Kit skill |
@@ -342,7 +341,7 @@ band drawn above it in the terminal:
 
 next: /speckit-implement
 
-◆ 002 · implement 45% · 5h 42% (2h13m) · ctx 61% · opus 5.5 high · git:main ~2 · $1.20
+◆ 002 · implement 45% · 5h 42% (2h13m) · ctx 61% · opus 5.5 high · git:main ~2
 ```
 
 When Claude ticks tasks with an Edit, the tool's row in the transcript names them
@@ -384,7 +383,6 @@ reloads the mod right away.
 | `autoReload` | `true`, `false` | `true` | After a turn, when the Astrolabe on disk is newer than the one running (an install from a local clone, an update), run `/reload-plugins` once so the new version loads. Off, a toast says to run it. |
 | `images` | `auto`, `on`, `off` | `auto` | Draw the Dashboard's usage chart as a picture. `auto` does on kitty and Ghostty outside tmux. |
 | `pullRequest` | `true`, `false` | `false` | Show the branch's open pull request and its checks in the footer, from `gh`. See [The footer in place of a statusline](#the-footer-in-place-of-a-statusline). |
-| `costBudget` | a number of US dollars | `0` | The session's cost budget. Astrolabe toasts once when the cost passes 80% of it and once when it passes it. `0` turns the warning off. |
 | `askOnLimit` | `true`, `false` | `true` | Before it holds a subagent or pauses Claude, the governor asks you (see [Asked when it holds or pauses](#asked-when-it-holds-or-pauses)). Off, it holds and pauses without asking. |
 
 You can also type `/plugin configure astrolabe@astrolabe` in a session, or set them from a
@@ -498,7 +496,7 @@ folder with several Spec Kit projects under it, `other roots` names them, and
 
 **4 Dashboard** puts the session in numbers and charts:
 
-- a first row of chips: tasks done, burn rate, context and cost (`tasks 9/20 │ burn 12/h │ context 61% │ $1.20`);
+- a first row of chips: tasks done, burn rate and context (`tasks 9/20 │ burn 12/h │ context 61%`);
 - an astrolabe dial with the six Spec Kit steps around a ring, the active feature's step marked
   `●` with the needle on it, earlier steps ticked `✓`;
 - the active feature's tasks done out of all of them;
@@ -506,7 +504,7 @@ folder with several Spec Kit projects under it, `other roots` names them, and
 - a line chart of the deciding usage window over the session, 0 to 100%, with a dotted
   projection to the reset at the current burn rate, and a legend under it that says what `●`,
   `│` and `·` mean;
-- the session's counts: turns, tool calls, drift alarms, subagents run and queued, context, cost,
+- the session's counts: turns, tool calls, drift alarms, subagents run and queued, context,
   duration, burn rate in points an hour, and where the window should be at the reset;
 - a sparkline each for the 5-hour window, the weekly window and the context over the last readings;
 - the slowest task of the active feature, an estimate for its open tasks from the time the ticked
@@ -621,13 +619,11 @@ To turn the toasts off, pick the `minimal` preset, or `compact` to keep only the
 **Usage notices.** Each shows once a session:
 
 ```text
-🧭 The session has cost $8.50, 85% of its $10.00 budget
-🧭 The session has cost $10.20, past its $10.00 budget
 🧭 The context window is 86% full: /compact before Claude Code compacts it for you
 🧭 The prompt cache goes cold in about 30 s: the next prompt after that re-reads the whole context
 ```
 
-The cost lines need the `costBudget` option. The context line shows at 85%, and once more
+The context line shows at 85%, and once more
 after the context drops below 70% (a `/compact`) and climbs back. The cache line shows 4.5
 minutes after a turn ends with no newer turn, since Claude Code's prompt cache lasts 5 minutes.
 
