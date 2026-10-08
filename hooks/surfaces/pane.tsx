@@ -34,7 +34,7 @@ export const paneTree = (
   /** What is above and below the rows shown, with the presses that scroll (038). */
   nav?: { above: number; below: number; up: () => Promise<void>; down: () => Promise<void>; labels: { more: string } },
   /** Counts beside the tab labels (043 #21) and the keys of the tab shown (043 #25). */
-  extras: { badges?: Partial<Record<PaneTab, string>>; legend?: string; onClose?: () => Promise<void>; onFind?: () => Promise<void>; onPriority?: () => Promise<void>; status?: { label: string; onPress: () => Promise<void> }; marks?: 'unicode' | 'ascii' | 'words'; Link?: ElementTable<'terminal'>['Link'] } = {},
+  extras: { badges?: Partial<Record<PaneTab, string>>; legend?: string; onClose?: () => Promise<void>; onFind?: () => Promise<void>; onPriority?: () => Promise<void>; status?: { label: string; onPress: () => Promise<void> }; columns?: number; marks?: 'unicode' | 'ascii' | 'words'; Link?: ElementTable<'terminal'>['Link'] } = {},
 ) => {
   const Link = extras.Link
   // The pane's own marks in the set the icons option and the accessible mode pick (052 #49, #47).
@@ -45,7 +45,12 @@ export const paneTree = (
       {PANE_TABS.map(item => (
         <Button
           key={`tab-${item.tab}`}
-          label={extras.badges?.[item.tab] === undefined ? t(lang, item.label) : `${t(lang, item.label)} ${extras.badges[item.tab]}`}
+          label={
+            // Below 80 columns a tab is its number and badge, so the row never wraps (052 #1).
+            extras.columns !== undefined && extras.columns < 80
+              ? `${item.hotkey}${extras.badges?.[item.tab] === undefined ? '' : `·${extras.badges[item.tab]}`}`
+              : extras.badges?.[item.tab] === undefined ? t(lang, item.label) : `${t(lang, item.label)} ${extras.badges[item.tab]}`
+          }
           hotkey={item.hotkey}
           variant={item.tab === tab ? 'primary' : 'secondary'}
           onPress={() => onSelect(item.tab)}

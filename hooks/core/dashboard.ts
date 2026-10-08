@@ -149,13 +149,14 @@ export const kpiRows = (
   return rows
 }
 
-/** The Dashboard's first row (046 #51): tasks done, burn rate and context, as short chips. */
-export const kpiChips = (stats: SessionStats | undefined, feature: Feature | undefined, lang: Lang = 'en'): string[] => {
-  const out: string[] = []
-  if (feature !== undefined && feature.total > 0) out.push(tr(lang, 'chip.tasks', { done: feature.done, total: feature.total }))
+/** The Dashboard's first row (046 #51): tasks done, burn rate and context, as short chips; a level ramps the colour (052 #30). */
+export const kpiChips = (stats: SessionStats | undefined, feature: Feature | undefined, lang: Lang = 'en'): Array<{ text: string; level?: number }> => {
+  const out: Array<{ text: string; level?: number }> = []
+  if (feature !== undefined && feature.total > 0) out.push({ text: tr(lang, 'chip.tasks', { done: feature.done, total: feature.total }) })
   const rate = stats === undefined ? undefined : burnRate(stats.series)
-  if (rate !== undefined) out.push(tr(lang, 'chip.burn', { n: Math.round(rate) }))
-  if (stats?.context !== undefined) out.push(`${tr(lang, 'kpi.context')} ${Math.round(stats.context.percent)}%`)
+  // A burn of 30 points an hour empties a window in a little over 3 hours: that is red.
+  if (rate !== undefined) out.push({ text: tr(lang, 'chip.burn', { n: Math.round(rate) }), level: Math.min(100, Math.round(rate * 3)) })
+  if (stats?.context !== undefined) out.push({ text: `${tr(lang, 'kpi.context')} ${Math.round(stats.context.percent)}%`, level: stats.context.percent })
   return out
 }
 
