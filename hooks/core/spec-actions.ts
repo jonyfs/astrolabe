@@ -71,3 +71,20 @@ export const optionDefaults = (pluginJson: string): Record<string, string | numb
 /** The mark before a Config row (052 #39): ● a change not saved yet, • a saved value off its default. */
 export const configMark = (changed: boolean, value: unknown, defaults: Readonly<Record<string, unknown>>, key: string): string =>
   changed ? '● ' : key in defaults && defaults[key] !== value ? '• ' : '  '
+
+/** The Config tab's groups, in order (054 #64); an option not listed goes to the last one. */
+export const OPTION_GROUPS = {
+  display: ['preset', 'flavor', 'icons', 'language', 'accessible', 'footerIn', 'bandDensity', 'images'],
+  governor: ['governUsage', 'askOnLimit'],
+  claude: ['claudeContext', 'skillModels', 'humanize', 'terse', 'featureSummary'],
+  integrations: ['checkUpdates', 'autoReload', 'pullRequest'],
+} as const
+
+export type OptionGroup = keyof typeof OPTION_GROUPS
+
+/** The group a `/config` key (`astrolabe.<field>` or `<field>`) belongs to. */
+export const optionGroup = (key: string): OptionGroup => {
+  const field = key.replace(/^astrolabe\./, '')
+  for (const [group, fields] of Object.entries(OPTION_GROUPS) as Array<[OptionGroup, readonly string[]]>) if (fields.includes(field)) return group
+  return 'integrations'
+}

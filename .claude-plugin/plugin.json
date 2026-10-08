@@ -1,6 +1,6 @@
 {
   "name": "astrolabe",
-  "version": "0.94.0",
+  "version": "0.95.0",
   "description": "Spec Kit progress and usage governance for Claude Code: a phase rail above the prompt, the next command in the prompt hint, the current task on the spinner, a /astrolabe pane, toasts, update buttons, and a status entry with your usage window.",
   "author": {
     "name": "Jony Santos"

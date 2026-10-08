@@ -45,6 +45,8 @@ describe('the Config tab (028)', () => {
     const body = () => ui.find({ key: 'astrolabe-pane-body' }).then(f => f?.text ?? '')
     expect(await body()).toContain('Preset')
     expect(await body()).not.toContain('Theme')
+    // 054 #64: under a heading per group, Display before Integrations.
+    expect(await body()).toMatch(/Display[\s\S]*Preset[\s\S]*Integrations[\s\S]*Check for updates/)
     await ui.select({ key: 'config-astrolabe.preset', value: 'full' })
     await ui.press({ key: 'config-astrolabe.checkUpdates' })
     expect(await body()).toContain('Save 2 changes')
