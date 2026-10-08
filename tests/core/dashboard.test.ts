@@ -116,6 +116,18 @@ describe('pace KPIs (054 #31, #33)', () => {
   })
 })
 
+describe('context a task (054 #34)', () => {
+  test('the context points used, freed ones included, over the tasks ticked', () => {
+    const NOW2 = Date.UTC(2026, 9, 8, 12)
+    const base = { startedAt: NOW2 - 3_600_000, turns: 4, toolCalls: 0, drifts: 0, agentsRun: 0, agentsQueued: 0, series: [{ at: 1, percent: 10, context: 12 }], turnTicks: [{ ms: 1, n: 4 }] }
+    // From 12% to 40%, plus 20 points a compaction freed: 48 points over 4 tasks.
+    const map = Object.fromEntries(kpiRows({ ...base, context: { percent: 40 }, compactions: { n: 1, freed: 20 } }, undefined, NOW2))
+    expect(map['context a task']).toBe('12.0% of the window')
+    expect(Object.fromEntries(kpiRows({ ...base, turnTicks: [] , context: { percent: 40 } }, undefined, NOW2))['context a task']).toBeUndefined()
+    expect(Object.fromEntries(kpiRows({ ...base, series: [], context: { percent: 40 } }, undefined, NOW2))['context a task']).toBeUndefined()
+  })
+})
+
 describe('the first row (054 #23)', () => {
   test('adds where the deciding window lands at its reset', () => {
     const NOW3 = Date.UTC(2026, 9, 8, 12)

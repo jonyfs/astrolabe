@@ -139,6 +139,12 @@ export const kpiRows = (
   const hours = (now - stats.startedAt) / 3_600_000
   if (ticked > 0 && hours > 0) rows.push([tr(lang, 'kpi.pace'), tr(lang, 'kpi.paceValue', { n: (ticked / hours).toFixed(1) })])
   if (ticked > 0) rows.push([tr(lang, 'kpi.turnsPerTask'), (stats.turns / ticked).toFixed(1)])
+  // Context per ticked task (054 #34): points used this session, the ones compactions freed included.
+  const firstContext = stats.series.find(s => s.context !== undefined)?.context
+  if (ticked > 0 && stats.context !== undefined && firstContext !== undefined) {
+    const used = stats.context.percent + (stats.compactions?.freed ?? 0) - firstContext
+    if (used > 0) rows.push([tr(lang, 'kpi.contextPerTask'), tr(lang, 'kpi.contextPerTaskValue', { n: (used / ticked).toFixed(1) })])
+  }
   if (stats.waitedMs !== undefined && stats.waitedMs > 0) rows.push([tr(lang, 'kpi.waited'), duration(stats.waitedMs)])
   if (stats.compactions !== undefined) rows.push([tr(lang, 'kpi.compactions'), tr(lang, 'kpi.compactionsValue', { n: stats.compactions.n, freed: stats.compactions.freed })])
   const rate = burnRate(stats.series)

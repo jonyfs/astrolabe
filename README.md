@@ -518,7 +518,7 @@ folder with several Spec Kit projects under it, `other roots` names them, and
 - a line chart of the deciding usage window over the session, 0 to 100%, with a dotted
   projection to the reset at the current burn rate, and a legend under it that says what `●`,
   `│` and `·` mean;
-- the session's counts: turns, tool calls, drift alarms, subagents run and queued, context, tasks an hour, turns a task (to see when Claude spins), compactions and the context they freed, how long work waited on the governor,
+- the session's counts: turns, tool calls, drift alarms, subagents run and queued, context, tasks an hour, turns a task (to see when Claude spins), context a task (the window points each ticked task used, the ones compactions freed included), compactions and the context they freed, how long work waited on the governor,
   duration, burn rate in points an hour, and where the window should be at the reset;
 - a sparkline each for the 5-hour window, the weekly window and the context over the last readings;
 - the slowest task of the active feature, an estimate for its open tasks from the time the ticked
