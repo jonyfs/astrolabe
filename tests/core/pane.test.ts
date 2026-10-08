@@ -265,3 +265,14 @@ describe('a task links to its line (054 #78)', () => {
     expect(quickRows.find(r => r.key === 'task-T010')?.href).toBe('file:///proj/specs/002-band-hint/spec.md#L42')
   })
 })
+
+describe('a compact pane under 60 columns (054 #69)', () => {
+  test('no bars even when a short name leaves room', () => {
+    const features = [f('002', 'ab', 'implement', 9, 20)]
+    const narrow = specsRows(state({ features }), 58).find(r => r.key === 'feature-002')
+    expect(narrow?.text).not.toContain('█')
+    expect(narrow?.text).toContain('9/20')
+    const wide = specsRows(state({ features }), 100).find(r => r.key === 'feature-002')
+    expect(wide?.text).toContain('█')
+  })
+})
