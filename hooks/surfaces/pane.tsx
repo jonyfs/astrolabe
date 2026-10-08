@@ -33,8 +33,10 @@ export const paneTree = (
   /** What is above and below the rows shown, with the presses that scroll (038). */
   nav?: { above: number; below: number; up: () => Promise<void>; down: () => Promise<void>; labels: { more: string } },
   /** Counts beside the tab labels (043 #21) and the keys of the tab shown (043 #25). */
-  extras: { badges?: Partial<Record<PaneTab, string>>; legend?: string; onClose?: () => Promise<void>; onFind?: () => Promise<void> } = {},
-) => (
+  extras: { badges?: Partial<Record<PaneTab, string>>; legend?: string; onClose?: () => Promise<void>; onFind?: () => Promise<void>; Link?: ElementTable<'terminal'>['Link'] } = {},
+) => {
+  const Link = extras.Link
+  return (
   <Box flexDirection="column">
     <Box key="astrolabe-pane-tabs" flexDirection="row">
       {PANE_TABS.map(item => (
@@ -53,11 +55,22 @@ export const paneTree = (
     <Box key="astrolabe-pane-body" flexDirection="column">
       {header}
       {nav !== undefined && nav.above > 0 && <Button key="scroll-up" label={`▲ ${nav.above} ${nav.labels.more} (k)`} hotkey="k" plain onPress={() => nav.up()} />}
-      {body ?? rows.map(row => (
-        <Text color={tokens[row.role]} dimColor={row.dim === true} wrap="truncate-end">
-          {row.text}
-        </Text>
-      ))}
+      {body ??
+        rows.map(row =>
+          row.href !== undefined && Link !== undefined ? (
+            <Box flexDirection="row">
+              <Text color={tokens[row.role]} dimColor={row.dim === true} wrap="truncate-end">
+                {row.text}
+              </Text>
+              <Text> </Text>
+              <Link href={row.href} label="↗" />
+            </Box>
+          ) : (
+            <Text color={tokens[row.role]} dimColor={row.dim === true} wrap="truncate-end">
+              {row.text}
+            </Text>
+          ),
+        )}
       {nav !== undefined && nav.below > 0 && <Button key="scroll-down" label={`▼ ${nav.below} ${nav.labels.more} (j)`} hotkey="j" plain onPress={() => nav.down()} />}
     </Box>
     {extras.legend === undefined ? null : (
@@ -100,3 +113,4 @@ export const paneTree = (
     )}
   </Box>
 )
+}

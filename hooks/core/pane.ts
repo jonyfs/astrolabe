@@ -6,7 +6,7 @@ import { parseTasks } from './tasks-parser'
 import type { ThemeRole } from './theme'
 import type { Feature, SessionMemo, SpeckitState } from './types'
 
-export type PaneRow = { key: string; text: string; role: ThemeRole; dim?: boolean }
+export type PaneRow = { key: string; text: string; role: ThemeRole; dim?: boolean; href?: string }
 
 const BAR_CELLS = 10
 const noSpeckit = (lang: Lang): PaneRow => ({ key: 'none', text: tr(lang, 'pane.noSpeckit'), role: 'muted' })
@@ -30,7 +30,12 @@ const featureRow = (f: Feature, isActive: boolean, columns: number, ctx: RowCont
   const bar = f.total > 0 ? `${'█'.repeat(filled)}${'░'.repeat(BAR_CELLS - filled)}` : ''
   const role: ThemeRole = isActive ? 'accent' : f.phase === 'done' ? 'done' : f.phase === 'abandoned' ? 'muted' : 'text'
   const dim = f.phase === 'abandoned' ? { dim: true } : {}
-  const running = ctx.running === undefined ? '' : `  ⟳ ${ctx.running}`
+  // Chips for open questions and checklist items (044 #39).
+  const chips = [
+    f.clarifications !== undefined && f.clarifications > 0 ? `?${f.clarifications}` : '',
+    f.checklist !== undefined && f.checklist.open > 0 && f.phase !== 'done' && f.phase !== 'abandoned' ? `☐${f.checklist.open}` : '',
+  ].filter(c => c !== '')
+  const running = `${chips.length === 0 ? '' : `  ${chips.join(' ')}`}${ctx.running === undefined ? '' : `  ⟳ ${ctx.running}`}`
   const name = f.name.padEnd(ctx.nameWidth)
   const phase = f.phase.padEnd(9)
   // Columns line up across rows (044); narrower panes drop the bar, then the count, then cut the name.
@@ -71,7 +76,12 @@ export const specsRows = (state: SpeckitState, columns: number, lang: Lang = 'en
     const inSection = state.features.filter(f => sectionOf(f, activeDir) === section)
     if (inSection.length === 0) continue
     rows.push({ key: `section-${section}`, text: `${tr(lang, `pane.section.${section}`)} (${inSection.length})`, role: 'muted' })
-    for (const f of inSection) rows.push(featureRow(f, activeDir === f.dir, columns, { ...ctx, ...(running !== undefined && f.dir === activeDir ? { running } : {}) }))
+    for (const f of inSection) {
+      const row = featureRow(f, activeDir === f.dir, columns - 2, { ...ctx, ...(running !== undefined && f.dir === activeDir ? { running } : {}) })
+      // A link to the feature's spec.md (044 #35).
+      const root = state.root
+      rows.push(root === undefined || f.warnings.includes('loading') ? row : { ...row, href: `file://${root.startsWith('/') ? '' : '/'}${encodeURI(`${root}/specs/${f.dir}/spec.md`)}` })
+    }
   }
   // feature.json names a finished feature while the branch names another one (044 #34).
   const active = state.features.find(f => f.dir === activeDir)

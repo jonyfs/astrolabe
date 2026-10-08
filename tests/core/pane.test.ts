@@ -64,9 +64,9 @@ describe('specsRows', () => {
   })
   test('narrow panes drop the bar, then the count, then cut the name, never the id', () => {
     const row = (columns: number) => texts(specsRows(state(), columns).filter(r => r.key === 'feature-002'))[0]
-    expect(row(46)).toBe('▸ ◐ 002 band-hint   implement   9/20  45%')
-    expect(row(32)).toBe('▸ ◐ 002 band-hint  implement 45%')
-    expect(row(25)).toBe('▸ ◐ 002 b…  implement 45%')
+    expect(row(48)).toBe('▸ ◐ 002 band-hint   implement   9/20  45%')
+    expect(row(34)).toBe('▸ ◐ 002 band-hint  implement 45%')
+    expect(row(27)).toBe('▸ ◐ 002 b…  implement 45%')
     for (let columns = 12; columns <= 120; columns += 1) {
       for (const row of specsRows(state(), columns).filter(r => r.key.startsWith('feature-'))) {
         expect(width(row.text) <= columns || /^. . \d{3}/.test(row.text)).toBe(true)
@@ -150,5 +150,13 @@ describe('specsRows: unreadable files (013)', () => {
   test('a file that exists but cannot be read is named', () => {
     const rows = specsRows(state({ features: [f('002', 'band-hint', 'implement', 9, 20, ['unreadable-tasks'])] }), 80)
     expect(texts(rows)).toContain('! 002: tasks.md exists but could not be read')
+  })
+})
+
+describe('spec chips (044 #39)', () => {
+  test('open questions and checklist items ride on the row', () => {
+    const doing = { ...f('002', 'band-hint', 'implement', 9, 20), clarifications: 2, checklist: { open: 3, total: 5 } }
+    const rows = specsRows(state({ features: [doing] }), 120)
+    expect(texts(rows).find(t => t.includes('002'))).toBe('▸ ◐ 002 band-hint  implement  ████░░░░░░  9/20  45%  ?2 ☐3')
   })
 })
