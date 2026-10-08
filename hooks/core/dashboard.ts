@@ -150,13 +150,25 @@ export const kpiRows = (
 }
 
 /** The Dashboard's first row (046 #51): tasks done, burn rate and context, as short chips; a level ramps the colour (052 #30). */
-export const kpiChips = (stats: SessionStats | undefined, feature: Feature | undefined, lang: Lang = 'en'): Array<{ text: string; level?: number }> => {
+export const kpiChips = (
+  stats: SessionStats | undefined,
+  feature: Feature | undefined,
+  lang: Lang = 'en',
+  /** The deciding window and now, for where it lands at its reset (054 #23). */
+  binding?: { kind: string; percent: number; resetsAt?: string },
+  now?: number,
+): Array<{ text: string; level?: number }> => {
   const out: Array<{ text: string; level?: number }> = []
   if (feature !== undefined && feature.total > 0) out.push({ text: tr(lang, 'chip.tasks', { done: feature.done, total: feature.total }) })
   const rate = stats === undefined ? undefined : burnRate(stats.series)
   // A burn of 30 points an hour empties a window in a little over 3 hours: that is red.
   if (rate !== undefined) out.push({ text: tr(lang, 'chip.burn', { n: Math.round(rate) }), level: Math.min(100, Math.round(rate * 3)) })
   if (stats?.context !== undefined) out.push({ text: `${tr(lang, 'kpi.context')} ${Math.round(stats.context.percent)}%`, level: stats.context.percent })
+  const reset = binding?.resetsAt === undefined ? Number.NaN : Date.parse(binding.resetsAt)
+  if (binding !== undefined && rate !== undefined && now !== undefined && !Number.isNaN(reset) && reset > now) {
+    const at = Math.min(100, Math.max(0, Math.round(binding.percent + (rate * (reset - now)) / 3_600_000)))
+    out.push({ text: tr(lang, 'chip.atReset', { window: labelOf(binding.kind), p: at }), level: at })
+  }
   return out
 }
 

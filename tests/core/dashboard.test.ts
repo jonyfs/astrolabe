@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'claude-code/testing'
 
 import { toText } from '../../hooks/core/cells'
-import { burnRate, dial, kpiRows, phaseBars, trendRows, usageChart } from '../../hooks/core/dashboard'
+import { burnRate, dial, kpiChips, kpiRows, phaseBars, trendRows, usageChart } from '../../hooks/core/dashboard'
 import { FLAVORS } from '../../hooks/core/theme'
 
 const T = FLAVORS.mocha
@@ -113,5 +113,14 @@ describe('pace KPIs (054 #31, #33)', () => {
     expect(map['tasks an hour']).toBe('1.5 tasks an hour')
     expect(map['turns a task']).toBe('3.0')
     expect(Object.fromEntries(kpiRows(base, undefined, NOW2))['turns a task']).toBeUndefined()
+  })
+})
+
+describe('the first row (054 #23)', () => {
+  test('adds where the deciding window lands at its reset', () => {
+    const NOW3 = Date.UTC(2026, 9, 8, 12)
+    const stats = { startedAt: NOW3 - 3_600_000, turns: 1, toolCalls: 0, drifts: 0, agentsRun: 0, agentsQueued: 0, series: [{ at: NOW3 - 3_600_000, percent: 40 }, { at: NOW3, percent: 50 }] }
+    const chips = kpiChips(stats, undefined, 'en', { kind: 'five_hour', percent: 50, resetsAt: new Date(NOW3 + 2 * 3_600_000).toISOString() }, NOW3)
+    expect(chips.map(c => c.text)).toContain('5h at reset 70%')
   })
 })

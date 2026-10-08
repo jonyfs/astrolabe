@@ -30,7 +30,7 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 
 ### Reliability
 
-- [ ] T011 #11 Every timer callback wrapped so an error is logged once and never repeats on each tick (P1)
+- [x] T011 #11 Every timer callback wrapped so an error is logged once and never repeats on each tick (P1)
 - [ ] T012 #12 A stale-state guard: a SPECKIT state older than its memo is redrawn from the memo (P2)
 - [ ] T013 #13 A tasks.md over 2 MB is read once and summarized instead of re-read on each write (P2)
 - [x] T014 #14 A `gh` that hangs is cut at 8 s everywhere it runs, with the PRs tab saying so (P1)
@@ -45,7 +45,7 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 
 - [x] T021 #21 The Specs tab filters by status: All, In progress, Next up, Done, Abandoned (`s` cycles; `is:done` in the filter) (P1)
 - [x] T022 #22 The Session tab in four blocks: Project, Governor, Activity, Updates (P1)
-- [ ] T023 #23 The Dashboard's first screen holds only what changes decisions: tasks left, usage now, at the reset, context (P1)
+- [x] T023 #23 The Dashboard's first screen holds only what changes decisions: tasks left, usage now, at the reset, context (P1)
 - [ ] T024 #24 The footer's parts in a fixed order the Help tab lists, so nothing moves between turns (P2)
 - [ ] T025 #25 Feature ids padded to the widest, names aligned in every tab that lists features (P2)
 - [ ] T026 #26 Each tab says when it was last brought up to date (`updated 12s ago`) (P2)

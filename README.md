@@ -505,7 +505,7 @@ folder with several Spec Kit projects under it, `other roots` names them, and
 
 **4 Dashboard** puts the session in numbers and charts:
 
-- a first row of chips: tasks done, burn rate and context (`tasks 9/20 │ burn 12/h │ context 61%`), the burn and context chips green, yellow or red like the footer;
+- a first row of chips: tasks done, burn rate, context and where the deciding window lands at its reset (`tasks 9/20 │ burn 12/h │ context 61% │ 5h at reset 70%`), the burn and context chips green, yellow or red like the footer;
 - an astrolabe dial with the six Spec Kit steps around a ring, the active feature's step marked
   `●` with the needle on it, earlier steps ticked `✓`;
 - the active feature's tasks done out of all of them;
