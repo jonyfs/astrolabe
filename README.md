@@ -733,7 +733,8 @@ A refused call tells Claude why and when the window resets, for example
 resets, or a new reading takes it out of hold, Astrolabe sends one prompt that lists the queued
 subagents so Claude dispatches them again, and a paused session continues. A running subagent
 is never stopped. The cap counts subagents running in the foreground; one started in the
-background returns at once and is not counted.
+background returns at once and is not counted. At most 20 subagents wait; past that, a refused
+one is not queued and Claude is told to dispatch it again after the reset.
 
 The Session tab says where the governor stands in plain words, for example
 `holding (7d at 83%): new subagents wait until 14:00; other tools run`, and, at the pace of the

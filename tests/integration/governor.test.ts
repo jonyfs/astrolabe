@@ -92,6 +92,19 @@ describe('fan-out under the cap (US2)', () => {
     expect(again.text).toBe('🧭 nothing queued as q1')
   })
 
+  test('049: ids never repeat after one leaves, and at most 20 wait', async ($, on) => {
+    await setup($ as never, on as never)
+    await measure($ as never, reading(83))
+    await $.tool.call(agent('a1'))
+    await $.tool.call(agent('a2'))
+    await $.command.run({ command: 'astrolabe', args: 'run q1', origin: { kind: 'composer' } } as never)
+    expect(textOf(await $.tool.call(agent('a3')))).toContain('queued as q3')
+    for (let i = 4; i <= 21; i += 1) await $.tool.call(agent(`a${i}`))
+    const full = await $.tool.call(agent('a22'))
+    expect(isRefused(full)).toBe(true)
+    expect(textOf(full)).toContain('the queue is full: dispatch it again after the reset')
+  })
+
   test('a new reading below hold releases the queue at once', async ($, on) => {
     const { session } = await setup($ as never, on as never)
     await measure($ as never, reading(83))
