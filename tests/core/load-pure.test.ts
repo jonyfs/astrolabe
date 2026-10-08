@@ -20,7 +20,7 @@ describe('500 features without the engine (027 #55, #60)', () => {
     // A benchmark with room for slow CI runners: the budget is the engine's 10 s per hook.
     expect(t1 - t0).toBeLessThan(2000)
     expect(t2 - t1).toBeLessThan(500)
-    // At most four file calls per feature plus the root's own; spec 040 brings this down.
-    expect(counts.read + counts.list + counts.exists + counts.stat).toBeLessThanOrEqual(4 * 500 + 10)
+    // Three file calls per feature (its listing, spec.md, tasks.md) plus the root's own (040).
+    expect(counts.read + counts.list + counts.exists + counts.stat).toBeLessThanOrEqual(3 * 500 + 10)
   })
 })

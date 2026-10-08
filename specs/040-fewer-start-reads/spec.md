@@ -23,8 +23,11 @@ same start takes about 20 s, past the 10 s hook budget.
 - **FR-003**: Session start MUST read the active feature first and the rest on a timer, so the
   band draws within the budget however many features there are.
 
+Status: FR-001 shipped in 0.35.0, from four calls per feature to three. FR-002 and FR-003 stay open.
+
 ## Tasks
 
 - [ ] T001 A load test through the engine with 500 features, under the budget
-- [ ] T002 `fs.list` per folder; skip unchanged finished features; active feature first
+- [x] T002a `fs.list` per folder: an absent `plan.md` or `checklists/` costs no call (0.35.0)
+- [ ] T002b Skip unchanged finished features; active feature first (needs modification times the listing does not carry)
 - [ ] T003 README, version
