@@ -47,3 +47,24 @@ describe('the pane on 100 features (049 #81)', () => {
     expect(rows.filter(r => r.key.startsWith('feature-')).length).toBe(100)
   })
 })
+
+describe('1,000 tasks in one tasks.md (054 #10)', () => {
+  test('deriving and the Tasks rows take under 30 ms', async () => {
+    const tree = freezeTree(project({ constitution: RATIFIED, featureJson: featureJson('specs/001-big'), features: { '001-big': { spec: spec(), plan: true, tasks: tasks(400, 600) } } }))
+    const { fs } = treeFs(tree)
+    const snap = await readSnapshot(fs, '/proj', 'full')
+    const { state } = deriveSpeckitState(snap, emptyMemo(), 0)
+    taskRows(state, emptyMemo(), 1000, 100, 'en', 0)
+    // The best of five runs, as above.
+    let best = Number.POSITIVE_INFINITY
+    let rows = taskRows(state, emptyMemo(), 1000, 100, 'en', 0)
+    for (let i = 0; i < 5; i += 1) {
+      const t0 = performance.now()
+      rows = taskRows(state, emptyMemo(), 1000, 100, 'en', 0)
+      best = Math.min(best, performance.now() - t0)
+    }
+    expect(best).toBeLessThan(30)
+    expect(state.features[0]?.total).toBe(1000)
+    expect(rows.some(r => r.text.includes('T401'))).toBe(true)
+  })
+})
