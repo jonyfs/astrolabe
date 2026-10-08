@@ -85,7 +85,7 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 - [x] T051 #51 A worktree with uncommitted changes shows how many (P2)
 - [x] T052 #52 Two worktrees on one feature are flagged as a conflict (P1)
 - [x] T053 #53 `/astrolabe worktrees` lists them all as text (P2)
-- [ ] T054 #54 The band names the worktree the session runs in when it is not the main one (P2)
+- [x] T054 #54 The band names the worktree the session runs in when it is not the main one (P2)
 - [ ] T055 #55 A worktree's tasks count toward its feature's progress in the main checkout (P2)
 
 ### Gates
