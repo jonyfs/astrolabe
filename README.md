@@ -298,7 +298,9 @@ example), that message wins.
 Under the band, a row shows the next Spec Kit command as a button. Press it and the command
 runs, as if you had typed it. From 60 columns a `copy` button sits beside it and copies the
 command. Each time the next command changes, it is also proposed in the empty prompt box: press
-Tab (or the right arrow) to take it. `/astrolabe next` runs it from the prompt. The `minimal`
+Tab (or the right arrow) to take it. `/astrolabe next` runs it from the prompt. When the last task
+of a feature is ticked, the prompt box proposes a retrospective instead: `/speckit-retro` when the
+project has that skill in `.claude/skills/`, gstack's `/retro` otherwise. The `minimal`
 preset shows none of this.
 
 The row's buttons have keys once the band has the keyboard (ctrl+x tab, or a click): `n` runs
@@ -476,6 +478,8 @@ nothing to show says what would fill it and the command that does, for example
 The Help tab (and `/astrolabe help`) starts with what this version changed, lists every option
 with its value now (`footerIn=pane`), the footer's parts in their fixed order (Spec Kit, deciding window, other windows, context, model, skill, git, burn, session time; a narrow screen drops session time first, then burn, git, skill, model, the other windows and context), and ends with a legend of every mark Astrolabe draws (`◆`, `●`,
 `◐`, `○`, `?`, `▸`, `⟳`, `~`, `!`, `☐`, `⑂`, `⇉`, `⏱`) and a glossary of the six Spec Kit steps.
+Its last lines link the Spec Kit docs (https://github.github.com/spec-kit/), gstack
+(https://github.com/garrytan/gstack) and this README; in the pane each of those lines opens its link.
 A toast about a failure names the command that fixes it, for example
 `🧭 #42: not mergeable; run gh pr merge 42 --merge`.
 

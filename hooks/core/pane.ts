@@ -322,3 +322,10 @@ export const filterFeatures = <F extends Pick<Feature, 'id' | 'name' | 'phase' |
   const wanted = is === 'progress' || is === 'next' || is === 'done' || is === 'abandoned' ? is : status === 'all' ? undefined : status
   return features.filter(f => (words === '' || `${f.id} ${f.name}`.toLowerCase().includes(words)) && (wanted === undefined || sectionOf(f, activeDir) === wanted))
 }
+
+/** The Help tab's rows: headings in the accent, and a line that ends with an https link opens it (054 #81). */
+export const helpRows = (text: string): PaneRow[] =>
+  text.split('\n').map((line, i) => {
+    const link = /\s(https:\/\/\S+)$/.exec(line)?.[1]
+    return { key: `help-${i}`, text: line, role: i === 0 || !line.startsWith(' ') ? 'accent' : 'text', ...(link === undefined ? {} : { href: link }) }
+  })
