@@ -132,3 +132,12 @@ describe('compactions (054 #38)', () => {
     expect(map['compactions']).toBe('2, 120 points of context freed')
   })
 })
+
+describe('time waited on the governor (054 #36)', () => {
+  test('shown once there was a wait', () => {
+    const NOW5 = Date.UTC(2026, 9, 8, 12)
+    const base = { startedAt: NOW5, turns: 1, toolCalls: 0, drifts: 0, agentsRun: 0, agentsQueued: 0, series: [] }
+    expect(Object.fromEntries(kpiRows({ ...base, waitedMs: 12 * 60_000 }, undefined, NOW5))['waited on governor']).toBe('12m')
+    expect(Object.fromEntries(kpiRows(base, undefined, NOW5))['waited on governor']).toBeUndefined()
+  })
+})

@@ -921,7 +921,12 @@ async function resume($: EngineInterface, why: string): Promise<void> {
   try {
     const usage = (await $.state.get(USAGE)).value ?? DEFAULT_USAGE
     if (usage.queue.length === 0 && !usage.paused) return
-    await updateUsage($, u => ({ ...u, queue: [], paused: false }))
+    const since = usage.waitingSince
+    await updateUsage($, ({ waitingSince: _w, ...u }) => ({ ...u, queue: [], paused: false }))
+    if (since !== undefined) {
+      const waited = Math.max(0, (await $.clock.now()) - since)
+      await flushStats($, st => ({ ...st, waitedMs: (st.waitedMs ?? 0) + waited }))
+    }
     await logGovernor($, t(currentLang(), 'log.resumed', { why }))
     const speckit = (await $.state.get(SPECKIT)).value
     const task = speckit?.currentTask
@@ -1589,13 +1594,16 @@ async function gate($: GateArgs[0], e: GateArgs[1], next: GateArgs[2]): Promise<
       }
       let queuedAs = ''
       live.agentsQueued += 1
+      const waitNow = await $.clock.now()
       await updateUsage($, u => {
         // The next free number, so an id never repeats after one leaves (049); at most QUEUE_MAX wait (049 #85).
         const full = u.queue.length >= QUEUE_MAX
         queuedAs = full ? '' : `q${Math.max(0, ...u.queue.map(q => Number(q.id.slice(1)) || 0)) + 1}`
-        if (full) return { ...u, paused: u.paused || isPaused(decision) }
+        const since = u.waitingSince ?? waitNow
+        if (full) return { ...u, paused: u.paused || isPaused(decision), waitingSince: since }
         return {
           ...u,
+          waitingSince: since,
           paused: u.paused || isPaused(decision),
           queue: [
             ...u.queue,

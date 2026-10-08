@@ -179,6 +179,8 @@ export type UsageState = {
   /** The owner's raised stop and ceiling, for the window it was given for (all windows when absent). */
   override?: { target: number; until: number; kind?: string }
   paused: boolean
+  /** Since when work has waited on the governor: the first queued call or pause (054 #36). */
+  waitingSince?: number
   /** What the governor did, newest last (021): questions, answers, resumes; at most 20. */
   log?: Array<{ at: number; text: string }>
   /** Prompts of queued subagents the person let run once at hold ("Run this one now", 017). */
@@ -266,6 +268,8 @@ export type SessionStats = {
   priorities?: Record<string, 'high' | 'normal' | 'low'>
   /** The last deep review (051): the feature, the model's findings, when. */
   lastReview?: { id: string; text: string; at: number }
+  /** Milliseconds the session's work waited on the governor (054 #36). */
+  waitedMs?: number
   /** Compactions this session and the context points they freed (054 #38). */
   compactions?: { n: number; freed: number }
   /** How many times the advisor ran this session, and the last time (055). */
