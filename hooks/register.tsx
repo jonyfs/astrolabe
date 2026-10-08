@@ -84,6 +84,7 @@ const helpText = (lang: Lang): string =>
     `  /astrolabe help             ${t(lang, 'help.help')}`,
     `  /astrolabe next             ${t(lang, 'help.next')}`,
     `  /astrolabe status           ${t(lang, 'help.status')}`,
+    `  /astrolabe ask <question>   ${t(lang, 'help.ask')}`,
     `  /astrolabe root <folder>    ${t(lang, 'help.root')}`,
     `  /astrolabe allow <90-99> <30m-12h>   ${t(lang, 'help.allow')}`,
     `  /astrolabe revoke           ${t(lang, 'help.revoke')}`,
@@ -94,7 +95,7 @@ const helpText = (lang: Lang): string =>
     `  4 ${t(lang, 'tab.dashboard').padEnd(10)} ${t(lang, 'help.dashboardTab')}`,
     `  5 ${t(lang, 'tab.help').padEnd(10)} ${t(lang, 'help.helpTab')}`,
     t(lang, 'help.keys'),
-    `${t(lang, 'help.options')} (preset, flavor, icons, language, checkUpdates, governUsage, askOnLimit, costBudget, pullRequest, images, autoReload, footerIn, accessible).`,
+    `${t(lang, 'help.options')} (preset, flavor, icons, language, checkUpdates, governUsage, askOnLimit, costBudget, pullRequest, images, autoReload, footerIn, accessible, claudeContext, featureSummary).`,
   ].join('\n')
 const ASK = { plugin: 'astrolabe', key: 'ask' } as const
 const DEFAULT_PANE: PaneState = { tab: 'specs', autoOpened: false }
@@ -209,6 +210,34 @@ async function readGit($: EngineInterface, root: string | undefined, branch: str
 
 let prRunning = false
 
+// Whether a finished feature gets a summary from a small model (026 #53), off by default.
+let featureSummary = false
+const SUMMARIES = 'summaries'
+
+/** Five lines on a finished feature, from `haiku`, kept in $.store and shown in the Session tab (026 #53). */
+async function summarizeFeature($: EngineInterface, feature: { dir: string; id: string; name: string }): Promise<void> {
+  try {
+    const root = (await $.state.get(SPECKIT)).value?.root
+    if (root === undefined) return
+    const fs = fsOf($)
+    const spec = await fs.read(`${root}/specs/${feature.dir}/spec.md`).catch(() => '')
+    const tasks = await fs.read(`${root}/specs/${feature.dir}/tasks.md`).catch(() => '')
+    const reply = await $.model.complete({
+      model: 'haiku',
+      maxTokens: 300,
+      prompt: `Summarize this finished Spec Kit feature in at most five short lines, plain text, no headings: what it delivers and anything left open.\n\n${spec.slice(0, 8000)}\n\n${tasks.slice(0, 4000)}`,
+    })
+    if (!reply.isAnswered) return
+    const stored = await $.store.get(SUMMARIES).catch(() => undefined)
+    const all = typeof stored === 'object' && stored !== null && !Array.isArray(stored) ? (stored as Record<string, string>) : {}
+    await $.store.set(SUMMARIES, { ...all, [feature.dir]: reply.text.trim().split('\n').slice(0, 5).join('\n') })
+    await flushStats($, s => ({ ...s, lastSummary: { dir: feature.dir, text: reply.text.trim().split('\n').slice(0, 5).join('\n') } }))
+    $.ui.toast(t(currentLang(), 'summary.ready', { feature: `${feature.id} ${feature.name}` }))
+  } catch (error) {
+    $.ui.log(`astrolabe: ${error instanceof Error ? error.message : String(error)}`, { to: 'debug' })
+  }
+}
+
 const GIT_WORKTREES = ['git', 'worktree', 'list', '--porcelain']
 let worktreesRunning = false
 
@@ -238,6 +267,55 @@ async function refreshWorktrees($: EngineInterface, root: string): Promise<void>
     $.ui.log(`astrolabe: ${error instanceof Error ? error.message : String(error)}`, { to: 'debug' })
   } finally {
     worktreesRunning = false
+  }
+}
+
+// Whether Claude is told of the Spec Kit work (026), and what it was last told.
+let claudeContext = true
+let lastTold: string | undefined
+
+/** One line on the active feature for Claude (026 #50); undefined without one. */
+const featureContext = (state: SpeckitState): string | undefined => {
+  const feature = state.features.find(f => f.dir === state.active?.dir)
+  if (!state.present || feature === undefined) return undefined
+  const parts = [
+    `the active Spec Kit feature is ${feature.id} ${feature.name}, phase ${feature.phase}${feature.total === 0 ? '' : `, ${feature.done} of ${feature.total} tasks done`}`,
+    ...(state.currentTask === undefined ? [] : [`the current task is ${state.currentTask.id === undefined ? '' : `${state.currentTask.id} `}${state.currentTask.text}`]),
+    ...(state.nextCommand === undefined ? [] : [`the next command is ${state.nextCommand}`]),
+  ]
+  return `Astrolabe: ${parts.join('; ')}.`
+}
+
+/** The constitution's Core Principles, by heading, as a reminder (026 #51). */
+async function constitutionReminder($: EngineInterface): Promise<string | undefined> {
+  const root = (await $.state.get(SPECKIT)).value?.root
+  if (root === undefined) return undefined
+  const text = await fsOf($).read(`${root}/.specify/memory/constitution.md`).catch(() => undefined)
+  const principles = text === undefined ? [] : principlesOf(text)
+  return principles.length === 0 ? undefined : `Astrolabe: check this step against the constitution (.specify/memory/constitution.md): ${principles.join('; ')}.`
+}
+
+/** The `###` headings under `## Core Principles`, at most 22. */
+const principlesOf = (text: string): string[] => {
+  const lines = text.split(/\r?\n/)
+  const start = lines.findIndex(l => /^##\s+Core Principles\s*$/i.test(l.trim()))
+  if (start < 0) return []
+  const end = lines.findIndex((l, i) => i > start && /^##\s/.test(l.trim()))
+  return lines
+    .slice(start + 1, end < 0 ? undefined : end)
+    .filter(l => /^###\s/.test(l.trim()))
+    .map(l => l.trim().replace(/^###\s+/, ''))
+    .slice(0, 22)
+}
+
+/** `/astrolabe ask` (026 #54): one question over the session's own transcript, answered in a toast. */
+async function askFork($: EngineInterface, question: string, about: string): Promise<void> {
+  try {
+    const reply = await $.model.fork({ prompt: `About the Spec Kit feature ${about}, answer in at most three sentences, plain text: ${question}` })
+    const text = reply.isAnswered ? reply.text.trim() : t(currentLang(), 'ask.failed', { reason: reply.reason })
+    $.ui.toast(`🧭 ${text.length > 280 ? `${text.slice(0, 279)}…` : text}`, { timeoutMs: 15_000 })
+  } catch (error) {
+    $.ui.log(`astrolabe: ${error instanceof Error ? error.message : String(error)}`, { to: 'debug' })
   }
 }
 
@@ -432,7 +510,11 @@ async function resume($: EngineInterface, why: string): Promise<void> {
     if (usage.queue.length === 0 && !usage.paused) return
     await updateUsage($, u => ({ ...u, queue: [], paused: false }))
     await logGovernor($, t(currentLang(), 'log.resumed', { why }))
-    await $.prompt.submit({ text: resumePrompt(usage.queue, why) })
+    const speckit = (await $.state.get(SPECKIT)).value
+    const task = speckit?.currentTask
+    const feature = speckit?.features.find(f => f.dir === speckit.active?.dir)
+    const where = task === undefined || feature === undefined ? undefined : `${task.id === undefined ? '' : `${task.id} `}${task.text} in ${feature.id} ${feature.name}`
+    await $.prompt.submit({ text: resumePrompt(usage.queue, why, where) })
     // A phone notice when the work starts again (022 #31); the engine skips it while the person is present.
     await $.tool
       .call({ tool: 'PushNotification', tool_use_id: `astrolabe-resume-${await $.clock.now()}`, message: t(currentLang(), 'push.resumed', { why }), status: 'proactive' } as never)
@@ -750,6 +832,14 @@ async function noteProgress($: EngineInterface, before: Held | undefined, held: 
   try {
     const ticked = Math.max(0, doneOf(held) - doneOf(before))
     const finished = Math.max(0, finishedOf(held) - finishedOf(before))
+    // A feature just finished (026 #53): a five-line summary from a small model, if asked for.
+    if (featureSummary && finished > 0) {
+      const was = new Set((before?.state.features ?? []).filter(f => f.phase === 'done').map(f => f.dir))
+      for (const f of (held?.state.features ?? []).filter(f => f.phase === 'done' && !was.has(f.dir))) {
+        const feature = { dir: f.dir, id: f.id, name: f.name }
+        $.clock.after(0, () => void summarizeFeature($, feature))
+      }
+    }
     const was = before?.memo.currentTask
     const isTicked = was !== undefined && held?.memo.currentTask?.id !== was.id && held?.state.activeTasks?.some(task => task.id === was.id && task.isDone) === true
     if (ticked > 0 || isTicked) {
@@ -1069,6 +1159,8 @@ export const register: Register = (on, options) => {
   pullRequests = options['pullRequest'] === true
   budget = typeof options['costBudget'] === 'number' && options['costBudget'] > 0 ? options['costBudget'] : 0
   accessible = options['accessible'] === true
+  claudeContext = options['claudeContext'] !== false
+  featureSummary = options['featureSummary'] === true
   iconsOption = accessible ? 'ascii' : options['icons']
   footerIn = options['footerIn'] === 'status' || options['footerIn'] === 'both' ? options['footerIn'] : 'pane'
   autoReload = options['autoReload'] !== false
@@ -1082,6 +1174,16 @@ export const register: Register = (on, options) => {
       if (guess !== undefined && guess !== guessedLang) {
         guessedLang = guess
         await flushStats($, s => ({ ...s, language: guess }))
+      }
+      // What Claude is told of the Spec Kit work (026 #50): on the message, so the prompt cache
+      // stays whole, and only when it changed since the last prompt.
+      if (claudeContext) {
+        const state = (await $.state.get(SPECKIT)).value
+        const told = state === undefined ? undefined : featureContext(state)
+        if (told !== undefined && told !== lastTold) {
+          lastTold = told
+          return next({ ...e, context: [...(e.context ?? []), told] })
+        }
       }
     }
     return next(e)
@@ -1190,7 +1292,11 @@ export const register: Register = (on, options) => {
       const now = await $.clock.now()
       await guarded($, async previous => (previous === undefined ? undefined : applySkill(previous, e.skill, now)))
     }
-    return next(e)
+    const result = await next(e)
+    // A Spec Kit skill is reminded of the constitution's principles (026 #51).
+    if (!claudeContext || !/^speckit[-.]/.test(e.skill) || result.deny !== undefined) return result
+    const reminder = await constitutionReminder($)
+    return reminder === undefined ? result : { ...result, context: [...(result.context ?? []), reminder] }
   }).catch(($, e, next) => next(e))
 
   // Usage governance (spec 008): readings arrive after each turn and when a window moves.
@@ -1413,6 +1519,16 @@ export const register: Register = (on, options) => {
       if (held?.state.root === undefined) return { text: t(currentLang(), 'root.none', { path: target }) }
       return { text: t(currentLang(), 'root.switched', { root: held.state.root }) }
     }
+    if (args === 'ask' || args.startsWith('ask ')) {
+      const question = args.slice(3).trim()
+      const state = (await $.state.get(SPECKIT)).value
+      const feature = state?.features.find(f => f.dir === state.active?.dir)
+      if (question === '' || feature === undefined) return { text: t(currentLang(), 'ask.usage') }
+      // The fork outlives the command's budget: start it from a timer.
+      const about = `${feature.id} ${feature.name}`
+      $.clock.after(0, () => void askFork($, question, about))
+      return { text: t(currentLang(), 'ask.asking', { feature: about }) }
+    }
     if (args === 'status') {
       const state = (await $.state.get(SPECKIT)).value
       if (state === undefined) return { text: t(currentLang(), 'status.none') }
@@ -1464,6 +1580,7 @@ export const register: Register = (on, options) => {
                 text: `${(i === 0 ? t(currentLang(), 'session.governor') : '').padEnd(14)}${clockOf(new Date(entry.at).toISOString()) ?? ''} ${entry.text}`,
                 role: 'muted' as const,
               })),
+              ...(((summary) => (summary === undefined ? [] : summary.text.split('\n').map((line, i) => ({ key: `summary-${i}`, text: `${(i === 0 ? `${t(currentLang(), 'session.summary')} ${summary.dir}` : '').padEnd(14)}${line}`, role: 'muted' as const }))))((await $.state.get(SESSION)).value?.lastSummary)),
               ...usageRows((await $.state.get(USAGE)).value ?? DEFAULT_USAGE, await $.clock.now()).map(([label, text]) => ({
                 key: `usage-${label}`,
                 text: `${label.padEnd(14)}${text}`,

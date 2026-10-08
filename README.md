@@ -328,6 +328,8 @@ reloads the mod right away.
 | `governUsage` | `true`, `false` | `true` | Usage governance (see [Usage governance](#usage-governance)). Off, the windows still show. |
 | `icons` | `auto`, `nerd`, `emoji`, `ascii` | `auto` | Icons in the footer and the Dashboard. `auto` is Nerd Font glyphs in the terminal and emoji elsewhere. |
 | `language` | `auto`, `en`, `pt-BR`, `es`, `fr` | `auto` | The language of the pane, the Dashboard, the governor's questions, the toasts and `/astrolabe help`. `auto` follows the language you type in, English until a prompt says enough. What Claude reads (refusals, resume prompts) stays in English. |
+| `claudeContext` | `true`, `false` | `true` | Tell Claude about the Spec Kit work: one line on the active feature, its current task and the next command rides along with your prompt when it changed, and a Spec Kit skill gets the constitution's principles as a reminder. |
+| `featureSummary` | `true`, `false` | `false` | When a feature's tasks are all done, ask `haiku` for a five-line summary, shown in the Session tab. It uses a little of your usage. |
 | `accessible` | `true`, `false` | `false` | Text only, for screen readers and plain terminals: ASCII icons, charts as text, no hover styles on the band, no animated dial and no pictures. |
 | `footerIn` | `pane`, `status`, `both` | `pane` | Where the footer goes: the bottom of the `/astrolabe` pane (the status entry keeps the Spec Kit part and the deciding window), the status entry, or both. |
 | `autoReload` | `true`, `false` | `true` | After a turn, when the Astrolabe on disk is newer than the one running (an install from a local clone, an update), run `/reload-plugins` once so the new version loads. Off, a toast says to run it. |
@@ -442,6 +444,24 @@ language.
 With the `full` preset, the pane also opens by itself once per session, at the end of the
 first turn, but only in a fullscreen terminal at least 144 columns wide. It never opens by
 itself on a narrower or non-fullscreen terminal.
+
+## What Claude is told
+
+With `claudeContext` on (the default), Claude reads one line about the Spec Kit work next to your
+prompt, and only when it changed since the last one:
+
+```text
+Astrolabe: the active Spec Kit feature is 002 band-hint, phase implement, 9 of 20 tasks done; the current task is T010 task 10; the next command is /speckit-implement.
+```
+
+The line rides on the message, not in the system prompt, so the prompt cache stays whole. When a
+Spec Kit skill runs, Claude also gets the constitution's Core Principles by name as a reminder to
+check the step against them. When the governor resumes paused work, its prompt says where the work
+stopped (`The work stopped at T010 task 10 in 002 band-hint.`).
+
+`/astrolabe ask <question>` asks Claude about the active feature without a turn: the question goes
+to a fork of the session (the same context, served from the cache, no tools) and the answer shows
+in a toast.
 
 ## Toasts
 

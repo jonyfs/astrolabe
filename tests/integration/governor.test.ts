@@ -72,7 +72,7 @@ describe('fan-out under the cap (US2)', () => {
     await session.clock.advance(700_000)
     await session.clock.settle()
     expect(session.submitted).toEqual([
-      'Usage window renewed (5h reset). Re-dispatch these queued subagents with the Agent tool, one at a time:\n1. job a1: do a1\n2. job a2: do a2',
+      'Usage window renewed (5h reset). Re-dispatch these queued subagents with the Agent tool, one at a time:\n1. job a1: do a1\n2. job a2: do a2\nThe work stopped at T010 task 10 in 002 band-hint.',
     ])
     await session.clock.advance(700_000)
     expect(session.submitted.length).toBe(1)

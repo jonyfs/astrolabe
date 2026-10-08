@@ -124,6 +124,8 @@ export type Session = {
   prompts: string[]
   /** Script process.run answers and http.fetch answers for a test. */
   script: { processes: ProcessScript; http: Record<string, { status: number; text: string }>; env: Record<string, string> }
+  /** The context each submitted prompt carried for the model, in order (026). */
+  contexts: string[][]
   /** Texts the plugin proposed for the empty prompt box ($.prompt.suggest). */
   suggested: string[]
   /** Texts the plugin copied ($.ui.copy). */
@@ -217,8 +219,10 @@ export const installTree = (on: On, tree: Tree, cwd: string, seed: Record<string
     if (answer === undefined) return { deny: 'offline' }
     return { value: { status: answer.status, ok: answer.status < 400, headers: {}, text: answer.text } } as never
   })
+  const contexts: string[][] = []
   on('prompt.submit', ($, e) => {
     submitted.push(e.text)
+    contexts.push([...((e as { context?: readonly string[] }).context ?? [])])
     return { text: e.text } as never
   })
   on('command.run', ($, e) => {
@@ -269,7 +273,7 @@ export const installTree = (on: On, tree: Tree, cwd: string, seed: Record<string
     return { value: undefined }
   })
 
-  return { counts, statuses, forbidden, last: () => statuses.at(-1), held: () => held, logs, clock, toasts, store, processes, fetches, prompts, submitted, script, stateSets, denied, suggested, copied }
+  return { counts, statuses, forbidden, last: () => statuses.at(-1), held: () => held, logs, clock, toasts, store, processes, fetches, prompts, submitted, contexts, script, stateSets, denied, suggested, copied }
 }
 
 /** Answers turn.complete and tool.call beneath the plugin, as the engine would. */

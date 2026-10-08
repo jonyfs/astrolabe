@@ -58,6 +58,7 @@ describe('texts', () => {
       'Usage window renewed (5h now 3%). Re-dispatch these queued subagents with the Agent tool, one at a time:\n1. Review 002: Review it',
     )
     expect(resumePrompt([], '5h now 3%')).toBe('Usage window renewed (5h now 3%). Continue the work that was paused.')
+    expect(resumePrompt([], '5h now 3%', 'T010 task 10 in 002 band-hint')).toBe('Usage window renewed (5h now 3%). Continue the work that was paused.\nThe work stopped at T010 task 10 in 002 band-hint.')
   })
 })
 

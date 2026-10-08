@@ -5,9 +5,15 @@ export const LANGS = ['en', 'pt-BR', 'es', 'fr'] as const
 export type Lang = (typeof LANGS)[number]
 
 const EN = {
+  'summary.ready': '🧭 {feature} is done: its summary is in the Session tab of /astrolabe',
+  'session.summary': 'summary',
   'help.keys': 'Band keys (ctrl+x tab first): n runs the next command, c copies it, a opens this pane.',
   'tab.help': 'Help',
   'help.helpTab': 'these commands, keys and options',
+  'help.ask': 'ask Claude about the active feature, answered in a toast without a turn',
+  'ask.usage': 'Usage: /astrolabe ask <question>, with an active Spec Kit feature.',
+  'ask.asking': '🧭 asking about {feature}…',
+  'ask.failed': 'no answer ({reason})',
   'help.status': 'the active feature, the next command and the footer, as text',
   'next.pane': 'pane',
   'status.none': 'Astrolabe has not read the project yet.',
@@ -145,9 +151,15 @@ export type TextKey = keyof typeof EN
 type Dictionary = Readonly<Record<TextKey, string>>
 
 const PT_BR: Dictionary = {
+  'summary.ready': '🧭 {feature} terminou: o resumo está na aba Sessão do /astrolabe',
+  'session.summary': 'resumo',
   'help.keys': 'Teclas da faixa (antes ctrl+x tab): n roda o próximo comando, c copia, a abre este painel.',
   'tab.help': 'Ajuda',
   'help.helpTab': 'estes comandos, teclas e opções',
+  'help.ask': 'pergunte ao Claude sobre a feature ativa, com a resposta num aviso, sem turno',
+  'ask.usage': 'Uso: /astrolabe ask <pergunta>, com uma feature do Spec Kit ativa.',
+  'ask.asking': '🧭 perguntando sobre {feature}…',
+  'ask.failed': 'sem resposta ({reason})',
   'help.status': 'a feature ativa, o próximo comando e o rodapé, em texto',
   'next.pane': 'painel',
   'status.none': 'O Astrolabe ainda não leu o projeto.',
@@ -282,9 +294,15 @@ const PT_BR: Dictionary = {
 }
 
 const ES: Dictionary = {
+  'summary.ready': '🧭 {feature} terminó: el resumen está en la pestaña Sesión de /astrolabe',
+  'session.summary': 'resumen',
   'help.keys': 'Teclas de la banda (antes ctrl+x tab): n ejecuta el siguiente comando, c lo copia, a abre este panel.',
   'tab.help': 'Ayuda',
   'help.helpTab': 'estos comandos, teclas y opciones',
+  'help.ask': 'pregunta a Claude sobre la feature activa, con la respuesta en un aviso, sin turno',
+  'ask.usage': 'Uso: /astrolabe ask <pregunta>, con una feature de Spec Kit activa.',
+  'ask.asking': '🧭 preguntando sobre {feature}…',
+  'ask.failed': 'sin respuesta ({reason})',
   'help.status': 'la feature activa, el siguiente comando y el pie, en texto',
   'next.pane': 'panel',
   'status.none': 'Astrolabe aún no leyó el proyecto.',
@@ -419,9 +437,15 @@ const ES: Dictionary = {
 }
 
 const FR: Dictionary = {
+  'summary.ready': '🧭 {feature} est terminée : le résumé est dans l’onglet Session de /astrolabe',
+  'session.summary': 'résumé',
   'help.keys': 'Touches de la bande (d’abord ctrl+x tab) : n lance la commande suivante, c la copie, a ouvre ce panneau.',
   'tab.help': 'Aide',
   'help.helpTab': 'ces commandes, touches et options',
+  'help.ask': 'demandez à Claude sur la feature active, réponse dans une notification, sans tour',
+  'ask.usage': 'Usage : /astrolabe ask <question>, avec une feature Spec Kit active.',
+  'ask.asking': '🧭 question sur {feature}…',
+  'ask.failed': 'pas de réponse ({reason})',
   'help.status': 'la feature active, la commande suivante et le pied, en texte',
   'next.pane': 'panneau',
   'status.none': 'Astrolabe n’a pas encore lu le projet.',
