@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
 
+import { paneLabelWidth } from '../../hooks/core/i18n'
 import { scenario as halfDone } from '../fixtures/half-done'
 import { installEngine, installTree, startSession, type Session } from '../helpers/fake-fs'
 import { drawBand, installPaneEngine, installRenderEngine, mountPane } from '../helpers/render'
@@ -103,7 +104,7 @@ describe('update checks (US1)', () => {
     await go()
     const ui = await mountPane($ as never, 'terminal')
     await ui.press('tab-session')
-    expect(await ui.body()).toContain('update        gstack 1.91.33.0 (installed 1.91.32.0)')
+    expect(await ui.body()).toContain(`update${' '.repeat(paneLabelWidth('en') - 'update'.length)}gstack 1.91.33.0 (installed 1.91.32.0)`)
     await ui.unmount()
   })
 })

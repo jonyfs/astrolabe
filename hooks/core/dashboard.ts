@@ -1,7 +1,7 @@
 // The Dashboard tab (spec 018): the astrolabe dial, features by phase, usage over the
 // session and the session's KPIs. Charts are cell grids (cells.ts). Pure: no $.
 import { blank, put, write, type Grid } from './cells'
-import { labelOf } from './governor'
+import { clockOf, labelOf } from './governor'
 import { t as tr, type Lang } from './i18n'
 import type { Tokens } from './theme'
 import type { Feature, Phase, SessionStats } from './types'
@@ -73,17 +73,36 @@ export const burnRate = (series: SessionStats['series']): number | undefined => 
 
 export type ChartOptions = { width: number; height: number; resetsAt?: string; now: number; tokens: Tokens }
 
+let lastUsageChart: {
+  series: SessionStats['series']
+  width: number
+  height: number
+  resetsAt: string | undefined
+  now: number
+  tokens: Tokens
+  grid: Grid
+} | undefined
+
 /**
  * A line chart in the manner of asciichart: a 0 to 100% axis, the readings as dots joined
  * by vertical strokes, and a dotted projection to the reset at the current burn rate.
  */
 export const usageChart = (series: SessionStats['series'], o: ChartOptions): Grid | undefined => {
   if (series.length === 0 || o.width < 30 || o.height < 3) return undefined
+  if (
+    lastUsageChart?.series === series &&
+    lastUsageChart.width === o.width &&
+    lastUsageChart.height === o.height &&
+    lastUsageChart.resetsAt === o.resetsAt &&
+    lastUsageChart.now === o.now &&
+    lastUsageChart.tokens === o.tokens
+  ) return lastUsageChart.grid
+  const chartHeight = o.height - 1
   const g = blank(o.width, o.height)
-  const rowOf = (percent: number) => Math.round(((100 - Math.max(0, Math.min(100, percent))) * (o.height - 1)) / 100)
-  for (let y = 0; y < o.height; y += 1) {
-    const value = Math.round(100 - (y * 100) / (o.height - 1))
-    write(g, 0, y, `${String(value).padStart(3)}${y === o.height - 1 ? '┼' : '┤'}`, o.tokens.muted)
+  const rowOf = (percent: number) => Math.round(((100 - Math.max(0, Math.min(100, percent))) * (chartHeight - 1)) / 100)
+  for (let y = 0; y < chartHeight; y += 1) {
+    const value = Math.round(100 - (y * 100) / (chartHeight - 1))
+    write(g, 0, y, `${String(value).padStart(3)}%${y === chartHeight - 1 ? '┼' : '┤'}`, o.tokens.muted)
   }
   const plot = o.width - 5
   const reset = o.resetsAt === undefined ? Number.NaN : Date.parse(o.resetsAt)
@@ -111,6 +130,11 @@ export const usageChart = (series: SessionStats['series'], o: ChartOptions): Gri
       put(g, from + i, rowOf(value), '·', value >= 80 ? o.tokens.current : o.tokens.pending)
     }
   }
+  const firstTime = clockOf(new Date(points[0]!.at).toISOString()) ?? ''
+  const lastTime = clockOf(new Date(points.at(-1)!.at).toISOString()) ?? ''
+  write(g, 0, chartHeight, firstTime, o.tokens.muted)
+  write(g, o.width - lastTime.length, chartHeight, lastTime, o.tokens.muted)
+  lastUsageChart = { series, width: o.width, height: o.height, resetsAt: o.resetsAt, now: o.now, tokens: o.tokens, grid: g }
   return g
 }
 

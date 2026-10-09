@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import { filterFeatures, gatesText, sessionRows, specsRows, taskRows } from '../../hooks/core/pane'
+import { filterFeatures, gatesText, moveSpecSelection, sessionRows, specsRows, taskRows } from '../../hooks/core/pane'
 import { emptyMemo, type Feature, type SessionMemo, type SpeckitState } from '../../hooks/core/types'
 
 const f = (id: string, name: string, phase: Feature['phase'], done: number, total: number, warnings: Feature['warnings'] = []): Feature => ({
@@ -28,6 +28,17 @@ const texts = (rows: Array<{ text: string }>) => rows.map(r => r.text)
 const width = (s: string) => [...s].length
 
 describe('specsRows', () => {
+  test('memoizes by state version and drawing inputs', () => {
+    const current = state({ memoVersion: 10 })
+    const rows = specsRows(current, 80)
+    expect(specsRows(current, 80)).toBe(rows)
+    expect(specsRows(current, 100)).not.toBe(rows)
+    expect(specsRows({ ...current, memoVersion: 11 }, 80)).not.toBe(rows)
+    expect(specsRows({ ...current, features: current.features.map(f => ({ ...f, done: f.done + 1 })) }, 80)).not.toBe(rows)
+    expect(specsRows(current, 80, 'pt-BR')).not.toBe(rows)
+    expect(specsRows(current, 80, 'en', { '002': 'high' })).not.toBe(rows)
+  })
+
   test('sections by status, aligned columns with counts on every spec, warnings under their feature (044, 052 #14)', () => {
     expect(texts(specsRows(state(), 80))).toEqual([
       'In progress (1)',
@@ -39,6 +50,21 @@ describe('specsRows', () => {
       'Abandoned (1)',
       '  ○ 003 dropped     abandoned  ░░░░░░░░░░    0/3   0%',
     ])
+  })
+  test('long feature names wrap on desktop and are elided for terminal rows', () => {
+    const longName = 'feature-name-longer-than-twenty-four-characters'
+    const features = [f('001', longName, 'done', 1, 1)]
+    const current = state({ features, active: undefined })
+    const worktrees = [{ name: 'wt', id: '001', featureName: longName, phase: 'implement', done: 0, total: 1, status: '' }]
+    const desktop = specsRows(current, 40, 'en', {}, {}, false, worktrees, true)
+    const terminal = specsRows(current, 40, 'en', {}, {}, false, worktrees)
+    for (const key of ['feature-001', 'worktree-wt']) {
+      const desktopText = desktop.find(row => row.key === key)?.text
+      const terminalText = terminal.find(row => row.key === key)?.text
+      expect(desktopText).toContain(longName)
+      expect(terminalText).toContain('…')
+      expect(terminalText).not.toContain(longName)
+    }
   })
   test('roles: accent for the active one, done, muted and dim for abandoned; sections muted', () => {
     const rows = specsRows(state(), 80).filter(r => r.key.startsWith('feature-') || r.key.startsWith('warning'))
@@ -78,6 +104,18 @@ describe('specsRows', () => {
   test('no Spec Kit, or no features yet', () => {
     expect(texts(specsRows({ present: false, constitution: 'missing', features: [], isAnalyzed: false }, 80))).toEqual(['This project does not use Spec Kit. Run specify init to start.'])
     expect(texts(specsRows(state({ features: [] }), 80))).toEqual(['No features yet. Run /speckit-specify.'])
+  })
+})
+
+describe('Specs row selection (054 #66)', () => {
+  const rows = [{ key: 'feature-001', index: 1 }, { key: 'feature-002', index: 4 }, { key: 'feature-003', index: 8 }]
+
+  test('moves through feature rows and clamps at either end', () => {
+    expect(moveSpecSelection(rows, 'feature-001', 1)).toBe('feature-002')
+    expect(moveSpecSelection(rows, 'feature-003', -1)).toBe('feature-002')
+    expect(moveSpecSelection(rows, 'feature-003', 1)).toBeUndefined()
+    expect(moveSpecSelection(rows, 'feature-001', -1)).toBeUndefined()
+    expect(moveSpecSelection(rows, 'feature-001', 10)).toBe('feature-003')
   })
 })
 
@@ -205,6 +243,12 @@ describe('coloured rows (052 #12, 054 #71)', () => {
     expect(row.segments?.map(s => s.text).join('')).toBe(row.text)
     expect(row.segments?.map(s => s.role)).toEqual(['accent', 'current', 'accent', 'barFill', 'barEmpty', 'accent'])
     expect(specsRows(state(), 40).find(r => r.key === 'feature-002')?.segments).toBeUndefined()
+  })
+
+  test('a full progress bar is green, while an in-progress bar keeps its fill color (052 #13)', () => {
+    const rows = specsRows(state(), 120)
+    expect(rows.find(r => r.key === 'feature-001')?.segments?.[3]?.role).toBe('done')
+    expect(rows.find(r => r.key === 'feature-002')?.segments?.[3]?.role).toBe('barFill')
   })
 })
 

@@ -49,6 +49,20 @@ describe('the rich pane (024)', () => {
     await ui.unmount()
   })
 
+  test('052 #9: the summary starts with two blocks and expands on press', async ($, on) => {
+    const files = tree()
+    files['/proj/specs/002-band/spec.md'] = '# Quick spec: Band\n\nA band above the prompt.\n\n### User Story 1 - First story\n\n### User Story 2 - Second story\n'
+    await setup($ as never, on as never, files)
+    const ui = await mount($ as never)
+    const summary = () => ui.find({ key: 'astrolabe-summary' })
+    expect((await summary())?.props['text']).not.toContain('First story')
+    await ui.press({ key: 'summary-toggle' })
+    expect((await summary())?.props['text']).toContain('- First story\n- Second story')
+    await ui.press({ key: 'summary-toggle' })
+    expect((await summary())?.props['text']).not.toContain('First story')
+    await ui.unmount()
+  })
+
   test('052 #7: a filter that keeps nothing says so, on Specs and on Tasks', async ($, on) => {
     await setup($ as never, on as never)
     const ui = await mount($ as never)

@@ -11,6 +11,7 @@ type Mounter = {
     mount: (target: never) => Promise<{
       find: (q: { key?: string; text?: string | RegExp; type?: string }) => Promise<{ text: string; props: Record<string, unknown> } | undefined>
       drawn: () => Promise<unknown>
+      input: (q: { key: string; text: string; kind?: string }) => Promise<unknown>
       unmount: () => Promise<void>
     }>
   }
@@ -108,8 +109,10 @@ const paneProps = (bodyColumns: number) => ({
 })
 
 type PaneUi = {
-  find: (q: { key?: string; text?: string | RegExp }) => Promise<{ text: string } | undefined>
+  find: (q: { key?: string; text?: string | RegExp; type?: string }) => Promise<{ text: string; props: Record<string, unknown> } | undefined>
+  drawn: () => Promise<unknown>
   press: (q: { key: string }) => Promise<unknown>
+  input: (q: { key: string; text: string; kind?: string }) => Promise<unknown>
   unmount: () => Promise<void>
 }
 
@@ -124,11 +127,14 @@ export const mountPane = async ($: Mounter, surface: RenderSurface, bodyColumns 
     viewport: { columns: bodyColumns + 4, rows, isFullscreen: true },
   } as never)) as unknown as PaneUi
   return {
+    find: (q: { key?: string; text?: string | RegExp; type?: string }) => ui.find(q),
+    drawn: () => ui.drawn(),
     body: async () => (await ui.find({ key: 'astrolabe-pane-body' }))?.text ?? '',
     tabs: async () => (await ui.find({ key: 'astrolabe-pane-tabs' }))?.text ?? '',
     footer: async () => (await ui.find({ key: 'astrolabe-pane-footer' }))?.text ?? '',
     legend: async () => (await ui.find({ key: 'astrolabe-pane-legend' }))?.text ?? '',
     press: (key: string) => ui.press({ key }),
+    input: (q: { key: string; text: string; kind?: string }) => ui.input(q),
     unmount: () => ui.unmount(),
   }
 }

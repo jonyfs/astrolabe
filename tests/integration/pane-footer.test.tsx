@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'claude-code/testing'
 
 import { scenario as halfDone } from '../fixtures/half-done'
-import { completeTurn, installEngine, installTree, startSession } from '../helpers/fake-fs'
+import { completeTurn, installEngine, installTree, settleStatus, startSession } from '../helpers/fake-fs'
 import { installPaneEngine, installRenderEngine, mountPane } from '../helpers/render'
 
 // Spec 035: the footer moves into the pane, under every tab; the status entry keeps the lead.
@@ -10,7 +10,7 @@ const measure = ($: never) =>
   ($ as unknown as { session: { measure: (e: never) => Promise<unknown> } }).session.measure({
     context: { window: 200_000, tokens: 122_000, percent: 61 },
     cost: { usd: 1.2 },
-    rateLimits: [{ kind: 'five_hour', percentUsed: 42, resetsAt: new Date(NOW + 2 * 3600_000).toISOString() }],
+    rateLimits: [{ kind: 'five_hour', percentUsed: 42, resetsAt: new Date(NOW + 2 * 3600_000 + 1000).toISOString() }],
     changed: ['rateLimits', 'context', 'cost'],
   } as never)
 
@@ -24,6 +24,7 @@ const setup = async ($: never, on: never, env: Record<string, string> = {}) => {
   await startSession($, '/proj')
   await measure($)
   await completeTurn($ as never)
+  await settleStatus(session)
   return session
 }
 

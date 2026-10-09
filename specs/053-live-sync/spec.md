@@ -20,5 +20,5 @@ minutes.
 - [x] T001 Failing tests: a Write of feature.json and a Bash command that makes a spec show at once (P1)
 - [x] T002 `reconcileNow`: the root's files and the specs/ listing again, the turn's memo kept, nothing written when nothing moved (P1)
 - [x] T003 After every Bash command, after a subagent returns, and after a write under `.specify/` (P1)
-- [ ] T004 The Session tab's activity rows refresh on each tool call, not each turn (P2)
-- [ ] T005 git status after a Bash command that ran git, not only at the turn's end (P2)
+- [x] T004 The Session tab's activity rows refresh on each tool call, not each turn (P2)
+- [x] T005 git status after a Bash command that ran git, not only at the turn's end (P2)

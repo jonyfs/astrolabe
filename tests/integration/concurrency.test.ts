@@ -7,6 +7,20 @@ import { completeTurn, installEngine, installTree, startSession } from '../helpe
 const edit = (id: string, file_path: string) => ({ tool: 'Edit', tool_use_id: id, file_path, old_string: 'a', new_string: 'b' }) as never
 
 describe('concurrent tool calls never lose an update of $.state', () => {
+  test('a SPECKIT state older than its memo is rebuilt from the memo before updating', async ($, on) => {
+    const session = installTree(on, forty.tree, '/proj')
+    installEngine(on)
+    await startSession($, '/proj')
+    const state = session.held()!.state
+    session.corruptNextState('speckit', value => ({ ...(value as typeof state), active: undefined, features: [], memoVersion: -1 }))
+    await $.tool.call({ tool: 'Bash', tool_use_id: 'b1', command: 'ls' } as never)
+    expect(session.held()?.state.active).toBeUndefined()
+    await $.tool.call({ tool: 'Bash', tool_use_id: 'b', command: 'ls' } as never)
+    expect(session.held()?.state.active?.id).toBe(state.active?.id)
+    expect(session.held()?.state.features).toHaveLength(state.features.length)
+    expect(session.held()?.state.memoVersion).toBeGreaterThan(-1)
+  })
+
   test('two concurrent Edits under different features both reach the next turn', { timeoutMs: 20_000 }, async ($, on) => {
     const tree = { ...forty.tree }
     const session = installTree(on, tree, '/proj')
@@ -43,7 +57,7 @@ describe('concurrent tool calls never lose an update of $.state', () => {
 })
 
 describe('lean writes (009 FR-002, FR-003)', () => {
-  test('a second Bash call in the same turn writes nothing', async ($, on) => {
+  test('unchanged shell calls only persist their activity counter', async ($, on) => {
     const session = installTree(on, forty.tree, '/proj')
     installEngine(on)
     await startSession($, '/proj')
@@ -53,7 +67,9 @@ describe('lean writes (009 FR-002, FR-003)', () => {
     await $.tool.call({ tool: 'Edit', tool_use_id: 'e1', file_path: '/proj/src/a.ts', old_string: 'a', new_string: 'b' } as never)
     const afterEdit = { ...session.stateSets }
     await $.tool.call({ tool: 'Edit', tool_use_id: 'e2', file_path: '/proj/src/a.ts', old_string: 'b', new_string: 'c' } as never)
-    expect(session.stateSets).toEqual(afterEdit)
+    expect(session.stateSets.memo).toBe(afterEdit.memo)
+    expect(session.stateSets.speckit).toBe(afterEdit.speckit)
+    expect(session.stateSets.session).toBe((afterEdit.session ?? 0) + 1)
     expect(afterEdit.memo).toBe((after.memo ?? 0) + 1)
   })
 

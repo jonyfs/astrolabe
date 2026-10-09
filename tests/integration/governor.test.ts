@@ -1,8 +1,9 @@
 import { describe, expect, test } from 'claude-code/testing'
 
+import { paneLabelWidth } from '../../hooks/core/i18n'
 import { scenario as halfDone } from '../fixtures/half-done'
 import { clockOf } from '../../hooks/core/governor'
-import { completeTurn, installEngine, installTree, startSession } from '../helpers/fake-fs'
+import { completeTurn, installEngine, installTree, settleStatus, startSession } from '../helpers/fake-fs'
 import { installPaneEngine, installRenderEngine, mountPane } from '../helpers/render'
 
 const NOW = Date.UTC(2026, 9, 7, 12, 0)
@@ -33,11 +34,13 @@ const setup = async ($: never, on: never) => {
 describe('windows in the status entry (US1)', () => {
   test('the highest window joins the status entry', async ($, on) => {
     const { session } = await setup($ as never, on as never)
-    await measure($ as never, reading(42))
+    await measure($ as never, reading(42, 3_601_000))
+    await settleStatus(session)
     // The footer (018) carries the window's reset time.
     const at = '1h00m'
     expect(session.last()).toBe(`◆ 002 · implement 45% · 5h 42% (${at})`)
-    await measure($ as never, reading(83))
+    await measure($ as never, reading(83, 3_601_000))
+    await settleStatus(session)
     expect(session.last()).toBe(`◆ 002 · implement 45% · 5h 83% hold (${at})`)
   })
   test('no readings: nothing added, nothing refused', async ($, on) => {
@@ -49,6 +52,27 @@ describe('windows in the status entry (US1)', () => {
 })
 
 describe('fan-out under the cap (US2)', () => {
+  test('052 #26: queued subagents have individually keyed run buttons in the Session tab', async ($, on) => {
+    const session = installTree(on, halfDone.tree, '/proj')
+    installEngine(on)
+    installRenderEngine(on)
+    installPaneEngine(on)
+    await session.clock.set(NOW)
+    await startSession($ as never, '/proj')
+    await measure($ as never, reading(83))
+    await $.tool.call(agent('a1'))
+
+    const ui = await mountPane($ as never, 'terminal')
+    await ui.press('tab-session')
+    expect(await ui.body()).toContain('q1 job a1 · /astrolabe run q1')
+    expect((await ui.find({ key: 'queue-run-q1' }))?.props['hotkey']).toBe('a')
+    await ui.press('queue-run-q1')
+    await session.clock.settle()
+    expect(session.submitted.at(-1)).toContain('do a1')
+    expect(session.toasts.at(-1)).toBe('🧭 running q1 now: job a1')
+    await ui.unmount()
+  })
+
   test('throttle at 72% lets one foreground subagent run, queues the second', async ($, on) => {
     const { engine } = await setup($ as never, on as never)
     await measure($ as never, reading(72))
@@ -123,6 +147,26 @@ describe('pause and the owner ceiling (US3)', () => {
     expect(isRefused(await $.tool.call(read))).toBe(false)
   })
 
+  test('047 #63: Allow and Revoke in Session apply the same owner override as the command', async ($, on) => {
+    const session = installTree(on, halfDone.tree, '/proj')
+    installEngine(on)
+    installRenderEngine(on)
+    installPaneEngine(on)
+    await session.clock.set(NOW)
+    await startSession($ as never, '/proj')
+    await measure($ as never, reading(91))
+    const pane = await mountPane($ as never, 'terminal')
+    await pane.press('tab-session')
+    expect(await pane.find({ key: 'usage-allow' })).toBeDefined()
+    expect(isRefused(await $.tool.call(bash))).toBe(true)
+    await pane.press('usage-allow')
+    expect(await pane.find({ key: 'usage-revoke' })).toBeDefined()
+    expect(isRefused(await $.tool.call(bash))).toBe(false)
+    await pane.press('usage-revoke')
+    expect(isRefused(await $.tool.call(bash))).toBe(true)
+    await pane.unmount()
+  })
+
   test('/astrolabe allow from the user lifts stop and ceiling; from elsewhere it is refused', async ($, on) => {
     const { session } = await setup($ as never, on as never)
     await measure($ as never, reading(91))
@@ -133,6 +177,7 @@ describe('pause and the owner ceiling (US3)', () => {
     expect(textOf(fromUser)).toContain('stop and ceiling raised to 95%')
     expect(isRefused(await $.tool.call(bash))).toBe(false)
     expect(isRefused(await $.tool.call(agent('a1')))).toBe(true)
+    await settleStatus(session)
     expect(session.last()).toContain('5h 91% hold')
     await $.command.run({ command: 'astrolabe', args: 'revoke', origin: { kind: 'composer' } } as never)
     expect(isRefused(await $.tool.call(bash))).toBe(true)
@@ -143,7 +188,25 @@ describe('pause and the owner ceiling (US3)', () => {
     await measure($ as never, reading(95))
     expect(isRefused(await $.tool.call(bash))).toBe(false)
     expect(isRefused(await $.tool.call(agent('a1')))).toBe(false)
+    await settleStatus(session)
     expect(session.last()).toContain('5h 95% ceiling')
+  })
+
+  test('047 #70: observe logs would-be holds in Session without refusing tools', { options: { observeUsage: true } }, async ($, on) => {
+    const session = installTree(on, halfDone.tree, '/proj')
+    installEngine(on)
+    installRenderEngine(on)
+    installPaneEngine(on)
+    await session.clock.set(NOW)
+    await startSession($ as never, '/proj')
+    await measure($ as never, reading(91))
+    expect(isRefused(await $.tool.call(bash))).toBe(false)
+    expect(isRefused(await $.tool.call(agent('a1')))).toBe(false)
+    const pane = await mountPane($ as never, 'terminal')
+    await pane.press('tab-session')
+    expect(await pane.body()).toContain('would pause Bash (ceiling)')
+    expect(await pane.body()).toContain('would queue job a1 (ceiling)')
+    await pane.unmount()
   })
 
   test('a turn still reconciles while paused', async ($, on) => {
@@ -179,6 +242,7 @@ describe('parity with the usage-governor skill (016)', () => {
     await $.tool.call(agent('a1'))
     await measure($ as never, reading(77))
     expect(session.submitted).toEqual([])
+    await settleStatus(session)
     expect(session.last()).toContain('5h 77% hold')
     await measure($ as never, reading(74))
     expect(session.submitted[0]).toContain('1. job a1: do a1')
@@ -240,8 +304,8 @@ describe('parity with the usage-governor skill (016)', () => {
     const ui = await mountPane($ as never, 'terminal')
     await ui.press('tab-session')
     const body = await ui.body()
-    expect(body).toContain('usage         5h 42% · 7d 83%: hold')
-    expect(body).toContain('subagents     0 running, cap 0')
+    expect(body).toContain(`usage${' '.repeat(paneLabelWidth('en') - 'usage'.length)}5h 42% · 7d 83%: hold`)
+    expect(body).toContain(`subagents${' '.repeat(paneLabelWidth('en') - 'subagents'.length)}0 running, cap 0`)
     await ui.unmount()
     expect(session.logs).toEqual([])
   })
@@ -261,5 +325,19 @@ describe('the queue across a reload (054 #18)', () => {
     const { session } = await setup($ as never, on as never)
     await startSession($ as never, '/proj')
     expect(session.toasts.some(t => t.includes('still waiting'))).toBe(false)
+  })
+
+  test('049 #87: a persisted queue resumes after its window resets', async ($, on) => {
+    const { session } = await setup($ as never, on as never)
+    await measure($ as never, reading(83, 600_000))
+    await $.tool.call(agent('a1'))
+    await startSession($ as never, '/proj')
+    expect(session.toasts.at(-1)).toContain('still waiting')
+    await session.clock.advance(700_000)
+    await session.clock.settle()
+
+    expect(session.submitted).toHaveLength(1)
+    expect(session.submitted[0]).toContain('job a1: do a1')
+    expect(session.stateSets.usage).toBeGreaterThan(0)
   })
 })

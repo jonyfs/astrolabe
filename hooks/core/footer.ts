@@ -1,6 +1,7 @@
 // The footer: the status entry under the prompt, in place of a statusline (spec 018).
 // Ranked parts, joined with ' · ', dropped from the least important end to fit. Pure: no $.
 import { clockOf, decide, isPaused, labelOf, usageSegment, type Decision } from './governor'
+import { branchWebUrl } from './git-status'
 import type { Icons } from './icons'
 import { t, type Lang } from './i18n'
 import type { GitState, PullRequest, UsageReading } from './types'
@@ -51,7 +52,7 @@ const duration = (ms: number): string => {
 
 /** A palette colour name (statusline's), or a ramp read from a level. */
 export type ChipColour = 'mauve' | 'sapphire' | 'yellow' | 'red' | 'lavender' | 'teal' | 'peach' | 'surface1' | 'green'
-type Part = { text: string; rank: number; colour?: ChipColour; level?: number; first?: true }
+type Part = { text: string; rank: number; colour?: ChipColour; level?: number; first?: true; links?: ReadonlyArray<{ text: string; href: string }> }
 
 // An ASCII label ending in ':' is glued to its value (`stash:2`); a glyph takes a space.
 const glued = (icon: string, text: string) => (icon.endsWith(':') ? `${icon}${text}` : withIcon(icon, text))
@@ -125,7 +126,15 @@ const parts = (input: FooterInput): Part[] => {
       git.pr === undefined ? '' : prText(icons, git.pr),
     ].filter(s => s !== '')
     const branch = icons.branch.endsWith(':') ? `${icons.branch}${git.branch}` : withIcon(icons.branch, git.branch)
-    out.push({ text: [branch, ...counts].join(' '), rank: 4, colour: 'lavender' })
+    out.push({
+      text: [branch, ...counts].join(' '),
+      rank: 4,
+      colour: 'lavender',
+      links: [
+        ...(git.remote === undefined ? [] : [{ text: git.branch, href: branchWebUrl(git.remote, git.branch) }]),
+        ...(git.pr?.url === undefined ? [] : [{ text: `#${git.pr.number}`, href: git.pr.url }]),
+      ],
+    })
   }
   // Burn rate (041 #4): points an hour, and where the deciding window lands at its reset.
   if (input.burn !== undefined && input.burn > 0) {
@@ -167,7 +176,7 @@ export const footerText = (input: FooterInput): string => {
 export const rampOf = (level: number): { colour: ChipColour; mark: string } =>
   level < 60 ? { colour: 'green', mark: '' } : level < 85 ? { colour: 'yellow', mark: '▵' } : { colour: 'red', mark: '▴' }
 
-export type Chip = { key: string; text: string; colour: ChipColour }
+export type Chip = { key: string; text: string; colour: ChipColour; links?: ReadonlyArray<{ text: string; href: string }> }
 
 /** The footer as Powerline chips in statusline's colours (039); the context ramps without a mark. */
 export const footerChips = (input: FooterInput): Chip[] => {
@@ -183,6 +192,7 @@ export const footerChips = (input: FooterInput): Chip[] => {
         key: `part-${i}`,
         text: ramp === undefined || isContext ? p.text : `${p.text}${ramp.mark}`,
         colour: ramp?.colour ?? p.colour ?? 'surface1',
+        ...(p.links === undefined || p.links.length === 0 ? {} : { links: p.links }),
       }
     }),
   ]

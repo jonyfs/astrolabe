@@ -76,7 +76,7 @@ describe('presets and flavors (US4)', () => {
     expect(session.last()).toBe('◆ 002 · implement 45%')
   })
 
-  for (const flavor of ['mocha', 'latte'] as const) {
+  for (const flavor of ['mocha', 'latte', 'colorblind'] as const) {
     test(`${flavor}: every color comes from its token table`, { options: { flavor } }, async ($, on) => {
       installTree(on, halfDone.tree, halfDone.cwd)
       installEngine(on)
@@ -99,5 +99,9 @@ describe('the session runs in a linked worktree (054 #54)', () => {
     await completeTurn($)
     const band = await drawBand($ as never, 'terminal', 200)
     expect(band.text).toContain('⑂ proj-002')
+    const tree = JSON.stringify(band.tree)
+    expect(band.text).toContain('+1')
+    expect(tree).toContain('astrolabe-other-features')
+    expect(tree).toContain('003 spinner-narration')
   })
 })

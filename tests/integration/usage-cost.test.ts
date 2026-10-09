@@ -38,7 +38,7 @@ describe('usage and cost (022)', () => {
     await measure($ as never, 90, 1)
     expect(session.toasts.filter(t => t.includes('context'))).toEqual(['🧭 The context window is 86% full: /compact before Claude Code compacts it for you'])
   })
-  test('prompt cache: a warning after 4.5 idle minutes, none if a turn came first', async ($, on) => {
+  test('049 #86 prompt cache: a newer turn cancels the stale warning and starts a new 4.5-minute timer', async ($, on) => {
     const session = await setup($ as never, on as never)
     await completeTurn($)
     await session.clock.advance(4 * 60_000)

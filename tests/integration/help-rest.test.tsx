@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
 
+import { paneLabelWidth } from '../../hooks/core/i18n'
 import { scenario as halfDone } from '../fixtures/half-done'
 import { installEngine, installTree, startSession } from '../helpers/fake-fs'
 import { drawBand, installPaneEngine, installRenderEngine, mountPane } from '../helpers/render'
@@ -70,13 +71,32 @@ describe('help, part two (025)', () => {
     await ui.unmount()
   })
 
+  test('041 #10: the Help tab previews the footer in all icon sets', async ($, on) => {
+    await setup($ as never, on as never)
+    const ui = await mountPane($ as never, 'terminal', 120, 60)
+    await ui.press('tab-help')
+    const views = [await ui.body()]
+    for (let i = 0; i < 8; i += 1) {
+      if (await ui.find({ key: 'scroll-down' }) === undefined) break
+      await ui.press('scroll-down')
+      views.push(await ui.body())
+    }
+    const body = views.join('\n')
+    expect(body).toContain('Footer previews')
+    expect(body).toContain('nerd')
+    expect(body).toContain('emoji')
+    expect(body).toContain('ascii')
+    expect(body).toContain('sonnet 4.5')
+    await ui.unmount()
+  })
+
   test('048 #71 #74: /astrolabe help lists the marks and the Spec Kit steps', async ($, on) => {
     await setup($ as never, on as never)
     const ran = (await $.command.run({ command: 'astrolabe', args: 'help' } as never)) as { text: string }
     expect(ran.text).toContain('Marks:')
     expect(ran.text).toContain('? blocked by clarifications')
     expect(ran.text).toContain('Spec Kit steps:')
-    expect(ran.text).toContain('  specify       what to build and why, by user story')
+    expect(ran.text).toContain(`  specify${' '.repeat(paneLabelWidth('en') - 'specify'.length)} what to build and why, by user story`)
     expect(ran.text).toContain('/astrolabe doctor')
   })
 
@@ -125,7 +145,7 @@ describe('help, part two (025)', () => {
     expect(none.text).toBe('🧭 no other worktree works on a feature')
     const help = (await $.command.run({ command: 'astrolabe', args: 'help' } as never)) as { text: string }
     expect(help.text).toContain('Gates (under the active feature):')
-    expect(help.text).toContain('analyze       /speckit-analyze ran on these tasks')
+    expect(help.text).toContain(`analyze${' '.repeat(paneLabelWidth('en') - 'analyze'.length)} /speckit-analyze ran on these tasks`)
   })
 
   test('T008: accessible mode draws text only', { options: { accessible: true } }, async ($, on) => {

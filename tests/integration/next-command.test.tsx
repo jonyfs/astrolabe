@@ -56,12 +56,12 @@ describe('the next command (020a)', () => {
   test('a new next command is proposed in the empty prompt box, once', async ($, on) => {
     const tree = project({ constitution: RATIFIED, featureJson: featureJson('specs/001-a'), features: { '001-a': { spec: spec() } } })
     const { session } = await setup($ as never, on as never, tree)
-    expect(session.suggested).toEqual(['/speckit-plan'])
+    expect(session.suggested).toEqual(['/speckit-plan 001'])
     await completeTurn($)
-    expect(session.suggested).toEqual(['/speckit-plan'])
+    expect(session.suggested).toEqual(['/speckit-plan 001'])
     tree['/proj/specs/001-a/plan.md'] = '# Plan\n'
     await completeTurn($)
-    expect(session.suggested).toEqual(['/speckit-plan', '/speckit-tasks'])
+    expect(session.suggested).toEqual(['/speckit-plan 001', '/speckit-tasks 001'])
   })
 
   test('minimal draws no next row and proposes nothing', { options: { preset: 'minimal' } }, async ($, on) => {

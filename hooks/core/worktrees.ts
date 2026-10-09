@@ -2,7 +2,7 @@
 // Pure: no $. Never throws.
 import { plainText } from './git-status'
 
-export type Worktree = { path: string; branch?: string }
+export type Worktree = { path: string; head?: string; branch?: string }
 
 /** Parses `git worktree list --porcelain`: the main worktree first, then the linked ones. */
 export const parseWorktrees = (out: string): Worktree[] =>
@@ -11,9 +11,10 @@ export const parseWorktrees = (out: string): Worktree[] =>
     .map(block => {
       const lines = block.split(/\r?\n/)
       const path = lines.find(l => l.startsWith('worktree '))?.slice(9).trim()
+      const head = lines.find(l => l.startsWith('HEAD '))?.slice(5).trim()
       const ref = lines.find(l => l.startsWith('branch '))?.slice(7).trim()
       const branch = ref?.replace(/^refs\/heads\//, '')
-      return path === undefined || path === '' ? undefined : { path, ...(branch === undefined ? {} : { branch }) }
+      return path === undefined || path === '' ? undefined : { path, ...(head === undefined ? {} : { head }), ...(branch === undefined ? {} : { branch }) }
     })
     .filter((w): w is Worktree => w !== undefined)
 

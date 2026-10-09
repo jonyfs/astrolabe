@@ -17,22 +17,22 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 
 ### Speed and efficiency
 
-- [ ] T001 #1 One `$.state` read per render: the Pane handler reads SPECKIT, SESSION, USAGE and PANE once and passes them down (P1)
+- [x] T001 #1 One `$.state` read per render: the Pane handler reads SPECKIT, SESSION, USAGE and PANE once and passes them down (P1)
 - [x] T002 #2 The help text built once per language and option set, not on every render (P2)
-- [ ] T003 #3 `specsRows` for an unchanged state and width memoized by memo version (P2)
-- [ ] T004 #4 The worktree refresh skips worktrees whose HEAD did not move since the last read (P2)
+- [x] T003 #3 `specsRows` for an unchanged state and width memoized by memo version (P2)
+- [x] T004 #4 The worktree refresh skips worktrees whose HEAD did not move since the last read (P2)
 - [x] T005 #5 `reconcileNow` after a Bash command only when the command can touch specs, `.specify` or the branch (`git`, `mv`, `cp`, `rm`, `mkdir`, `bash .specify/…`) (P1)
 - [x] T006 #6 The PR list cached for 60 s across tab switches (P2)
-- [ ] T007 #7 The dial frames computed once per phase, not per render (P3)
-- [ ] T008 #8 `flushStats` merges writes within one tool call into one state write (P2)
-- [ ] T009 #9 The usage chart grid reused when the series and size did not change (P3)
+- [x] T007 #7 The dial frames computed once per phase, not per render (P3)
+- [x] T008 #8 `flushStats` merges writes within one tool call into one state write (P2)
+- [x] T009 #9 The usage chart grid reused when the series and size did not change (P3)
 - [x] T010 #10 A load test for 1,000 tasks in one tasks.md: the Tasks tab under 30 ms (P2)
 
 ### Reliability
 
 - [x] T011 #11 Every timer callback wrapped so an error is logged once and never repeats on each tick (P1)
-- [ ] T012 #12 A stale-state guard: a SPECKIT state older than its memo is redrawn from the memo (P2)
-- [ ] T013 #13 A tasks.md over 2 MB is read once and summarized instead of re-read on each write (P2)
+- [x] T012 #12 A stale-state guard: a SPECKIT state older than its memo is redrawn from the memo (P2)
+- [x] T013 #13 A tasks.md over 2 MB is read once and summarized instead of re-read on each write (P2)
 - [x] T014 #14 A `gh` that hangs is cut at 8 s everywhere it runs, with the PRs tab saying so (P1)
 - [x] T015 #15 `/astrolabe doctor` also checks the hook budget: the slowest hook of the session in ms (P2)
 - [x] T016 #16 A broken `.specify/extensions.yml` is named in the Session tab with its line (P2)
@@ -57,7 +57,7 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 ### KPIs
 
 - [x] T031 #31 Tasks per hour this session and this week (P1)
-- [ ] T032 #32 Time from specify to done for each finished feature (P2)
+- [x] T032 #32 Time from specify to done for each finished feature (P2)
 - [x] T033 #33 Turns per ticked task, to see when Claude spins (P1)
 - [x] T034 #34 Context used per ticked task (P2)
 - [x] T035 #35 Drift alarms per feature (P3)
@@ -72,7 +72,7 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 - [x] T041 #41 The footer on every tab, Config, PRs and Help included, with a test per tab (P1)
 - [x] T042 #42 The footer's model chip names the 1M context window when it is on (`opus 5.5 1M`) (P2)
 - [x] T043 #43 A context chip that turns into `compact soon` past 85% (P1)
-- [ ] T044 #44 The footer's git chip shows the PR number as a link when `pullRequest` is on (P2)
+- [x] T044 #44 The footer's git chip shows the PR number as a link when `pullRequest` is on (P2)
 - [x] T045 #45 A chip for the running skill with its model (`⟳ implement · sonnet`) (P2)
 - [ ] T046 #46 The footer drops its separator row when the pane is under 12 rows (P3)
 - [ ] T047 #47 The status entry under the prompt can show the full footer on one line at 140 columns and wider (P3)
@@ -103,8 +103,8 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 - [x] T063 #63 Config reset: a `Reset to defaults` button on the Config tab, pressed twice, and `/astrolabe config reset` (P1)
 - [x] T064 #64 The Config tab groups options: Display, Governor, Claude, Integrations (P2)
 - [ ] T065 #65 Number keys show on the tab labels (`1 Specs`) only while the pane has the keyboard (P3)
-- [ ] T066 #66 A row selected with the arrows on Specs, with Enter opening its spec.md link (P2)
-- [ ] T067 #67 Long names wrap on Desktop and cut with `…` in the terminal, consistently (P2)
+- [x] T066 #66 A row selected with the arrows on Specs, with Enter opening its spec.md link (P2)
+- [x] T067 #67 Long names wrap on Desktop and cut with `…` in the terminal, consistently (P2)
 - [ ] T068 #68 Toggling the pane with the same key that opened it (P3)
 - [x] T069 #69 A compact pane mode under 60 columns: one column, no bars (P2)
 - [x] T070 #70 Empty Dashboard sections hidden instead of drawn with zeros (P1)
@@ -113,10 +113,10 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 
 - [x] T071 #71 One colour per phase, used the same in the rail, the Specs tab and the dial (P1)
 - [x] T072 #72 Warnings in peach, errors in red, success in green, everywhere, from the theme table (P1)
-- [ ] T073 #73 The Claude Code theme's own keys used where they exist, so `dark-daltonized` and other themes read right (P1)
+- [x] T073 #73 The Claude Code theme's own keys used where they exist, so `dark-daltonized` and other themes read right (P1)
 - [x] T074 #74 Muted rows meet 4.5:1 in every flavor, checked by a test (P2)
-- [ ] T075 #75 Chip text colour picked by contrast, not by flavor (P2)
-- [ ] T076 #76 A `colorblind` palette using shape as well as colour for status (P2)
+- [x] T075 #75 Chip text colour picked by contrast, not by flavor (P2)
+- [x] T076 #76 A `colorblind` palette using shape as well as colour for status (P2)
 
 ### Links
 
@@ -133,13 +133,13 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 - [x] T084 #84 A context line for Claude names the current task and its acceptance line from the spec (P1)
 - [x] T085 #85 When a turn ends with no task ticked after 3 turns on the same one, a toast suggests `/compact` or splitting the task (P1)
 - [x] T086 #86 Before `/speckit-implement`, a nudge to run `/speckit-analyze` when it has not run (P1)
-- [ ] T087 #87 The next command proposed in the prompt box carries the feature id (`/speckit-plan 054`) (P2)
+- [x] T087 #87 The next command proposed in the prompt box carries the feature id (`/speckit-plan 054`) (P2)
 - [x] T088 #88 A `focus` mode: the context line tells Claude to touch only files the current task names (P2)
 - [x] T089 #89 [P] tasks offered as one prompt that dispatches them to subagents (P2)
 - [x] T090 #90 After a feature is done, a prompt suggestion for `/speckit-retro` or gstack `/retro` (P3)
 - [x] T091 #91 The prompt hint warns when the prompt names a feature other than the active one (P2)
 - [x] T092 #92 A summary of the last 5 turns of the feature available as `/astrolabe recap` (P2)
-- [ ] T093 #93 A guard that tells Claude, through the context line, when tasks.md and the code drift apart (P2)
+- [x] T093 #93 A guard that tells Claude, through the context line, when tasks.md and the code drift apart (P2)
 - [ ] T094 #94 Model choice per task kind: tests on Sonnet, design on Opus, through skillModels (P3)
 - [ ] T095 #95 A cache-warm reminder only when the next step is likely within 5 minutes (P3)
 

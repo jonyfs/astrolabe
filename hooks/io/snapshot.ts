@@ -10,6 +10,7 @@ import { type Fs, readOrUndefined, readResult, type ReadResult } from './fs-port
 import { readHead } from './git-branch'
 
 const FEATURE_DIR = /^\d{3}-.+$/
+const LARGE_TASKS_BYTES = 2 * 1024 * 1024
 
 export type SnapshotScope = 'full' | { dirs: readonly string[] }
 
@@ -35,17 +36,18 @@ const textOf = (result: ReadResult, last: string | undefined): string | undefine
   'text' in result ? result.text : 'unreadable' in result ? last : undefined
 
 /** One feature's files. `previous` is the last read of it, kept for a file that cannot be read. */
-export const readFeature = async (fs: Fs, root: string, dir: string, previous?: FeatureFiles): Promise<FeatureFiles> => {
+export const readFeature = async (fs: Fs, root: string, dir: string, previous?: FeatureFiles, preserveLargeTasks = false): Promise<FeatureFiles> => {
   const base = joinPath(root, 'specs', dir)
   // One listing says which files exist (040): an absent file costs no call, an unreadable one one.
   const listed = await fs.list(base).catch(() => undefined)
   const names = listed === undefined ? undefined : new Set(listed.map(e => e.name))
   const readIfListed = (name: string): Promise<ReadResult> =>
     names === undefined ? readResult(fs, joinPath(base, name)) : names.has(name) ? readResult(fs, joinPath(base, name)) : Promise.resolve({ missing: true as const })
+  const reuseTasks = preserveLargeTasks && previous?.tasksLarge === true && previous.tasks !== undefined ? previous.tasks : undefined
   const [specRead, plan, tasksRead, checklists] = await Promise.all([
     readIfListed('spec.md'),
     names === undefined ? fs.exists(joinPath(base, 'plan.md')).catch(() => false) : Promise.resolve(names.has('plan.md')),
-    readIfListed('tasks.md'),
+    reuseTasks === undefined ? readIfListed('tasks.md') : Promise.resolve({ text: reuseTasks }),
     names === undefined || names.has('checklists') ? readChecklists(fs, joinPath(base, 'checklists')) : Promise.resolve(undefined),
   ])
   const spec = textOf(specRead, previous?.spec)
@@ -53,6 +55,7 @@ export const readFeature = async (fs: Fs, root: string, dir: string, previous?: 
   const own = textOf(tasksRead, previous?.tasks)
   const quick = own === undefined ? quickTasks(spec) : undefined
   const tasks = own ?? quick?.text
+  const largeTasks = reuseTasks || ('text' in tasksRead && new TextEncoder().encode(tasksRead.text).byteLength > LARGE_TASKS_BYTES)
   const unreadable = [...('unreadable' in specRead ? ['spec.md' as const] : []), ...('unreadable' in tasksRead ? ['tasks.md' as const] : [])]
   return {
     dir,
@@ -60,6 +63,7 @@ export const readFeature = async (fs: Fs, root: string, dir: string, previous?: 
     plan,
     ...(tasks === undefined ? {} : { tasks }),
     ...(quick === undefined ? {} : { taskLines: quick.lines, tasksInSpec: true as const }),
+    ...(largeTasks ? { tasksLarge: true as const } : {}),
     ...(unreadable.length === 0 ? {} : { unreadable }),
     ...(checklists === undefined ? {} : { checklist: checklists }),
   }
@@ -114,6 +118,7 @@ export const readSnapshot = async (
   last: { constitution?: string; extensions?: ExtensionHook[]; extensionsError?: { line: number; reason: 'tab' | 'quote' | 'shape' }; otherRoots?: string[] } = {},
   /** Past this many features with nothing cached, read the likely active ones now and the rest later (040). */
   deferAbove?: number,
+  preserveLargeTasks = false,
 ): Promise<Snapshot> => {
   const [rawFeatureJson, constitutionRead, head, dirs] = await Promise.all([
     readOrUndefined(fs, joinPath(root, '.specify', 'feature.json')),
@@ -137,7 +142,7 @@ export const readSnapshot = async (
     dirs.map(dir => {
       const cached = previous[dir]
       if (defers && !now.has(dir)) return Promise.resolve({ dir, plan: false, deferred: true as const })
-      return fresh.has(dir) || cached === undefined ? readFeature(fs, root, dir, cached) : Promise.resolve(cached)
+      return fresh.has(dir) || cached === undefined ? readFeature(fs, root, dir, cached, preserveLargeTasks) : Promise.resolve(cached)
     }),
   )
   const constitution = textOf(constitutionRead, last.constitution)

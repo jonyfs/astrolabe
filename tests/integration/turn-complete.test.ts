@@ -3,7 +3,7 @@ import { describe, expect, test } from 'claude-code/testing'
 import { scenario as forty } from '../fixtures/forty-features'
 import { featureJson, project, RATIFIED, spec, tasks } from '../fixtures/build'
 import { scenario as halfDone } from '../fixtures/half-done'
-import { completeTurn, installEngine, installTree, startSession } from '../helpers/fake-fs'
+import { completeTurn, installEngine, installTree, settleStatus, startSession } from '../helpers/fake-fs'
 
 const edit = (file_path: string) => ({ tool: 'Edit', tool_use_id: 'e1', file_path, old_string: 'a', new_string: 'b' }) as never
 
@@ -16,6 +16,7 @@ describe('turn.complete reconciles with the disk (US2)', () => {
     tree['/proj/specs/002-band-hint/tasks.md'] = tasks(10, 10)
     expect(session.last()).toBe('◆ 002 · implement 45%')
     await completeTurn($)
+    await settleStatus(session)
     expect(session.last()).toBe('◆ 002 · implement 50%')
   })
 
@@ -25,8 +26,10 @@ describe('turn.complete reconciles with the disk (US2)', () => {
     installEngine(on)
     await startSession($, '/proj')
     await $.tool.call({ tool: 'Skill', tool_use_id: 's1', skill: 'speckit-plan' } as never)
+    await settleStatus(session)
     expect(session.last()).toBe('◆ 001 · plan · plan…')
     await completeTurn($)
+    await settleStatus(session)
     expect(session.last()).toBe('◆ 001 · plan')
   })
 
@@ -53,7 +56,34 @@ describe('turn.complete reconciles with the disk (US2)', () => {
     await startSession($, '/proj')
     tree['/proj/specs/002-band-hint/tasks.md'] = tasks(20, 0)
     await $.tool.call(edit('/proj/specs/002-band-hint/tasks.md'))
+    await settleStatus(session)
     expect(session.last()).toBe('◆ 002 · done 100%')
+  })
+
+  test('054 #13: a tasks.md over 2 MiB is summarized and reused for checkbox edits', async ($, on) => {
+    const tree = { ...halfDone.tree }
+    const path = '/proj/specs/002-band-hint/tasks.md'
+    tree[path] = `${'#'.repeat(2 * 1024 * 1024 + 1)}\n- [ ] T001 first\n- [ ] T002 second\n`
+    const session = installTree(on, tree, '/proj')
+    installEngine(on)
+    await startSession($, '/proj')
+    const reads = () => session.counts.reads.filter(file => file === path).length
+    const expectOneRead = (stage: string) => expect(`${stage}:${reads()}`).toBe(`${stage}:1`)
+    expectOneRead('start')
+    expect(session.held()?.memo.files['002-band-hint']?.tasks?.length).toBeLessThan(100)
+
+    tree[path] = tree[path]!.replace('- [ ] T001 first', '- [x] T001 first')
+    await $.tool.call({ tool: 'Edit', tool_use_id: 'large-1', file_path: path, old_string: '- [ ] T001 first', new_string: '- [x] T001 first' } as never)
+    expectOneRead('first edit')
+    expect(session.held()?.state.activeTasks?.find(task => task.id === 'T001')?.isDone).toBe(true)
+    await completeTurn($)
+    expectOneRead('first complete')
+
+    tree[path] = tree[path]!.replace('- [ ] T002 second', '- [x] T002 second')
+    await $.tool.call({ tool: 'Edit', tool_use_id: 'large-2', file_path: path, old_string: '- [ ] T002 second', new_string: '- [x] T002 second' } as never)
+    await completeTurn($)
+    expectOneRead('second complete')
+    expect(session.held()?.state.activeTasks?.every(task => task.isDone)).toBe(true)
   })
 
   test('(e) an Edit under another feature makes the next turn re-read that feature', async ($, on) => {

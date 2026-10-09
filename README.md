@@ -419,9 +419,10 @@ reloads the mod right away.
 | Option | Values | Default | What it changes |
 |---|---|---|---|
 | `preset` | `minimal`, `compact`, `full` | `compact` | Where Astrolabe draws. `minimal` keeps only the status entry. `compact` adds the band, the prompt hint, the spinner narration and the drift alarm. `full` also opens the `/astrolabe` pane by itself on a wide fullscreen terminal, and shows phase toasts as well as the drift alarm. |
-| `flavor` | `mocha`, `frappe`, `macchiato`, `latte`, `theme` | `mocha` | The Catppuccin palette for the band. `latte` is the light one. `theme` takes Claude Code's own theme colors, so the band and the pane follow your light or dark theme; the Dashboard charts then use `latte` on a light theme and `mocha` on a dark one. |
+| `flavor` | `mocha`, `frappe`, `macchiato`, `latte`, `colorblind`, `theme` | `mocha` | The band palette. `colorblind` uses distinct blue, teal, amber and vermilion colors with shape marks for statuses. `theme` takes Claude Code's own theme colors, so the band and the pane follow your light or dark theme; the Dashboard charts then use `latte` on a light theme and `mocha` on a dark one. |
 | `checkUpdates` | `true`, `false` | `true` | The daily update check and its buttons (see [Update notices](#update-notices)). |
-| `governUsage` | `true`, `false` | `true` | Usage governance (see [Usage governance](#usage-governance)). Off, the windows still show. |
+| `governUsage` | `true`, `false` | `true` | Enforce usage limits (see [Usage governance](#usage-governance)); off, the windows still show. |
+| `observeUsage` | `true`, `false` | `false` | Log what the Governor would hold or pause without blocking tools; takes precedence over enforcement. |
 | `icons` | `auto`, `nerd`, `emoji`, `ascii` | `auto` | Icons in the footer and the Dashboard. `auto` is Nerd Font glyphs in the terminal and emoji elsewhere. |
 | `language` | `auto`, `en`, `pt-BR`, `es`, `fr` | `auto` | The language of the pane, the Dashboard, the governor's questions, the toasts and `/astrolabe help`. `auto` follows the language you type in, English until a prompt says enough. What Claude reads (refusals, resume prompts) stays in English. |
 | `claudeContext` | `true`, `false` | `true` | Tell Claude about the Spec Kit work: one line on the active feature, its current task and the next command rides along with your prompt when it changed, and a Spec Kit skill gets the constitution's principles as a reminder. |

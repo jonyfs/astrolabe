@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import { bandSegments, bandText, nextReason } from '../../hooks/core/band'
+import { bandSegments, bandText, nextReason, otherFeaturesCard } from '../../hooks/core/band'
 import type { Feature, Phase, SpeckitState } from '../../hooks/core/types'
 
 const feature = (phase: Phase, done = 14, total = 31, over: Partial<Feature> = {}): Feature => ({
@@ -125,7 +125,10 @@ describe('band, part two (042)', () => {
     const s = state(feature('implement'), { features: [feature('implement'), other] })
     expect(at(s)).toContain('◆ 002 band-hint +1  ')
     expect(bandText(bandSegments(s, 200, { worktree: 'astrolabe-dev' }))).toContain('band-hint +1 ⑂ astrolabe-dev')
+    expect(otherFeaturesCard(s)).toBe('Other features in progress: 003 other')
+    expect(otherFeaturesCard(state(feature('implement')))).toBeUndefined()
   })
+
   test('#11: step names only from 100 columns', () => {
     expect(at(state(feature('implement')), 100)).toContain('constitution ●')
     expect(at(state(feature('implement')), 99)).not.toContain('constitution')
@@ -138,5 +141,14 @@ describe('band, part two (042)', () => {
     expect(nextReason(state(feature('implement'), { nextCommand: '/speckit-implement' }))).toBe('17 tasks are still open')
     expect(nextReason(state(feature('plan', 0, 0), { nextCommand: '/speckit-plan' }))).toBe('the spec is clear: decide how to build it')
     expect(nextReason(state(feature('plan', 0, 0)))).toBeUndefined()
+  })
+  test('after the active feature is done, the reason names the highest-priority next spec', () => {
+    const active = feature('done', 31, 31)
+    const normal = feature('specify', 0, 2, { id: '003', dir: '003-normal', name: 'normal' })
+    const high = feature('specify', 0, 1, { id: '004', dir: '004-high', name: 'high' })
+    const s = state(active, { features: [active, normal, high], nextCommand: '/speckit-specify' })
+    expect(nextReason(s, 'en', { '003': 'normal', '004': 'high' })).toBe(
+      'the active feature is finished: start 004 high next (high priority)',
+    )
   })
 })

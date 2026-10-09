@@ -27,7 +27,7 @@ export const parseGitStatus = (out: string): GitState => {
 const FAILED = new Set(['FAILURE', 'ERROR', 'CANCELLED', 'TIMED_OUT', 'ACTION_REQUIRED', 'STARTUP_FAILURE'])
 const PASSED = new Set(['SUCCESS', 'NEUTRAL', 'SKIPPED'])
 
-/** Parses `gh pr view --json number,statusCheckRollup` (023). Undefined when it is not that. */
+/** Parses `gh pr view --json number,url,statusCheckRollup` (023). Undefined when it is not that. */
 export const parsePullRequest = (out: string): PullRequest | undefined => {
   let value: unknown
   try {
@@ -36,9 +36,10 @@ export const parsePullRequest = (out: string): PullRequest | undefined => {
     return undefined
   }
   if (typeof value !== 'object' || value === null) return undefined
-  const { number, statusCheckRollup } = value as { number?: unknown; statusCheckRollup?: unknown }
+  const { number, url, statusCheckRollup } = value as { number?: unknown; url?: unknown; statusCheckRollup?: unknown }
   if (typeof number !== 'number') return undefined
-  return { number, checks: checksOf(statusCheckRollup) }
+  const page = typeof url === 'string' ? safeHttpsUrl(url) : undefined
+  return { number, checks: checksOf(statusCheckRollup), ...(page === undefined ? {} : { url: page }) }
 }
 
 /** All passed, one failed, some still running, or none (023, 032), from a statusCheckRollup. */

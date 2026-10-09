@@ -9,7 +9,7 @@ import { STATUS_ROLE, type ThemeRole } from './theme'
 import type { Feature, SessionMemo, SpeckitState } from './types'
 
 /** A row; `segments`, when given, colour parts of `text` (which stays their join) (052 #12). */
-export type PaneRow = { key: string; text: string; role: ThemeRole; dim?: boolean; bold?: boolean; href?: string; links?: ReadonlyArray<{ label: string; href: string }>; segments?: ReadonlyArray<{ text: string; role: ThemeRole }> }
+export type PaneRow = { key: string; text: string; role: ThemeRole; dim?: boolean; bold?: boolean; selected?: boolean; label?: string; value?: string; action?: { id: string; label: string; hotkey: string; kind?: 'allow' | 'revoke' }; href?: string; links?: ReadonlyArray<{ label: string; href: string }>; segments?: ReadonlyArray<{ text: string; role: ThemeRole }> }
 
 const BAR_CELLS = 10
 const noSpeckit = (lang: Lang): PaneRow => ({ key: 'none', text: tr(lang, 'pane.noSpeckit'), role: 'muted' })
@@ -21,7 +21,7 @@ const cut = (text: string, room: number): string =>
 const markOf = (f: Feature): string => (f.phase === 'done' ? '●' : f.phase === 'abandoned' ? '○' : '◐')
 
 /** What a row shows besides the feature: the name column's width and the skill running on it (044). */
-type RowContext = { nameWidth: number; countWidth: number; idWidth?: number; running?: string; priority?: Priority; worktrees?: readonly string[] }
+type RowContext = { nameWidth: number; countWidth: number; idWidth?: number; running?: string; priority?: Priority; worktrees?: readonly string[]; wrapLongNames?: boolean }
 
 /** One colour per phase, the rail's (054 #71). */
 const PHASE_ROLE: Partial<Record<Feature['phase'], ThemeRole>> = { specify: 'muted', clarify: 'current', plan: 'barFill', tasks: 'accent', implement: 'current', done: 'done' }
@@ -49,7 +49,7 @@ const featureRow = (f: Feature, isActive: boolean, columns: number, ctx: RowCont
   // The worktrees working on this feature (054 #49).
   const trees = ctx.worktrees === undefined || ctx.worktrees.length === 0 ? '' : `  ⑂ ${ctx.worktrees.join(', ')}`
   const running = `${chips.length === 0 ? '' : `  ${chips.join(' ')}`}${trees}${ctx.running === undefined ? '' : `  ⟳ ${ctx.running}`}`
-  const name = f.name.padEnd(ctx.nameWidth)
+  const name = (ctx.wrapLongNames === true ? f.name : cut(f.name, ctx.nameWidth)).padEnd(ctx.nameWidth)
   const phase = f.phase.padEnd(9)
   // Columns line up across rows (044); narrower panes drop the bar, then the count, then cut the name.
   const forms = [
@@ -61,11 +61,12 @@ const featureRow = (f: Feature, isActive: boolean, columns: number, ctx: RowCont
   const fitting = forms.slice(columns < COMPACT_COLUMNS ? 1 : 0).find(text => width(text) <= columns)
   // The widest form in colour (052 #12, 054 #71): the phase in its rail colour, the bar in its own.
   if (fitting !== undefined && fitting === forms[0] && f.total > 0 && f.phase !== 'abandoned') {
+    const fillRole: ThemeRole = f.done >= f.total ? 'done' : 'barFill'
     const segments = [
       { text: `${head}${name}  `, role },
       { text: phase, role: PHASE_ROLE[f.phase] ?? role },
       { text: '  ', role },
-      { text: '█'.repeat(filled), role: 'barFill' as ThemeRole },
+      { text: '█'.repeat(filled), role: fillRole },
       { text: '░'.repeat(BAR_CELLS - filled), role: 'barEmpty' as ThemeRole },
       { text: `  ${count} ${percent}${running}`.trimEnd(), role },
     ]
@@ -73,7 +74,7 @@ const featureRow = (f: Feature, isActive: boolean, columns: number, ctx: RowCont
   }
   if (fitting !== undefined) return { key: `feature-${f.id}`, text: fitting, role, ...dim }
   const tail = `  ${f.phase}${percent === '' ? '' : ` ${percent.trim()}`}`
-  const cutName = cut(f.name, columns - width(head) - width(tail))
+  const cutName = ctx.wrapLongNames === true ? f.name : cut(f.name, columns - width(head) - width(tail))
   const text = cutName === '' ? `${head.trimEnd()}${tail}` : `${head}${cutName}${tail}`
   return { key: `feature-${f.id}`, text, role, ...dim }
 }
@@ -123,7 +124,7 @@ const featureWarnings = (f: Feature, lang: Lang): PaneRow[] => {
   return rows
 }
 
-export const specsRows = (
+const buildSpecsRows = (
   state: SpeckitState,
   columns: number,
   lang: Lang = 'en',
@@ -132,14 +133,16 @@ export const specsRows = (
   worktrees: Readonly<Record<string, readonly string[]>> = {},
   /** Fold Done and Abandoned past three features to their heading (052 #10, #11). */
   fold = false,
+  worktreeRows: ReadonlyArray<{ name: string; id: string; featureName: string; phase: string; done: number; total: number; status: string }> = [],
+  wrapLongNames = false,
 ): PaneRow[] => {
   if (!state.present) return [noSpeckit(lang)]
   if (state.features.length === 0) return [{ key: 'empty', text: tr(lang, 'pane.noFeatures'), role: 'muted' }]
   const activeDir = state.active?.dir
   const ctx = {
-    idWidth: Math.max(0, ...state.features.map(f => width(f.id))),
-    nameWidth: Math.min(24, Math.max(...state.features.map(f => width(f.name)))),
-    countWidth: Math.max(0, ...state.features.filter(f => f.total > 0).map(f => width(`${f.done}/${f.total}`))),
+    idWidth: Math.max(0, ...state.features.map(f => width(f.id)), ...worktreeRows.map(w => width(w.id))),
+    nameWidth: wrapLongNames ? Math.max(...state.features.map(f => width(f.name)), ...worktreeRows.map(w => width(w.featureName))) : Math.min(24, Math.max(...state.features.map(f => width(f.name)), ...worktreeRows.map(w => width(w.featureName)))),
+    countWidth: Math.max(0, ...state.features.filter(f => f.total > 0).map(f => width(`${f.done}/${f.total}`)), ...worktreeRows.filter(w => w.total > 0).map(w => width(`${w.done}/${w.total}`))),
   }
   const running = state.runningSkill?.name
   const rows: PaneRow[] = []
@@ -153,7 +156,7 @@ export const specsRows = (
     rows.push({ key: `section-${section}`, text: `${tr(lang, `pane.section.${section}`)} (${inSection.length})${folded ? ` · ${tr(lang, 'pane.folded.section', { status: section })}` : ''}`, role: 'muted', bold: true })
     if (folded) continue
     for (const f of inSection) {
-      const row = featureRow(f, activeDir === f.dir, columns - 2, { ...ctx, ...(running !== undefined && f.dir === activeDir ? { running } : {}), ...(priorities[f.id] === undefined ? {} : { priority: priorities[f.id] }), ...(worktrees[f.id] === undefined ? {} : { worktrees: worktrees[f.id] }) })
+      const row = featureRow(f, activeDir === f.dir, columns - 2, { ...ctx, wrapLongNames, ...(running !== undefined && f.dir === activeDir ? { running } : {}), ...(priorities[f.id] === undefined ? {} : { priority: priorities[f.id] }), ...(worktrees[f.id] === undefined ? {} : { worktrees: worktrees[f.id] }) })
       // A link to the feature's spec.md (044 #35).
       const root = state.root
       // Its plan.md and tasks.md too, once they exist (054 #77); a quick spec keeps its tasks in spec.md.
@@ -173,6 +176,13 @@ export const specsRows = (
   for (const [id, trees] of Object.entries(worktrees)) {
     if (trees.length > 1) rows.push({ key: `warning-worktrees-${id}`, text: tr(lang, 'pane.worktreeClash', { id, list: trees.join(', ') }), role: 'current' })
   }
+  for (const tree of worktreeRows) {
+    const head = `  ⑂${tree.id.padEnd(ctx.idWidth ?? 0)} `
+    const name = (wrapLongNames ? tree.featureName : cut(tree.featureName, ctx.nameWidth)).padEnd(ctx.nameWidth)
+    const phase = tree.phase.padEnd(9)
+    const count = tree.total > 0 ? `${tree.done}/${tree.total}`.padStart(ctx.countWidth) : ''
+    rows.push({ key: `worktree-${tree.name}`, text: `${head}${name}  ${phase}${count === '' ? '' : `  ${count}`}${tree.status}`, role: 'muted' })
+  }
   // feature.json names a finished feature while the branch names another one (044 #34).
   const active = state.features.find(f => f.dir === activeDir)
   const onBranch = state.branchFeature === undefined ? undefined : state.features.find(f => f.dir === state.branchFeature)
@@ -186,6 +196,65 @@ export const specsRows = (
   // Warnings of features in folded sections still show, at the end (052 #14).
   for (const f of state.features) if (!shown.has(f.dir)) rows.push(...featureWarnings(f, lang))
   return rows
+}
+
+let specsRowsCache: { key: string; rows: PaneRow[] } | undefined
+
+/** Reuse the Specs rows until the memo version or any drawing input changes (054 #3). */
+export const specsRows = (
+  state: SpeckitState,
+  columns: number,
+  lang: Lang = 'en',
+  priorities: Priorities = {},
+  worktrees: Readonly<Record<string, readonly string[]>> = {},
+  fold = false,
+  worktreeRows: ReadonlyArray<{ name: string; id: string; featureName: string; phase: string; done: number; total: number; status: string }> = [],
+  wrapLongNames = false,
+): PaneRow[] => {
+  if (state.memoVersion === undefined) return buildSpecsRows(state, columns, lang, priorities, worktrees, fold, worktreeRows, wrapLongNames)
+  const key = JSON.stringify([
+    state.root,
+    state.memoVersion,
+    state.present,
+    state.active?.dir,
+    state.features.map(feature => [
+      feature.id,
+      feature.name,
+      feature.dir,
+      feature.phase,
+      feature.done,
+      feature.total,
+      feature.track,
+      feature.warnings,
+      feature.clarifications,
+      feature.checklist,
+    ]),
+    columns,
+    lang,
+    priorities,
+    worktrees,
+    fold,
+    worktreeRows,
+    wrapLongNames,
+  ])
+  if (specsRowsCache?.key === key) return specsRowsCache.rows
+  const rows = buildSpecsRows(state, columns, lang, priorities, worktrees, fold, worktreeRows, wrapLongNames)
+  specsRowsCache = { key, rows }
+  return rows
+}
+
+/** The next Specs row selected by the pane's arrow keys (054 #66). */
+export const moveSpecSelection = (
+  rows: readonly { key: string; index: number }[],
+  selected: string | undefined,
+  by: number,
+): string | undefined => {
+  if (rows.length === 0 || by === 0) return undefined
+  const found = rows.findIndex(row => row.key === selected)
+  const from = found < 0 ? 0 : found
+  const delta = Math.sign(by) * Math.max(1, Math.round(Math.abs(by)))
+  const to = Math.max(0, Math.min(rows.length - 1, from + delta))
+  return to === from && found >= 0 ? undefined : rows[to]?.key
 }
 
 const elapsed = (ms: number): string => {
@@ -249,9 +318,14 @@ export const taskRows = (state: SpeckitState, memo: SessionMemo, rows: number, c
   return out
 }
 
-export const sessionRows = (state: SpeckitState, now: number, lang: Lang = 'en'): PaneRow[] => {
+export const sessionRows = (state: SpeckitState, now: number, lang: Lang = 'en', labelWidth = 14): PaneRow[] => {
   if (!state.present) {
-    const roots = state.otherRoots === undefined ? [] : [{ key: 'session-other-roots', text: `${tr(lang, 'session.otherRoots').padEnd(14)}${state.otherRoots.join(', ')} (/astrolabe root <folder>)`, role: 'text' as const }]
+    const roots: PaneRow[] = []
+    if (state.otherRoots !== undefined) {
+      const label = tr(lang, 'session.otherRoots').padEnd(labelWidth)
+      const value = `${state.otherRoots.join(', ')} (/astrolabe root <folder>)`
+      roots.push({ key: 'session-other-roots', text: `${label}${value}`, role: 'text', label, value })
+    }
     return [noSpeckit(lang), ...roots]
   }
   const task = state.currentTask
@@ -277,7 +351,10 @@ export const sessionRows = (state: SpeckitState, now: number, lang: Lang = 'en')
   if (state.nextHooks !== undefined && state.nextHooks.after.length > 0) pairs.push(['hooks-after', tr(lang, 'session.hooksAfter'), state.nextHooks.after.join(', ')])
   const broken = state.extensionsError
   if (broken !== undefined) pairs.push(['extensions', tr(lang, 'session.extensions'), tr(lang, 'session.extensionsBroken', { line: broken.line, reason: tr(lang, `ext.${broken.reason}` as TextKey) })])
-  return pairs.map(([key, label, value]) => ({ key: `session-${key}`, text: `${label.padEnd(14)}${value}`, role: key === 'extensions' ? 'blocked' : 'text' }))
+  return pairs.map(([key, name, value]) => {
+    const label = name.padEnd(labelWidth)
+    return { key: `session-${key}`, text: `${label}${value}`, role: key === 'extensions' ? 'blocked' : 'text', label, value }
+  })
 }
 
 /**
@@ -323,9 +400,50 @@ export const filterFeatures = <F extends Pick<Feature, 'id' | 'name' | 'phase' |
   return features.filter(f => (words === '' || `${f.id} ${f.name}`.toLowerCase().includes(words)) && (wanted === undefined || sectionOf(f, activeDir) === wanted))
 }
 
-/** The Help tab's rows: headings in the accent, and a line that ends with an https link opens it (054 #81). */
-export const helpRows = (text: string): PaneRow[] =>
-  text.split('\n').map((line, i) => {
+/** The Help tab's rows: sections filter as units, and links stay clickable (052 #36, 054 #81). */
+export const helpRows = (text: string, filter?: string, lang: Lang = 'en'): PaneRow[] => {
+  const sections = new Map<string, string>([
+    [tr(lang, 'help.block.commands'), 'commands'],
+    [tr(lang, 'help.block.keys'), 'keys'],
+    [tr(lang, 'help.block.options'), 'options'],
+    [tr(lang, 'help.marks'), 'marks'],
+    [tr(lang, 'help.block.footer'), 'footer'],
+    [tr(lang, 'help.glossary'), 'steps'],
+    [tr(lang, 'help.block.models'), 'models'],
+  ])
+  const rows = text.split('\n').map((line, i): PaneRow => {
     const link = /\s(https:\/\/\S+)$/.exec(line)?.[1]
-    return { key: `help-${i}`, text: line, role: i === 0 || !line.startsWith(' ') ? 'accent' : 'text', ...(link === undefined ? {} : { href: link }) }
+    const section = sections.get(line)
+    const text = section === 'steps' ? tr(lang, 'help.block.steps') : section === 'marks' ? tr(lang, 'help.block.marks') : line
+    return {
+      key: section === undefined ? `help-${i}` : `help-section-${section}`,
+      text,
+      role: i === 0 || !line.startsWith(' ') ? 'accent' : 'text',
+      ...(link === undefined ? {} : { href: link }),
+    }
   })
+  const needle = (filter ?? '').trim().toLowerCase()
+  if (needle === '') return rows
+  const shown: PaneRow[] = []
+  let heading: PaneRow | undefined
+  let contents: PaneRow[] = []
+  const flush = () => {
+    if (heading === undefined) {
+      shown.push(...contents.filter(row => row.text.toLowerCase().includes(needle)))
+    } else {
+      const matches = contents.filter(row => row.text.toLowerCase().includes(needle))
+      if (heading.text.toLowerCase().includes(needle)) shown.push(heading, ...contents)
+      else if (matches.length > 0) shown.push(heading, ...matches)
+    }
+    heading = undefined
+    contents = []
+  }
+  for (const row of rows) {
+    if (row.role === 'accent') {
+      flush()
+      heading = row
+    } else contents.push(row)
+  }
+  flush()
+  return shown
+}
