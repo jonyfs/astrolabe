@@ -351,10 +351,15 @@ export const sessionRows = (state: SpeckitState, now: number, lang: Lang = 'en',
   if (state.nextHooks !== undefined && state.nextHooks.after.length > 0) pairs.push(['hooks-after', tr(lang, 'session.hooksAfter'), state.nextHooks.after.join(', ')])
   const broken = state.extensionsError
   if (broken !== undefined) pairs.push(['extensions', tr(lang, 'session.extensions'), tr(lang, 'session.extensionsBroken', { line: broken.line, reason: tr(lang, `ext.${broken.reason}` as TextKey) })])
-  return pairs.map(([key, name, value]) => {
+  const rows: PaneRow[] = pairs.map(([key, name, value]) => {
     const label = name.padEnd(labelWidth)
     return { key: `session-${key}`, text: `${label}${value}`, role: key === 'extensions' ? 'blocked' : 'text', label, value }
   })
+  // Each principle under the constitution row, linked to its heading (054 #83).
+  const path = state.root === undefined ? undefined : `${state.root}/.specify/memory/constitution.md`
+  const principles: PaneRow[] = (state.principles ?? []).map((p, i) => ({ key: `session-principle-${i}`, text: `${''.padEnd(labelWidth)}${p.name}`, role: 'text', dim: true, ...(path === undefined ? {} : { href: `${fileUrl(path)}#L${p.line}` }) }))
+  const at = rows.findIndex(r => r.key === 'session-constitution') + 1
+  return [...rows.slice(0, at), ...principles, ...rows.slice(at)]
 }
 
 /**

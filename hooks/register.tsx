@@ -23,6 +23,7 @@ import {
   skillsUpdate,
   updateLabel,
 } from './core/updates'
+import { principleHeadings } from './core/constitution'
 import { fileUrl, joinPath } from './core/paths'
 import { configMark, focusNote, GSTACK_SKILLS, nextPriority, OPTION_GROUPS, optionDefaults, optionGroup, parallelPrompt, parsePriority, REVIEW_MODEL, reviewPrompt, withPriority, type OptionGroup, type Priority } from './core/spec-actions'
 import { parallelTasks } from './core/extensions'
@@ -924,17 +925,7 @@ async function constitutionReminder($: EngineInterface): Promise<string | undefi
 }
 
 /** The `###` headings under `## Core Principles`, at most 22. */
-const principlesOf = (text: string): string[] => {
-  const lines = text.split(/\r?\n/)
-  const start = lines.findIndex(l => /^##\s+Core Principles\s*$/i.test(l.trim()))
-  if (start < 0) return []
-  const end = lines.findIndex((l, i) => i > start && /^##\s/.test(l.trim()))
-  return lines
-    .slice(start + 1, end < 0 ? undefined : end)
-    .filter(l => /^###\s/.test(l.trim()))
-    .map(l => l.trim().replace(/^###\s+/, ''))
-    .slice(0, 22)
-}
+const principlesOf = (text: string): string[] => principleHeadings(text).map(p => p.name)
 
 /** `/astrolabe ask` (026 #54): one question over the session's own transcript, answered in a toast. */
 /** Runs one of gstack's skills on a feature (051), from a timer: a command does not run inside a render. */
