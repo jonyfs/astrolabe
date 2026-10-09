@@ -1,6 +1,6 @@
 ---
 track: quick # quick | full
-status: active # active | done | abandoned
+status: done # active | done | abandoned
 ---
 
 # Quick spec: Band above the prompt
@@ -18,6 +18,6 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 - [x] T005 #18 A worktree marker when the active feature runs in another worktree (P2)
 - [x] T006 #20 A `bandDensity` option: full, compact, minimal (P2)
 - [x] T007 #11 Step names on hover only below 100 columns (P2)
-- [ ] T008 #12 An animated `…` after a running step (P3)
-- [ ] T009 #16 The task bar colored by the share left (P3)
-- [ ] T010 #19 After 10 idle minutes the band dims to one line (P3)
+- [x] T008 #12 An animated `…` after a running step (P3)
+- [x] T009 #16 The task bar colored by the share left (P3)
+- [x] T010 #19 After 10 idle minutes the band dims to one line (P3)
