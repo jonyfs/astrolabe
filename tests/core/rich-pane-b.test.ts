@@ -39,6 +39,8 @@ describe('the animated dial (024 #6)', () => {
     const frames = dialFrames('plan', tokens)
     expect(frames.length).toBe(3)
     expect(frames.at(-1)).toEqual(spansOf(dial('plan', tokens)))
+    expect(dialFrames('plan', tokens)).toBe(frames)
+    expect(dialFrames('implement', tokens)).not.toBe(frames)
     expect(dialFrames(undefined, tokens).length).toBe(1)
   })
   test('spans join cells of one color', () => {

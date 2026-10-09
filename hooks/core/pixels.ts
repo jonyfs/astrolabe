@@ -8,6 +8,7 @@ import type { Phase, SessionStats } from './types'
 const CELL_W = 8
 const CELL_H = 16
 const CYCLE: readonly Phase[] = ['specify', 'clarify', 'plan', 'tasks', 'implement', 'done']
+const frameCache = new WeakMap<Tokens, Map<Phase | 'none', Span[][][]>>()
 
 /**
  * Whether the Dashboard draws pictures: `on`, `off`, or `auto` (the default), which is kitty
@@ -96,7 +97,13 @@ export const spansOf = (g: Grid): Span[][] =>
 
 /** The dial's frames: the needle on each step from the first to the active one. */
 export const dialFrames = (active: Phase | undefined, tokens: Tokens): Span[][][] => {
+  const key = active ?? 'none'
+  const cached = frameCache.get(tokens)?.get(key)
+  if (cached !== undefined) return cached
   const at = active === undefined ? -1 : CYCLE.indexOf(active)
-  if (at < 0) return [spansOf(dial(active, tokens))]
-  return CYCLE.slice(0, at + 1).map(step => spansOf(dial(step, tokens)))
+  const frames = at < 0 ? [spansOf(dial(active, tokens))] : CYCLE.slice(0, at + 1).map(step => spansOf(dial(step, tokens)))
+  const colors = frameCache.get(tokens) ?? new Map<Phase | 'none', Span[][][]>()
+  colors.set(key, frames)
+  frameCache.set(tokens, colors)
+  return frames
 }

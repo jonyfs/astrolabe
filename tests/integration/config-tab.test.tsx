@@ -7,14 +7,15 @@ import { installPaneEngine, installRenderEngine } from '../helpers/render'
 // Spec 028: the Config tab edits every Astrolabe option and saves through $.config.set.
 const ROWS = [
   { key: 'theme', label: 'Theme', kind: 'choice', value: 'dark', options: ['dark', 'light'], provider: { kind: 'engine' }, isLocked: false },
-  { key: 'astrolabe.preset', label: 'Preset', kind: 'choice', value: 'compact', options: ['minimal', 'compact', 'full'], provider: { kind: 'plugin', name: 'astrolabe' }, isLocked: false },
-  { key: 'astrolabe.checkUpdates', label: 'Check for updates', kind: 'boolean', value: true, provider: { kind: 'plugin', name: 'astrolabe' }, isLocked: false },
+  { key: 'astrolabe.preset', label: 'Preset', description: 'Where Astrolabe draws.', kind: 'choice', value: 'compact', options: ['minimal', 'compact', 'full'], provider: { kind: 'plugin', name: 'astrolabe' }, isLocked: false },
+  { key: 'astrolabe.checkUpdates', label: 'Check for updates', description: 'Check for plugin updates once a day.', kind: 'boolean', value: true, provider: { kind: 'plugin', name: 'astrolabe' }, isLocked: false },
 ]
 
 type Ui = {
-  find: (q: { key?: string }) => Promise<{ text: string } | undefined>
+  find: (q: { key?: string }) => Promise<{ text: string; props: Record<string, unknown> } | undefined>
   press: (q: { key: string }) => Promise<unknown>
   select: (q: { key: string; value: string }) => Promise<unknown>
+  drawn: () => Promise<unknown>
   unmount: () => Promise<void>
 }
 const mount = async ($: never) =>
@@ -28,6 +29,28 @@ const mount = async ($: never) =>
   } as never))
 
 describe('the Config tab (028)', () => {
+  test('052 #38: a hovered option reveals its default and description without changing the row', async ($, on) => {
+    const tree = { ...halfDone.tree }
+    const session = installTree(on, tree, '/proj')
+    installEngine(on)
+    installRenderEngine(on)
+    installPaneEngine(on)
+    on('config.list', () => ({ value: ROWS }) as never)
+    await startSession($ as never, '/proj')
+    const manifest = session.counts.reads.find(r => r.endsWith('/.claude-plugin/plugin.json'))
+    expect(manifest).toBeDefined()
+    tree[manifest!] = JSON.stringify({ userConfig: { preset: { default: 'compact' }, checkUpdates: { default: true } } })
+    await startSession($ as never, '/proj')
+    const ui = await mount($ as never)
+    await ui.press({ key: 'tab-config' })
+    const drawn = JSON.stringify(await ui.drawn())
+    expect(drawn).toContain('Default: compact')
+    expect(drawn).toContain('Where Astrolabe draws.')
+    expect(drawn).toContain('"display":"none"')
+    expect(drawn).toContain('"hover":{"display":"flex"}')
+    await ui.unmount()
+  })
+
   test('lists Astrolabe rows only; a pick and a toggle save through $.config.set', async ($, on) => {
     const session = installTree(on, halfDone.tree, '/proj')
     installEngine(on)

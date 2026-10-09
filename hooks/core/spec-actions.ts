@@ -74,8 +74,8 @@ export const configMark = (changed: boolean, value: unknown, defaults: Readonly<
 
 /** The Config tab's groups, in order (054 #64); an option not listed goes to the last one. */
 export const OPTION_GROUPS = {
-  display: ['preset', 'flavor', 'icons', 'language', 'accessible', 'footerIn', 'bandDensity', 'images'],
-  governor: ['governUsage', 'askOnLimit'],
+  display: ['preset', 'flavor', 'icons', 'language', 'accessible', 'footerIn', 'footerLines', 'footerSeparator', 'bandDensity', 'images'],
+  governor: ['governUsage', 'observeUsage', 'askOnLimit'],
   claude: ['claudeContext', 'skillModels', 'humanize', 'terse', 'featureSummary'],
   integrations: ['checkUpdates', 'autoReload', 'pullRequest'],
 } as const

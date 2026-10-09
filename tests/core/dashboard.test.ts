@@ -2,6 +2,7 @@ import { describe, expect, test } from 'claude-code/testing'
 
 import { toText } from '../../hooks/core/cells'
 import { burnRate, dial, kpiChips, kpiRows, phaseBars, trendRows, usageChart } from '../../hooks/core/dashboard'
+import { clockOf } from '../../hooks/core/governor'
 import { FLAVORS } from '../../hooks/core/theme'
 
 const T = FLAVORS.mocha
@@ -44,12 +45,16 @@ describe('usage over the session', () => {
     expect(burnRate(series.slice(0, 1))).toBeUndefined()
   })
   test('a chart with a y axis, the points, and the projection to the reset', () => {
-    const g = usageChart(series, { width: 50, height: 6, resetsAt: new Date(NOW + 2 * 3600_000).toISOString(), now: NOW, tokens: T })!
+    const options = { width: 50, height: 6, resetsAt: new Date(NOW + 2 * 3600_000).toISOString(), now: NOW, tokens: T }
+    const g = usageChart(series, options)!
     const rows = toText(g)
-    expect(rows[0]).toMatch(/^100┤/)
-    expect(rows.at(-1)).toMatch(/^ {2}0┼/)
+    expect(rows[0]).toMatch(/^100%┤/)
+    expect(rows[4]).toMatch(/^ {2}0%┼/)
+    expect(rows[5]?.slice(0, 5)).toBe(clockOf(new Date(series[0]!.at).toISOString()))
+    expect(rows[5]?.trimEnd().slice(-5)).toBe(clockOf(new Date(series.at(-1)!.at).toISOString()))
     expect(rows.join('')).toContain('●')
     expect(rows.join('')).toContain('·')
+    expect(usageChart(series, options)).toBe(g)
   })
   test('no reading, or too narrow: none', () => {
     expect(usageChart([], { width: 50, height: 6, now: NOW, tokens: T })).toBeUndefined()

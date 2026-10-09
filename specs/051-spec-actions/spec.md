@@ -35,6 +35,6 @@ the session state, and a skill runs only when the person presses its button.
 - [x] T002 Priority: `p` on the Specs tab cycles the active feature's priority (P1)
 - [x] T003 Deep review: `/astrolabe review [id]` on `opus` at `xhigh`, the Session tab row, the toast (P1)
 - [x] T004 gstack row: buttons for investigate, review, health, qa-only, retro when gstack is installed (P1)
-- [ ] T005 The next command's reason names the highest-priority next-up spec (P2)
+- [x] T005 The next command's reason names the highest-priority next-up spec (P2)
 - [x] T006 Help, README and privacy.md for all of the above (P1)
-- [ ] T007 Spec 052 from the per-tab audit findings (P1)
+- [x] T007 Spec 052 from the per-tab audit findings (P1)

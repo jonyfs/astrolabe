@@ -42,6 +42,8 @@ export type FeatureFiles = {
   taskLines?: number[]
   /** The tasks came from a quick spec's `## Tasks` section: there is no tasks.md (024). */
   tasksInSpec?: true
+  /** The source tasks.md exceeds 2 MiB and its compact task summary is reused between edits (054 #13). */
+  tasksLarge?: true
 }
 
 export type FeatureWarning = 'clarification-after-plan' | 'unreadable-spec' | 'unreadable-tasks' | 'loading' | 'no-spec'
@@ -113,6 +115,8 @@ export type SessionMemo = {
   base?: Omit<Snapshot, 'features'>
   /** This turn's drift window (reset at each main turn.complete, kept across reloads). */
   window: DriftWindow
+  /** A drift alarm Claude has not yet received in its next context line. */
+  driftWarning?: { dir: string; task: string }
   /** `dir:phase` keys already toasted this session. */
   toasted: string[]
   /** Whether this session's first reconcile set the phase baseline yet. */
@@ -164,7 +168,7 @@ export type SpeckitState = {
 export type PaneTab = 'specs' | 'tasks' | 'session' | 'dashboard' | 'help' | 'config' | 'prs'
 
 /** The /astrolabe pane's session state: the tab shown and whether it opened unasked already. */
-export type PaneState = { tab: PaneTab; autoOpened: boolean; filter?: string; status?: 'all' | 'progress' | 'next' | 'done' | 'abandoned'; scroll?: { tab: PaneTab; offset: number }; draft?: Record<string, string | number | boolean>; confirm?: string }
+export type PaneState = { tab: PaneTab; autoOpened: boolean; filter?: string; status?: 'all' | 'progress' | 'next' | 'done' | 'abandoned'; scroll?: { tab: PaneTab; offset: number }; selectedFeature?: string; summary?: { dir: string; expanded: boolean }; draft?: Record<string, string | number | boolean>; confirm?: string }
 
 export type UpdateId = 'gstack' | 'specify' | 'speckit-skills' | 'astrolabe'
 
@@ -221,7 +225,7 @@ export type GitState = {
 }
 
 /** A pull request and the state of its checks: all passed, one failed, some still running, or none. */
-export type PullRequest = { number: number; checks: 'pass' | 'fail' | 'pending' | 'none' }
+export type PullRequest = { number: number; checks: 'pass' | 'fail' | 'pending' | 'none'; url?: string }
 
 /** The session's numbers for the footer and the Dashboard (018); bounded, written per turn. */
 export type SessionStats = {
@@ -236,6 +240,8 @@ export type SessionStats = {
   context?: { percent: number }
   cost?: number
   git?: GitState
+  /** Lines the session's tools added and removed (041 #7). */
+  lines?: { added: number; removed: number }
   /** How long each ticked task took, from when it became the current one (021), at most 50. */
   taskTimes?: Array<{ dir: string; id: string; ms: number }>
   /** This week's tasks and features done, across sessions (021), copied from $.store for drawing. */
@@ -296,10 +302,12 @@ export type SessionStats = {
   driftsByFeature?: Record<string, number>
   /** How many times the advisor ran this session, and the last time (055). */
   advisor?: { runs: number; at: number; last?: { id: string; text: string; at: number } }
+  /** The full text of the last toast shortened to fit the notification limit (052 #44). */
+  toastDetails?: string
   /** gstack's skills are installed under the home directory (051). */
   gstack?: boolean
   /** The features the repository's other worktrees work on (037), read after each main turn. */
-  worktrees?: Array<{ name: string; branch?: string; dir: string; id: string; featureName: string; phase: Phase; done: number; total: number; path?: string; changed?: number; merged?: true }>
+  worktrees?: Array<{ name: string; branch?: string; head?: string; dir: string; id: string; featureName: string; phase: Phase; done: number; total: number; path?: string; changed?: number; merged?: true }>
   /** The last main turn's change to the active tasks, as unified-diff hunks (024). */
   tasksDiff?: { dir: string; file: 'tasks.md' | 'spec.md'; text: string }
 }

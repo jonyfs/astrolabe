@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import { addDay, addWeek, estimateLeft, lastWeeks, pastReset, slowest, weekdays, weekKey } from '../../hooks/core/history'
+import { addDay, addWeek, estimateLeft, lastWeeks, pastReset, slowest, updateFeatureDurations, weekdays, weekKey } from '../../hooks/core/history'
 
 describe('time per task and the estimate (021 #17, #18)', () => {
   const times = [
@@ -45,6 +45,23 @@ describe('pastReset (045 #50)', () => {
     expect(pastReset([], 'd', 11, new Date(NOW + 3_600_000).toISOString(), NOW)).toBeUndefined()
     expect(pastReset(times, 'd', 11, undefined, NOW)).toBeUndefined()
     expect(pastReset(times, 'd', 11, new Date(NOW - 1).toISOString(), NOW)).toBeUndefined()
+  })
+})
+
+describe('feature durations (054 #32)', () => {
+  const feature = (dir: string, phase: 'specify' | 'plan' | 'done') => ({ dir, id: dir.slice(0, 3), name: dir.slice(4), phase })
+
+  test('measures from first seen in Specify until the feature is done, once', () => {
+    const started = updateFeatureDurations({}, [feature('001-first', 'specify')], 100)
+    expect(started.records['001-first']).toEqual({ dir: '001-first', id: '001', name: 'first', startedAt: 100 })
+    expect(updateFeatureDurations(started.records, [feature('001-first', 'plan')], 150).changed).toBe(false)
+    const done = updateFeatureDurations(started.records, [feature('001-first', 'done')], 250)
+    expect(done.records['001-first']).toMatchObject({ startedAt: 100, completedAt: 250, ms: 150 })
+    expect(updateFeatureDurations(done.records, [feature('001-first', 'done')], 300).changed).toBe(false)
+  })
+
+  test('does not infer a start for a feature first seen after Specify', () => {
+    expect(updateFeatureDurations({}, [feature('002-later', 'plan'), feature('003-finished', 'done')], 100).records).toEqual({})
   })
 })
 

@@ -14,12 +14,21 @@ export const bandRow = (
   cards: ReadonlyArray<{ step: string; text: string }> = [],
   /** Off in the accessible mode (025 #48): no hover styles, no cards. */
   hover = true,
+  /** The names behind the +N badge, shown while its text is hovered (052 #43). */
+  otherFeatures?: string,
 ) => {
   const steps = new Set(segments.map(stepOf).filter(s => s !== undefined))
   const row = (
     <Box key="astrolabe-band" flexDirection="row">
       {segments.map(segment => {
         const step = stepOf(segment)
+        if (segment.key === 'others' && hover) {
+          return (
+            <Text color={tokens[segment.role]} wrap="truncate-end" hover={{ scope: 'astrolabe-other-features', bold: true, underline: true }}>
+              {segment.text}
+            </Text>
+          )
+        }
         return step === undefined || !hover ? (
           <Text color={tokens[segment.role]} wrap="truncate-end">
             {segment.text}
@@ -33,7 +42,8 @@ export const bandRow = (
     </Box>
   )
   const shown = hover ? cards.filter(card => steps.has(card.step as never)) : []
-  if (shown.length === 0) return row
+  const showOthers = hover && otherFeatures !== undefined && segments.some(segment => segment.key === 'others')
+  if (shown.length === 0 && !showOthers) return row
   return (
     <Box flexDirection="column">
       {row}
@@ -44,6 +54,13 @@ export const bandRow = (
           </Text>
         </Box>
       ))}
+      {showOthers && (
+        <Box display="none" hover={{ scope: 'astrolabe-other-features', display: 'flex' }}>
+          <Text color={tokens.muted} wrap="wrap">
+            {otherFeatures}
+          </Text>
+        </Box>
+      )}
     </Box>
   )
 }

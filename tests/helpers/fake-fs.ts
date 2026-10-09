@@ -132,6 +132,8 @@ export type Session = {
   fetches: string[]
   /** How many times the plugin wrote each astrolabe.* state key. */
   stateSets: Record<string, number>
+  /** How many times the plugin read each astrolabe.* state key. */
+  stateGets: Record<string, number>
   /** Every plain prompt the plugin submitted. */
   submitted: string[]
   /** Every slash command the plugin ran, as `/name`. */
@@ -144,6 +146,8 @@ export type Session = {
   suggested: string[]
   /** Texts the plugin copied ($.ui.copy). */
   copied: string[]
+  /** Rewrites the next state value written for a key, for recovery-path tests. */
+  corruptNextState: (key: string, transform: (value: unknown) => unknown) => void
   /** Tree paths that exist but whose read rejects (EACCES), as a permission error would. */
   denied: Set<string>
   /** Every toast the plugin raised, in order. */
@@ -270,14 +274,25 @@ export const installTree = (on: On, tree: Tree, cwd: string, seed: Record<string
   })
   let held: Held | undefined
   const stateSets: Record<string, number> = {}
+  const stateGets: Record<string, number> = {}
   let heldState: Held['state'] | undefined
   let heldMemo: Held['memo'] | undefined
-  on('state.set', ($, e, next) => {
-    if (e.plugin === 'astrolabe') stateSets[e.key] = (stateSets[e.key] ?? 0) + 1
-    if (e.plugin === 'astrolabe' && e.key === 'speckit') heldState = e.value as Held['state']
-    if (e.plugin === 'astrolabe' && e.key === 'memo') heldMemo = e.value as Held['memo']
-    held = heldState === undefined || heldMemo === undefined ? undefined : { state: heldState, memo: heldMemo }
+  let corruptState: { key: string; transform: (value: unknown) => unknown } | undefined
+  on('state.get', ($, e, next) => {
+    if (e.plugin === 'astrolabe') stateGets[e.key] = (stateGets[e.key] ?? 0) + 1
     return next(e)
+  })
+  on('state.set', ($, e, next) => {
+    const event =
+      e.plugin === 'astrolabe' && corruptState?.key === e.key
+        ? ({ ...e, value: corruptState.transform(e.value) } as typeof e)
+        : e
+    if (event !== e) corruptState = undefined
+    if (event.plugin === 'astrolabe') stateSets[event.key] = (stateSets[event.key] ?? 0) + 1
+    if (event.plugin === 'astrolabe' && event.key === 'speckit') heldState = event.value as Held['state']
+    if (event.plugin === 'astrolabe' && event.key === 'memo') heldMemo = event.value as Held['memo']
+    held = heldState === undefined || heldMemo === undefined ? undefined : { state: heldState, memo: heldMemo }
+    return next(event)
   })
   on('ui.log', ($, e) => {
     logs.push(e.text)
@@ -290,7 +305,31 @@ export const installTree = (on: On, tree: Tree, cwd: string, seed: Record<string
     return { value: undefined }
   })
 
-  return { counts, statuses, forbidden, last: () => statuses.at(-1), held: () => held, logs, clock, toasts, store, processes, fetches, prompts, submitted, contexts, script, stateSets, denied, suggested, copied }
+  return {
+    counts,
+    statuses,
+    forbidden,
+    last: () => statuses.at(-1),
+    held: () => held,
+    logs,
+    clock,
+    toasts,
+    store,
+    processes,
+    fetches,
+    prompts,
+    submitted,
+    contexts,
+    script,
+    stateSets,
+    stateGets,
+    denied,
+    suggested,
+    copied,
+    corruptNextState: (key, transform) => {
+      corruptState = { key, transform }
+    },
+  }
 }
 
 /** Answers turn.complete and tool.call beneath the plugin, as the engine would. */
@@ -327,3 +366,8 @@ export const completeTurn = ($: { turn: { complete: (e: never) => Promise<unknow
 
 export const startSession = ($: { session: { start: (e: never) => Promise<unknown> } }, cwd: string) =>
   $.session.start({ cwd, surface: 'terminal', isInteractive: true } as never)
+
+export const settleStatus = async (session: Pick<Session, 'clock'>): Promise<void> => {
+  await session.clock.advance(200)
+  await session.clock.settle()
+}

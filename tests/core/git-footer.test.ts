@@ -45,6 +45,12 @@ describe('pull request and CI (023 #35)', () => {
     expect(parsePullRequest(json([{ conclusion: 'SUCCESS' }, { status: 'IN_PROGRESS', conclusion: '' }]))).toEqual({ number: 31, checks: 'pending' })
     expect(parsePullRequest(json([{ state: 'SUCCESS' }]))).toEqual({ number: 31, checks: 'pass' })
     expect(parsePullRequest(json([]))).toEqual({ number: 31, checks: 'none' })
+    expect(parsePullRequest(JSON.stringify({ number: 31, url: 'https://github.com/o/r/pull/31', statusCheckRollup: [] }))).toEqual({
+      number: 31,
+      checks: 'none',
+      url: 'https://github.com/o/r/pull/31',
+    })
+    expect(parsePullRequest(JSON.stringify({ number: 31, url: 'javascript:alert(1)', statusCheckRollup: [] }))).toEqual({ number: 31, checks: 'none' })
     expect(parsePullRequest('not json')).toBeUndefined()
   })
   test('the footer shows the number and the checks', () => {

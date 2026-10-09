@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'claude-code/testing'
 
 import { scenario as halfDone } from '../fixtures/half-done'
-import { installEngine, installTree, startSession } from '../helpers/fake-fs'
+import { installEngine, installTree, settleStatus, startSession } from '../helpers/fake-fs'
 
 // Specs 015 and 017: when the governor holds or pauses, it refuses at once with the cautious
 // default (a hook has 10 s, so it never waits for a person) and asks the person from a timer;
@@ -79,6 +79,7 @@ const setup = async ($: never, on: never, placed = true, isInteractive = true) =
   await session.clock.set(NOW)
   if (isInteractive) await startSession($, '/proj')
   else await ($ as unknown as { session: { start: (e: never) => Promise<unknown> } }).session.start({ cwd: '/proj', surface: 'terminal', isInteractive: false } as never)
+  await settleStatus(session)
   return { session, asks, engine }
 }
 
@@ -155,6 +156,7 @@ describe('hold: refused at once, then the person is asked (015, 017)', () => {
     await pickIn($ as never, 'lift')
     expect(session.submitted[0]).toContain('1. job a1: do a1')
     expect(isRefused(await $.tool.call(agent('a2')))).toBe(false)
+    await settleStatus(session)
     expect(session.last()).toContain('5h 83% throttle')
   })
 
@@ -210,6 +212,7 @@ describe('stop and ceiling: refused at once, then the person is asked (015, 017)
     await flush()
     expect(session.submitted[0]).toContain('Continue the work that was paused')
     expect(isRefused(await $.tool.call(bash('b2')))).toBe(false)
+    await settleStatus(session)
     expect(session.last()).toContain('5h 89% hold')
   })
 
@@ -248,6 +251,8 @@ describe('narrow terminal: the engine dialog asks instead (015, 017)', () => {
     await session.clock.advance(60_000)
     await flush()
     asks.answer('Allow subagents for 1 hour, one at a time')
+    await flush()
+    await settleStatus(session)
     await until(() => session.last()?.includes('throttle') === true)
     expect(isRefused(await $.tool.call(agent('a2')))).toBe(false)
   })

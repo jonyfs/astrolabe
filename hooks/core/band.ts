@@ -3,6 +3,8 @@
 // into elements. The first form that fits `columns` wins; an id is never cut.
 import { activeMark } from './status-text'
 import { t, type Lang } from './i18n'
+import { byPriority, type Priorities } from './spec-actions'
+import { sectionOf } from './pane'
 import type { ThemeRole } from './theme'
 import type { Feature, Phase, SpeckitState, Step } from './types'
 
@@ -79,13 +81,22 @@ export type BandExtras = {
   worktree?: string
 }
 
+const inProgressOthers = (state: SpeckitState): Feature[] =>
+  state.features.filter(f => f.dir !== state.active?.dir && f.phase !== 'done' && f.phase !== 'abandoned')
+
+/** Names the features counted by the band's +N badge (052 #43). */
+export const otherFeaturesCard = (state: SpeckitState, lang: Lang = 'en'): string | undefined => {
+  const features = inProgressOthers(state)
+  return features.length === 0 ? undefined : t(lang, 'band.otherFeatures', { features: features.map(f => `${f.id} ${f.name}`).join(', ') })
+}
+
 export const bandSegments = (state: SpeckitState, columns: number, extras: BandExtras = {}): Segment[] => {
   const active = state.active
   if (!state.present || active === undefined) return []
   const feature = state.features.find(f => f.dir === active.dir)
   const id: Segment = { key: 'id', text: activeMark(state), role: 'accent' }
   // Other features in progress (042 #17) and the worktree the active one runs in (042 #18).
-  const others = state.features.filter(f => f.dir !== active.dir && f.phase !== 'done' && f.phase !== 'abandoned').length
+  const others = inProgressOthers(state).length
   const tags: Segment[] = [
     ...(others === 0 ? [] : [gap('others'), { key: 'others', text: `+${others}`, role: 'muted' as const }]),
     ...(extras.worktree === undefined ? [] : [gap('worktree'), { key: 'worktree', text: `⑂ ${extras.worktree}`, role: 'muted' as const }]),
@@ -136,12 +147,18 @@ export const stepOf = (segment: Segment): Step | undefined => {
 }
 
 /** Why the next command is next (042 #14), shown while the pointer is on its button. */
-export const nextReason = (state: SpeckitState, lang: Lang = 'en'): string | undefined => {
+export const nextReason = (state: SpeckitState, lang: Lang = 'en', priorities: Priorities = {}): string | undefined => {
   const command = state.nextCommand
   if (command === undefined) return undefined
   const feature = state.features.find(f => f.dir === state.active?.dir)
   const step = command.replace(/^\/speckit-/, '')
   if (step === 'implement' && feature !== undefined) return t(lang, 'reason.implement', { n: feature.total - feature.done })
-  if (step === 'specify' && feature !== undefined && feature.phase !== 'specify') return t(lang, 'reason.specifyNext')
+  if (step === 'specify' && feature !== undefined && feature.phase !== 'specify') {
+    if (feature.phase === 'done') {
+      const next = byPriority(state.features.filter(f => sectionOf(f, feature.dir) === 'next'), priorities)[0]
+      if (next !== undefined) return t(lang, 'reason.specifyNextPriority', { feature: `${next.id} ${next.name}`, priority: priorities[next.id] ?? 'normal' })
+    }
+    return t(lang, 'reason.specifyNext')
+  }
   return (['constitution', 'specify', 'clarify', 'plan', 'tasks', 'analyze'] as const).includes(step as never) ? t(lang, `reason.${step}` as never) : undefined
 }

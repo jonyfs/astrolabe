@@ -20,6 +20,10 @@ describe('findRoot', () => {
     const { fs } = treeFs({ 'c:/work/proj/.specify/': '', 'c:/work/proj/sub/': '' })
     expect(await findRoot(fs, 'C:\\work\\proj\\sub')).toBe('c:/work/proj')
   })
+  test('walks Windows UNC paths without climbing above the share root', async () => {
+    const { fs } = treeFs({ '//server/share/repo/.specify/': '', '//server/share/repo/packages/app/': '' })
+    expect(await findRoot(fs, '\\\\server\\share\\repo\\packages\\app')).toBe('//server/share/repo')
+  })
 })
 
 describe('readSnapshot (full)', () => {
@@ -154,6 +158,24 @@ describe('readSnapshot: symlinked feature folders', () => {
       },
     }
     expect((await readSnapshot(dangling, '/proj', 'full')).features.map(f => f.dir)).toEqual(['001-a'])
+  })
+  test('Windows-rooted feature links are read using normalized paths', async () => {
+    const root = 'c:/work/proj'
+    const { fs } = treeFs(project({ root, features: { '001-a': { spec: spec() } } }))
+    const linked = {
+      ...fs,
+      list: async (p: string) => {
+        const entries = await fs.list(p)
+        return p === `${root}/specs` ? [...entries, { name: '002-linked', kind: 'other' as const, isLink: true }] : entries
+      },
+      exists: async (p: string) => (p === `${root}/specs/002-linked` ? true : fs.exists(p)),
+      read: async (p: string) => (p === `${root}/specs/002-linked/spec.md` ? '# Linked on Windows\n' : fs.read(p)),
+    }
+
+    const snap = await readSnapshot(linked, 'C:\\work\\proj', 'full')
+    expect(snap.root).toBe('C:\\work\\proj')
+    expect(snap.features.map(f => f.dir)).toEqual(['001-a', '002-linked'])
+    expect(snap.features[1]?.spec).toBe('# Linked on Windows\n')
   })
 })
 

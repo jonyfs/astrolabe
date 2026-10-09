@@ -14,6 +14,12 @@ describe('docs links in Help (054 #81)', () => {
     expect(rows[3]!.href).toBeUndefined()
   })
 
+  test('filtering a section title reveals its block; a row match keeps its section title', () => {
+    const text = 'Astrolabe\nCommands\n  /astrolabe status\nModels\n  opus  xhigh'
+    expect(helpRows(text, 'models').map(row => row.text)).toEqual(['Models', '  opus  xhigh'])
+    expect(helpRows(text, 'status').map(row => row.text)).toEqual(['Commands', '  /astrolabe status'])
+  })
+
   test('/astrolabe help lists the docs and the kpis and focus commands', async ($, on) => {
     installTree(on, halfDone.tree, '/proj')
     installEngine(on)

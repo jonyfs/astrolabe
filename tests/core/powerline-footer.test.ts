@@ -28,4 +28,21 @@ describe('statusline colours (039)', () => {
     // The context ramps in colour only, as statusline does.
     expect(chips[2]?.text.endsWith('▴')).toBe(false)
   })
+  test('branch and PR links are retained on their git chip', () => {
+    const chips = footerChips({
+      speckit: () => '',
+      readings: [],
+      git: { branch: 'main', remote: 'https://github.com/o/r', ahead: 0, behind: 0, changed: 0, conflicts: 0, pr: { number: 31, checks: 'pass', url: 'https://github.com/o/r/pull/31' } },
+      now: NOW,
+      icons: iconSet('ascii'),
+      columns: 200,
+    })
+    expect(chips[0]).toMatchObject({
+      text: 'git:main PR#31 ok',
+      links: [
+        { text: 'main', href: 'https://github.com/o/r/tree/main' },
+        { text: '#31', href: 'https://github.com/o/r/pull/31' },
+      ],
+    })
+  })
 })

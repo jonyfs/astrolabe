@@ -1,6 +1,9 @@
 // Time per task, the finish estimate and the weekly history (spec 021). Pure: no $.
+import type { Feature } from './types'
 
 export type TaskTime = { dir: string; id: string; ms: number }
+export type FeatureDuration = { dir: string; id: string; name: string; startedAt: number; completedAt?: number; ms?: number }
+export type FeatureDurations = Record<string, FeatureDuration>
 export type Weeks = Record<string, { tasks: number; features: number }>
 
 const WEEKS_KEPT = 12
@@ -25,6 +28,27 @@ export const pastReset = (times: readonly TaskTime[], dir: string, open: number,
   const reset = resetsAt === undefined ? Number.NaN : Date.parse(resetsAt)
   if (left === undefined || Number.isNaN(reset) || reset <= now || now + left <= reset) return undefined
   return left
+}
+
+/** Track specify-to-done time only when the feature was first observed in Specify (054 #32). */
+export const updateFeatureDurations = (
+  records: FeatureDurations,
+  features: readonly Pick<Feature, 'dir' | 'id' | 'name' | 'phase'>[],
+  now: number,
+): { records: FeatureDurations; changed: boolean } => {
+  const next = { ...records }
+  let changed = false
+  for (const feature of features) {
+    const current = next[feature.dir]
+    if (current === undefined && feature.phase === 'specify') {
+      next[feature.dir] = { dir: feature.dir, id: feature.id, name: feature.name, startedAt: now }
+      changed = true
+    } else if (current !== undefined && current.ms === undefined && feature.phase === 'done') {
+      next[feature.dir] = { ...current, completedAt: now, ms: Math.max(0, now - current.startedAt) }
+      changed = true
+    }
+  }
+  return { records: next, changed }
 }
 
 /** The ISO 8601 week of a time, as `2026-W41` (weeks start on Monday, in UTC). */

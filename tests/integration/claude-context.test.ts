@@ -3,6 +3,7 @@ import { describe, expect, test } from 'claude-code/testing'
 import { featureJson, project, RATIFIED, spec, tasks } from '../fixtures/build'
 import { scenario as halfDone } from '../fixtures/half-done'
 import { completeTurn, installEngine, installTree, startSession } from '../helpers/fake-fs'
+import { installPaneEngine, installRenderEngine, mountPane } from '../helpers/render'
 
 // Spec 026: what Claude is told about the Spec Kit work.
 const CONSTITUTION = '# Demo Constitution\n\n## Core Principles\n\n### I. Test First\n\nText.\n\n### II. Small Steps\n\nText.\n\n## Governance\n\n### Amendments\n'
@@ -27,6 +28,31 @@ describe('context for Claude (026)', () => {
     await startSession($, '/proj')
     await submit($ as never, 'go on')
     expect(session.contexts.flat().filter(t => t.startsWith('Astrolabe:'))).toEqual([])
+  })
+
+  test('054 #93: a drift alarm is included in Claude context once, after the task is marked done', async ($, on) => {
+    const tree = project({
+      constitution: RATIFIED,
+      featureJson: featureJson('specs/001-a'),
+      features: { '001-a': { spec: spec(), plan: true, tasks: '- [ ] T001 Write the parser\n- [ ] T002 Add tests\n' } },
+    })
+    const session = installTree(on, tree, '/proj')
+    installEngine(on)
+    await startSession($, '/proj')
+    tree['/proj/specs/001-a/tasks.md'] = '- [x] T001 Write the parser\n- [ ] T002 Add tests\n'
+    await $.tool.call({
+      tool: 'Edit',
+      tool_use_id: 'tick',
+      file_path: '/proj/specs/001-a/tasks.md',
+      old_string: '- [ ] T001 Write the parser',
+      new_string: '- [x] T001 Write the parser',
+    } as never)
+    await completeTurn($)
+    await submit($ as never, 'continue')
+    const driftContext = session.contexts.flat().find(text => text.includes('tasks.md and code may have drifted'))
+    expect(driftContext).toContain('T001 in 001-a was marked done without matching code edits')
+    await submit($ as never, 'continue again')
+    expect(session.contexts.flat().filter(text => text.includes('tasks.md and code may have drifted'))).toHaveLength(1)
   })
 
   test('T002: a Spec Kit skill gets the constitution principles as a reminder', async ($, on) => {
@@ -56,6 +82,27 @@ describe('context for Claude (026)', () => {
     expect(asked[0]).toContain('what is left?')
     expect(asked[0]).toContain('002 band-hint')
     expect(session.toasts.at(-1)).toBe('🧭 T011 comes next; nothing blocks it.')
+  })
+
+  test('052 #44: long toast text is bounded and its full text is in the Session tab', async ($, on) => {
+    const session = installTree(on, halfDone.tree, '/proj')
+    installEngine(on)
+    installRenderEngine(on)
+    installPaneEngine(on)
+    const answer = 'T011 comes next; nothing blocks it. '.repeat(5)
+    on('model.fork', () => ({ value: { isAnswered: true, text: answer } }) as never)
+    await startSession($, '/proj')
+    await completeTurn($)
+    await $.command.run({ command: 'astrolabe', args: 'ask what is left?' } as never)
+    await session.clock.advance(1000)
+    const toast = session.toasts.at(-1) ?? ''
+    expect(toast.startsWith('🧭 ')).toBe(true)
+    expect(toast.length < 120).toBe(true)
+    expect(toast).toContain('full text in /astrolabe → Session')
+    const pane = await mountPane($ as never, 'terminal')
+    await pane.press('tab-session')
+    expect(await pane.body()).toContain(`🧭 ${answer.trim()}`)
+    await pane.unmount()
   })
 })
 

@@ -43,7 +43,9 @@ describe('the spinner narrates the current task (US1)', () => {
     // A second read of the same feature in the turn writes nothing.
     const afterFirst = { ...session.stateSets }
     await $.tool.call({ tool: 'Read', tool_use_id: 'r2', file_path: '/proj/specs/002-band-hint/spec.md' } as never)
-    expect(session.stateSets).toEqual(afterFirst)
+    expect(session.stateSets.memo).toBe(afterFirst.memo)
+    expect(session.stateSets.speckit).toBe(afterFirst.speckit)
+    expect(session.stateSets.session).toBe((afterFirst.session ?? 0) + 1)
     await completeTurn($)
     expect(await drawSpinner($ as never, handed, 'terminal')).toBeUndefined()
   })
@@ -57,7 +59,9 @@ describe('the spinner narrates the current task (US1)', () => {
     await $.tool.call({ tool: 'Read', tool_use_id: 'r', file_path: '/proj/src/parser.ts' } as never)
     await $.tool.call({ tool: 'Read', tool_use_id: 'r2', file_path: '/elsewhere/specs/002-band-hint/tasks.md' } as never)
     expect(await drawSpinner($ as never, handed, 'terminal')).toBeUndefined()
-    expect(session.stateSets).toEqual(writes)
+    expect(session.stateSets.memo).toBe(writes.memo)
+    expect(session.stateSets.speckit).toBe(writes.speckit)
+    expect(session.stateSets.session).toBe((writes.session ?? 0) + 2)
     expect(session.held()?.memo.window.edits).toEqual([])
   })
 

@@ -17,6 +17,8 @@ type Elements = Pick<ElementTable<'mobile'>, 'Box' | 'Text'> & {
 
 export type DashboardView = {
   dial: Grid
+  /** The phase under the dial's highlighted step (052 #34). */
+  currentStep?: string
   bars?: Grid
   chart?: Grid
   /** What the chart would say, for surfaces and widths that draw none. */
@@ -46,7 +48,7 @@ const chart = (el: Elements, key: string, grid: Grid, alt: string, tokens: Token
 }
 
 /** The Dashboard as sections, each with the rows it takes, so the pane can window them (038). */
-export const dashboardSections = (el: Elements, view: DashboardView, tokens: Tokens, ascii: boolean, lang: Lang = 'en') => {
+export const dashboardSections = (el: Elements, view: DashboardView, tokens: Tokens, ascii: boolean, lang: Lang = 'en', labelWidth = 14) => {
   const out: Array<{ node: unknown; rows: number }> = []
   if (view.chips !== undefined && view.chips.length > 0) {
     const chips = view.chips
@@ -76,7 +78,10 @@ export const dashboardSections = (el: Elements, view: DashboardView, tokens: Tok
       </el.Box>
     ),
   })
-  if (view.progress !== undefined) out.push({ rows: 1, node: <el.Text color={tokens.text}>{view.progress}</el.Text> })
+  if (view.progress !== undefined || view.currentStep !== undefined) {
+    const lines = [view.currentStep, view.progress].filter((line): line is string => line !== undefined)
+    out.push({ rows: 1, node: <el.Text key="astrolabe-current-step" color={tokens.text}>{lines.join(' · ')}</el.Text> })
+  }
   if (view.bars !== undefined) {
     out.push({
       rows: 1 + view.bars.rows,
@@ -111,7 +116,7 @@ export const dashboardSections = (el: Elements, view: DashboardView, tokens: Tok
   // What the chart's marks mean (046 #52), only under a drawn chart.
   if (view.chart !== undefined) out.push({ rows: 1, node: <el.Text key="astrolabe-chart-legend" color={tokens.muted} wrap="truncate-end">{t(lang, 'dash.legend')}</el.Text> })
   out.push({ rows: 1, node: <el.Text color={tokens.accent}>{t(lang, 'dash.session')}</el.Text> })
-  for (const [label, value] of view.kpis) out.push({ rows: 1, node: <el.Text color={tokens.text} wrap="truncate-end">{`${label.padEnd(14)}${value}`}</el.Text> })
+  for (const [label, value] of view.kpis) out.push({ rows: 1, node: <el.Text color={tokens.text} wrap="truncate-end">{`${label.padEnd(labelWidth)}${value}`}</el.Text> })
   return out
 }
 

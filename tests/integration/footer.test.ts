@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'claude-code/testing'
 
 import { scenario as halfDone } from '../fixtures/half-done'
-import { completeTurn, installEngine, installTree, startSession } from '../helpers/fake-fs'
+import { completeTurn, installEngine, installTree, settleStatus, startSession } from '../helpers/fake-fs'
 
 // Spec 018 US1: the status entry is the footer that replaces the statusline.
 const NOW = Date.UTC(2026, 9, 7, 12, 0)
@@ -37,12 +37,27 @@ const setup = async ($: never, on: never, tree = halfDone.tree) => {
 }
 
 describe('the footer (018 US1)', () => {
+  test('coalesces status redraws within 200 ms and draws the latest usage', async ($, on) => {
+    const session = await setup($ as never, on as never)
+    const before = session.statuses.length
+    const rateLimit = (percentUsed: number) => [{ kind: 'five_hour', percentUsed, resetsAt: new Date(NOW + 2 * 3600_000).toISOString() }]
+    await measure($ as never, { rateLimits: rateLimit(42) })
+    await measure($ as never, { rateLimits: rateLimit(65) })
+
+    expect(session.statuses).toHaveLength(before)
+    await settleStatus(session)
+
+    expect(session.statuses).toHaveLength(before + 1)
+    expect(session.last()).toContain('5h 65%')
+  })
+
   test('model and effort from the last main request, context from the measure, never the cost (054)', { options: { footerIn: 'status', icons: 'ascii' } }, async ($, on) => {
     const session = await setup($ as never, on as never)
     await step($ as never, 'claude-opus-5-5', 'high')
     await step($ as never, 'claude-haiku-4-5-20251001', 'low', 'sub-1')
     await measure($ as never)
     await completeTurn($)
+    await settleStatus(session)
     const text = session.last() ?? ''
     expect(text.startsWith('◆ 002 · implement 45% · 5h 42%')).toBe(true)
     expect(text).toContain('ctx 61%')
@@ -51,19 +66,21 @@ describe('the footer (018 US1)', () => {
     expect(text).not.toContain('$1.20')
   })
 
-  test('git: one query per main turn, never while drawing; the counts show', { options: { footerIn: 'status', icons: 'ascii' } }, async ($, on) => {
+  test('git: one query after the initial session, never while drawing or on unchanged turns', { options: { footerIn: 'status', icons: 'ascii' } }, async ($, on) => {
     const session = await setup($ as never, on as never, withGit)
     session.script.processes[GIT] = { stdout: PORCELAIN }
     await completeTurn($)
+    await settleStatus(session)
     expect(session.processes.filter(p => p === GIT).length).toBe(1)
     expect(session.last()).toContain('git:main ^2 ~2')
     await completeTurn($)
-    expect(session.processes.filter(p => p === GIT).length).toBe(2)
+    expect(session.processes.filter(p => p === GIT).length).toBe(1)
   })
 
   test('a failing git leaves the branch read from the files', { options: { footerIn: 'status', icons: 'ascii' } }, async ($, on) => {
     const session = await setup($ as never, on as never, withGit)
     await completeTurn($)
+    await settleStatus(session)
     expect(session.last()).toContain('git:main')
     expect(session.logs).toEqual([])
   })
@@ -71,6 +88,7 @@ describe('the footer (018 US1)', () => {
   test('no git repository: no query and no git part', { options: { footerIn: 'status', icons: 'ascii' } }, async ($, on) => {
     const session = await setup($ as never, on as never)
     await completeTurn($)
+    await settleStatus(session)
     expect(session.processes.filter(p => p.startsWith('git'))).toEqual([])
     expect(session.last()).not.toContain('git:')
   })
@@ -90,6 +108,7 @@ describe('icons by surface (018 US2)', () => {
     await session.clock.set(NOW)
     await ($ as unknown as { session: { start: (e: never) => Promise<unknown> } }).session.start({ cwd: '/proj', surface, isInteractive: true } as never)
     await measure($)
+    await settleStatus(session)
     return session
   }
   test('auto: Nerd Font glyphs in the terminal', { options: { footerIn: 'status' } }, async ($, on) => {

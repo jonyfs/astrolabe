@@ -6,7 +6,7 @@ import { parseTasks, tasksFingerprint } from '../core/tasks-parser'
 import { isWindowsPath, joinPath, relativeTo, specsLocation } from '../core/paths'
 import { skillHint } from '../core/skill-hints'
 import { deriveSpeckitState, snapshotFromMemo } from '../core/speckit'
-import { emptyMemo, emptyWindow, type DriftWindow, type SessionMemo, type SpeckitState, type Task } from '../core/types'
+import { emptyMemo, emptyWindow, type DriftWindow, type FeatureFiles, type SessionMemo, type SpeckitState, type Task } from '../core/types'
 
 import type { Fs } from './fs-port'
 import { findOtherRoots, findRoot } from './root'
@@ -24,7 +24,8 @@ export const DEFER_ABOVE = 150
 export const reconcileDeferred = async (fs: Fs, previous: Held, dirs: readonly string[], now: number): Promise<Held> => {
   const root = previous.state.root
   if (root === undefined || dirs.length === 0) return previous
-  const snapshot = await readSnapshot(fs, root, { dirs }, previous.memo.files, previous.memo.base)
+  const reuseLargeTasks = !windowOf(previous.memo).sawShell
+  const snapshot = await readSnapshot(fs, root, { dirs }, previous.memo.files, previous.memo.base, undefined, reuseLargeTasks)
   return deriveSpeckitState(snapshot, previous.memo, now)
 }
 
@@ -62,11 +63,12 @@ export const reconcileTurn = async (fs: Fs, cwd: string, previous: Held | undefi
   // A feature marked unreadable is tried again each turn, so the mark clears once a read works.
   const marked = Object.values(previous.memo.files).filter(f => f.unreadable !== undefined).map(f => f.dir)
   const dirs = unique([previous.state.active?.dir, ...previous.memo.touched, ...marked])
-  const snapshot = await readSnapshot(fs, root, { dirs }, previous.memo.files, previous.memo.base)
+  const reuseLargeTasks = !windowOf(previous.memo).sawShell
+  const snapshot = await readSnapshot(fs, root, { dirs }, previous.memo.files, previous.memo.base, undefined, reuseLargeTasks)
   let held = deriveSpeckitState(snapshot, memo, now)
   const active = held.state.active?.dir
   if (active !== undefined && !dirs.includes(active) && previous.memo.files[active] !== undefined) {
-    const fresh = await readFeature(fs, root, active, previous.memo.files[active])
+    const fresh = await readFeature(fs, root, active, previous.memo.files[active], reuseLargeTasks)
     held = deriveSpeckitState({ ...snapshot, features: snapshot.features.map(f => (f.dir === active ? fresh : f)) }, memo, now)
   }
   return held
@@ -139,6 +141,41 @@ const fullTasks = (ticked: readonly Task[], text: string | undefined): Task[] =>
   return inFile.length > 0 ? inFile : [...ticked]
 }
 
+/** A checkbox-only Edit can update the compact summary without another multi-megabyte read (054 #13). */
+const cachedLargeTaskEdit = (files: FeatureFiles | undefined, change: { before: string; after: string } | undefined): FeatureFiles | undefined => {
+  if (files?.tasksLarge !== true || files.tasks === undefined || change === undefined || change.before === change.after) return undefined
+  const normalized = (text: string) => text.replace(/^(\s*[-*]\s+\[)[ xX](\]\s+)/gm, '$1 $2')
+  if (normalized(change.before) !== normalized(change.after)) return undefined
+  const before = parseTasks(change.before)
+  const after = parseTasks(change.after)
+  if (before.length === 0 || before.length !== after.length) return undefined
+  const changes = new Map<string, { before: boolean; after: boolean }>()
+  for (let i = 0; i < before.length; i += 1) {
+    const oldTask = before[i]!
+    const newTask = after[i]!
+    const key = taskKey(oldTask)
+    if (key !== taskKey(newTask) || oldTask.text !== newTask.text) return undefined
+    if (oldTask.isDone !== newTask.isDone) {
+      if (changes.has(key)) return undefined
+      changes.set(key, { before: oldTask.isDone, after: newTask.isDone })
+    }
+  }
+  if (changes.size === 0) return undefined
+  const current = parseTasks(files.tasks)
+  const matches = new Map<string, number>()
+  for (const task of current) matches.set(taskKey(task), (matches.get(taskKey(task)) ?? 0) + 1)
+  for (const [key, status] of changes) {
+    if (matches.get(key) !== 1 || current.find(task => taskKey(task) === key)?.isDone !== status.before) return undefined
+  }
+  const tasks = current
+    .map(task => {
+      const status = changes.get(taskKey(task))
+      return `- [${status?.after ?? task.isDone ? 'x' : ' '}] ${task.id === undefined ? '' : `${task.id} `}${task.text}\n`
+    })
+    .join('')
+  return { ...files, tasks }
+}
+
 /** A Bash or Agent call: their file changes are invisible, so drift stays quiet this window. */
 export const applyShell = (previous: Held): Held => {
   const window = windowOf(previous.memo)
@@ -181,7 +218,9 @@ export const applyFileTouch = async (
   const memo: SessionMemo = isTouched ? previous.memo : { ...previous.memo, touched: [...previous.memo.touched, dir] }
   const snapshot = snapshotFromMemo(memo)
   if (!isWrite || !TRACKED.has(location.file) || snapshot === undefined) return { held: isTouched ? previous : { ...previous, memo } }
-  const fresh = await readFeature(fs, root, dir, previous.memo.files[dir])
+  const fresh =
+    (windowOf(memo).sawShell ? undefined : cachedLargeTaskEdit(previous.memo.files[dir], change)) ??
+    await readFeature(fs, root, dir, previous.memo.files[dir])
   const others = snapshot.features.filter(f => f.dir !== dir)
   const features = [...others, fresh].sort((a, b) => a.dir.localeCompare(b.dir))
   const ticked =
@@ -191,8 +230,16 @@ export const applyFileTouch = async (
         ? fullTasks(newlyTicked(change.before, change.after), fresh.tasks)
         : newlyTicked(previous.memo.files[dir]?.tasks, fresh.tasks)
   const first = ticked[0]
+  const driftTask = first === undefined ? undefined : first.id ?? first.text
   const drift = first === undefined ? undefined : detectDrift(first, windowOf(memo), foldCase, lang)
-  const next = drift === undefined ? memo : { ...memo, window: { ...windowOf(memo), alarmed: true } }
+  const next =
+    driftTask === undefined
+      ? memo
+      : {
+          ...memo,
+          window: { ...windowOf(memo), alarmed: true },
+          driftWarning: { dir, task: driftTask },
+        }
   const held = deriveSpeckitState({ ...snapshot, features }, next, now)
   return drift === undefined ? { held } : { held, drift }
 }

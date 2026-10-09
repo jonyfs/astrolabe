@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
 
+import { paneLabelWidth } from '../../hooks/core/i18n'
 import { featureJson, project, RATIFIED, spec } from '../fixtures/build'
 import { completeTurn, installEngine, installTree, startSession } from '../helpers/fake-fs'
 import { installPaneEngine, installRenderEngine, mountPane } from '../helpers/render'
@@ -37,9 +38,10 @@ describe('time and history (021)', () => {
     const pane = await mountPane($ as never, 'terminal', 80, 60)
     await pane.press('tab-dashboard')
     const body = await pane.body()
-    expect(body).toContain('slowest task  T002 · 20m')
-    expect(body).toContain('estimate      about 1h20m for 4 open tasks')
-    expect(body).toContain('this week     1 tasks, 0 features done')
+    const gap = (label: string) => ' '.repeat(paneLabelWidth('en') - label.length)
+    expect(body).toContain(`slowest task${gap('slowest task')}T002 · 20m`)
+    expect(body).toContain(`estimate${gap('estimate')}about 1h20m for 4 open tasks`)
+    expect(body).toContain(`this week${gap('this week')}1 tasks, 0 features done`)
     await pane.unmount()
   })
 

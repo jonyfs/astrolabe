@@ -1,10 +1,13 @@
 import { describe, expect, test } from 'claude-code/testing'
 
+import { paneLabelWidth } from '../../hooks/core/i18n'
 import { featureJson, project, RATIFIED, spec } from '../fixtures/build'
 import { scenario as halfDone } from '../fixtures/half-done'
 import { scenario as noSpeckit } from '../fixtures/no-speckit'
 import { installEngine, installTree, startSession } from '../helpers/fake-fs'
 import { installPaneEngine, installRenderEngine, mountPane, SURFACES } from '../helpers/render'
+
+const NOW = Date.UTC(2026, 9, 7, 12, 0)
 
 const setup = async ($: never, on: never, s = halfDone) => {
   const session = installTree(on, s.tree, s.cwd)
@@ -32,19 +35,58 @@ describe('the pane tabs (US1, US2)', () => {
       const { session } = await setup($ as never, on as never)
       const ui = await mountPane($ as never, surface)
       expect(await ui.tabs()).toContain('Specs')
-      expect(await ui.body()).toContain('▸ ◐ 002 band-hint   implement  ████░░░░░░  9/20  45%')
+      expect(await ui.body()).toContain('❯ ▸ ◐ 002 band-hint   implement  ████░░░░░░  9/20  45%')
       const reads = session.counts.read
       await ui.press('tab-tasks')
       expect(await ui.body()).toContain('9/20 done')
       expect(await ui.body()).toContain('T010 task 10')
       await ui.press('tab-session')
-      expect(await ui.body()).toContain('chosen by     feature.json')
+      expect(await ui.body()).toContain(`chosen by${' '.repeat(paneLabelWidth('en') - 'chosen by'.length)}feature.json`)
       await ui.press('tab-specs')
       expect(await ui.body()).toContain('● 001 core-state')
       expect(session.counts.read).toBe(reads)
       await ui.unmount()
     })
   }
+
+  test('050 #99: every tab renders on Desktop, with PR links or a text fallback', async ($, on) => {
+    const { session } = await setup($ as never, on as never)
+    session.script.processes['gh pr list --state open --limit 20 --json number,title,headRefName,headRefOid,url,labels,reviewDecision,statusCheckRollup,mergeStateStatus,isDraft'] = {
+      stdout: JSON.stringify([{
+        number: 45,
+        title: 'feat: desktop fallback',
+        headRefName: 'feature',
+        headRefOid: 'abc1234',
+        url: 'https://github.com/o/r/pull/45',
+        labels: [],
+        reviewDecision: 'APPROVED',
+        statusCheckRollup: [],
+        mergeStateStatus: 'CLEAN',
+        isDraft: false,
+      }]),
+    }
+    const ui = await mountPane($ as never, 'desktop', 120, 60)
+    const tabs = [
+      ['tab-specs', '002 band-hint'],
+      ['tab-tasks', 'T010 task 10'],
+      ['tab-session', 'feature.json'],
+      ['tab-dashboard', 'Spec Kit cycle'],
+      ['tab-help', '/astrolabe status'],
+      ['tab-config', 'No Astrolabe options'],
+    ] as const
+    for (const [tab, expected] of tabs) {
+      await ui.press(tab)
+      expect(await ui.body()).toContain(expected)
+    }
+
+    await ui.press('tab-prs')
+    await session.clock.advance(1000)
+    expect(await ui.body()).toContain('feat: desktop fallback')
+    const prLink = await ui.find({ type: 'Link', text: /feat: desktop fallback/ })
+    if (prLink === undefined) expect(await ui.body()).toContain('feat: desktop fallback')
+    else expect(prLink.props['href']).toBe('https://github.com/o/r/pull/45')
+    await ui.unmount()
+  })
 
   test('the chosen tab stays for the session', async ($, on) => {
     await setup($ as never, on as never)
@@ -78,6 +120,57 @@ describe('the pane tabs (US1, US2)', () => {
     const ui = await mountPane($ as never, 'terminal')
     expect((await ui.body()).endsWith('This project does not use Spec Kit. Run specify init to start.')).toBe(true)
     await ui.unmount()
+  })
+
+  test('054 #76: colorblind mode pairs status colors with shape marks', { options: { flavor: 'colorblind' } }, async ($, on) => {
+    const tree = { ...halfDone.tree }
+    const path = '/proj/specs/002-band-hint/spec.md'
+    tree[path] = `${tree[path]}\n[NEEDS CLARIFICATION: review this decision]`
+    await setup($ as never, on as never, { ...halfDone, tree })
+    const ui = await mountPane($ as never, 'terminal')
+    expect(await ui.body()).toContain('▲ ! 002: [NEEDS CLARIFICATION] left after the plan')
+    await ui.unmount()
+  })
+
+  test('054 #67: long feature names wrap on Desktop and are elided in the terminal', async ($, on) => {
+    const dir = '002-feature-name-that-is-longer-than-twenty-four-characters'
+    const tree = project({
+      constitution: RATIFIED,
+      featureJson: featureJson(`specs/${dir}`),
+      features: { [dir]: { spec: spec(), plan: true, tasks: '- [ ] T001 test\n' } },
+    })
+    const scenario = { cwd: '/proj', tree, expected: halfDone.expected }
+    await setup($ as never, on as never, scenario)
+    const desktop = await mountPane($ as never, 'desktop', 40)
+    expect(await desktop.body()).toContain(dir.slice(4))
+    expect((await desktop.find({ type: 'Text', text: /feature-name-that-is-longer/ }))?.props['wrap']).toBe('wrap')
+    await desktop.unmount()
+    const terminal = await mountPane($ as never, 'terminal', 40)
+    expect(await terminal.body()).toContain('…')
+    expect((await terminal.find({ type: 'Text', text: /feature-name-th…/ }))?.props['wrap']).toBe('truncate-end')
+    await terminal.unmount()
+  })
+
+  test('054 #1: one read of each pane state value per render', async ($, on) => {
+    const { session } = await setup($ as never, on as never)
+    for (const key of Object.keys(session.stateGets)) delete session.stateGets[key]
+    const ui = await mountPane($ as never, 'terminal')
+    expect(session.stateGets).toEqual({ speckit: 1, session: 1, usage: 1, pane: 1, updates: 1 })
+    await ui.unmount()
+  })
+
+  test('054 #5: Session, Dashboard and Help share the longest label column', async ($, on) => {
+    await setup($ as never, on as never)
+    const labelWidth = paneLabelWidth('en')
+    const ui = await mountPane($ as never, 'terminal', 140, 60)
+    await ui.press('tab-session')
+    expect(await ui.body()).toContain(`root${' '.repeat(labelWidth - 4)}/proj`)
+    await ui.press('tab-dashboard')
+    expect(await ui.body()).toContain(`turns${' '.repeat(labelWidth - 5)}0`)
+    await ui.unmount()
+
+    const help = (await $.command.run({ command: 'astrolabe', args: 'help' } as never)) as { text: string }
+    expect(help.text).toContain(`  constitution${' '.repeat(labelWidth - 'constitution'.length)} the rules every other step checks`)
   })
 })
 
@@ -150,7 +243,7 @@ describe('extensions and parallel tasks (020c)', () => {
     await ui.press('tab-tasks')
     expect(await ui.body()).toContain('┌ T002 b')
     await ui.press('tab-session')
-    expect(await ui.body()).toContain('hooks after   /speckit-git-commit (optional)')
+    expect(await ui.body()).toContain(`hooks after${' '.repeat(paneLabelWidth('en') - 'hooks after'.length)}/speckit-git-commit (optional)`)
     await ui.unmount()
     expect(session.logs).toEqual([])
   })
@@ -218,6 +311,26 @@ describe('pane navigation, part two (043)', () => {
     expect(pane.closed.at(-1)).toEqual({ id: 'astrolabe' })
     await ui.unmount()
   })
+
+  test('052 #36: Help groups content and the filter jumps to matching blocks', async ($, on) => {
+    await setup($ as never, on as never)
+    const ui = await mountPane($ as never, 'terminal', 120, 60)
+    await ui.press('tab-help')
+    let body = ''
+    for (let page = 0; page < 10; page += 1) {
+      const visible = await ui.body()
+      body += visible
+      if (!visible.includes('▼')) break
+      await ui.press('scroll-down')
+    }
+    for (const heading of ['Commands', 'Keys', 'Options', 'Marks', 'Steps', 'Models']) expect(body).toContain(heading)
+    await ui.input({ key: 'astrolabe-filter', text: 'Models', kind: 'change' })
+    const filtered = await ui.body()
+    expect(filtered).toContain('Models')
+    expect(filtered).toContain('skillModels')
+    expect(filtered).not.toContain('/astrolabe status')
+    await ui.unmount()
+  })
 })
 
 describe('acting on a spec (051)', () => {
@@ -234,11 +347,13 @@ describe('acting on a spec (051)', () => {
   })
   test('review: only from the composer; the findings land in the Session tab', async ($, on) => {
     const asked: Array<{ model: string; effort?: string }> = []
+    const longFinding = `spec.md US2: ${'no acceptance scenario '.repeat(8)}`
     on('model.complete', ($$, e) => {
       asked.push(e as never)
-      return { value: { isAnswered: true, text: 'spec.md US2: no acceptance scenario\nplan.md: no rollback' } } as never
+      return { value: { isAnswered: true, text: `${longFinding}\nplan.md: no rollback` } } as never
     })
     const { session } = await setup($ as never, on as never)
+    await session.clock.set(NOW)
     const fromClaude = (await $.command.run({ command: 'astrolabe', args: 'review' } as never)) as { text: string }
     expect(fromClaude.text).toContain('Only you can start a deep review')
     const ran = (await $.command.run({ command: 'astrolabe', args: 'review', origin: { kind: 'composer' } } as never)) as { text: string }
@@ -246,10 +361,17 @@ describe('acting on a spec (051)', () => {
     await session.clock.settle()
     expect(asked[0]).toMatchObject({ model: 'opus', effort: 'xhigh' })
     expect(session.toasts.at(-1)).toBe('🧭 the review of 002 band-hint is in the Session tab')
+    await session.clock.advance(5 * 60_000)
     const ui = await mountPane($ as never, 'terminal', 120, 40)
     await ui.press('tab-session')
-    expect(await ui.body()).toContain('review 002    spec.md US2: no acceptance scenario')
+    expect(await ui.body()).toContain('review 002 · opus · 5m ago')
+    expect(await ui.body()).toContain(`${' '.repeat(paneLabelWidth('en'))}${longFinding}`)
+    expect((await ui.find({ type: 'Text', text: longFinding }))?.props['wrap']).toBe('wrap')
     await ui.unmount()
+    const desktop = await mountPane($ as never, 'desktop', 120, 40)
+    await desktop.press('tab-session')
+    expect((await desktop.find({ type: 'Text', text: longFinding }))?.props['wrap']).toBe('wrap')
+    await desktop.unmount()
   })
 })
 
@@ -281,6 +403,26 @@ describe('design and UX (052)', () => {
     const st = $ as never
     const ui = await mountPane(st, 'terminal', 60, 30)
     expect(await ui.legend()).toBe('1-7 tabs · h help · f filters · s status · j/k scroll · Esc closes')
+    await ui.unmount()
+  })
+
+  test('052 #8: the filter shows how many feature rows it keeps', async ($, on) => {
+    await setup($ as never, on as never)
+    const ui = await mountPane($ as never, 'terminal', 100, 40)
+    await ui.input({ key: 'astrolabe-filter', text: '002' })
+    expect(await ui.body()).toContain('1/2 rows')
+    await ui.unmount()
+  })
+
+  test('052 #16: inactive spec links show on hover, while the selected row stays linked', async ($, on) => {
+    await setup($ as never, on as never)
+    const ui = await mountPane($ as never, 'terminal', 120, 40)
+    const activeLink = await ui.find({ type: 'Link', text: '↗' })
+    expect(activeLink?.props['href']).toBe('file:///proj/specs/002-band-hint/spec.md')
+    const drawn = JSON.stringify(await ui.drawn())
+    expect(drawn).toContain('"display":"none"')
+    expect(drawn).toContain('"hover":{"scope":"astrolabe-spec-link-feature-001","display":"flex"}')
+    expect(drawn).toContain('"hover":{"scope":"astrolabe-spec-link-feature-001","underline":true}')
     await ui.unmount()
   })
 })
