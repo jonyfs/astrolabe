@@ -30,7 +30,16 @@ export const paneTree = (
   /** Drawn above the rows: the filter, the summary, the diff (024). */
   header: readonly RenderNode[] = [],
   /** The footer under every tab (035), after `pad` blank rows that hold it at the bottom. */
-  footer?: { text: string; pad: number; columns: number; chips?: ReadonlyArray<{ key: string; text: string; bg: string; fg: string; links?: ReadonlyArray<{ text: string; href: string }> }>; arrow?: string },
+  footer?: {
+    text: string
+    pad: number
+    columns: number
+    /** The rule above the chips (041 #8): solid, thin or none. */
+    separator?: 'solid' | 'thin' | 'none'
+    /** The chips in rows: one row, or statusline's three lines (041 #1). */
+    chips?: ReadonlyArray<ReadonlyArray<{ key: string; text: string; bg: string; fg: string; links?: ReadonlyArray<{ text: string; href: string }> }>>
+    arrow?: string
+  },
   /** What is above and below the rows shown, with the presses that scroll (038). */
   nav?: { above: number; below: number; up: () => Promise<void>; down: () => Promise<void>; labels: { more: string } },
   /** Counts beside the tab labels (043 #21) and the keys of the tab shown (043 #25). */
@@ -176,40 +185,44 @@ export const paneTree = (
           <Text> </Text>
         ))}
         <Box key="astrolabe-pane-footer" flexDirection="column">
-          <Text color={tokens.pending}>{'─'.repeat(Math.max(1, footer.columns))}</Text>
+          {footer.separator === 'none' ? null : (
+            <Text color={tokens.pending}>{(footer.separator === 'thin' ? '┄' : '─').repeat(Math.max(1, footer.columns))}</Text>
+          )}
           {footer.chips === undefined || footer.chips.length === 0 ? (
             <Text color={tokens.muted} wrap="truncate-end">
               {footer.text}
             </Text>
           ) : (
-            // statusline's Powerline row (039): solid chips, an arrow cut from the two backgrounds.
-            <Box flexDirection="row">
-              {footer.chips.flatMap((chip, i) => {
-                const next = footer.chips?.[i + 1]
-                const arrow = footer.arrow ?? ''
-                const links = Link === undefined ? [] : chip.links ?? []
-                let cursor = 0
-                const linked = links.flatMap((link, linkIndex) => {
-                  const at = chip.text.indexOf(link.text, cursor)
-                  if (at < 0) return []
-                  const before = chip.text.slice(cursor, at)
-                  cursor = at + link.text.length
+            // statusline's Powerline rows (039, 041 #1): solid chips, an arrow cut from the two backgrounds.
+            footer.chips.map((chips, rowIndex) => (
+              <Box key={`footer-chip-row-${rowIndex}`} flexDirection="row">
+                {chips.flatMap((chip, i) => {
+                  const next = chips[i + 1]
+                  const arrow = footer.arrow ?? ''
+                  const links = Link === undefined ? [] : chip.links ?? []
+                  let cursor = 0
+                  const linked = links.flatMap((link, linkIndex) => {
+                    const at = chip.text.indexOf(link.text, cursor)
+                    if (at < 0) return []
+                    const before = chip.text.slice(cursor, at)
+                    cursor = at + link.text.length
+                    return [
+                      ...(before === '' ? [] : [<Text key={`chip-${chip.key}-before-${linkIndex}`} color={chip.fg} backgroundColor={chip.bg} bold>{`${linkIndex === 0 ? ' ' : ''}${before}`}</Text>]),
+                      ...chipLink(`chip-${chip.key}-link-${linkIndex}`, link.href, link.text),
+                    ]
+                  })
+                  const after = chip.text.slice(cursor)
                   return [
-                    ...(before === '' ? [] : [<Text key={`chip-${chip.key}-before-${linkIndex}`} color={chip.fg} backgroundColor={chip.bg} bold>{`${linkIndex === 0 ? ' ' : ''}${before}`}</Text>]),
-                    ...chipLink(`chip-${chip.key}-link-${linkIndex}`, link.href, link.text),
+                    ...(linked.length === 0
+                      ? [<Text key={`chip-${chip.key}`} color={chip.fg} backgroundColor={chip.bg} bold>{` ${chip.text} `}</Text>]
+                      : [...linked, ...(after === '' ? [] : [<Text key={`chip-${chip.key}-after`} color={chip.fg} backgroundColor={chip.bg} bold>{`${after} `}</Text>])]),
+                    ...(arrow === ''
+                      ? next === undefined ? [] : [<Text> </Text>]
+                      : [next === undefined ? <Text color={chip.bg}>{arrow}</Text> : <Text color={chip.bg} backgroundColor={next.bg}>{arrow}</Text>]),
                   ]
-                })
-                const after = chip.text.slice(cursor)
-                return [
-                  ...(linked.length === 0
-                    ? [<Text key={`chip-${chip.key}`} color={chip.fg} backgroundColor={chip.bg} bold>{` ${chip.text} `}</Text>]
-                    : [...linked, ...(after === '' ? [] : [<Text key={`chip-${chip.key}-after`} color={chip.fg} backgroundColor={chip.bg} bold>{`${after} `}</Text>])]),
-                  ...(arrow === ''
-                    ? next === undefined ? [] : [<Text> </Text>]
-                    : [next === undefined ? <Text color={chip.bg}>{arrow}</Text> : <Text color={chip.bg} backgroundColor={next.bg}>{arrow}</Text>]),
-                ]
-              })}
-            </Box>
+                })}
+              </Box>
+            ))
           )}
         </Box>
       </Box>

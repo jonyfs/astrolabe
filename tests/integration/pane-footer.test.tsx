@@ -71,3 +71,83 @@ describe('the footer in the pane (035)', () => {
     await ui.unmount()
   })
 })
+
+describe('the footer like statusline (041)', () => {
+  const setupGit = async ($: never, on: never) => {
+    const session = installTree(on, { ...(halfDone.tree as Record<string, string>), '/proj/.git/HEAD': 'ref: refs/heads/main\n' }, '/proj')
+    session.script.processes['git status --porcelain=v2 --branch --show-stash'] = {
+      stdout: '# branch.oid abc123\n# branch.head main\n# branch.ab +2 -1\n1 .M N... 1\n',
+    }
+    installEngine(on)
+    installRenderEngine(on)
+    installPaneEngine(on)
+    await session.clock.set(NOW)
+    await startSession($ as never, '/proj')
+    await measure($ as never)
+    await completeTurn($ as never)
+    await settleStatus(session)
+    return session
+  }
+
+  test('041 #1: footerLines 3 draws three chip rows in statusline order', { options: { footerLines: '3' } }, async ($, on) => {
+    await setupGit($ as never, on as never)
+    const ui = await mountPane($ as never, 'terminal', 100, 80)
+    expect((await ui.find({ key: 'footer-chip-row-0' }))?.text).toContain('main')
+    expect((await ui.find({ key: 'footer-chip-row-1' }))?.text).toContain('◆ 002')
+    expect((await ui.find({ key: 'footer-chip-row-2' }))?.text).toContain('5h 42%')
+    await ui.unmount()
+  })
+
+  test('041 #1: the default footerLines keeps one chip row', async ($, on) => {
+    await setup($ as never, on as never)
+    const ui = await mountPane($ as never, 'terminal', 100, 80)
+    expect(await ui.find({ key: 'footer-chip-row-1' })).toBeUndefined()
+    expect((await ui.find({ key: 'footer-chip-row-0' }))?.text).toContain('◆ 002')
+    await ui.unmount()
+  })
+
+  test('041 #8: footerSeparator thin draws the thin rule, none draws no rule', { options: { footerSeparator: 'thin' } }, async ($, on) => {
+    await setup($ as never, on as never)
+    const ui = await mountPane($ as never, 'terminal', 100, 80)
+    expect(await ui.footer()).toContain('┄')
+    expect(await ui.footer()).not.toContain('──')
+    await ui.unmount()
+  })
+
+  test('041 #8: footerSeparator none drops the rule row', { options: { footerSeparator: 'none' } }, async ($, on) => {
+    await setup($ as never, on as never)
+    const ui = await mountPane($ as never, 'terminal', 100, 80)
+    expect(await ui.footer()).not.toContain('─')
+    await ui.unmount()
+  })
+
+  test('041 #7: a lines-changed chip for the session', async ($, on) => {
+    const session = await setup($ as never, on as never)
+    await $.tool.call({ tool: 'Edit', tool_use_id: 'e1', file_path: '/proj/specs/002-band-hint/plan.md', old_string: 'line one\nline two', new_string: 'line one\nline two changed\nline three' } as never)
+    await completeTurn($ as never)
+    await settleStatus(session)
+    const ui = await mountPane($ as never, 'terminal', 100, 80)
+    expect(await ui.footer()).toContain('±3')
+    await ui.unmount()
+  })
+
+  test('041 #5: a chip that just changed draws a shade lighter, then settles', async ($, on) => {
+    const session = await setup($ as never, on as never)
+    const ui = await mountPane($ as never, 'terminal', 100, 80)
+    const contextChip = () => ui.find({ type: 'Text', text: /6[15]%/ })
+    expect((await contextChip())?.props['backgroundColor']).toBe('#f9e2af')
+    await session.clock.advance(1000)
+    await ($ as unknown as { session: { measure: (e: never) => Promise<unknown> } }).session.measure({
+      context: { window: 200_000, tokens: 130_000, percent: 65 },
+      cost: { usd: 1.2 },
+      rateLimits: [{ kind: 'five_hour', percentUsed: 42, resetsAt: new Date(NOW + 2 * 3600_000 + 1000).toISOString() }],
+      changed: ['rateLimits', 'context', 'cost'],
+    } as never)
+    await session.clock.settle()
+    expect((await contextChip())?.props['backgroundColor']).toBe('#fbe9c3')
+    await session.clock.advance(6000)
+    await session.clock.settle()
+    expect((await contextChip())?.props['backgroundColor']).toBe('#f9e2af')
+    await ui.unmount()
+  })
+})

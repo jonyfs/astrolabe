@@ -1,6 +1,6 @@
 ---
 track: quick # quick | full
-status: active # active | done | abandoned
+status: done # active | done | abandoned
 ---
 
 # Quick spec: Footer like statusline
@@ -17,7 +17,7 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 - [x] T004 #6 Branch and pull request chips link to the remote (P2)
 - [x] T005 #9 `NO_COLOR` drops chip backgrounds and uses the thin separator (P2)
 - [x] T006 #10 The Help tab previews the footer in each icon set (P2)
-- [ ] T007 #1 A `footerLines` option (1 or 3) for statusline's three-line order (P2)
-- [ ] T008 #5 A chip that just changed draws a shade lighter for a few seconds (P3)
-- [ ] T009 #7 A lines-changed chip for the session (P3)
-- [ ] T010 #8 A `footerSeparator` option: solid, thin, none (P3)
+- [x] T007 #1 A `footerLines` option (1 or 3) for statusline's three-line order (P2)
+- [x] T008 #5 A chip that just changed draws a shade lighter for a few seconds (P3)
+- [x] T009 #7 A lines-changed chip for the session (P3)
+- [x] T010 #8 A `footerSeparator` option: solid, thin, none (P3)

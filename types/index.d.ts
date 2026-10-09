@@ -240,6 +240,8 @@ export type SessionStats = {
   context?: { percent: number }
   cost?: number
   git?: GitState
+  /** Lines the session's tools added and removed (041 #7). */
+  lines?: { added: number; removed: number }
   /** How long each ticked task took, from when it became the current one (021), at most 50. */
   taskTimes?: Array<{ dir: string; id: string; ms: number }>
   /** This week's tasks and features done, across sessions (021), copied from $.store for drawing. */

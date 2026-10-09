@@ -118,6 +118,13 @@ const contrastRatio = (a: string, b: string): number => {
 export const chipForeground = (background: string): '#11111b' | '#eff1f5' =>
   contrastRatio(background, '#11111b') >= contrastRatio(background, '#eff1f5') ? '#11111b' : '#eff1f5'
 
+/** A shade lighter (041 #5): a colour mixed toward white by `amount`, for a chip that just changed. */
+export const lighten = (hex: string, amount: number): string => {
+  if (!/^#[0-9a-f]{6}$/i.test(hex)) return hex
+  const mix = (channel: number) => Math.round(channel + (255 - channel) * amount)
+  return `#${[1, 3, 5].map(i => mix(Number.parseInt(hex.slice(i, i + 2), 16)).toString(16).padStart(2, '0')).join('')}`
+}
+
 /** The flavor name an options object picks; `theme` maps to latte or mocha by lightness. */
 export const flavorOf = (options: Readonly<Record<string, unknown>>, isLight: boolean): FlavorName => {
   const name = options['flavor']

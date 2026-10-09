@@ -19,6 +19,8 @@ export type FooterInput = {
   startedAt?: number
   /** Usage points an hour over the session (041 #4). */
   burn?: number
+  /** Lines the session's tools added and removed (041 #7). */
+  lines?: { added: number; removed: number }
   /** The skill running now and the model it runs on, when skillModels picks one (054 #45). */
   skill?: { name: string; model?: string }
   now: number
@@ -142,6 +144,9 @@ const parts = (input: FooterInput): Part[] => {
     const landing = binding === undefined || binding.renewed === true || Number.isNaN(reset) || reset <= now ? undefined : Math.min(100, Math.round(binding.percent + (input.burn * (reset - now)) / 3_600_000))
     out.push({ text: `${icons.burn === '' ? '' : `${icons.burn} `}${Math.round(input.burn)}/h${landing === undefined ? '' : ` → ${landing}%`}`, rank: 5.5, colour: 'peach', ...(landing === undefined ? {} : { level: landing }) })
   }
+  // Lines changed this session (041 #7): what the tools wrote, added and removed.
+  if (input.lines !== undefined && input.lines.added + input.lines.removed > 0)
+    out.push({ text: `±${input.lines.added + input.lines.removed}`, rank: 4.5, colour: 'teal' })
   if (input.startedAt !== undefined && now - input.startedAt >= 60_000) out.push({ text: withIcon(icons.clock, duration(now - input.startedAt)), rank: 6, colour: 'surface1' })
   return out
 }
@@ -176,12 +181,12 @@ export const footerText = (input: FooterInput): string => {
 export const rampOf = (level: number): { colour: ChipColour; mark: string } =>
   level < 60 ? { colour: 'green', mark: '' } : level < 85 ? { colour: 'yellow', mark: '▵' } : { colour: 'red', mark: '▴' }
 
-export type Chip = { key: string; text: string; colour: ChipColour; links?: ReadonlyArray<{ text: string; href: string }> }
+export type Chip = { key: string; text: string; colour: ChipColour; rank?: number; links?: ReadonlyArray<{ text: string; href: string }> }
 
 /** The footer as Powerline chips in statusline's colours (039); the context ramps without a mark. */
 export const footerChips = (input: FooterInput): Chip[] => {
   const { speckit, kept } = fitted(input)
-  const pinned = kept.filter(p => p.first === true).map((p, i) => ({ key: `first-${i}`, text: p.text, colour: p.colour ?? 'red' }))
+  const pinned = kept.filter(p => p.first === true).map((p, i) => ({ key: `first-${i}`, text: p.text, colour: p.colour ?? 'red', rank: p.rank }))
   return [
     ...pinned,
     ...(speckit === '' ? [] : [{ key: 'speckit', text: speckit, colour: 'mauve' as const }]),
@@ -192,8 +197,35 @@ export const footerChips = (input: FooterInput): Chip[] => {
         key: `part-${i}`,
         text: ramp === undefined || isContext ? p.text : `${p.text}${ramp.mark}`,
         colour: ramp?.colour ?? p.colour ?? 'surface1',
+        rank: p.rank,
         ...(p.links === undefined || p.links.length === 0 ? {} : { links: p.links }),
       }
     }),
   ]
+}
+
+/** statusline's three-line order (041 #1): place and git, the Spec Kit work and the skill, the model and the limits. */
+export const footerChipLines = (input: FooterInput): Chip[][] => {
+  const flat = footerChips(input)
+  const ofLine = (line: number) => (chip: Chip) =>
+    line === 0 ? chip.rank === 4 : line === 1 ? chip.key === 'speckit' || chip.rank === 3.5 || chip.rank === 4.5 : chip.rank !== 4 && chip.key !== 'speckit' && chip.rank !== 3.5 && chip.rank !== 4.5
+  return [0, 1, 2].map(line => flat.filter(ofLine(line))).filter(line => line.length > 0)
+}
+
+/** A text's lines: a trailing newline ends no line (041 #7). */
+const linesOf = (text: string): string[] => (text === '' ? [] : text.replace(/(?:\r?\n)+$/, '').split(/\r?\n/))
+
+/** Lines an edit added and removed (041 #7): a multiset diff of the lines, so a line kept once counts on neither side. */
+export const linesChanged = (before: string | undefined, after: string): { added: number; removed: number } => {
+  const counts = new Map<string, number>()
+  for (const line of before === undefined ? [] : linesOf(before)) counts.set(line, (counts.get(line) ?? 0) + 1)
+  let added = 0
+  for (const line of linesOf(after)) {
+    const left = counts.get(line) ?? 0
+    if (left > 0) counts.set(line, left - 1)
+    else added += 1
+  }
+  let removed = 0
+  for (const left of counts.values()) removed += left
+  return { added, removed }
 }

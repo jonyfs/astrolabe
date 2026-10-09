@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import { footerChips, footerText, resetOf, shortModel } from '../../hooks/core/footer'
+import { footerChipLines, footerChips, footerText, linesChanged, resetOf, shortModel } from '../../hooks/core/footer'
 import { iconSet } from '../../hooks/core/icons'
 
 const NOW = Date.UTC(2026, 9, 7, 12, 0)
@@ -102,5 +102,36 @@ describe('the footer (018 FR-001, FR-002)', () => {
     expect(shortModel('claude-haiku-4-5-20251001')).toBe('haiku 4.5')
     expect(shortModel('claude-fable-5-1')).toBe('fable 5.1')
     expect(shortModel('gpt-x')).toBe('gpt-x')
+  })
+})
+
+describe("statusline's three-line order (041 #1)", () => {
+  test('place and git on line 1, the Spec Kit work and the skill on line 2, the model and the limits on line 3', () => {
+    const lines = footerChipLines({ ...full, skill: { name: 'speckit-implement', model: 'claude-sonnet-5-5' }, icons: iconSet('nerd'), columns: 200 })
+    expect(lines).toHaveLength(3)
+    expect(lines[0]).toHaveLength(1)
+    expect(lines[0]![0]?.text).toContain('main')
+    expect(lines[1]!.map(c => c.text).join('')).toContain('◆ 002')
+    expect(lines[1]!.map(c => c.text).join('')).toContain('⟳ implement')
+    expect(lines[2]!.map(c => c.text).join('')).toContain('7d 83%')
+    expect(lines[2]!.map(c => c.text).join('')).toContain('opus 5.5')
+  })
+
+  test('without git the place line is dropped, not left empty', () => {
+    expect(footerChipLines({ ...full, git: undefined, icons: iconSet('nerd'), columns: 200 })).toHaveLength(2)
+  })
+})
+
+describe('lines changed (041 #7)', () => {
+  test('linesChanged counts the added and removed lines', () => {
+    expect(linesChanged('a\nb', 'a\nc\nd')).toEqual({ added: 2, removed: 1 })
+    expect(linesChanged(undefined, 'a\nb\n')).toEqual({ added: 2, removed: 0 })
+    expect(linesChanged('a\nb', 'a\nb')).toEqual({ added: 0, removed: 0 })
+    expect(linesChanged('a', '')).toEqual({ added: 0, removed: 1 })
+  })
+
+  test('a lines part shows ±N in the footer', () => {
+    expect(footerText({ ...full, lines: { added: 3, removed: 1 }, icons: iconSet('ascii'), columns: 200 })).toContain('±4')
+    expect(footerText({ ...full, icons: iconSet('ascii'), columns: 200 })).not.toContain('±')
   })
 })

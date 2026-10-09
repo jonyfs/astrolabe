@@ -50,7 +50,7 @@ import {
   type Decision,
   type Question,
 } from './core/governor'
-import { chipForeground, CHIPS, FLAVORS, flavorOf, isThemeKeys, STATUS_ROLE, themeOf, type ThemeRole } from './core/theme'
+import { chipForeground, CHIPS, FLAVORS, flavorOf, isThemeKeys, lighten, STATUS_ROLE, themeOf, type ThemeRole } from './core/theme'
 import { capDiff, recapLine, recapOf, tasksDiff } from './core/summary'
 import { styleSections } from './core/style'
 import { parsePullList, prOpened, pullAction, PR_LIST_FIELDS } from './core/pulls'
@@ -71,7 +71,7 @@ import { askTree } from './surfaces/ask'
 import { dashboardSections, dashboardTree } from './surfaces/dashboard'
 import { burnRate, dial, kpiChips, kpiRows, kpisMarkdown, phaseBars, sparkline, trendRows, usageChart } from './core/dashboard'
 import { addDay, addWeek, dayKey, estimateLeft, lastWeeks, pastReset, slowest, updateFeatureDurations, weekKey, weekdays, type Days, type FeatureDuration, type FeatureDurations, type Weeks } from './core/history'
-import { footerChips, footerText, type FooterInput } from './core/footer'
+import { footerChipLines, footerChips, footerText, linesChanged, type FooterInput } from './core/footer'
 import { branchWebUrl, parseGitStatus, parsePullRequest, remoteWebUrl } from './core/git-status'
 import { iconSet, iconsFor } from './core/icons'
 import { guessLang, langOf, paneLabelWidth, t, type Lang, type TextKey } from './core/i18n'
@@ -201,7 +201,7 @@ const DOC_LINKS = [
   { name: 'gstack', url: 'https://github.com/garrytan/gstack' },
   { name: 'Astrolabe', url: 'https://github.com/jonyfs/astrolabe#readme' },
 ] as const
-const OPTION_NAMES = ['preset', 'flavor', 'icons', 'language', 'bandDensity', 'checkUpdates', 'governUsage', 'observeUsage', 'askOnLimit', 'pullRequest', 'images', 'autoReload', 'footerIn', 'accessible', 'claudeContext', 'featureSummary', 'humanize', 'terse', 'skillModels'] as const
+const OPTION_NAMES = ['preset', 'flavor', 'icons', 'language', 'bandDensity', 'checkUpdates', 'governUsage', 'observeUsage', 'askOnLimit', 'pullRequest', 'images', 'autoReload', 'footerIn', 'footerLines', 'footerSeparator', 'accessible', 'claudeContext', 'featureSummary', 'humanize', 'terse', 'skillModels'] as const
 const WELCOMED = 'welcomed'
 const ABOUT: Readonly<Record<PaneTab, TextKey>> = {
   specs: 'help.specs',
@@ -244,7 +244,7 @@ const PR_TTL_MS = 300_000
 
 // The session's numbers between writes (018): a tool call costs no state write; they are
 // written at the end of each main turn and at each measure. A reload loses one turn's counts.
-const live = { toolCalls: 0, drifts: 0, driftsById: {} as Record<string, number>, agentsRun: 0, agentsQueued: 0, model: undefined as string | undefined, effort: undefined as string | undefined }
+const live = { toolCalls: 0, drifts: 0, driftsById: {} as Record<string, number>, agentsRun: 0, agentsQueued: 0, linesAdded: 0, linesRemoved: 0, model: undefined as string | undefined, effort: undefined as string | undefined }
 // The footer's room: the last width a drawing saw, less the "⚠ astrolabe: " the terminal adds.
 let columnsSeen = 120
 let surfaceSeen: string | null = 'terminal'
@@ -314,6 +314,7 @@ async function footerInput(
       ...(stats?.model === undefined ? {} : { model: stats.model }),
       ...(stats?.effort === undefined ? {} : { effort: stats.effort }),
       ...(stats?.git === undefined ? {} : { git: stats.git }),
+      ...(stats?.lines === undefined ? {} : { lines: stats.lines }),
       ...(stats === undefined ? {} : { startedAt: stats.startedAt }),
       ...((rate => (rate === undefined ? {} : { burn: rate }))(stats === undefined ? undefined : burnRate(stats.series))),
       ...(state.runningSkill === undefined
@@ -327,7 +328,40 @@ async function footerInput(
 
 // Where the footer goes (035): the pane (the status entry keeps the lead), the status entry, or both.
 let footerIn: 'pane' | 'status' | 'both' = 'pane'
+// The pane footer's rows (041 #1): one, or statusline's three lines.
+let footerLines: '1' | '3' = '1'
+// The rule above the pane footer's chips (041 #8).
+let footerSeparator: 'solid' | 'thin' | 'none' = 'solid'
+// A chip that just changed draws a shade lighter for a few seconds (041 #5), then settles.
+const FRESH_MS = 5000
+const FRESH_SHARE = 0.25
+const chipAges = new Map<string, { text: string; at?: number }>()
+let freshDeadline: number | undefined
 let noColor = false
+
+/** Whether a chip's text just changed, or is still within a few seconds of its last change (041 #5). */
+const freshChip = (key: string, text: string, now: number): boolean => {
+  const entry = chipAges.get(key)
+  const changed = entry !== undefined && entry.text !== text
+  chipAges.set(key, { text, at: changed ? now : entry?.at })
+  return changed || (entry?.at !== undefined && now - entry.at < FRESH_MS)
+}
+
+/** Redraws the pane once the freshest chip settles (041 #5). */
+const scheduleFresh = ($: EngineInterface, now: number): void => {
+  const at = now + FRESH_MS
+  if (freshDeadline !== undefined && freshDeadline <= at) return
+  freshDeadline = at
+  $.clock.after(Math.max(0, at - now), () => {
+    freshDeadline = undefined
+    try {
+      $.ui.invalidate('ui.render')
+    } catch (error) {
+      $.ui.log(`astrolabe: ${error instanceof Error ? error.message : String(error)}`, { to: 'debug' })
+    }
+  })
+}
+
 // The options' defaults from plugin.json, read once at session start (052 #39).
 let defaultsSeen: Record<string, string | number | boolean> = {}
 let bandDensity: BandDensity = 'full'
@@ -348,6 +382,9 @@ async function flushStats($: EngineInterface, change: (s: SessionStats) => Sessi
         : { driftsByFeature: Object.fromEntries([...new Set([...Object.keys(before.driftsByFeature ?? {}), ...Object.keys(live.driftsById)])].map(id => [id, (before.driftsByFeature?.[id] ?? 0) + (live.driftsById[id] ?? 0)])) }),
       agentsRun: before.agentsRun + live.agentsRun,
       agentsQueued: before.agentsQueued + live.agentsQueued,
+      ...(live.linesAdded + live.linesRemoved === 0
+        ? {}
+        : { lines: { added: (before.lines?.added ?? 0) + live.linesAdded, removed: (before.lines?.removed ?? 0) + live.linesRemoved } }),
       ...(live.model === undefined ? {} : { model: live.model }),
       ...(live.effort === undefined ? {} : { effort: live.effort }),
     }
@@ -359,6 +396,8 @@ async function flushStats($: EngineInterface, change: (s: SessionStats) => Sessi
       live.driftsById = {}
       live.agentsRun = 0
       live.agentsQueued = 0
+      live.linesAdded = 0
+      live.linesRemoved = 0
       return
     }
   }
@@ -2189,6 +2228,8 @@ export const register: Register = (on, options) => {
   featureSummary = options['featureSummary'] === true
   iconsOption = accessible ? 'ascii' : options['icons']
   footerIn = options['footerIn'] === 'status' || options['footerIn'] === 'both' ? options['footerIn'] : 'pane'
+  footerLines = options['footerLines'] === '3' ? '3' : '1'
+  footerSeparator = options['footerSeparator'] === 'thin' || options['footerSeparator'] === 'none' ? options['footerSeparator'] : 'solid'
   bandDensity = options['bandDensity'] === 'compact' || options['bandDensity'] === 'minimal' ? options['bandDensity'] : 'full'
   autoReload = options['autoReload'] !== false
   imagesOption = options['images']
@@ -2287,6 +2328,9 @@ export const register: Register = (on, options) => {
     defaultsSeen = await defaults($).catch(() => ({}))
     // NO_COLOR (041 #9): no chip backgrounds, the thin separator. Read once, here.
     noColor = ((await $.env.get('NO_COLOR').catch(() => undefined)) ?? '') !== ''
+    // A new session starts the chips' ages over (041 #5).
+    chipAges.clear()
+    freshDeadline = undefined
     const fs = fsOf($)
     const now = await $.clock.now()
     const started = await guarded($, previous => reconcileStart(fs, e.cwd, previous, now))
@@ -2568,7 +2612,15 @@ export const register: Register = (on, options) => {
     const result = await next(e)
     // The Edit's own strings say what it ticked, so a box ticked elsewhere is not blamed on it.
     const output = result as { isError?: boolean } | undefined
-    if (output?.isError !== true) gitNeedsRefresh = true
+    if (output?.isError !== true) {
+      gitNeedsRefresh = true
+      // Lines changed this session (041 #7).
+      if (typeof e.old_string === 'string' && typeof e.new_string === 'string') {
+        const changed = linesChanged(e.old_string, e.new_string)
+        live.linesAdded += changed.added
+        live.linesRemoved += changed.removed
+      }
+    }
     await touchFile($, preset, e.file_path, true, output?.isError === true ? undefined : { before: e.old_string, after: e.new_string })
     if (isUnderSpecify(e.file_path)) await syncNow($)
     return result
@@ -2576,7 +2628,10 @@ export const register: Register = (on, options) => {
 
   on('tool.call', { tool: 'Write' }, async ($, e, next) => {
     const result = await next(e)
-    if ((result as { isError?: boolean } | undefined)?.isError !== true) gitNeedsRefresh = true
+    if ((result as { isError?: boolean } | undefined)?.isError !== true) {
+      gitNeedsRefresh = true
+      if (typeof e.content === 'string') live.linesAdded += linesChanged(undefined, e.content).added
+    }
     await touchFile($, preset, e.file_path, true)
     if (isUnderSpecify(e.file_path)) await syncNow($)
     return result
@@ -2584,7 +2639,10 @@ export const register: Register = (on, options) => {
 
   on('tool.call', { tool: 'NotebookEdit' }, async ($, e, next) => {
     const result = await next(e)
-    if ((result as { isError?: boolean } | undefined)?.isError !== true) gitNeedsRefresh = true
+    if ((result as { isError?: boolean } | undefined)?.isError !== true) {
+      gitNeedsRefresh = true
+      if (typeof e.new_source === 'string') live.linesAdded += linesChanged(undefined, e.new_source).added
+    }
     await touchFile($, preset, e.notebook_path, false)
     return result
   }).catch(($, e, next) => next(e))
@@ -2969,15 +3027,26 @@ export const register: Register = (on, options) => {
       const set = iconsFor(iconsOption, e.surface)
       // statusline's colours (039); text only in the accessible mode and with ascii icons.
       const palette = CHIPS[flavorOf(optionsSeen, isLightTheme)]
-      const chips =
-        accessible || set === 'ascii' || noColor
-          ? undefined
-          : footerChips(input).map(chip => {
-              const bg = palette[chip.colour] ?? palette['surface1']!
-              return { key: chip.key, text: chip.text, bg, fg: chipForeground(bg), ...(chip.links === undefined ? {} : { links: chip.links }) }
-            })
-      return { text: footerText(input), columns, pad: Math.max(0, pad), ...(chips === undefined ? {} : { chips, arrow: set === 'nerd' ? '\ue0b0' : '' }) }
+      const grouped = accessible || set === 'ascii' || noColor ? undefined : footerLines === '3' ? footerChipLines(input) : [footerChips(input)]
+      let anyFresh = false
+      const chips = grouped?.map(row =>
+        row.map(chip => {
+          const plain = palette[chip.colour] ?? palette['surface1']!
+          const bg = freshChip(chip.key, chip.text, input.now) ? lighten(plain, FRESH_SHARE) : plain
+          if (bg !== plain) anyFresh = true
+          return { key: chip.key, text: chip.text, bg, fg: chipForeground(bg), ...(chip.links === undefined || chip.links.length === 0 ? {} : { links: chip.links }) }
+        }),
+      )
+      if (anyFresh) scheduleFresh($, input.now)
+      return {
+        text: footerText(input),
+        columns,
+        pad: Math.max(0, pad),
+        ...(chips === undefined ? {} : { chips, separator: footerSeparator, arrow: set === 'nerd' ? '\ue0b0' : '' }),
+      }
     }
+    // The rows the footer holds below the body: its rule, its chip rows, and one of slack (038, 041).
+    const footerReserve = footerIn === 'status' ? 1 : (footerSeparator === 'none' ? 0 : 1) + (footerLines === '3' ? 3 : 1) + 1
     // The body scrolls inside the pane and the footer stays on the last rows (038).
     const bodyRows = e.props.scroll?.bodyRows ?? 24
     const offset = pane.scroll?.tab === pane.tab ? pane.scroll.offset : 0
@@ -3002,7 +3071,7 @@ export const register: Register = (on, options) => {
     }
     if (pane.tab === 'prs') {
       const units = pullsBody($, e, pane, stats)
-      const { win, pad, nav } = navFor(units.map(u => u.rows), bodyRows - 1 - (footerIn === 'status' ? 1 : 3))
+      const { win, pad, nav } = navFor(units.map(u => u.rows), bodyRows - 1 - footerReserve)
       const body = (
         <Box key="astrolabe-prs" flexDirection="column">
           {units.slice(win.start, win.end).map(u => u.node)}
@@ -3012,7 +3081,7 @@ export const register: Register = (on, options) => {
     }
     if (pane.tab === 'config') {
       const units = configBody($, e, pane)
-      const { win, pad, nav } = navFor(units.map(u => u.rows), bodyRows - 1 - (footerIn === 'status' ? 1 : 3))
+      const { win, pad, nav } = navFor(units.map(u => u.rows), bodyRows - 1 - footerReserve)
       const body = (
         <Box key="astrolabe-config" flexDirection="column">
           {units.slice(win.start, win.end).map(u => u.node)}
@@ -3055,7 +3124,7 @@ export const register: Register = (on, options) => {
           : pane.tab === 'tasks' && stats?.tasksDiff !== undefined && stats.tasksDiff.dir === state.active?.dir
             ? capDiff(stats.tasksDiff.text, currentLang()).split('\n').length
             : 0)
-      const room = bodyRows - 1 - headerRows - (footerIn === 'status' ? 1 : 3)
+      const room = bodyRows - 1 - headerRows - footerReserve
       const { win, pad, nav } = navFor(rows.map(() => 1), room)
       const footer = await footerFor(pad)
       return paneTree({ Box, Text, Button }, pane.tab, rows.slice(win.start, win.end), tokens, select, undefined, currentLang(), header, footer, nav, extras)
@@ -3110,7 +3179,7 @@ export const register: Register = (on, options) => {
       paneLabelWidth(currentLang()),
     )
     // The Dashboard scrolls by section, so a chart is never cut in half (038).
-    const { win, pad, nav } = navFor(sections.map(section => section.rows), bodyRows - 1 - (footerIn === 'status' ? 1 : 3))
+    const { win, pad, nav } = navFor(sections.map(section => section.rows), bodyRows - 1 - footerReserve)
     const body = dashboardTree({ Box: elements.Box, Text: elements.Text }, sections.slice(win.start, win.end))
     return paneTree({ Box, Text, Button }, pane.tab, rows, tokens, select, body, currentLang(), [], await footerFor(pad), nav, extras)
   })

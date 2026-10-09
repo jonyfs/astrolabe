@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import { chipForeground, CHIPS, COLORBLIND_MARKS, FLAVORS, flavorOf, isThemeKeys, ROLES, STATUS_ROLE, themeOf } from '../../hooks/core/theme'
+import { chipForeground, CHIPS, COLORBLIND_MARKS, FLAVORS, flavorOf, isThemeKeys, lighten, ROLES, STATUS_ROLE, themeOf } from '../../hooks/core/theme'
 
 describe('theme tokens (FR-009)', () => {
   test('flavors, each with every role as #rrggbb', () => {
@@ -62,6 +62,15 @@ describe('contrast (052 #48, 054 #74)', () => {
       expect(COLORBLIND_MARKS).toEqual({ done: '✓', current: '▲', pending: '○', blocked: '✖' })
       expect(new Set([FLAVORS.colorblind.done, FLAVORS.colorblind.current, FLAVORS.colorblind.blocked]).size).toBe(3)
     })
+  })
+
+  test('lighten mixes a colour toward white, staying #rrggbb (041 #5)', () => {
+    expect(lighten('#45475a', 0.25)).toBe('#747583')
+    expect(lighten(CHIPS.mocha.sapphire!, 0.25)).toBe('#97d5f1')
+    expect(lighten(CHIPS.mocha.yellow!, 0.25)).toBe('#fbe9c3')
+    expect(lighten(CHIPS.latte.red!, 0.25)).toBe('#dd4b6b')
+    expect(lighten('#ffffff', 0.25)).toBe('#ffffff')
+    expect(lighten('theme', 0.25)).toBe('theme')
   })
 
   test('footer chip text chooses the stronger contrast in every flavor (054 #75)', () => {
