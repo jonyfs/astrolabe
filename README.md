@@ -7,7 +7,7 @@ updates, and a status entry with your fullest usage window.
 
 ![Astrolabe in a 180-column terminal](docs/images/overview-180.svg)
 
-> **Version 0.8.1.** Every image in this README is a capture of the real mod running in Claude
+> **Version 0.116.0.** Every image in this README is a capture of the real mod running in Claude
 > Code 2.1.292, made with `scripts/capture/scene.sh` in the demo project
 > [docs/demo/](docs/demo/) (see [How the images are made](#how-the-images-are-made)).
 
@@ -241,8 +241,8 @@ The band is the row directly above the prompt (the first row in the image at the
 |---|---|---|
 | Id and name | `◆ 002 band-hint` | The active feature, from `specs/002-band-hint/`. A `~` before the id means the feature was guessed, as in the status entry. |
 | The rail | `constitution ● specify ● … implement ◐` | The six Spec Kit steps in order. `●` is finished, `◐` is the step the feature is in now, `○` is still ahead. The constitution is `●` once it is ratified; while it is missing or still the template it is `◐` and every later step is `○`. When a spec still has `[NEEDS CLARIFICATION` after its plan exists, the current step turns red and shows `?` instead of `◐`. |
-| `…` after a mark | `plan ◐…` | A Spec Kit skill for that step is running in this turn. |
-| The bar | `███████░░░` | Ten cells, one per tenth of the tasks ticked, rounded down. It appears once `tasks.md` has tasks. |
+| `…` after a mark | `plan ◐…` | A Spec Kit skill for that step is running in this turn. The dots cycle while it runs; `accessible` keeps them still. |
+| The bar | `███████░░░` | Ten cells, one per tenth of the tasks ticked, rounded down. It appears once `tasks.md` has tasks. Its color follows the share left: green from two thirds ticked, peach from a third, red before that. |
 | The count | `9/20 45%` | Ticked tasks, all tasks, and the percentage rounded down. |
 | Sparkline | `▂▃▅▆` | The deciding usage window over its last 12 readings, one block per reading, from 0% (`▁`) to 100% (`█`). It shows once there are 3 readings, on a band of 70 columns or more. |
 | Update buttons | `updates: [ gstack 1.91.33.0 ]` | A second row when something has a newer version. See [Update notices](#update-notices). |
@@ -260,6 +260,9 @@ current step and the count (`◆ 002  ◐ implement 14/31 45%`), then the rail a
 alone (`◆ 002  ◐ implement`), then `◆ 002`. The `bandDensity` option starts lower: `compact` at the
 current step and the count, `minimal` at the step alone. A `+2` after the name counts the other
 features in progress, and `⑂ name` names the linked worktree this session runs in or, from the main checkout, the worktree where the active feature is being worked on.
+
+After ten minutes with nothing running and nothing typed, the band dims to one line: the id and
+the step (`◆ 002  ◐ implement`). The next activity brings it back.
 
 On the next-command row, the run button is where the focus starts, so Enter runs it once the band
 has the keyboard, and with the pointer on it a line says why it is next (`the plan is ready: break
@@ -413,8 +416,8 @@ the tasks left. It disappears as soon as you type.
 
 ## Options
 
-Seven options appear in Claude Code's config menu (`/config`, then Astrolabe). Changing one
-reloads the mod right away.
+Twenty-one options appear in Claude Code's config menu (`/config`, then Astrolabe). Changing
+one reloads the mod right away.
 
 | Option | Values | Default | What it changes |
 |---|---|---|---|
@@ -433,6 +436,8 @@ reloads the mod right away.
 | `accessible` | `true`, `false` | `false` | Text only, for screen readers and plain terminals: ASCII icons, charts as text, no hover styles on the band, no animated dial and no pictures. |
 | `bandDensity` | `full`, `compact`, `minimal` | `full` | How much the band shows: the rail with step names when there is room, the current step and the count, or the id and the step. |
 | `footerIn` | `pane`, `status`, `both` | `pane` | Where the footer goes: the bottom of the `/astrolabe` pane (the status entry keeps the Spec Kit part and the deciding window), the status entry, or both. |
+| `footerLines` | `1`, `3` | `1` | How the pane's footer draws its chips: one row, or three in statusline's order (place and git, then the Spec Kit work and the skill, then the model and the limits). |
+| `footerSeparator` | `solid`, `thin`, `none` | `solid` | The rule above the pane's footer: a solid line, a thin one, or none. |
 | `autoReload` | `true`, `false` | `true` | After a turn, when the Astrolabe on disk is newer than the one running (an install from a local clone, an update), run `/reload-plugins` once so the new version loads. Off, a toast says to run it. |
 | `images` | `auto`, `on`, `off` | `auto` | Draw the Dashboard's usage chart as a picture. `auto` does on kitty and Ghostty outside tmux. |
 | `pullRequest` | `true`, `false` | `false` | Show the branch's open pull request and its checks in the footer, from `gh`. See [The footer in place of a statusline](#the-footer-in-place-of-a-statusline). |
@@ -975,6 +980,7 @@ claude plugin validate .
 claude plugin test .
 sh scripts/fetch-engine-types.sh          # once: the engine's declarations for the type check
 npx -p typescript@5 tsc -p .
+sh scripts/check-readme-sync.sh          # the README against the version, the options and the commands
 ```
 
 The type check needs the declarations Claude Code writes for mods. They are not part of the
@@ -994,8 +1000,9 @@ git tag -a v0.6.0 -m "Astrolabe v0.6.0"
 git push origin v0.6.0
 ```
 
-The release workflow checks the tag against `plugin.json`, runs validation, tests and the type
-check again on Ubuntu, macOS and Windows, and creates the GitHub release with generated notes.
+The release workflow checks the tag against `plugin.json`, runs validation, tests, the type
+check and the README guard again on Ubuntu, macOS and Windows, and creates the GitHub release
+with generated notes.
 A tag that does not match never produces a release.
 
 Installs follow `main`: the repository is its own marketplace, and `main` changes only through
