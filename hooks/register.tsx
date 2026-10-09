@@ -2687,7 +2687,10 @@ export const register: Register = (on, options) => {
     const sessionStats = (await $.state.get(SESSION)).value
     // The linked worktree this session runs in (054 #54), else the active feature's work in another one (042 #18).
     const elsewhere = sessionStats?.git?.worktree ?? sessionStats?.worktrees?.find(w => w.id === value?.active?.id)?.name
-    const base = value === undefined ? [] : bandSegments(value, e.props.bodyColumns, { density: bandDensity, ...(elsewhere === undefined ? {} : { worktree: elsewhere }) })
+    // After 10 idle minutes the band dims to one line (042 #19).
+    const lastActivity = sessionStats?.series?.at(-1)?.at ?? sessionStats?.startedAt
+    const idle = value?.runningSkill === undefined && lastActivity !== undefined && (await $.clock.now()) - lastActivity > 600_000
+    const base = value === undefined ? [] : bandSegments(value, e.props.bodyColumns, { density: idle ? 'minimal' : bandDensity, ...(elsewhere === undefined ? {} : { worktree: elsewhere }) })
     // The usage sparkline (022 #25): the last readings of the binding window, on a wide band only.
     const series = sessionStats?.series ?? []
     const segments =
@@ -2697,7 +2700,9 @@ export const register: Register = (on, options) => {
     const updates = (await $.state.get(UPDATES)).value ?? { items: [] }
     const command = value?.nextCommand
     if (segments.length === 0 && updates.items.length === 0 && command === undefined) return next(e)
-    const { Box, Text, Button } = $.ui.resolve(e)
+    const elements = $.ui.resolve(e)
+    const { Box, Text, Button } = elements
+    const bandElements = { Box, Text, ...('Client' in elements ? { Client: elements.Client } : {}) }
     const buttons = updates.items.map(item => ({
       key: `update-${item.id}`,
       label: updates.running === item.id ? `${updateLabel(item, false)}…` : updateLabel(item, updates.confirming === item.id),
@@ -2706,7 +2711,7 @@ export const register: Register = (on, options) => {
     return (
       <Box flexDirection="column">
         {segments.length > 0 && bandRow(
-          { Box, Text },
+          bandElements,
           segments,
           tokens,
           accessible ? [] : stepCards(value?.features ?? [], currentLang()),

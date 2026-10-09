@@ -6,8 +6,12 @@ import { stepOf, type Segment } from '../core/band'
 import type { Tokens } from '../core/theme'
 import { fitUpdateButtons } from '../core/updates'
 
+type BandElements = Pick<ElementTable<'terminal' | 'desktop'>, 'Box' | 'Text'> & {
+  Client?: ElementTable<'terminal'>['Client']
+}
+
 export const bandRow = (
-  { Box, Text }: Pick<ElementTable<'terminal' | 'desktop'>, 'Box' | 'Text'>,
+  { Box, Text, Client }: BandElements,
   segments: readonly Segment[],
   tokens: Tokens,
   /** One card per rail step, shown while the pointer is on that step (024 #10). */
@@ -21,6 +25,10 @@ export const bandRow = (
   const row = (
     <Box key="astrolabe-band" flexDirection="row">
       {segments.map(segment => {
+        // The running ellipsis animates on the renderer (042 #12); the text fallback stays for the terminal.
+        if (segment.key.startsWith('running-') && Client !== undefined) {
+          return <Client key={segment.key} module="./dots-client.tsx" props={{ color: tokens[segment.role] }} />
+        }
         const step = stepOf(segment)
         if (segment.key === 'others' && hover) {
           return (

@@ -59,6 +59,13 @@ const step = (feature: Feature): Segment => ({
   role: feature.phase === 'done' ? 'done' : 'current',
 })
 
+/** The bar's fill color by the share left (042 #16): red when mostly left, green when nearly done. */
+const barRole = (feature: Feature): ThemeRole => {
+  if (feature.total === 0) return 'barFill'
+  const share = feature.done / feature.total
+  return share >= 2 / 3 ? 'done' : share >= 1 / 3 ? 'current' : 'blocked'
+}
+
 const progress = (feature: Feature, withBar: boolean): Segment[] => {
   if (feature.total === 0) return []
   const filled = Math.floor((feature.done * BAR_CELLS) / feature.total)
@@ -66,7 +73,7 @@ const progress = (feature: Feature, withBar: boolean): Segment[] => {
   const bar: Segment[] = withBar
     ? [
         gap('bar', '  '),
-        { key: 'bar-fill', text: '█'.repeat(filled), role: 'barFill' },
+        { key: 'bar-fill', text: '█'.repeat(filled), role: barRole(feature) },
         { key: 'bar-empty', text: '░'.repeat(BAR_CELLS - filled), role: 'barEmpty' },
       ]
     : []

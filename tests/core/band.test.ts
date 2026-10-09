@@ -92,17 +92,25 @@ describe('width degradation (FR-006)', () => {
 })
 
 describe('segments carry keys and theme roles', () => {
-  test('marks use done/current/pending, the bar uses barFill/barEmpty', () => {
+  test('marks use done/current/pending, the bar fill is colored by the share left (042 #16)', () => {
     const segs = bandSegments(state(feature('implement')), 200)
     const role = (key: string) => segs.find(x => x.key === key)?.role
     expect([role('mark-plan'), role('mark-implement'), role('bar-fill'), role('bar-empty'), role('id')]).toEqual([
       'done',
       'current',
-      'barFill',
+      'current',
       'barEmpty',
       'accent',
     ])
     expect(bandSegments(state(feature('plan', 0, 0)), 200).find(x => x.key === 'mark-tasks')?.role).toBe('pending')
+  })
+
+  test('#16: the bar fill is green when nearly done, red when mostly left', () => {
+    const fill = (done: number, total: number) => bandSegments(state(feature('implement', done, total)), 200).find(x => x.key === 'bar-fill')?.role
+    expect(fill(20, 30)).toBe('done')
+    expect(fill(19, 30)).toBe('current')
+    expect(fill(10, 30)).toBe('current')
+    expect(fill(9, 30)).toBe('blocked')
   })
 })
 
