@@ -1,4 +1,11 @@
 <!--
+Sync Impact Report (1.0.2)
+- Version change: 1.0.1 → 1.0.2 (PATCH: wording only)
+- Modified principles: II. Complete Documentation With Working Examples. The rule is
+  unchanged; the principle now names the CI guard that enforces it.
+- Templates: no change needed.
+- Source: specs/056-readme-sync.
+
 Sync Impact Report (1.0.1)
 - Version change: 1.0.0 → 1.0.1 (PATCH: wording only)
 - Modified principles: V. Disk Is the Truth, Events Are Hints. The rule is unchanged
@@ -80,7 +87,10 @@ complete.
 - The statusline-to-mod tutorial in `docs/tutorial/` MUST pair each step with the real file
   in jonyfs/statusline and the equivalent file in this repository.
 - A pull request that adds or changes behaviour MUST update the README in the same pull
-  request. A reviewer rejects it otherwise.
+  request. A reviewer rejects it otherwise, and CI fails it first: the README guard
+  (`scripts/check-readme-sync.sh`, run on every pull request and push) turns a README
+  that misses the current version line, a `userConfig` option, or an `/astrolabe`
+  subcommand into a red check.
 
 Rationale: users install from a one-line command and never read the source. Examples are
 the contract they rely on.
@@ -247,4 +257,4 @@ Amendments are made only through `/speckit-constitution`, with a written rationa
 Sync Impact Report. Versioning: MAJOR for removing or redefining a principle, MINOR for
 adding a principle or section or materially expanding one, PATCH for wording only.
 
-**Version**: 1.0.1 | **Ratified**: 2026-10-07 | **Last Amended**: 2026-10-07
+**Version**: 1.0.2 | **Ratified**: 2026-10-07 | **Last Amended**: 2026-10-09

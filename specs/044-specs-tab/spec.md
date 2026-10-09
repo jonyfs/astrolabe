@@ -17,7 +17,7 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 - [x] T004 #34 A warning when feature.json names a done feature while the branch names an active one (P1)
 - [x] T005 #36 Task counts on every spec (P1)
 - [x] T006 #35 A key that opens the selected spec.md (P2)
-- [ ] T007 #38 A cursor over specs; Enter makes one active (writes feature.json) (P2) — deferred: writing feature.json breaks the rule that a session changes nothing on disk; needs an owner decision
+- [ ] T007 #38 A cursor over specs; Enter pressed once selects, pressed again confirms, and only the confirmed press writes `feature.json` — the only disk write, named up front (P2)
 - [x] T008 #39 Chips for open checklist items and clarifications (P2)
 - [ ] T009 #37 The age of each spec's last change (P3)
 - [ ] T010 #40 A roadmap view of items not yet specs (P3)
