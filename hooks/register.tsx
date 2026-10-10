@@ -1130,19 +1130,6 @@ function paneHeader(
     if (pane.tab === 'tasks' && Code !== undefined && stats?.tasksDiff !== undefined && stats.tasksDiff.dir === active?.dir) {
       out.push(<Code source={capDiff(stats.tasksDiff.text, currentLang())} format="diff" path={stats.tasksDiff.file} />)
     }
-    // gstack's skills on the active feature, when gstack is installed (051).
-    // The active feature's actions (051, 055): the advisor's review, and gstack's skills when installed.
-    if (pane.tab === 'specs' && active !== undefined && Button !== undefined) {
-      const about = `${active.id} ${active.name}`
-      const feature = state.features.find(f => f.dir === active.dir)
-      out.push(
-        <elements.Box key="astrolabe-gstack" flexDirection="row">
-          {feature !== undefined && <Button key="advisor-review" label={t(currentLang(), 'advisor.button')} plain onPress={() => askAdvisor($, feature)} />}
-          {stats?.gstack === true &&
-            GSTACK_SKILLS.map(skill => <Button key={`gstack-${skill}`} label={skill} plain onPress={() => void $.clock.after(0, () => void runSkill($, skill, about))} />)}
-        </elements.Box>,
-      )
-    }
     // A run of [P] tasks offered as one prompt to subagents (054 #89).
     if (pane.tab === 'tasks' && active !== undefined && Button !== undefined) {
       const open = (state.activeTasks ?? []).filter(task => !task.isDone)
@@ -2971,7 +2958,23 @@ export const register: Register = (on, options) => {
     const activeOpen = state.features.find(f => f.dir === state.active?.dir)
     const inProgress = state.features.filter(f => f.phase !== 'done' && f.phase !== 'abandoned').length
     const pullCount = stats?.pulls?.rows.length
+    // The advisor review and gstack's skills, under the spec selected in the list (051, 055).
+    const reviewed = state.features.find(f => `feature-${f.id}` === selectedSpecRow)
+    const rowButtons: Array<{ key: string; label: string; onPress: () => void }> =
+      pane.tab === 'specs' && reviewed !== undefined && 'Button' in $.ui.resolve(e)
+        ? [
+            { key: 'advisor-review', label: t(currentLang(), 'advisor.button'), onPress: () => askAdvisor($, reviewed) },
+            ...(stats?.gstack === true
+              ? GSTACK_SKILLS.map(skill => ({
+                  key: `gstack-${skill}`,
+                  label: skill,
+                  onPress: () => void $.clock.after(0, () => void runSkill($, skill, `${reviewed.id} ${reviewed.name}`)),
+                }))
+              : []),
+          ]
+        : []
     const extras = {
+      rowButtons,
       badges: {
         ...(inProgress === 0 ? {} : { specs: String(inProgress) }),
         ...(activeOpen === undefined || activeOpen.total - activeOpen.done <= 0 ? {} : { tasks: String(activeOpen.total - activeOpen.done) }),
@@ -3117,7 +3120,7 @@ export const register: Register = (on, options) => {
       // Rows the header takes: the filter, the summary's lines and links, the diff's lines.
       const headerRows =
         ('Input' in $.ui.resolve(e) && pane.tab !== 'session' ? 1 + (filterCount === undefined ? 0 : 1) : 0) +
-        (pane.tab === 'specs' && state.active !== undefined && 'Button' in $.ui.resolve(e) ? 1 : 0) +
+        (rowButtons.length > 0 ? 1 : 0) +
         (pane.tab === 'specs'
           ? state.activeSummary === undefined
             ? 0
