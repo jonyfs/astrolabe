@@ -144,6 +144,24 @@ const duration = (ms: number) => {
 }
 
 /** The KPI rows, label then value; a value the session does not have is left out. */
+/**
+ * The KPI rows as text lines (052 #32): one row each, or from 100 columns two to a line, in
+ * reading order, each half cut to its column.
+ */
+export const kpiLines = (kpis: ReadonlyArray<[string, string]>, columns: number | undefined, labelWidth: number): string[] => {
+  const cell = ([label, value]: [string, string]) => `${label.padEnd(labelWidth)}${value}`
+  if (columns === undefined || columns < 100) return kpis.map(cell)
+  const half = Math.floor(columns / 2)
+  const fit = (text: string) => [...text].slice(0, half - 2).join('').padEnd(half)
+  const out: string[] = []
+  for (let i = 0; i < kpis.length; i += 2) {
+    const left = kpis[i]!
+    const right = kpis[i + 1]
+    out.push(right === undefined ? cell(left) : `${fit(cell(left))}${cell(right)}`)
+  }
+  return out
+}
+
 export const kpiRows = (
   stats: SessionStats,
   binding: { kind: string; percent: number; resetsAt?: string } | undefined,

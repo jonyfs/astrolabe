@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'claude-code/testing'
 
 import { toText } from '../../hooks/core/cells'
-import { burnRate, dial, kpiChips, kpiRows, phaseBars, trendRows, usageChart } from '../../hooks/core/dashboard'
+import { burnRate, dial, kpiChips, kpiLines, kpiRows, phaseBars, trendRows, usageChart } from '../../hooks/core/dashboard'
 import { clockOf } from '../../hooks/core/governor'
 import { FLAVORS } from '../../hooks/core/theme'
 
@@ -174,5 +174,18 @@ describe('time waited on the governor (054 #36)', () => {
     const base = { startedAt: NOW5, turns: 1, toolCalls: 0, drifts: 0, agentsRun: 0, agentsQueued: 0, series: [] }
     expect(Object.fromEntries(kpiRows({ ...base, waitedMs: 12 * 60_000 }, undefined, NOW5))['waited on governor']).toBe('12m')
     expect(Object.fromEntries(kpiRows(base, undefined, NOW5))['waited on governor']).toBeUndefined()
+  })
+})
+
+describe('kpiLines (052 #32)', () => {
+  const kpis: Array<[string, string]> = [['turns', '12'], ['tool calls', '40'], ['drifts', '0']]
+  test('under 100 columns one row each', () => {
+    expect(kpiLines(kpis, 99, 10)).toEqual(['turns     12', 'tool calls40', 'drifts    0'])
+  })
+  test('from 100 columns two to a line, in reading order, the last one alone', () => {
+    const lines = kpiLines(kpis, 100, 10)
+    expect(lines).toHaveLength(2)
+    expect(lines[0]).toBe(`${'turns     12'.padEnd(50)}tool calls40`)
+    expect(lines[1]).toBe('drifts    0')
   })
 })

@@ -2906,6 +2906,7 @@ export const register: Register = (on, options) => {
         ...historyRows(stats, activeFeature, state.root === undefined ? [] : featureDurationsByRoot.get(state.root) ?? [], currentLang()),
       ],
       chips: kpiChips(stats, activeFeature, currentLang(), binding, now),
+      columns,
     }
     const sections = dashboardSections(
       {
