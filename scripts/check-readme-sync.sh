@@ -7,7 +7,7 @@
 set -eu
 readme="${README_FILE:-$(dirname "$0")/../README.md}"
 manifest="${PLUGIN_JSON:-$(dirname "$0")/../.claude-plugin/plugin.json}"
-help_source="${REGISTER_TSX:-$(dirname "$0")/../hooks/register.tsx}"
+help_source="${REGISTER_TSX:-$(dirname "$0")/../hooks/modules/help.ts}"
 missing=0
 
 # 1. The README's version line matches plugin.json.

@@ -7,7 +7,7 @@ updates, and a status entry with your fullest usage window.
 
 ![Astrolabe in a 180-column terminal](docs/images/overview-180.svg)
 
-> **Version 0.116.0.** Every image in this README is a capture of the real mod running in Claude
+> **Version 0.117.0.** Every image in this README is a capture of the real mod running in Claude
 > Code 2.1.292, made with `scripts/capture/scene.sh` in the demo project
 > [docs/demo/](docs/demo/) (see [How the images are made](#how-the-images-are-made)).
 
@@ -325,14 +325,14 @@ it, by typing the command, since it costs that model's tokens.
 `/astrolabe advisor` (or `/astrolabe advisor 3`) asks Claude to review the spec with its advisor:
 Claude reads `spec.md`, `plan.md` and `tasks.md`, calls the advisor, reports what it finds and
 proposes changes without editing anything. A mod cannot call the advisor itself, since the API
-runs it inside Claude's own request, so this takes one turn. The `advisor review` button above
-the active feature's summary does the same, and the Session tab counts the advisor's runs this
+runs it inside Claude's own request, so this takes one turn. The `advisor review` button on the row
+under the selected spec does the same for that spec, and the Session tab counts the advisor's runs this
 session. When that turn ends after the advisor ran, the Session tab also keeps Claude's report,
 its first 12 non-blank lines under `advisor 002`. Only you can start it.
 
-When gstack is installed, that row also holds its skills, above the active feature's
-summary: `investigate`, `review`, `health`, `qa-only` and `retro`. A press runs that skill with
-the active feature named in its arguments.
+When gstack is installed, that row also holds its skills: `investigate`, `review`, `health`,
+`qa-only` and `retro`. The row sits under the spec selected in the list, so the buttons are
+beside the spec they act on; a press runs that skill with that feature named in its arguments.
 
 `/astrolabe doctor` checks what Astrolabe needs and prints the fix next to anything missing:
 

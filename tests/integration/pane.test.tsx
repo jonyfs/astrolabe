@@ -463,6 +463,18 @@ describe('the advisor reviews a spec (055)', () => {
   })
 })
 
+describe('the review buttons sit under the selected spec (055, user request)', () => {
+  test('the advisor button is a row under the spec it reviews, not in the header', async ($, on) => {
+    await setup($ as never, on as never)
+    const ui = await mountPane($ as never, 'terminal', 100, 40)
+    const under = await ui.find({ key: 'feature-002-buttons' })
+    expect(under?.text).toContain('advisor review')
+    expect(await ui.find({ key: 'feature-001-buttons' })).toBeUndefined()
+    expect(await ui.find({ key: 'astrolabe-gstack' })).toBeUndefined()
+    await ui.unmount()
+  })
+})
+
 describe('the advisor answer in the Session tab (055 T004)', () => {
   test('the final answer of the turn that ran the advisor is kept, 12 lines at most', async ($, on) => {
     let reply: Record<string, unknown> = {}
