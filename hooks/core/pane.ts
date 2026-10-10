@@ -470,6 +470,14 @@ export const filterChips = (filter: string | undefined, status: StatusFilter = '
   ]
 }
 
+/**
+ * How many rows `text` takes at `columns`, counting each wrapped line: a long paragraph is
+ * several rows, not one. The pane reserves its footer's rows from this, so a miscount pushes the
+ * footer off the last rows.
+ */
+export const wrappedRows = (text: string, columns: number): number =>
+  text.split('\n').reduce((sum, line) => sum + Math.max(1, Math.ceil(width(line) / Math.max(1, columns))), 0)
+
 type Filterable = Pick<Feature, 'id' | 'name' | 'phase' | 'dir' | 'done'> & Partial<Pick<Feature, 'warnings' | 'track' | 'clarifications' | 'checklist'>>
 
 export const filterFeatures = <F extends Filterable>(

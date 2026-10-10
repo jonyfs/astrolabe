@@ -2,7 +2,7 @@ import { describe, expect, test } from 'claude-code/testing'
 
 import { nextFor, skillsForPhase, specDetail } from '../../hooks/core/spec-actions'
 
-import { filterChips, filterFeatures, gatesText, helpRows, moveSpecSelection, nextSort, sessionRows, specsRows, taskRows } from '../../hooks/core/pane'
+import { filterChips, filterFeatures, gatesText, helpRows, moveSpecSelection, nextSort, sessionRows, specsRows, taskRows, wrappedRows } from '../../hooks/core/pane'
 import { emptyMemo, type Feature, type SessionMemo, type SpeckitState } from '../../hooks/core/types'
 
 const f = (id: string, name: string, phase: Feature['phase'], done: number, total: number, warnings: Feature['warnings'] = []): Feature => ({
@@ -392,5 +392,14 @@ describe('what the selected spec offers (061)', () => {
   test('a non-active spec is taken as analyzed, so implement is next', () => {
     expect(nextFor({ phase: 'implement', done: 0 }, false, false)).toBe('/speckit-implement')
     expect(nextFor({ phase: 'implement', done: 0 }, true, false)).toBe('/speckit-analyze')
+  })
+})
+
+describe('wrappedRows: the footer keeps its rows (investigation of the Specs footer)', () => {
+  test('a long paragraph is several rows, not one', () => {
+    const paragraph = 'word '.repeat(60).trim()
+    expect(wrappedRows(paragraph, 100)).toBe(3)
+    expect(wrappedRows(`${paragraph}\n\nshort`, 100)).toBe(5)
+    expect(wrappedRows('', 100)).toBe(1)
   })
 })
