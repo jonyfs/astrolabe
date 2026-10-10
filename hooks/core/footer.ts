@@ -29,6 +29,8 @@ export type FooterInput = {
   lang?: Lang
   /** Only the parts never dropped: the Spec Kit part and the deciding window (035). */
   lead?: boolean
+  /** The first three sessions end with a `/astrolabe help` chip (052 #46). */
+  helpHint?: boolean
 }
 
 
@@ -148,6 +150,8 @@ const parts = (input: FooterInput): Part[] => {
   if (input.lines !== undefined && input.lines.added + input.lines.removed > 0)
     out.push({ text: `±${input.lines.added + input.lines.removed}`, rank: 4.5, colour: 'teal' })
   if (input.startedAt !== undefined && now - input.startedAt >= 60_000) out.push({ text: withIcon(icons.clock, duration(now - input.startedAt)), rank: 6, colour: 'surface1' })
+  // A newcomer's last chip says where the commands are; it is the first to go on a narrow footer (052 #46).
+  if (input.helpHint === true) out.push({ text: '/astrolabe help', rank: 7, colour: 'surface1' })
   return out
 }
 

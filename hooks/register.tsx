@@ -108,6 +108,8 @@ async function refreshHealth($: EngineInterface): Promise<void> {
 }
 
 const WELCOMED = 'welcomed'
+/** How many sessions have started; the footer's help chip shows for the first three (052 #46). It rides in the `welcomed` value (`0.118.0|2`), so the store keeps one key. */
+let sessionNumber = Number.POSITIVE_INFINITY
 const ASK = { plugin: 'astrolabe', key: 'ask' } as const
 const DEFAULT_PANE: PaneState = { tab: 'specs', autoOpened: false }
 const UPDATES = { plugin: 'astrolabe', key: 'updates' } as const
@@ -205,6 +207,7 @@ async function footerInput(
       ...(stats?.git === undefined ? {} : { git: stats.git }),
       ...(stats?.lines === undefined ? {} : { lines: stats.lines }),
       ...(stats === undefined ? {} : { startedAt: stats.startedAt }),
+      ...(sessionNumber <= 3 ? { helpHint: true } : {}),
       ...((rate => (rate === undefined ? {} : { burn: rate }))(stats === undefined ? undefined : burnRate(stats.series))),
       ...(state.runningSkill === undefined
         ? {}
@@ -2053,14 +2056,21 @@ export const register: Register = (on, options) => {
     } catch (error) {
       $.ui.log(`astrolabe: ${error instanceof Error ? error.message : String(error)}`, { to: 'debug' })
     }
-    // The first session after install says where to start, once (048 #73).
+    // The first session after install says where to start, once (048 #73); the same value counts sessions (052 #46).
     try {
-      if ((await $.store.get(WELCOMED)) === undefined) {
+      const welcomed = await $.store.get(WELCOMED)
+      if (welcomed === undefined) {
         await showToast($, t(currentLang(), 'toast.welcome'))
-        await $.store.set(WELCOMED, VERSION)
+        sessionNumber = 1
+      } else {
+        const counted = /\|(\d+)$/.exec(String(welcomed))?.[1]
+        // A value from before the count was written means at least one session came first.
+        sessionNumber = (counted === undefined ? 1 : Number(counted)) + 1
       }
+      await $.store.set(WELCOMED, `${VERSION}|${Math.min(sessionNumber, 99)}`)
     } catch {
-      // A store that fails only skips the welcome.
+      // A store that fails only skips the welcome and the help chip.
+      sessionNumber = Number.POSITIVE_INFINITY
     }
     defaultsSeen = await defaults($).catch(() => ({}))
     // NO_COLOR (041 #9): no chip backgrounds, the thin separator. Read once, here.

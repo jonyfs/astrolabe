@@ -55,3 +55,12 @@ describe('statusline colours (039)', () => {
     })
   })
 })
+
+describe('the help chip for newcomers (052 #46)', () => {
+  const base = { speckit: () => '◆ 002 · implement', readings: [], now: NOW, icons: iconSet('emoji'), columns: 200 }
+  test('helpHint ends the footer with /astrolabe help, and it is the first to go', () => {
+    expect(footerChips({ ...base, helpHint: true }).at(-1)?.text).toBe('/astrolabe help')
+    expect(footerChips({ ...base }).some(c => c.text === '/astrolabe help')).toBe(false)
+    expect(footerChips({ ...base, helpHint: true, columns: 20 }).some(c => c.text === '/astrolabe help')).toBe(false)
+  })
+})
