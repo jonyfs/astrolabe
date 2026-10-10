@@ -314,7 +314,7 @@ export type SessionStats = {
   /** The features the repository's other worktrees work on (037), read after each main turn. */
   worktrees?: Array<{ name: string; branch?: string; head?: string; dir: string; id: string; featureName: string; phase: Phase; done: number; total: number; path?: string; changed?: number; merged?: true }>
   /** The last main turn's change to the active tasks, as unified-diff hunks (024). */
-  tasksDiff?: { dir: string; file: 'tasks.md' | 'spec.md'; text: string }
+  tasksDiff?: { dir: string; file: 'tasks.md' | 'spec.md'; text: string; /** When the turn ended, so the diff folds after five minutes (045 #48). */ at?: number }
 }
 
 /** One answer a usage question offers; `target` is the ceiling a lifting answer sets. */

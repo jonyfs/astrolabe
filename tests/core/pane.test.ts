@@ -330,3 +330,16 @@ describe('helpRows: commands copy themselves (052 #37)', () => {
     expect(rows.map(r => r.copy)).toEqual([undefined, '/astrolabe focus', '/astrolabe advisor', undefined, undefined])
   })
 })
+
+describe('the Tasks tab, part three (045 #45, #47)', () => {
+  test('the current task names its files under it, and the fold row adds the time the done tasks took', () => {
+    const text = '- [x] T001 a\n- [ ] T003 c in `src/x.ts` and hooks/y.ts\n- [ ] T004 d\n'
+    const memo3 = { ...emptyMemo(), files: { '002-band-hint': { dir: '002-band-hint', plan: true, tasks: text } } }
+    const rows = taskRows(state({ currentTask: { id: 'T003', text: 'c', startedAt: 0 } }), memo3, 10, 80, 'en', 60_000, [{ dir: '002-band-hint', id: 'T001', ms: 12 * 60_000 }])
+    const texts = rows.map(r => r.text)
+    expect(texts.find(t => t.startsWith('✓'))).toBe('✓ 1 done · T001 · 12m')
+    const at = texts.findIndex(t => t.includes('T003'))
+    expect(texts[at + 1]).toContain('files: src/x.ts, hooks/y.ts')
+    expect(texts.some(t => t.includes('files:') && t.includes('T004'))).toBe(false)
+  })
+})
