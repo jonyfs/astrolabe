@@ -249,6 +249,7 @@ export const EN = {
   'help.block.options': 'Options',
   'help.block.marks': 'Marks',
   'help.block.steps': 'Steps',
+  'help.block.health': 'Health',
   'help.block.models': 'Models',
   'help.block.footer': 'Footer previews',
   'help.open': 'open the pane (focused; Esc closes it)',

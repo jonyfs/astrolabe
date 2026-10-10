@@ -418,6 +418,7 @@ export const helpRows = (text: string, filter?: string, lang: Lang = 'en'): Pane
     [tr(lang, 'help.block.footer'), 'footer'],
     [tr(lang, 'help.glossary'), 'steps'],
     [tr(lang, 'help.block.models'), 'models'],
+    [tr(lang, 'help.block.health'), 'health'],
   ])
   const rows = text.split('\n').map((line, i): PaneRow => {
     const link = /\s(https:\/\/\S+)$/.exec(line)?.[1]

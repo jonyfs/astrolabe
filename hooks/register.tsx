@@ -59,13 +59,14 @@ const PANE_TITLE = '🧭 Astrolabe'
 const ASK_ID = 'astrolabe-usage'
 const QUEUE_HOTKEYS = 'abcdegilmnoqtuvwxyz'
 /** `/astrolabe doctor` (048 #79): what Astrolabe needs, each line with the fix when it is missing. */
-async function doctor($: EngineInterface): Promise<string> {
+/** The doctor's checks, one line each; `doctor` and the Help tab's Health block share them (052 #42). */
+async function doctorLines($: EngineInterface): Promise<string[]> {
   const probe = (argv: string[]) =>
     $.process.run(argv, { timeoutMs: 3000 }).catch(() => ({ exitCode: 127, stdout: '', stderr: 'not found' }))
   const [git, gh, specify] = await Promise.all([probe(['git', '--version']), probe(['gh', '--version']), probe(['specify', 'version'])])
   const auth = gh.exitCode === 0 ? await probe(['gh', 'auth', 'status']) : undefined
   const state = (await $.state.get(SPECKIT)).value
-  const lines = ['🧭 Astrolabe doctor']
+  const lines: string[] = []
   const check = (isOk: boolean, text: string, fix: string) => lines.push(isOk ? `  ✓ ${text}` : `  ✗ ${text}: ${fix}`)
   check(git.exitCode === 0, git.exitCode === 0 ? firstLine(git.stdout) : 'git not found', 'install git from https://git-scm.com')
   check(gh.exitCode === 0, gh.exitCode === 0 ? firstLine(gh.stdout) : 'gh not found', 'install the GitHub CLI from https://cli.github.com for the PRs tab and the pullRequest option')
@@ -90,7 +91,20 @@ async function doctor($: EngineInterface): Promise<string> {
   lines.push(`  · options: ${set.length === 0 ? 'all defaults' : set.map(([k, v]) => `${k}=${String(v)}`).join(', ')} (change them in /config or the Config tab)`)
   // The hook budget (054 #15): the engine gives each hook 10 s.
   check(slowestHook === undefined || slowestHook.ms < 5000, slowestHook === undefined ? 'no hook work timed yet' : `slowest hook work: ${slowestHook.name}, ${slowestHook.ms} ms of the 10 s budget`, 'a large project or a slow disk; /astrolabe status still works, and the Specs tab reads the rest later')
-  return lines.join('\n')
+  return lines
+}
+
+async function doctor($: EngineInterface): Promise<string> {
+  return ['🧭 Astrolabe doctor', ...(await doctorLines($))].join('\n')
+}
+
+/** Reads the doctor's checks into the session for the Help tab, at most once a minute (052 #42). */
+async function refreshHealth($: EngineInterface): Promise<void> {
+  const now = await $.clock.now()
+  const held = (await $.state.get(SESSION)).value?.health
+  if (held !== undefined && now - held.at < 60_000) return
+  const lines = await doctorLines($).catch(() => undefined)
+  if (lines !== undefined) await flushStats($, s => ({ ...s, health: { at: now, lines } }))
 }
 
 const WELCOMED = 'welcomed'
@@ -2486,7 +2500,7 @@ export const register: Register = (on, options) => {
 
   on('command.run', { command: 'astrolabe' }, async ($, e) => {
     const args = e.args.trim()
-    if (args === 'help') return { text: helpText(currentLang(), optionsSeen) }
+    if (args === 'help') return { text: helpText(currentLang(), optionsSeen, (await $.state.get(SESSION)).value?.health?.lines ?? []) }
     if (args.startsWith('root ')) {
       // Another Spec Kit root under this folder (020c #21): read it as the session's root.
       const cwd = await $.session.cwd()
@@ -2651,7 +2665,7 @@ export const register: Register = (on, options) => {
       needle === '' ? list : list.filter(r => r.key === 'count' || r.text.toLowerCase().includes(needle))
     const rows =
       pane.tab === 'help'
-        ? helpRows(helpText(currentLang(), optionsSeen), pane.filter, currentLang())
+        ? helpRows(helpText(currentLang(), optionsSeen, stats?.health?.lines ?? []), pane.filter, currentLang())
         : pane.tab === 'tasks'
         ? [...keep(taskRows(state, emptyMemo(), 1000, columns, currentLang(), await $.clock.now())), ...(await pastResetRows($, state, stats, usage))]
         : pane.tab === 'session'
@@ -2766,6 +2780,7 @@ export const register: Register = (on, options) => {
       // The last tab, per project, for the next session (043 #22).
       if (state.root !== undefined) await $.store.set(`tab:${state.root}`, tab).catch(() => undefined)
       if (tab === 'prs') $.clock.after(0, () => void refreshPulls($))
+      if (tab === 'help') $.clock.after(0, () => void refreshHealth($))
     }
     // The footer under every tab (035), held at the bottom when the tab is shorter than the pane.
     const footerFor = async (pad: number) => {
@@ -2852,7 +2867,7 @@ export const register: Register = (on, options) => {
             : pane.tab === 'help'
               ? {
                   kept: rows.filter(row => row.key !== 'no-match').length,
-                  total: helpRows(helpText(currentLang(), optionsSeen), undefined, currentLang()).length,
+                  total: helpRows(helpText(currentLang(), optionsSeen, stats?.health?.lines ?? []), undefined, currentLang()).length,
                 }
               : undefined
       const header = paneHeader($, e, pane, state, stats, filterCount)

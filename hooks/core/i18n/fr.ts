@@ -251,6 +251,7 @@ export const FR: Dictionary = {
   'help.block.options': 'Options',
   'help.block.marks': 'Marques',
   'help.block.steps': 'Étapes',
+  'help.block.health': 'Santé',
   'help.block.models': 'Modèles',
   'help.block.footer': 'Aperçus du pied de page',
   'help.open': 'ouvre le panneau (avec le clavier ; Échap le ferme)',

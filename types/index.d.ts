@@ -305,6 +305,8 @@ export type SessionStats = {
   driftsByFeature?: Record<string, number>
   /** How many times the advisor ran this session, and the last time (055). */
   advisor?: { runs: number; at: number; last?: { id: string; text: string; at: number } }
+  /** What `/astrolabe doctor` found, read when the Help tab opens (052 #42). */
+  health?: { at: number; lines: string[] }
   /** The full text of the last toast shortened to fit the notification limit (052 #44). */
   toastDetails?: string
   /** gstack's skills are installed under the home directory (051). */

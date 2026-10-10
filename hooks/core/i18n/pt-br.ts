@@ -251,6 +251,7 @@ export const PT_BR: Dictionary = {
   'help.block.options': 'Opções',
   'help.block.marks': 'Marcas',
   'help.block.steps': 'Etapas',
+  'help.block.health': 'Saúde',
   'help.block.models': 'Modelos',
   'help.block.footer': 'Exemplos do rodapé',
   'help.open': 'abre o painel (com o teclado; Esc fecha)',

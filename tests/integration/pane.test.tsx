@@ -579,3 +579,16 @@ describe('a Help command copies itself (052 #37)', () => {
     void session
   })
 })
+
+describe('the Health block in Help (052 #42)', () => {
+  test('opening Help reads the doctor checks into a Health block, once a minute at most', async ($, on) => {
+    const { session } = await setup($ as never, on as never)
+    const ui = await mountPane($ as never, 'terminal', 100, 100)
+    await ui.press('help-key')
+    await session.clock.settle()
+    const help = (await $.command.run({ command: 'astrolabe', args: 'help' } as never)) as { text: string }
+    expect(help.text).toContain('Health')
+    expect(help.text).toMatch(/[✓✗] git/)
+    await ui.unmount()
+  })
+})
