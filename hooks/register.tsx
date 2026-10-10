@@ -2796,7 +2796,7 @@ export const register: Register = (on, options) => {
           const plain = palette[chip.colour] ?? palette['surface1']!
           const bg = freshChip(chip.key, chip.text, input.now) ? lighten(plain, FRESH_SHARE) : plain
           if (bg !== plain) anyFresh = true
-          return { key: chip.key, text: chip.text, bg, fg: chipForeground(bg), ...(chip.links === undefined || chip.links.length === 0 ? {} : { links: chip.links }) }
+          return { key: chip.key, text: chip.text, bg, fg: chipForeground(bg), ...(chip.full === undefined ? {} : { full: chip.full }), ...(chip.links === undefined || chip.links.length === 0 ? {} : { links: chip.links }) }
         }),
       )
       if (anyFresh) scheduleFresh($, input.now)

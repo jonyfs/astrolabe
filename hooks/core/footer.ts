@@ -181,7 +181,7 @@ export const footerText = (input: FooterInput): string => {
 export const rampOf = (level: number): { colour: ChipColour; mark: string } =>
   level < 60 ? { colour: 'green', mark: '' } : level < 85 ? { colour: 'yellow', mark: '▵' } : { colour: 'red', mark: '▴' }
 
-export type Chip = { key: string; text: string; colour: ChipColour; rank?: number; links?: ReadonlyArray<{ text: string; href: string }> }
+export type Chip = { key: string; text: string; colour: ChipColour; rank?: number; links?: ReadonlyArray<{ text: string; href: string }>; /** The whole text of a chip cut to fit, shown on hover (052 #45). */ full?: string }
 
 /** The footer as Powerline chips in statusline's colours (039); the context ramps without a mark. */
 export const footerChips = (input: FooterInput): Chip[] => {
@@ -189,7 +189,7 @@ export const footerChips = (input: FooterInput): Chip[] => {
   const pinned = kept.filter(p => p.first === true).map((p, i) => ({ key: `first-${i}`, text: p.text, colour: p.colour ?? 'red', rank: p.rank }))
   return [
     ...pinned,
-    ...(speckit === '' ? [] : [{ key: 'speckit', text: speckit, colour: 'mauve' as const }]),
+    ...(speckit === '' ? [] : [{ key: 'speckit', text: speckit, colour: 'mauve' as const, ...((whole => (whole !== speckit ? { full: whole } : {}))(input.speckit())) }]),
     ...kept.filter(p => p.first !== true).map((p, i) => {
       const ramp = p.level === undefined ? undefined : rampOf(p.level)
       const isContext = p.colour === 'yellow'

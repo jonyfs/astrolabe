@@ -37,7 +37,7 @@ export const paneTree = (
     /** The rule above the chips (041 #8): solid, thin or none. */
     separator?: 'solid' | 'thin' | 'none'
     /** The chips in rows: one row, or statusline's three lines (041 #1). */
-    chips?: ReadonlyArray<ReadonlyArray<{ key: string; text: string; bg: string; fg: string; links?: ReadonlyArray<{ text: string; href: string }> }>>
+    chips?: ReadonlyArray<ReadonlyArray<{ key: string; text: string; bg: string; fg: string; full?: string; links?: ReadonlyArray<{ text: string; href: string }> }>>
     arrow?: string
   },
   /** What is above and below the rows shown, with the presses that scroll (038). */
@@ -234,7 +234,17 @@ export const paneTree = (
                   const after = chip.text.slice(cursor)
                   return [
                     ...(linked.length === 0
-                      ? [<Text key={`chip-${chip.key}`} color={chip.fg} backgroundColor={chip.bg} bold>{` ${chip.text} `}</Text>]
+                      ? [
+                          <Text key={`chip-${chip.key}`} color={chip.fg} backgroundColor={chip.bg} bold {...(chip.full === undefined ? {} : { hover: { scope: `astrolabe-chip-${chip.key}`, underline: true } })}>{` ${chip.text} `}</Text>,
+                          // A chip cut to fit shows its whole text above the row on hover (052 #45).
+                          ...(chip.full === undefined
+                            ? []
+                            : [
+                                <Box key={`chip-${chip.key}-full`} position="absolute" bottom={1} left={0} display="none" hover={{ scope: `astrolabe-chip-${chip.key}`, display: 'flex' }}>
+                                  <Text color={chip.fg} backgroundColor={chip.bg} bold>{` ${chip.full} `}</Text>
+                                </Box>,
+                              ]),
+                        ]
                       : [...linked, ...(after === '' ? [] : [<Text key={`chip-${chip.key}-after`} color={chip.fg} backgroundColor={chip.bg} bold>{`${after} `}</Text>])]),
                     ...(arrow === ''
                       ? next === undefined ? [] : [<Text> </Text>]
