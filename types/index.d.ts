@@ -286,6 +286,9 @@ export type SessionStats = {
       isDraft: boolean
       /** The head commit listed, so a merge lands only that commit (032 fix). */
       head?: string
+      /** Who opened it and when, in epoch ms (052 #40). */
+      author?: string
+      createdAt?: number
     }>
   }
   /** The last finished feature's summary from a small model (026). */

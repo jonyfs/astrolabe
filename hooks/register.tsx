@@ -25,7 +25,7 @@ import { ASK_MS, clockOf, decide, dropped, EXTEND_MS, HOLD_LIFT_MS, holdQuestion
 import { chipForeground, CHIPS, FLAVORS, flavorOf, isThemeKeys, lighten, STATUS_ROLE, themeOf, type ThemeRole } from './core/theme'
 import { capDiff, recapLine, recapOf, tasksDiff } from './core/summary'
 import { styleSections } from './core/style'
-import { parsePullList, prOpened, pullAction, PR_LIST_FIELDS } from './core/pulls'
+import { ageOf, parsePullList, prOpened, pullAction, PR_LIST_FIELDS } from './core/pulls'
 import { skillModelFor } from './core/skill-models'
 import { featureDirFor, mergedBranches, parseWorktrees, uncommittedCount, withWorktreeProgress, worktreeName, worktreeState } from './core/worktrees'
 import { readFeature } from './io/snapshot'
@@ -462,7 +462,9 @@ function pullsRows(
   const colour = (c: string) => (c === 'pass' ? tokens0[STATUS_ROLE.success] : c === 'fail' ? tokens0[STATUS_ROLE.error] : c === 'pending' ? tokens0[STATUS_ROLE.warning] : tokens0.muted)
   return rows.flatMap(pr => {
     const title = `${mark(pr.checks)} #${pr.number} ${pr.isDraft ? `[${t(lang, 'prs.draft')}] ` : ''}${pr.title}`
-    const facts = [t(lang, `prs.review.${pr.review}`), ...pr.labels.map(l => `#${l}`), pr.branch].filter(s => s !== '').join('  ')
+    // Who opened it and how long ago, as of the last read (052 #40).
+    const opened = [pr.author === undefined ? '' : `@${pr.author}`, pr.createdAt === undefined || stats?.pulls === undefined ? '' : ageOf(pr.createdAt, stats.pulls.at)].filter(s => s !== '').join(' ')
+    const facts = [t(lang, `prs.review.${pr.review}`), opened, ...pr.labels.map(l => `#${l}`), pr.branch].filter(s => s !== '').join('  ')
     const buttons: RenderNode[] = []
     const add = (action: 'approve' | 'update' | 'merge') => {
       const key = `pr-${action}-${pr.number}`

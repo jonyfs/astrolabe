@@ -17,9 +17,18 @@ export type PullRow = {
   isDraft: boolean
   /** The head commit when listed; a merge passes it, so a push in between makes the merge fail. */
   head?: string
+  /** Who opened it and when, in epoch ms (052 #40). */
+  author?: string
+  createdAt?: number
 }
 
-export const PR_LIST_FIELDS = 'number,title,headRefName,headRefOid,url,labels,reviewDecision,statusCheckRollup,mergeStateStatus,isDraft'
+/** How long ago, in the largest whole unit: `12m`, `5h`, `3d` (052 #40). */
+export const ageOf = (at: number, now: number): string => {
+  const minutes = Math.max(0, Math.floor((now - at) / 60_000))
+  return minutes < 60 ? `${minutes}m` : minutes < 1440 ? `${Math.floor(minutes / 60)}h` : `${Math.floor(minutes / 1440)}d`
+}
+
+export const PR_LIST_FIELDS = 'number,title,headRefName,headRefOid,url,labels,reviewDecision,statusCheckRollup,mergeStateStatus,isDraft,author,createdAt'
 
 /** Parses `gh pr list --json <PR_LIST_FIELDS>`; an empty list for anything else. */
 export const parsePullList = (out: string): PullRow[] => {
@@ -48,6 +57,8 @@ export const parsePullList = (out: string): PullRow[] => {
         ...((runs => (runs.length === 0 ? {} : { runs }))(checkRunsOf(p['statusCheckRollup']))),
         merge: typeof p['mergeStateStatus'] === 'string' ? p['mergeStateStatus'] : 'UNKNOWN',
         isDraft: p['isDraft'] === true,
+        ...((a => (typeof a === 'object' && a !== null && typeof (a as { login?: unknown }).login === 'string' ? { author: plainText((a as { login: string }).login, 60) } : {}))(p['author'])),
+        ...(typeof p['createdAt'] === 'string' && !Number.isNaN(Date.parse(p['createdAt'])) ? { createdAt: Date.parse(p['createdAt']) } : {}),
         ...(typeof p['headRefOid'] === 'string' && /^[0-9a-f]{7,40}$/.test(p['headRefOid']) ? { head: p['headRefOid'] } : {}),
       } satisfies PullRow,
     ]
