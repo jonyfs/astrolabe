@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import { filterFeatures, gatesText, helpRows, moveSpecSelection, sessionRows, specsRows, taskRows } from '../../hooks/core/pane'
+import { filterFeatures, gatesText, helpRows, moveSpecSelection, sessionRows, specsRows, taskRows, wrappedRows } from '../../hooks/core/pane'
 import { emptyMemo, type Feature, type SessionMemo, type SpeckitState } from '../../hooks/core/types'
 
 const f = (id: string, name: string, phase: Feature['phase'], done: number, total: number, warnings: Feature['warnings'] = []): Feature => ({
@@ -341,5 +341,14 @@ describe('the Tasks tab, part three (045 #45, #47)', () => {
     const at = texts.findIndex(t => t.includes('T003'))
     expect(texts[at + 1]).toContain('files: src/x.ts, hooks/y.ts')
     expect(texts.some(t => t.includes('files:') && t.includes('T004'))).toBe(false)
+  })
+})
+
+describe('wrappedRows: the footer keeps its rows (investigation of the Specs footer)', () => {
+  test('a long paragraph is several rows, not one', () => {
+    const paragraph = 'word '.repeat(60).trim()
+    expect(wrappedRows(paragraph, 100)).toBe(3)
+    expect(wrappedRows(`${paragraph}\n\nshort`, 100)).toBe(5)
+    expect(wrappedRows('', 100)).toBe(1)
   })
 })

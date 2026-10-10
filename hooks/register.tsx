@@ -13,7 +13,7 @@ import { bandSegments, nextReason, otherFeaturesCard, stepCards, type BandDensit
 import { hintTail } from './core/hint'
 import { phaseToasts } from './core/phase-toast'
 import { justFinished } from './core/next-command'
-import { helpRows, moveSpecSelection, nextStatus, taskRows, windowUnits, type PaneRow, sessionRows, specsRows } from './core/pane'
+import { helpRows, moveSpecSelection, nextStatus, taskRows, windowUnits, wrappedRows, type PaneRow, sessionRows, specsRows } from './core/pane'
 import { presetOf } from './core/presets'
 import { spinnerSuffix } from './core/spinner'
 import { astrolabeUpdate, firstLine, isDue, isStoredUpdates, localDay, parseCliVersion, parseGstackCheck, parseSelfCheck, skillsVersusCli, releaseNotesUrl, skillsUpdate, updateLabel } from './core/updates'
@@ -2894,14 +2894,14 @@ export const register: Register = (on, options) => {
           ? state.activeSummary === undefined
             ? 0
             : (pane.summary !== undefined && pane.summary.dir === state.active?.dir && pane.summary.expanded
-                ? state.activeSummary.split('\n').length
-                : state.activeSummary.split(/\n{2,}/).slice(0, 2).join('\n\n').split('\n').length) +
+                ? wrappedRows(state.activeSummary, columns - 2)
+                : wrappedRows(state.activeSummary.split(/\n{2,}/).slice(0, 2).join('\n\n'), columns - 2)) +
               2 +
               (state.activeSummary.split(/\n{2,}/).length > 2 && 'Button' in $.ui.resolve(e) ? 1 : 0)
           : pane.tab === 'tasks' && stats?.tasksDiff !== undefined && stats.tasksDiff.dir === state.active?.dir
             ? stats.tasksDiff.at !== undefined && nowForHeader - stats.tasksDiff.at > DIFF_FOLD_MS
               ? 1
-              : capDiff(stats.tasksDiff.text, currentLang()).split('\n').length
+              : wrappedRows(capDiff(stats.tasksDiff.text, currentLang()), columns - 2)
             : 0)
       const room = bodyRows - 1 - headerRows - footerReserve
       const { win, pad, nav } = navFor(rows.map(() => 1), room)
