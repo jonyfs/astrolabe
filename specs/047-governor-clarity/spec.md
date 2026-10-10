@@ -16,7 +16,7 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 - [x] T003 #64 The queue listed with a key to run one now (P1)
 - [x] T004 #65 When paused, the footer's first chip says until when, in red (P1)
 - [x] T005 #63 Allow and revoke buttons in the Session tab (P2)
-- [ ] T006 #69 A gateway spend limit ramped like the windows (P2)
+- [x] T006 #69 A gateway spend limit ramped like the windows (P2) — the governor reads every window kind, so `spend_limit` already ramps; a test pins it
 - [x] T007 #70 `observeUsage: true` logs what would be held without blocking tools (P2)
 - [ ] T008 #66 Hold and stop levels per window (P3)
 - [ ] T009 #67 Quiet hours: never ask, apply the default (P3)
