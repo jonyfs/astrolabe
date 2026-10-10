@@ -14,8 +14,13 @@ export const worktreesById = (list: SessionStats['worktrees']): Record<string, s
 }
 
 /** Keeps the features whose id or name holds the filter (024 #49). */
-export const filtered = (state: SpeckitState, filter: string | undefined, status: PaneState['status'] = 'all'): SpeckitState =>
-  (filter ?? '').trim() === '' && status === 'all' ? state : { ...state, features: filterFeatures(state.features, filter, state.active?.dir, status) }
+export const filtered = (
+  state: SpeckitState,
+  filter: string | undefined,
+  status: PaneState['status'] = 'all',
+  context: { priorities?: Record<string, 'high' | 'normal' | 'low'>; worktrees?: Record<string, string[]> } = {},
+): SpeckitState =>
+  (filter ?? '').trim() === '' && status === 'all' ? state : { ...state, features: filterFeatures(state.features, filter, state.active?.dir, status, context) }
 
 /** Whether a colour is light enough to carry dark text (039), by its relative luminance. */
 export const isLight = (hex: string): boolean => {

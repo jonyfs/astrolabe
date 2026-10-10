@@ -13,7 +13,7 @@ import { bandSegments, nextReason, otherFeaturesCard, stepCards, type BandDensit
 import { hintTail } from './core/hint'
 import { phaseToasts } from './core/phase-toast'
 import { justFinished } from './core/next-command'
-import { helpRows, moveSpecSelection, nextStatus, taskRows, windowUnits, type PaneRow, sessionRows, specsRows } from './core/pane'
+import { filterChips, helpRows, moveSpecSelection, nextSort, nextStatus, taskRows, windowUnits, type PaneRow, sessionRows, specsRows } from './core/pane'
 import { presetOf } from './core/presets'
 import { spinnerSuffix } from './core/spinner'
 import { astrolabeUpdate, firstLine, isDue, isStoredUpdates, localDay, parseCliVersion, parseGstackCheck, parseSelfCheck, skillsVersusCli, releaseNotesUrl, skillsUpdate, updateLabel } from './core/updates'
@@ -922,7 +922,10 @@ function paneHeader(
         <Input key="astrolabe-filter" placeholder={t(currentLang(), pane.tab === 'specs' ? 'pane.filter' : 'pane.filterRows')} value={pane.filter ?? ''} onInput={setFilter} onSubmit={setFilter} />,
       )
       if (filterCount !== undefined) {
-        out.push(<elements.Text key="astrolabe-filter-count" color={tokens0.muted}>{t(currentLang(), 'pane.filterCount', filterCount)}</elements.Text>)
+        // The filter's tokens as one muted row with the count (061): `phase:plan · has:questions · 3/12 rows`.
+        const chips = pane.tab === 'specs' ? filterChips(pane.filter, pane.status) : []
+        const count = t(currentLang(), 'pane.filterCount', filterCount)
+        out.push(<elements.Text key="astrolabe-filter-count" color={tokens0.muted}>{chips.length === 0 ? count : `${chips.join(' · ')} ${count}`}</elements.Text>)
       }
     }
     if (pane.tab === 'tasks' && Code !== undefined && stats?.tasksDiff !== undefined && stats.tasksDiff.dir === active?.dir) {
@@ -966,6 +969,9 @@ function paneHeader(
   }
   return []
 }
+
+/** What a Specs filter token may read besides the feature itself (061): priorities and worktrees. */
+const specFilterContext = (stats: SessionStats | undefined) => ({ priorities: stats?.priorities ?? {}, worktrees: worktreesById(stats?.worktrees) })
 
 /** Notes the turn's change to the active tasks as diff hunks for the Tasks tab (024 #8). */
 async function noteTasksDiff($: EngineInterface, state: SpeckitState | undefined): Promise<void> {
@@ -2686,7 +2692,7 @@ export const register: Register = (on, options) => {
           ? await sessionTabRows($, state, usage, stats, updates)
           : [
               ...specsRows(
-                { ...filtered(state, pane.filter, pane.status), features: withWorktreeProgress(filtered(state, pane.filter, pane.status).features, stats?.worktrees) },
+                { ...filtered(state, pane.filter, pane.status, specFilterContext(stats)), features: withWorktreeProgress(filtered(state, pane.filter, pane.status, specFilterContext(stats)).features, stats?.worktrees) },
                 columns,
                 currentLang(),
                 stats?.priorities ?? {},
@@ -2694,12 +2700,13 @@ export const register: Register = (on, options) => {
                 (pane.filter ?? '').trim() === '' && (pane.status ?? 'all') === 'all',
                 stats?.worktrees?.map(w => ({ name: w.name, id: w.id, featureName: w.featureName, phase: w.phase, done: w.done, total: w.total, status: worktreeState(w) })) ?? [],
                 e.surface === 'desktop',
+                pane.sort ?? 'status',
               ),
             ]
     // A filter that keeps nothing says so (052 #7).
     const matchesNone =
       (needle !== '' || (pane.tab === 'specs' && (pane.status ?? 'all') !== 'all')) &&
-      (pane.tab === 'specs' ? filtered(state, pane.filter, pane.status).features.length === 0 && state.features.length > 0 : (pane.tab === 'tasks' || pane.tab === 'help') && rows.every(r => r.key === 'count'))
+      (pane.tab === 'specs' ? filtered(state, pane.filter, pane.status, specFilterContext(stats)).features.length === 0 && state.features.length > 0 : (pane.tab === 'tasks' || pane.tab === 'help') && rows.every(r => r.key === 'count'))
     if (matchesNone && pane.tab === 'specs') rows.splice(0, rows.length, ...rows.filter(r => r.key !== 'empty'))
     if (matchesNone) rows.push({ key: 'no-match', text: t(currentLang(), 'pane.noMatch', { filter: pane.filter?.trim() ?? '' }), role: 'muted' } as never)
     const { Box, Text, Button } = $.ui.resolve(e)
@@ -2780,6 +2787,27 @@ export const register: Register = (on, options) => {
       // file: links open only from the terminal; the desktop draws them as plain text, so none there.
       ...((el => ('Link' in el && e.surface === 'terminal' ? { Link: el.Link } : {}))($.ui.resolve(e))),
       onRefresh: () => refreshNow($).catch(() => undefined),
+      // c clears the filter box and the status filter; o cycles the order (061).
+      ...(pane.tab === 'specs'
+        ? {
+            sort: {
+              label: t(currentLang(), `pane.sort.${pane.sort ?? 'status'}` as TextKey),
+              onPress: async () => {
+                const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
+                await $.state.set(PANE_STATE, { ...held, sort: nextSort(held.sort) })
+              },
+            },
+            ...(filterChips(pane.filter, pane.status).length === 0
+              ? {}
+              : {
+                  onClear: async () => {
+                    const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
+                    const { filter: _f, status: _s, ...rest } = held
+                    await $.state.set(PANE_STATE, rest)
+                  },
+                }),
+          }
+        : {}),
       onCopy: (text: string) => copyNext($, text, e.surface),
       onFind: pane.tab === 'specs' || pane.tab === 'tasks' || pane.tab === 'help' ? () => $.ui.focus({ requestId: PANE_ID, key: 'astrolabe-filter' }).then(() => undefined) : undefined,
       // What the tab is for, then its keys; a narrow pane keeps the keys whole (052 #3).
@@ -2872,7 +2900,7 @@ export const register: Register = (on, options) => {
       const taskFilterRows = allTaskRows.filter(row => row.key.startsWith('task-') && (needle === '' || row.text.toLowerCase().includes(needle)))
       const filterCount =
         pane.tab === 'specs'
-          ? { kept: filtered(state, pane.filter, pane.status).features.length, total: state.features.length }
+          ? { kept: filtered(state, pane.filter, pane.status, specFilterContext(stats)).features.length, total: state.features.length }
           : pane.tab === 'tasks'
             ? {
                 kept: taskFilterRows.length,

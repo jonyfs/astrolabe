@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import { filterFeatures, gatesText, helpRows, moveSpecSelection, sessionRows, specsRows, taskRows } from '../../hooks/core/pane'
+import { filterChips, filterFeatures, gatesText, helpRows, moveSpecSelection, nextSort, sessionRows, specsRows, taskRows } from '../../hooks/core/pane'
 import { emptyMemo, type Feature, type SessionMemo, type SpeckitState } from '../../hooks/core/types'
 
 const f = (id: string, name: string, phase: Feature['phase'], done: number, total: number, warnings: Feature['warnings'] = []): Feature => ({
@@ -341,5 +341,34 @@ describe('the Tasks tab, part three (045 #45, #47)', () => {
     const at = texts.findIndex(t => t.includes('T003'))
     expect(texts[at + 1]).toContain('files: src/x.ts, hooks/y.ts')
     expect(texts.some(t => t.includes('files:') && t.includes('T004'))).toBe(false)
+  })
+})
+
+describe('the Specs filter language and order (061)', () => {
+  const f = (id: string, name: string, over: Record<string, unknown> = {}) => ({ id, name, dir: `${id}-${name}`, phase: 'plan' as const, done: 0, total: 0, warnings: [], ...over })
+  const list = [
+    f('001', 'alpha', { phase: 'implement', done: 4, total: 5, track: 'quick' }),
+    f('002', 'beta', { phase: 'plan', clarifications: 2 }),
+    f('003', 'gamma', { phase: 'plan', checklist: { open: 1, total: 3 }, warnings: ['no-spec'] }),
+    f('004', 'delta', { phase: 'done', done: 3, total: 3 }),
+  ]
+  test('tokens: phase, has, track, prio, is:active and plain words', () => {
+    const ids = (q: string, ctx = {}) => filterFeatures(list, q, '001-alpha', 'all', ctx).map(x => x.id)
+    expect(ids('phase:plan')).toEqual(['002', '003'])
+    expect(ids('has:questions')).toEqual(['002'])
+    expect(ids('has:checklist')).toEqual(['003'])
+    expect(ids('has:warning')).toEqual(['003'])
+    expect(ids('track:quick')).toEqual(['001'])
+    expect(ids('is:active')).toEqual(['001'])
+    expect(ids('phase:plan gamma')).toEqual(['003'])
+    expect(ids('prio:high', { priorities: { '002': 'high' } })).toEqual(['002'])
+    expect(ids('has:worktree', { worktrees: { '004': ['wt'] } })).toEqual(['004'])
+  })
+  test('filterChips names the active tokens', () => {
+    expect(filterChips('phase:plan has:questions beta', 'done')).toEqual(['status:done', 'phase:plan', 'has:questions', '"beta"'])
+    expect(filterChips('', 'all')).toEqual([])
+  })
+  test('o cycles status, progress, name', () => {
+    expect([nextSort(undefined), nextSort('progress'), nextSort('name')]).toEqual(['progress', 'name', 'status'])
   })
 })
