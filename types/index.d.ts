@@ -286,6 +286,9 @@ export type SessionStats = {
       isDraft: boolean
       /** The head commit listed, so a merge lands only that commit (032 fix). */
       head?: string
+      /** Who opened it and when, in epoch ms (052 #40). */
+      author?: string
+      createdAt?: number
     }>
   }
   /** The last finished feature's summary from a small model (026). */
@@ -302,6 +305,8 @@ export type SessionStats = {
   driftsByFeature?: Record<string, number>
   /** How many times the advisor ran this session, and the last time (055). */
   advisor?: { runs: number; at: number; last?: { id: string; text: string; at: number } }
+  /** What `/astrolabe doctor` found, read when the Help tab opens (052 #42). */
+  health?: { at: number; lines: string[] }
   /** The full text of the last toast shortened to fit the notification limit (052 #44). */
   toastDetails?: string
   /** gstack's skills are installed under the home directory (051). */
@@ -309,7 +314,7 @@ export type SessionStats = {
   /** The features the repository's other worktrees work on (037), read after each main turn. */
   worktrees?: Array<{ name: string; branch?: string; head?: string; dir: string; id: string; featureName: string; phase: Phase; done: number; total: number; path?: string; changed?: number; merged?: true }>
   /** The last main turn's change to the active tasks, as unified-diff hunks (024). */
-  tasksDiff?: { dir: string; file: 'tasks.md' | 'spec.md'; text: string }
+  tasksDiff?: { dir: string; file: 'tasks.md' | 'spec.md'; text: string; /** When the turn ended, so the diff folds after five minutes (045 #48). */ at?: number }
 }
 
 /** One answer a usage question offers; `target` is the ceiling a lifting answer sets. */

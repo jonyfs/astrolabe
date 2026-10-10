@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import { filterFeatures, gatesText, moveSpecSelection, sessionRows, specsRows, taskRows } from '../../hooks/core/pane'
+import { filterFeatures, gatesText, helpRows, moveSpecSelection, sessionRows, specsRows, taskRows } from '../../hooks/core/pane'
 import { emptyMemo, type Feature, type SessionMemo, type SpeckitState } from '../../hooks/core/types'
 
 const f = (id: string, name: string, phase: Feature['phase'], done: number, total: number, warnings: Feature['warnings'] = []): Feature => ({
@@ -128,8 +128,11 @@ describe('taskRows', () => {
   test('the current task is marked, with how long it has run (045 #42)', () => {
     const now = 10 * 60_000
     const rows = taskRows(state({ currentTask: { id: 'T003', text: 'c', startedAt: 0 } }), memo(TASKS), 10, 80, 'en', now)
-    expect(texts(rows)).toEqual(['002 band-hint · implement · 1/4 done', '✓ 1 done · T001', '⇉ T002 Write x.ts', '▸ T003 c  ⏱ 10m', 'T004 d'])
+    expect(texts(rows)).toEqual(['002 band-hint · implement · 1/4 done', '✓ 1 done · T001', '⇉ T002 Write x.ts', `${'▸ T003 c'.padEnd(80 - '⏱ 10m'.length)}⏱ 10m`, 'T004 d'])
     expect(rows[3]?.role).toBe('current')
+    // The current row is bold and its clock sits at the right edge (052 #20).
+    expect(rows[3]?.bold).toBe(true)
+    expect(rows[4]?.bold).toBeUndefined()
   })
   test('[P] runs are bracketed and stories head their tasks (045 #43, #44)', () => {
     const text = '## Phase 3: User Story 1\n- [ ] T001 [P] a\n- [ ] T002 [P] b\n- [ ] T003 [P] c\n## Phase 4: User Story 2\n- [ ] T004 d\n'
@@ -318,5 +321,25 @@ describe('a compact pane under 60 columns (054 #69)', () => {
     expect(narrow?.text).toContain('9/20')
     const wide = specsRows(state({ features }), 100).find(r => r.key === 'feature-002')
     expect(wide?.text).toContain('█')
+  })
+})
+
+describe('helpRows: commands copy themselves (052 #37)', () => {
+  test('the words before the gap, optional parts dropped, only for /astrolabe commands', () => {
+    const rows = helpRows(['Astrolabe commands:', '  /astrolabe focus [on|off]   focus mode', '  /astrolabe advisor [id]     review', '  /speckit-plan             plan', '  1 Specs     the specs'].join('\n'))
+    expect(rows.map(r => r.copy)).toEqual([undefined, '/astrolabe focus', '/astrolabe advisor', undefined, undefined])
+  })
+})
+
+describe('the Tasks tab, part three (045 #45, #47)', () => {
+  test('the current task names its files under it, and the fold row adds the time the done tasks took', () => {
+    const text = '- [x] T001 a\n- [ ] T003 c in `src/x.ts` and hooks/y.ts\n- [ ] T004 d\n'
+    const memo3 = { ...emptyMemo(), files: { '002-band-hint': { dir: '002-band-hint', plan: true, tasks: text } } }
+    const rows = taskRows(state({ currentTask: { id: 'T003', text: 'c', startedAt: 0 } }), memo3, 10, 80, 'en', 60_000, [{ dir: '002-band-hint', id: 'T001', ms: 12 * 60_000 }])
+    const texts = rows.map(r => r.text)
+    expect(texts.find(t => t.startsWith('✓'))).toBe('✓ 1 done · T001 · 12m')
+    const at = texts.findIndex(t => t.includes('T003'))
+    expect(texts[at + 1]).toContain('files: src/x.ts, hooks/y.ts')
+    expect(texts.some(t => t.includes('files:') && t.includes('T004'))).toBe(false)
   })
 })

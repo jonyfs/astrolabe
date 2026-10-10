@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import { decide, holdQuestion, isReadOnlyTool, nextBand, nextHeld, parseAllow, pauseQuestion, refusal, resumePrompt, stateText, usageRows, usageSegment } from '../../hooks/core/governor'
+import { decide, holdQuestion, isReadOnlyTool, nextBand, nextHeld, parseAllow, pauseQuestion, refusal, resumePrompt, stateText, usageRows, usageSegment, whenOf } from '../../hooks/core/governor'
 
 const NOW = Date.UTC(2026, 9, 7, 12, 0)
 const IN_2H = new Date(NOW + 2 * 3600_000).toISOString()
@@ -180,8 +180,8 @@ describe('parity with the usage-governor skill (016)', () => {
     expect(rows[1]?.[1]).toBe('5h 42% · 7d 83%: throttle')
     expect(rows[2]?.[1]).toBe('1 running, cap 1')
     expect(rows[3]?.[1]).toBe('q1 Review · /astrolabe run q1')
-    expect(rows[4]?.[1]).toMatch(/^ceiling 95% on 7d until \d\d:\d\d$/)
-    expect(rows[5]?.[1]).toMatch(/^subagents one at a time until \d\d:\d\d$/)
+    expect(rows[4]?.[1]).toMatch(/^ceiling 95% on 7d until \d\d:\d\d, in \d+(h\d\d)?m$/)
+    expect(rows[5]?.[1]).toMatch(/^subagents one at a time until \d\d:\d\d, in \d+(h\d\d)?m$/)
     expect(usageRows({ readings: [], history: [], inFlight: 0, queue: [], paused: false }, NOW)).toEqual([])
   })
 
@@ -193,5 +193,27 @@ describe('parity with the usage-governor skill (016)', () => {
     expect(nextBand([{ kind: 'five_hour', percentUsed: 70, resetsAt: new Date(NOW + 5 * 3_600_000).toISOString() }], history, NOW)).toBe('hold at 80% in about 30m at this pace')
     expect(nextBand([{ kind: 'five_hour', percentUsed: 70, resetsAt: new Date(NOW + 10 * 60_000).toISOString() }], history, NOW)).toBe('hold at 80%: not before the reset at this pace')
     expect(nextBand([r(70)], [], NOW)).toBeUndefined()
+  })
+})
+
+describe('whenOf: a time reads clock then distance (052 #29)', () => {
+  test('the future says in, the past says ago', () => {
+    const now = new Date(2026, 9, 10, 12, 0).getTime()
+    expect(whenOf(new Date(2026, 9, 10, 14, 13).getTime(), now)).toBe('14:13, in 2h13m')
+    expect(whenOf(new Date(2026, 9, 10, 12, 45).getTime(), now)).toBe('12:45, in 45m')
+    expect(whenOf(new Date(2026, 9, 10, 11, 55).getTime(), now)).toBe('11:55, 5m ago')
+  })
+})
+
+describe('a gateway spend limit ramps like the windows (047 #69)', () => {
+  test('spend_limit takes the same bands and reads as "spend limit"', () => {
+    const band = (p: number) => decide([r(p, 'spend_limit')], [], undefined, NOW)
+    expect([band(42), band(72), band(83), band(89), band(91)].map(d => d.band)).toEqual(['ok', 'throttle', 'hold', 'stop', 'ceiling'])
+    expect(usageSegment(band(83))).toBe('spend limit 83% hold')
+  })
+  test('past 100 on an exceeded limit reads full and stays at the ceiling', () => {
+    const d = decide([r(104.5, 'spend_limit')], [], undefined, NOW)
+    expect(d.band).toBe('ceiling')
+    expect(usageSegment(d)).toBe('spend limit full ceiling')
   })
 })

@@ -4,6 +4,7 @@
 import type { ElementTable } from 'claude-code'
 
 import { encodeRaster, toSvg, toText, type Grid } from '../core/cells'
+import { kpiLines } from '../core/dashboard'
 import { t, type Lang } from '../core/i18n'
 import type { Span } from '../core/pixels'
 import type { Tokens } from '../core/theme'
@@ -25,6 +26,8 @@ export type DashboardView = {
   chartNote: string
   progress?: string
   kpis: ReadonlyArray<[string, string]>
+  /** The pane's width; from 100 columns the KPI rows sit two to a line (052 #32). */
+  columns?: number
   /** Short KPI chips drawn first (046 #51). */
   chips?: ReadonlyArray<{ text: string; level?: number }>
   /** The usage chart as pixels, where the terminal draws pictures (024 #5). */
@@ -116,7 +119,7 @@ export const dashboardSections = (el: Elements, view: DashboardView, tokens: Tok
   // What the chart's marks mean (046 #52), only under a drawn chart.
   if (view.chart !== undefined) out.push({ rows: 1, node: <el.Text key="astrolabe-chart-legend" color={tokens.muted} wrap="truncate-end">{t(lang, 'dash.legend')}</el.Text> })
   out.push({ rows: 1, node: <el.Text color={tokens.accent}>{t(lang, 'dash.session')}</el.Text> })
-  for (const [label, value] of view.kpis) out.push({ rows: 1, node: <el.Text color={tokens.text} wrap="truncate-end">{`${label.padEnd(labelWidth)}${value}`}</el.Text> })
+  for (const line of kpiLines(view.kpis, view.columns, labelWidth)) out.push({ rows: 1, node: <el.Text color={tokens.text} wrap="truncate-end">{line}</el.Text> })
   return out
 }
 

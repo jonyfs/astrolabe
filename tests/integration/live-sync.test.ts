@@ -148,3 +148,19 @@ describe('idle poller and manual refresh (058)', () => {
     await ui.unmount()
   })
 })
+
+describe('the idle poller waits for a running turn (058)', () => {
+  test('a prompt cancels it: eleven minutes inside a turn read nothing', async ($, on) => {
+    const status = 'git status --porcelain=v2 --branch --show-stash'
+    const session = installTree(on as never, { ...halfDone.tree, '/proj/.git/HEAD': 'ref: refs/heads/main\n' }, '/proj')
+    installEngine(on as never)
+    session.script.processes[status] = { stdout: '# branch.oid abc123\n# branch.head main\n# branch.ab +0 -0\n' }
+    await startSession($ as never, '/proj')
+    await completeTurn($ as never)
+    const statuses = () => session.processes.filter(p => p === status).length
+    const before = statuses()
+    await $.prompt.submit({ text: 'keep going', origin: { kind: 'composer' } } as never).catch(() => undefined)
+    await session.clock.advance(11 * 60_000)
+    expect(statuses()).toBe(before)
+  })
+})

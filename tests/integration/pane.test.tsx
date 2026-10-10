@@ -51,7 +51,7 @@ describe('the pane tabs (US1, US2)', () => {
 
   test('050 #99: every tab renders on Desktop, with PR links or a text fallback', async ($, on) => {
     const { session } = await setup($ as never, on as never)
-    session.script.processes['gh pr list --state open --limit 20 --json number,title,headRefName,headRefOid,url,labels,reviewDecision,statusCheckRollup,mergeStateStatus,isDraft'] = {
+    session.script.processes['gh pr list --state open --limit 20 --json number,title,headRefName,headRefOid,url,labels,reviewDecision,statusCheckRollup,mergeStateStatus,isDraft,author,createdAt'] = {
       stdout: JSON.stringify([{
         number: 45,
         title: 'feat: desktop fallback',
@@ -564,6 +564,31 @@ describe('h opens Help (052 #50)', () => {
     await ui.press('tab-tasks')
     await ui.press('help-key')
     expect(await ui.body()).toContain('Astrolabe commands:')
+    await ui.unmount()
+  })
+})
+
+describe('a Help command copies itself (052 #37)', () => {
+  test('each /astrolabe command has a copy button; a press toasts the command', async ($, on) => {
+    const { session } = await setup($ as never, on as never)
+    const ui = await mountPane($ as never, 'terminal', 100, 60)
+    await ui.press('help-key')
+    const copy = await ui.find({ type: 'Button', text: '⧉' })
+    expect(copy).toBeDefined()
+    await ui.unmount()
+    void session
+  })
+})
+
+describe('the Health block in Help (052 #42)', () => {
+  test('opening Help reads the doctor checks into a Health block, once a minute at most', async ($, on) => {
+    const { session } = await setup($ as never, on as never)
+    const ui = await mountPane($ as never, 'terminal', 100, 100)
+    await ui.press('help-key')
+    await session.clock.settle()
+    const help = (await $.command.run({ command: 'astrolabe', args: 'help' } as never)) as { text: string }
+    expect(help.text).toContain('Health')
+    expect(help.text).toMatch(/[✓✗] git/)
     await ui.unmount()
   })
 })

@@ -26,7 +26,7 @@ export const helpFooterPreview = (name: 'nerd' | 'emoji' | 'ascii', lang: Lang):
   })}`
 }
 
-export const buildHelp = (lang: Lang, optionsSeen: Readonly<Record<string, unknown>>): string => {
+export const buildHelp = (lang: Lang, optionsSeen: Readonly<Record<string, unknown>>, health: readonly string[] = []): string => {
   const labelWidth = paneLabelWidth(lang)
   return [
     t(lang, 'help.title'),
@@ -77,6 +77,9 @@ export const buildHelp = (lang: Lang, optionsSeen: Readonly<Record<string, unkno
     // The gates row under the active feature, each one explained (054 #61).
     t(lang, 'help.gates'),
     ...(['constitution', 'clarify', 'checklist', 'tasks', 'analyze'] as const).map(gate => `  ${t(lang, `gate.${gate}`).padEnd(labelWidth)} ${t(lang, `help.gate.${gate}`)}`),
+    // What doctor found (052 #42): read when the tab opens, never on the draw path.
+    t(lang, 'help.block.health'),
+    ...(health.length === 0 ? ['  …'] : health),
     // Where to read more (054 #81): each line ends with its link, which the Help tab makes clickable.
     t(lang, 'help.docs'),
     ...DOC_LINKS.map(d => `  ${d.name.padEnd(labelWidth)} ${d.url}`),
@@ -102,8 +105,8 @@ export const ABOUT: Readonly<Record<PaneTab, TextKey>> = {
 // The help text built once per language and option set, not on every render (054 #2).
 export let helpCache: { key: string; text: string } | undefined
 
-export const helpText = (lang: Lang, optionsSeen: Readonly<Record<string, unknown>>): string => {
-  const key = `${lang}|${JSON.stringify(optionsSeen)}`
-  if (helpCache?.key !== key) helpCache = { key, text: buildHelp(lang, optionsSeen) }
+export const helpText = (lang: Lang, optionsSeen: Readonly<Record<string, unknown>>, health: readonly string[] = []): string => {
+  const key = `${lang}|${JSON.stringify(optionsSeen)}|${health.join('\n')}`
+  if (helpCache?.key !== key) helpCache = { key, text: buildHelp(lang, optionsSeen, health) }
   return helpCache.text
 }

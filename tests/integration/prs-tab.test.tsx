@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import { parsePullList, prOpened, pullAction } from '../../hooks/core/pulls'
+import { ageOf, parsePullList, prOpened, pullAction } from '../../hooks/core/pulls'
 import { scenario as halfDone } from '../fixtures/half-done'
 import { completeTurn, installEngine, installTree, startSession } from '../helpers/fake-fs'
 import { installPaneEngine, installRenderEngine } from '../helpers/render'
@@ -10,7 +10,7 @@ const LIST = JSON.stringify([
   { number: 45, title: 'feat: style', headRefName: '029-style', headRefOid: 'abc1234def', url: 'https://github.com/o/r/pull/45', labels: [{ name: 'feature' }], reviewDecision: 'APPROVED', statusCheckRollup: [{ conclusion: 'SUCCESS' }], mergeStateStatus: 'CLEAN', isDraft: false },
   { number: 46, title: 'fix: old', headRefName: 'fix-old', url: 'https://github.com/o/r/pull/46', labels: [], reviewDecision: 'REVIEW_REQUIRED', statusCheckRollup: [{ status: 'IN_PROGRESS', conclusion: '' }], mergeStateStatus: 'BEHIND', isDraft: false },
 ])
-const GH_LIST = 'gh pr list --state open --limit 20 --json number,title,headRefName,headRefOid,url,labels,reviewDecision,statusCheckRollup,mergeStateStatus,isDraft'
+const GH_LIST = 'gh pr list --state open --limit 20 --json number,title,headRefName,headRefOid,url,labels,reviewDecision,statusCheckRollup,mergeStateStatus,isDraft,author,createdAt'
 
 type Ui = { find: (q: { key?: string }) => Promise<{ text: string } | undefined>; press: (q: { key: string }) => Promise<unknown>; drawn: () => Promise<unknown>; unmount: () => Promise<void> }
 const mount = async ($: never) =>
@@ -29,6 +29,15 @@ describe('the PRs tab (032)', () => {
     expect(pullAction('merge', 45)).toEqual(['gh', 'pr', 'merge', '45', '--merge'])
     expect(pullAction('merge', 45, 'abc1234def')).toEqual(['gh', 'pr', 'merge', '45', '--merge', '--match-head-commit', 'abc1234def'])
     expect(parsePullList(LIST)[0]?.head).toBe('abc1234def')
+  })
+
+  test('the author and the age come from gh (052 #40)', () => {
+    const now = Date.parse('2026-10-10T12:00:00Z')
+    const [row] = parsePullList(JSON.stringify([{ number: 7, title: 't', author: { login: 'jonyfs' }, createdAt: '2026-10-07T12:00:00Z' }]))
+    expect(row?.author).toBe('jonyfs')
+    expect(ageOf(row!.createdAt!, now)).toBe('3d')
+    expect(ageOf(now - 5 * 3_600_000, now)).toBe('5h')
+    expect(ageOf(now - 12 * 60_000, now)).toBe('12m')
   })
 
   test('lists the pull requests with links; merge runs after a second press', async ($, on) => {

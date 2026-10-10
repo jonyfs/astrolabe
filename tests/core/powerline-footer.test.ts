@@ -28,6 +28,15 @@ describe('statusline colours (039)', () => {
     // The context ramps in colour only, as statusline does.
     expect(chips[2]?.text.endsWith('▴')).toBe(false)
   })
+  test('a Spec Kit chip cut to fit keeps its whole text for the hover (052 #45)', () => {
+    const speckit = (columns?: number) => (columns === undefined ? '◆ 002 band-hint · implement 45%' : '◆ 002 band…')
+    const input = { speckit, readings: [], git: { branch: 'main', ahead: 0, behind: 0, changed: 0, conflicts: 0 }, now: NOW, icons: iconSet('emoji') }
+    const cut = footerChips({ ...input, columns: 30 }).find(c => c.key === 'speckit')
+    expect(cut?.text).toBe('◆ 002 band…')
+    expect(cut?.full).toBe('◆ 002 band-hint · implement 45%')
+    const fits = footerChips({ ...input, columns: 200, speckit: () => '◆ 002 · implement' }).find(c => c.key === 'speckit')
+    expect(fits?.full).toBeUndefined()
+  })
   test('branch and PR links are retained on their git chip', () => {
     const chips = footerChips({
       speckit: () => '',
@@ -44,5 +53,14 @@ describe('statusline colours (039)', () => {
         { text: '#31', href: 'https://github.com/o/r/pull/31' },
       ],
     })
+  })
+})
+
+describe('the help chip for newcomers (052 #46)', () => {
+  const base = { speckit: () => '◆ 002 · implement', readings: [], now: NOW, icons: iconSet('emoji'), columns: 200 }
+  test('helpHint ends the footer with /astrolabe help, and it is the first to go', () => {
+    expect(footerChips({ ...base, helpHint: true }).at(-1)?.text).toBe('/astrolabe help')
+    expect(footerChips({ ...base }).some(c => c.text === '/astrolabe help')).toBe(false)
+    expect(footerChips({ ...base, helpHint: true, columns: 20 }).some(c => c.text === '/astrolabe help')).toBe(false)
   })
 })

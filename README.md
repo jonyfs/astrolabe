@@ -7,7 +7,7 @@ updates, and a status entry with your fullest usage window.
 
 ![Astrolabe in a 180-column terminal](docs/images/overview-180.svg)
 
-> **Version 0.118.0.** Every image in this README is a capture of the real mod running in Claude
+> **Version 0.119.0.** Every image in this README is a capture of the real mod running in Claude
 > Code 2.1.292, made with `scripts/capture/scene.sh` in the demo project
 > [docs/demo/](docs/demo/) (see [How the images are made](#how-the-images-are-made)).
 
@@ -481,6 +481,8 @@ tab is for and lists its keys, such as
 nothing to show says what would fill it and the command that does, for example
 `No active feature. Run /speckit-specify to start one.`
 
+Times in the governor rows read clock first, then the distance (`until 14:00, in 2h13m`). The footer's Spec Kit chip, when a narrow pane cuts it, shows its whole text above the row while the pointer is over it. During your first three sessions the footer also ends with a `/astrolabe help` chip, the first one a narrow footer drops. The PRs tab adds who opened each pull request and how long ago (`@jonyfs 3d`).
+
 `r` (or the `↻ r` button) refreshes the pane now: it re-reads the specs, git, the worktrees, this
 branch's pull request and, on the PRs tab, the open pull requests. Ctrl+R is not a key a pane
 button can take, so the key is `r`. When a turn ended ten minutes ago and nothing has happened
@@ -544,7 +546,7 @@ after each turn from the branch name (`026-...`) and that worktree's files:
 
 ![The pane, Tasks tab](docs/images/pane-tasks.svg)
 
-The task being worked on is marked `▸` and shows how long it has run (`▸ T010 Write x.ts  ⏱ 12m`). The last turn's diff of `tasks.md` shows at most 6 lines and a `… +N lines` line. The first row names the feature, its phase and its count (`026 claude-context · implement · 9/20 done`). Ticked tasks fold into one dim row (`✓ 9 done · T001…T009`). Headings of `tasks.md`, such as `Phase 3: User Story 1 · 2/5`, head their tasks with their own count, and a run of `[P]` tasks is bracketed with `┌`, `│` and `└` (a lone one gets `⇉`); the `⇉ … can run in parallel` line shows only when no bracket does. When the open tasks, at the time the ticked ones took, would end after the 5-hour window resets, a `⚠` line says so. When more tasks are open than the pane has rows, the last line says `+N more`. A feature with
+The task being worked on is marked `▸` and shows how long it has run (`▸ T010 Write x.ts                    ⏱ 12m`): the row is bold and the clock sits at the right edge. The last turn's diff of `tasks.md` shows at most 6 lines and a `… +N lines` line. The first row names the feature, its phase and its count (`026 claude-context · implement · 9/20 done`). Ticked tasks fold into one dim row (`✓ 9 done · T001…T009`). Headings of `tasks.md`, such as `Phase 3: User Story 1 · 2/5`, head their tasks with their own count, and a run of `[P]` tasks is bracketed with `┌`, `│` and `└` (a lone one gets `⇉`); the `⇉ … can run in parallel` line shows only when no bracket does. When the open tasks, at the time the ticked ones took, would end after the 5-hour window resets, a `⚠` line says so. When more tasks are open than the pane has rows, the last line says `+N more`. A feature with
 no `tasks.md` yet says so; a quick spec (`track: quick`) uses the `## Tasks` section of its
 `spec.md` instead. When two or more `[P]` tasks come first among the open ones, a `⇉` line names
 them: they can go to subagents at once. The `▶ send T002, T003 to subagents at once` button above
@@ -568,7 +570,7 @@ A tab in the indentation and an unclosed quote are named the same way. In a
 folder with several Spec Kit projects under it, `other roots` names them, and
 `/astrolabe root <folder>` reads one of them as the session's project.
 
-**4 Dashboard** puts the session in numbers and charts:
+**4 Dashboard** puts the session in numbers and charts (from 100 columns the session's KPI rows sit two to a line):
 
 - a first row of chips: tasks done, burn rate, context and where the deciding window lands at its reset (`tasks 9/20 │ burn 12/h │ context 61% │ 5h at reset 70%`), the burn and context chips green, yellow or red like the footer;
 - an astrolabe dial with the six Spec Kit steps around a ring, the active feature's step marked
@@ -608,7 +610,9 @@ pane has the keyboard, or use the wheel and the arrow keys. The Dashboard scroll
 sections, so a chart is never cut in half.
 
 **5 Help** lists the `/astrolabe` commands, the pane and band keys, and the options, in your
-language.
+language. Each `/astrolabe` command ends with a `⧉` button that copies the command (`/astrolabe
+focus`, without its optional `[on|off]`) and says so in a toast. A Health block at the end holds the
+checks of `/astrolabe doctor`, read when the tab opens and at most once a minute.
 
 **6 Config** lists every Astrolabe option as `/config` holds it, under four headings (Display, Governor, Claude, Integrations), with a control for each: a picker
 for a choice, a toggle for on and off, a field for a number or a text. A changed row is marked `●`.

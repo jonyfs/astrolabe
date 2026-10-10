@@ -3,13 +3,13 @@ import { t as tr, type Lang, type TextKey } from './i18n'
 import { formatElapsed, cleanTaskText } from './spinner'
 import { parallelTasks } from './extensions'
 import { fileUrl } from './paths'
-import { byPriority, priorityMark, type Priorities, type Priority } from './spec-actions'
+import { byPriority, priorityMark, taskFiles, type Priorities, type Priority } from './spec-actions'
 import { parseTasks } from './tasks-parser'
 import { STATUS_ROLE, type ThemeRole } from './theme'
 import type { Feature, SessionMemo, SpeckitState } from './types'
 
 /** A row; `segments`, when given, colour parts of `text` (which stays their join) (052 #12). */
-export type PaneRow = { key: string; text: string; role: ThemeRole; dim?: boolean; bold?: boolean; selected?: boolean; label?: string; value?: string; action?: { id: string; label: string; hotkey: string; kind?: 'allow' | 'revoke' }; href?: string; links?: ReadonlyArray<{ label: string; href: string }>; segments?: ReadonlyArray<{ text: string; role: ThemeRole }> }
+export type PaneRow = { key: string; text: string; role: ThemeRole; dim?: boolean; bold?: boolean; selected?: boolean; label?: string; value?: string; action?: { id: string; label: string; hotkey: string; kind?: 'allow' | 'revoke' }; copy?: string; href?: string; links?: ReadonlyArray<{ label: string; href: string }>; segments?: ReadonlyArray<{ text: string; role: ThemeRole }> }
 
 const BAR_CELLS = 10
 const noSpeckit = (lang: Lang): PaneRow => ({ key: 'none', text: tr(lang, 'pane.noSpeckit'), role: 'muted' })
@@ -262,7 +262,16 @@ const elapsed = (ms: number): string => {
   return minutes < 60 ? `${minutes}m` : `${Math.floor(minutes / 60)}h${String(minutes % 60).padStart(2, '0')}m`
 }
 
-export const taskRows = (state: SpeckitState, memo: SessionMemo, rows: number, columns: number, lang: Lang = 'en', now?: number): PaneRow[] => {
+export const taskRows = (
+  state: SpeckitState,
+  memo: SessionMemo,
+  rows: number,
+  columns: number,
+  lang: Lang = 'en',
+  now?: number,
+  /** What the done tasks took, from the session (045 #47). */
+  times: ReadonlyArray<{ dir: string; id: string; ms: number }> = [],
+): PaneRow[] => {
   const active = state.active
   if (!state.present) return [noSpeckit(lang)]
   if (active === undefined) return [{ key: 'none', text: tr(lang, 'pane.noActive'), role: 'muted' }]
@@ -277,7 +286,10 @@ export const taskRows = (state: SpeckitState, memo: SessionMemo, rows: number, c
   // Done tasks folded under one row (045 #41).
   const done = tasks.filter(t => t.isDone && t.id !== undefined).map(t => t.id!)
   // The fold row counts what it folds (052 #23).
-  if (done.length > 0) out.push({ key: 'done-folded', text: cut(tr(lang, 'pane.folded', { n: done.length, ids: done.length === 1 ? done[0]! : `${done[0]}…${done.at(-1)}` }), columns), role: 'done', dim: true })
+  // The time they took, from the session's task times (045 #47).
+  const took = times.filter(x => x.dir === active.dir && done.includes(x.id)).reduce((sum, x) => sum + x.ms, 0)
+  const tookText = took > 0 ? ` · ${elapsed(took)}` : ''
+  if (done.length > 0) out.push({ key: 'done-folded', text: cut(`${tr(lang, 'pane.folded', { n: done.length, ids: done.length === 1 ? done[0]! : `${done[0]}…${done.at(-1)}` })}${tookText}`, columns), role: 'done', dim: true })
   const room = Math.max(1, rows - 1)
   const shown = open.length <= room ? open : open.slice(0, room - 1)
   // A run of [P] tasks at the head can go to subagents at once (020c #19); the line drops when
@@ -310,9 +322,15 @@ export const taskRows = (state: SpeckitState, memo: SessionMemo, rows: number, c
     const current = state.currentTask
     const isCurrent = current !== undefined && t.id !== undefined && current.id === t.id
     const ran = isCurrent && now !== undefined && current.startedAt !== undefined ? elapsed(now - current.startedAt) : ''
-    const tail = ran === '' ? '' : `  ⏱ ${ran}`
+    const clock = ran === '' ? '' : `⏱ ${ran}`
     const head = `${isCurrent ? '▸ ' : ''}${groupOf(index)}${t.id === undefined ? '' : `${t.id.padEnd(idWidth)} `}`
-    out.push({ key: `task-${t.id ?? index}`, text: `${head}${cut(cleanTaskText(t.text), columns - width(head) - width(tail))}`.trimEnd() + tail, role: isCurrent ? 'current' : 'text', ...(taskFile === undefined || t.line === undefined ? {} : { href: `${fileUrl(taskFile)}#L${t.line}` }) })
+    // The ⏱ sits at the right edge, the current row in bold (052 #20).
+    const body = `${head}${cut(cleanTaskText(t.text), columns - width(head) - width(clock) - (clock === '' ? 0 : 2))}`.trimEnd()
+    const line = clock === '' ? body : `${body}${' '.repeat(Math.max(2, columns - width(body) - width(clock)))}${clock}`
+    const named = isCurrent ? taskFiles(t.text) : []
+    out.push({ key: `task-${t.id ?? index}`, text: line, role: isCurrent ? 'current' : 'text', ...(isCurrent ? { bold: true } : {}), ...(taskFile === undefined || t.line === undefined ? {} : { href: `${fileUrl(taskFile)}#L${t.line}` }) })
+    // The files the current task names, under it (045 #45).
+    if (named.length > 0) out.push({ key: `task-files-${t.id ?? index}`, text: cut(`    ${tr(lang, 'pane.taskFiles', { files: named.join(', ') })}`, columns), role: 'muted' })
   }
   if (shown.length < open.length) out.push({ key: 'more', text: tr(lang, 'pane.more', { n: open.length - shown.length }), role: 'muted' })
   return out
@@ -415,16 +433,20 @@ export const helpRows = (text: string, filter?: string, lang: Lang = 'en'): Pane
     [tr(lang, 'help.block.footer'), 'footer'],
     [tr(lang, 'help.glossary'), 'steps'],
     [tr(lang, 'help.block.models'), 'models'],
+    [tr(lang, 'help.block.health'), 'health'],
   ])
   const rows = text.split('\n').map((line, i): PaneRow => {
     const link = /\s(https:\/\/\S+)$/.exec(line)?.[1]
     const section = sections.get(line)
     const text = section === 'steps' ? tr(lang, 'help.block.steps') : section === 'marks' ? tr(lang, 'help.block.marks') : line
+    // A command copies itself on press (052 #37): the words before the gap, optional parts dropped.
+    const command = /^ {2}\//.test(line) ? line.trim().split(/\s{2,}/)[0]!.replace(/\s*\[[^\]]*\]/g, '') : undefined
     return {
       key: section === undefined ? `help-${i}` : `help-section-${section}`,
       text,
       role: i === 0 || !line.startsWith(' ') ? 'accent' : 'text',
       ...(link === undefined ? {} : { href: link }),
+      ...(command === undefined || !/^\/astrolabe\b/.test(command) ? {} : { copy: command }),
     }
   })
   const needle = (filter ?? '').trim().toLowerCase()

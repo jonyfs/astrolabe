@@ -37,13 +37,13 @@ export const paneTree = (
     /** The rule above the chips (041 #8): solid, thin or none. */
     separator?: 'solid' | 'thin' | 'none'
     /** The chips in rows: one row, or statusline's three lines (041 #1). */
-    chips?: ReadonlyArray<ReadonlyArray<{ key: string; text: string; bg: string; fg: string; links?: ReadonlyArray<{ text: string; href: string }> }>>
+    chips?: ReadonlyArray<ReadonlyArray<{ key: string; text: string; bg: string; fg: string; full?: string; links?: ReadonlyArray<{ text: string; href: string }> }>>
     arrow?: string
   },
   /** What is above and below the rows shown, with the presses that scroll (038). */
   nav?: { above: number; below: number; up: () => Promise<void>; down: () => Promise<void>; labels: { more: string } },
   /** Counts beside the tab labels (043 #21) and the keys of the tab shown (043 #25). */
-  extras: { badges?: Partial<Record<PaneTab, string>>; legend?: string; onClose?: () => Promise<void>; onFind?: () => Promise<void>; onRefresh?: () => Promise<void>; onPriority?: () => Promise<void>; onRunQueued?: (id: string) => Promise<void>; rowButtons?: ReadonlyArray<{ key: string; label: string; onPress: () => void }>; onAllowUsage?: () => Promise<void>; onRevokeUsage?: () => Promise<void>; status?: { label: string; onPress: () => Promise<void> }; columns?: number; marks?: 'unicode' | 'ascii' | 'words'; colorblind?: boolean; wrapLongNames?: boolean; Link?: ElementTable<'terminal'>['Link'] } = {},
+  extras: { badges?: Partial<Record<PaneTab, string>>; legend?: string; onClose?: () => Promise<void>; onFind?: () => Promise<void>; onCopy?: (text: string) => Promise<void>; onRefresh?: () => Promise<void>; onPriority?: () => Promise<void>; onRunQueued?: (id: string) => Promise<void>; rowButtons?: ReadonlyArray<{ key: string; label: string; onPress: () => void }>; onAllowUsage?: () => Promise<void>; onRevokeUsage?: () => Promise<void>; status?: { label: string; onPress: () => Promise<void> }; columns?: number; marks?: 'unicode' | 'ascii' | 'words'; colorblind?: boolean; wrapLongNames?: boolean; Link?: ElementTable<'terminal'>['Link'] } = {},
 ) => {
   const Link = extras.Link
   // The pane's own marks in the set the icons option and the accessible mode pick (052 #49, #47).
@@ -102,7 +102,12 @@ export const paneTree = (
       {body ??
         rows.flatMap(row => {
           const node = (
-          row.label !== undefined && row.value !== undefined ? (
+          row.copy !== undefined && extras.onCopy !== undefined ? (
+            <Box key={row.key} flexDirection="row">
+              <Text color={tokens[row.role]} wrap="truncate-end">{m(row.text)}</Text>
+              <Button key={`${row.key}-copy`} label={m('⧉')} plain onPress={() => extras.onCopy!(row.copy!)} />
+            </Box>
+          ) : row.label !== undefined && row.value !== undefined ? (
             <Box key={row.key} flexDirection="row">
               <Text color={row.selected === true ? tokens.accent : tokens[row.role]} dimColor={row.dim === true} bold={row.selected === true || row.bold === true}>
                 {m(colorblindLabel(row, extras.colorblind))}
@@ -229,7 +234,17 @@ export const paneTree = (
                   const after = chip.text.slice(cursor)
                   return [
                     ...(linked.length === 0
-                      ? [<Text key={`chip-${chip.key}`} color={chip.fg} backgroundColor={chip.bg} bold>{` ${chip.text} `}</Text>]
+                      ? [
+                          <Text key={`chip-${chip.key}`} color={chip.fg} backgroundColor={chip.bg} bold {...(chip.full === undefined ? {} : { hover: { scope: `astrolabe-chip-${chip.key}`, underline: true } })}>{` ${chip.text} `}</Text>,
+                          // A chip cut to fit shows its whole text above the row on hover (052 #45).
+                          ...(chip.full === undefined
+                            ? []
+                            : [
+                                <Box key={`chip-${chip.key}-full`} position="absolute" bottom={1} left={0} display="none" hover={{ scope: `astrolabe-chip-${chip.key}`, display: 'flex' }}>
+                                  <Text color={chip.fg} backgroundColor={chip.bg} bold>{` ${chip.full} `}</Text>
+                                </Box>,
+                              ]),
+                        ]
                       : [...linked, ...(after === '' ? [] : [<Text key={`chip-${chip.key}-after`} color={chip.fg} backgroundColor={chip.bg} bold>{`${after} `}</Text>])]),
                     ...(arrow === ''
                       ? next === undefined ? [] : [<Text> </Text>]

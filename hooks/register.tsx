@@ -23,9 +23,9 @@ import { parallelTasks } from './core/extensions'
 import { VERSION } from './core/version'
 import { ASK_MS, clockOf, decide, dropped, EXTEND_MS, HOLD_LIFT_MS, holdQuestion, nextHeld, isPaused, isReadOnlyTool, parseAllow, pauseQuestion, RAISE_MS, refusal, resumePrompt, runPrompt, usageSegment, type Decision, type Question, usageRows } from './core/governor'
 import { chipForeground, CHIPS, FLAVORS, flavorOf, isThemeKeys, lighten, STATUS_ROLE, themeOf, type ThemeRole } from './core/theme'
-import { capDiff, recapLine, recapOf, tasksDiff } from './core/summary'
+import { capDiff, DIFF_FOLD_MS, foldedDiff, recapLine, recapOf, tasksDiff } from './core/summary'
 import { styleSections } from './core/style'
-import { parsePullList, prOpened, pullAction, PR_LIST_FIELDS } from './core/pulls'
+import { ageOf, parsePullList, prOpened, pullAction, PR_LIST_FIELDS } from './core/pulls'
 import { skillModelFor } from './core/skill-models'
 import { featureDirFor, mergedBranches, parseWorktrees, uncommittedCount, withWorktreeProgress, worktreeName, worktreeState } from './core/worktrees'
 import { readFeature } from './io/snapshot'
@@ -59,13 +59,14 @@ const PANE_TITLE = '🧭 Astrolabe'
 const ASK_ID = 'astrolabe-usage'
 const QUEUE_HOTKEYS = 'abcdegilmnoqtuvwxyz'
 /** `/astrolabe doctor` (048 #79): what Astrolabe needs, each line with the fix when it is missing. */
-async function doctor($: EngineInterface): Promise<string> {
+/** The doctor's checks, one line each; `doctor` and the Help tab's Health block share them (052 #42). */
+async function doctorLines($: EngineInterface): Promise<string[]> {
   const probe = (argv: string[]) =>
     $.process.run(argv, { timeoutMs: 3000 }).catch(() => ({ exitCode: 127, stdout: '', stderr: 'not found' }))
   const [git, gh, specify] = await Promise.all([probe(['git', '--version']), probe(['gh', '--version']), probe(['specify', 'version'])])
   const auth = gh.exitCode === 0 ? await probe(['gh', 'auth', 'status']) : undefined
   const state = (await $.state.get(SPECKIT)).value
-  const lines = ['🧭 Astrolabe doctor']
+  const lines: string[] = []
   const check = (isOk: boolean, text: string, fix: string) => lines.push(isOk ? `  ✓ ${text}` : `  ✗ ${text}: ${fix}`)
   check(git.exitCode === 0, git.exitCode === 0 ? firstLine(git.stdout) : 'git not found', 'install git from https://git-scm.com')
   check(gh.exitCode === 0, gh.exitCode === 0 ? firstLine(gh.stdout) : 'gh not found', 'install the GitHub CLI from https://cli.github.com for the PRs tab and the pullRequest option')
@@ -90,10 +91,25 @@ async function doctor($: EngineInterface): Promise<string> {
   lines.push(`  · options: ${set.length === 0 ? 'all defaults' : set.map(([k, v]) => `${k}=${String(v)}`).join(', ')} (change them in /config or the Config tab)`)
   // The hook budget (054 #15): the engine gives each hook 10 s.
   check(slowestHook === undefined || slowestHook.ms < 5000, slowestHook === undefined ? 'no hook work timed yet' : `slowest hook work: ${slowestHook.name}, ${slowestHook.ms} ms of the 10 s budget`, 'a large project or a slow disk; /astrolabe status still works, and the Specs tab reads the rest later')
-  return lines.join('\n')
+  return lines
+}
+
+async function doctor($: EngineInterface): Promise<string> {
+  return ['🧭 Astrolabe doctor', ...(await doctorLines($))].join('\n')
+}
+
+/** Reads the doctor's checks into the session for the Help tab, at most once a minute (052 #42). */
+async function refreshHealth($: EngineInterface): Promise<void> {
+  const now = await $.clock.now()
+  const held = (await $.state.get(SESSION)).value?.health
+  if (held !== undefined && now - held.at < 60_000) return
+  const lines = await doctorLines($).catch(() => undefined)
+  if (lines !== undefined) await flushStats($, s => ({ ...s, health: { at: now, lines } }))
 }
 
 const WELCOMED = 'welcomed'
+/** How many sessions have started; the footer's help chip shows for the first three (052 #46). It rides in the `welcomed` value (`0.118.0|2`), so the store keeps one key. */
+let sessionNumber = Number.POSITIVE_INFINITY
 const ASK = { plugin: 'astrolabe', key: 'ask' } as const
 const DEFAULT_PANE: PaneState = { tab: 'specs', autoOpened: false }
 const UPDATES = { plugin: 'astrolabe', key: 'updates' } as const
@@ -191,6 +207,7 @@ async function footerInput(
       ...(stats?.git === undefined ? {} : { git: stats.git }),
       ...(stats?.lines === undefined ? {} : { lines: stats.lines }),
       ...(stats === undefined ? {} : { startedAt: stats.startedAt }),
+      ...(sessionNumber <= 3 ? { helpHint: true } : {}),
       ...((rate => (rate === undefined ? {} : { burn: rate }))(stats === undefined ? undefined : burnRate(stats.series))),
       ...(state.runningSkill === undefined
         ? {}
@@ -462,7 +479,9 @@ function pullsRows(
   const colour = (c: string) => (c === 'pass' ? tokens0[STATUS_ROLE.success] : c === 'fail' ? tokens0[STATUS_ROLE.error] : c === 'pending' ? tokens0[STATUS_ROLE.warning] : tokens0.muted)
   return rows.flatMap(pr => {
     const title = `${mark(pr.checks)} #${pr.number} ${pr.isDraft ? `[${t(lang, 'prs.draft')}] ` : ''}${pr.title}`
-    const facts = [t(lang, `prs.review.${pr.review}`), ...pr.labels.map(l => `#${l}`), pr.branch].filter(s => s !== '').join('  ')
+    // Who opened it and how long ago, as of the last read (052 #40).
+    const opened = [pr.author === undefined ? '' : `@${pr.author}`, pr.createdAt === undefined || stats?.pulls === undefined ? '' : ageOf(pr.createdAt, stats.pulls.at)].filter(s => s !== '').join(' ')
+    const facts = [t(lang, `prs.review.${pr.review}`), opened, ...pr.labels.map(l => `#${l}`), pr.branch].filter(s => s !== '').join('  ')
     const buttons: RenderNode[] = []
     const add = (action: 'approve' | 'update' | 'merge') => {
       const key = `pr-${action}-${pr.number}`
@@ -882,6 +901,7 @@ function paneHeader(
   state: SpeckitState,
   stats: SessionStats | undefined,
   filterCount?: { kept: number; total: number },
+  now = 0,
 ): RenderNode[] {
   const elements = $.ui.resolve(e)
   const Input = 'Input' in elements ? elements.Input : undefined
@@ -906,7 +926,9 @@ function paneHeader(
       }
     }
     if (pane.tab === 'tasks' && Code !== undefined && stats?.tasksDiff !== undefined && stats.tasksDiff.dir === active?.dir) {
-      out.push(<Code source={capDiff(stats.tasksDiff.text, currentLang())} format="diff" path={stats.tasksDiff.file} />)
+      const age = stats.tasksDiff.at === undefined ? 0 : now - stats.tasksDiff.at
+      if (age > DIFF_FOLD_MS) out.push(<elements.Text key="astrolabe-diff-folded" color={tokens0.muted}>{foldedDiff(stats.tasksDiff.text, stats.tasksDiff.file, age, currentLang())}</elements.Text>)
+      else out.push(<Code source={capDiff(stats.tasksDiff.text, currentLang())} format="diff" path={stats.tasksDiff.file} />)
     }
     // A run of [P] tasks offered as one prompt to subagents (054 #89).
     if (pane.tab === 'tasks' && active !== undefined && Button !== undefined) {
@@ -950,22 +972,23 @@ async function noteTasksDiff($: EngineInterface, state: SpeckitState | undefined
   const dir = state?.active?.dir
   const tasks = state?.activeTasks
   const before = turnTasks
+  const diffAt = await $.clock.now()
   turnTasks = dir === undefined || tasks === undefined ? undefined : { dir, tasks }
   if (before === undefined || dir === undefined || tasks === undefined || before.dir !== dir) return
   const text = tasksDiff(before.tasks, tasks)
   if (text === undefined) return
   const file = state?.activeDocs?.includes('tasks.md') === true ? 'tasks.md' : 'spec.md'
-  await flushStats($, s => ({ ...s, tasksDiff: { dir, file, text } }))
+  await flushStats($, s => ({ ...s, tasksDiff: { dir, file, text, at: diffAt } }))
 }
 
 /** Asks `gh` for the branch's pull request when the cached answer is older than five minutes (023). */
-async function refreshPr($: EngineInterface, root: string, branch: string): Promise<void> {
+async function refreshPr($: EngineInterface, root: string, branch: string, force = false): Promise<void> {
   if (prRunning) return
   prRunning = true
   try {
     const now = await $.clock.now()
     const cached = (await $.state.get(SESSION)).value?.prCache
-    if (cached !== undefined && cached.branch === branch && now - cached.at < PR_TTL_MS) return
+    if (cached !== undefined && cached.branch === branch && now - cached.at < PR_TTL_MS && !force) return
     // gh missing, signed out or no pull request: no part, no error; the next try is in five minutes.
     const run = await $.process.run(GH_PR, { cwd: root, timeoutMs: 5000 }).catch(() => undefined)
     const pr = run?.exitCode === 0 ? parsePullRequest(run.stdout) : undefined
@@ -1432,7 +1455,7 @@ async function refreshNow($: EngineInterface): Promise<void> {
   await flushStats($, stats => (git === undefined ? stats : { ...stats, git: withPr(git, stats.git !== undefined && stats.git.branch === git.branch ? stats.git.pr : undefined) }))
   if (git !== undefined) gitNeedsRefresh = false
   if (root !== undefined) await refreshWorktrees($, root)
-  if (pullRequests && root !== undefined && branch !== undefined) await refreshPr($, root, branch)
+  if (pullRequests && root !== undefined && branch !== undefined) await refreshPr($, root, branch, true)
   if (((await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE).tab === 'prs') await refreshPulls($, true)
 }
 
@@ -1953,6 +1976,9 @@ export const register: Register = (on, options) => {
 
   // The person's language (019): guessed from what they type, kept for the session.
   on('prompt.submit', async ($, e, next) => {
+    // A turn starts: the idle poller waits for it to end (058).
+    idlePollTimer?.cancel()
+    idlePollTimer = undefined
     if (e.origin.kind === 'composer') {
       const guess = guessLang(e.text)
       if (guess !== undefined && guess !== guessedLang) {
@@ -2034,14 +2060,21 @@ export const register: Register = (on, options) => {
     } catch (error) {
       $.ui.log(`astrolabe: ${error instanceof Error ? error.message : String(error)}`, { to: 'debug' })
     }
-    // The first session after install says where to start, once (048 #73).
+    // The first session after install says where to start, once (048 #73); the same value counts sessions (052 #46).
     try {
-      if ((await $.store.get(WELCOMED)) === undefined) {
+      const welcomed = await $.store.get(WELCOMED)
+      if (welcomed === undefined) {
         await showToast($, t(currentLang(), 'toast.welcome'))
-        await $.store.set(WELCOMED, VERSION)
+        sessionNumber = 1
+      } else {
+        const counted = /\|(\d+)$/.exec(String(welcomed))?.[1]
+        // A value from before the count was written means at least one session came first.
+        sessionNumber = (counted === undefined ? 1 : Number(counted)) + 1
       }
+      await $.store.set(WELCOMED, `${VERSION}|${Math.min(sessionNumber, 99)}`)
     } catch {
-      // A store that fails only skips the welcome.
+      // A store that fails only skips the welcome and the help chip.
+      sessionNumber = Number.POSITIVE_INFINITY
     }
     defaultsSeen = await defaults($).catch(() => ({}))
     // NO_COLOR (041 #9): no chip backgrounds, the thin separator. Read once, here.
@@ -2481,7 +2514,7 @@ export const register: Register = (on, options) => {
 
   on('command.run', { command: 'astrolabe' }, async ($, e) => {
     const args = e.args.trim()
-    if (args === 'help') return { text: helpText(currentLang(), optionsSeen) }
+    if (args === 'help') return { text: helpText(currentLang(), optionsSeen, (await $.state.get(SESSION)).value?.health?.lines ?? []) }
     if (args.startsWith('root ')) {
       // Another Spec Kit root under this folder (020c #21): read it as the session's root.
       const cwd = await $.session.cwd()
@@ -2646,9 +2679,9 @@ export const register: Register = (on, options) => {
       needle === '' ? list : list.filter(r => r.key === 'count' || r.text.toLowerCase().includes(needle))
     const rows =
       pane.tab === 'help'
-        ? helpRows(helpText(currentLang(), optionsSeen), pane.filter, currentLang())
+        ? helpRows(helpText(currentLang(), optionsSeen, stats?.health?.lines ?? []), pane.filter, currentLang())
         : pane.tab === 'tasks'
-        ? [...keep(taskRows(state, emptyMemo(), 1000, columns, currentLang(), await $.clock.now())), ...(await pastResetRows($, state, stats, usage))]
+        ? [...keep(taskRows(state, emptyMemo(), 1000, columns, currentLang(), await $.clock.now(), stats?.taskTimes ?? [])), ...(await pastResetRows($, state, stats, usage))]
         : pane.tab === 'session'
           ? await sessionTabRows($, state, usage, stats, updates)
           : [
@@ -2747,6 +2780,7 @@ export const register: Register = (on, options) => {
       // file: links open only from the terminal; the desktop draws them as plain text, so none there.
       ...((el => ('Link' in el && e.surface === 'terminal' ? { Link: el.Link } : {}))($.ui.resolve(e))),
       onRefresh: () => refreshNow($).catch(() => undefined),
+      onCopy: (text: string) => copyNext($, text, e.surface),
       onFind: pane.tab === 'specs' || pane.tab === 'tasks' || pane.tab === 'help' ? () => $.ui.focus({ requestId: PANE_ID, key: 'astrolabe-filter' }).then(() => undefined) : undefined,
       // What the tab is for, then its keys; a narrow pane keeps the keys whole (052 #3).
       legend: ((about: string, keys: string) => ([...`${about} · ${keys}`].length <= columns ? `${about} · ${keys}` : keys))(
@@ -2760,6 +2794,7 @@ export const register: Register = (on, options) => {
       // The last tab, per project, for the next session (043 #22).
       if (state.root !== undefined) await $.store.set(`tab:${state.root}`, tab).catch(() => undefined)
       if (tab === 'prs') $.clock.after(0, () => void refreshPulls($))
+      if (tab === 'help') $.clock.after(0, () => void refreshHealth($))
     }
     // The footer under every tab (035), held at the bottom when the tab is shorter than the pane.
     const footerFor = async (pad: number) => {
@@ -2775,7 +2810,7 @@ export const register: Register = (on, options) => {
           const plain = palette[chip.colour] ?? palette['surface1']!
           const bg = freshChip(chip.key, chip.text, input.now) ? lighten(plain, FRESH_SHARE) : plain
           if (bg !== plain) anyFresh = true
-          return { key: chip.key, text: chip.text, bg, fg: chipForeground(bg), ...(chip.links === undefined || chip.links.length === 0 ? {} : { links: chip.links }) }
+          return { key: chip.key, text: chip.text, bg, fg: chipForeground(bg), ...(chip.full === undefined ? {} : { full: chip.full }), ...(chip.links === undefined || chip.links.length === 0 ? {} : { links: chip.links }) }
         }),
       )
       if (anyFresh) scheduleFresh($, input.now)
@@ -2846,10 +2881,11 @@ export const register: Register = (on, options) => {
             : pane.tab === 'help'
               ? {
                   kept: rows.filter(row => row.key !== 'no-match').length,
-                  total: helpRows(helpText(currentLang(), optionsSeen), undefined, currentLang()).length,
+                  total: helpRows(helpText(currentLang(), optionsSeen, stats?.health?.lines ?? []), undefined, currentLang()).length,
                 }
               : undefined
-      const header = paneHeader($, e, pane, state, stats, filterCount)
+      const nowForHeader = await $.clock.now()
+      const header = paneHeader($, e, pane, state, stats, filterCount, nowForHeader)
       // Rows the header takes: the filter, the summary's lines and links, the diff's lines.
       const headerRows =
         ('Input' in $.ui.resolve(e) && pane.tab !== 'session' ? 1 + (filterCount === undefined ? 0 : 1) : 0) +
@@ -2863,7 +2899,9 @@ export const register: Register = (on, options) => {
               2 +
               (state.activeSummary.split(/\n{2,}/).length > 2 && 'Button' in $.ui.resolve(e) ? 1 : 0)
           : pane.tab === 'tasks' && stats?.tasksDiff !== undefined && stats.tasksDiff.dir === state.active?.dir
-            ? capDiff(stats.tasksDiff.text, currentLang()).split('\n').length
+            ? stats.tasksDiff.at !== undefined && nowForHeader - stats.tasksDiff.at > DIFF_FOLD_MS
+              ? 1
+              : capDiff(stats.tasksDiff.text, currentLang()).split('\n').length
             : 0)
       const room = bodyRows - 1 - headerRows - footerReserve
       const { win, pad, nav } = navFor(rows.map(() => 1), room)
@@ -2903,6 +2941,7 @@ export const register: Register = (on, options) => {
         ...historyRows(stats, activeFeature, state.root === undefined ? [] : featureDurationsByRoot.get(state.root) ?? [], currentLang()),
       ],
       chips: kpiChips(stats, activeFeature, currentLang(), binding, now),
+      columns,
     }
     const sections = dashboardSections(
       {
