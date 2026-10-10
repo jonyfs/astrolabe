@@ -56,6 +56,7 @@ export const buildHelp = (lang: Lang, optionsSeen: Readonly<Record<string, unkno
     `  ${t(lang, 'help.options')}: ${OPTION_NAMES.map(name => `${name}=${optionsSeen[name] === undefined ? 'default' : String(optionsSeen[name])}`).join(', ')}.`,
     t(lang, 'help.block.keys'),
     `  ${t(lang, 'help.tabs')}`,
+    `  ${t(lang, 'help.filterSyntax')}`,
     `  1 ${t(lang, 'tab.specs').padEnd(labelWidth)} ${t(lang, 'help.specs')}`,
     `  2 ${t(lang, 'tab.tasks').padEnd(labelWidth)} ${t(lang, 'help.tasksTab')}`,
     `  3 ${t(lang, 'tab.session').padEnd(labelWidth)} ${t(lang, 'help.sessionTab')}`,

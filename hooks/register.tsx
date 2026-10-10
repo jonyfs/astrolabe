@@ -13,12 +13,12 @@ import { bandSegments, nextReason, otherFeaturesCard, stepCards, type BandDensit
 import { hintTail } from './core/hint'
 import { phaseToasts } from './core/phase-toast'
 import { justFinished } from './core/next-command'
-import { helpRows, moveSpecSelection, nextStatus, taskRows, windowUnits, wrappedRows, type PaneRow, sessionRows, specsRows } from './core/pane'
+import { filterChips, helpRows, moveSpecSelection, nextSort, nextStatus, taskRows, windowUnits, wrappedRows, type PaneRow, sessionRows, specsRows } from './core/pane'
 import { presetOf } from './core/presets'
 import { spinnerSuffix } from './core/spinner'
 import { astrolabeUpdate, firstLine, isDue, isStoredUpdates, localDay, parseCliVersion, parseGstackCheck, parseSelfCheck, skillsVersusCli, releaseNotesUrl, skillsUpdate, updateLabel } from './core/updates'
 import { fileUrl, joinPath } from './core/paths'
-import { configMark, GSTACK_SKILLS, nextPriority, OPTION_GROUPS, optionDefaults, optionGroup, parallelPrompt, parsePriority, REVIEW_MODEL, reviewPrompt, withPriority, type OptionGroup, type Priority } from './core/spec-actions'
+import { configMark, nextFor, nextPriority, skillsForPhase, specDetail, OPTION_GROUPS, optionDefaults, optionGroup, parallelPrompt, parsePriority, REVIEW_MODEL, reviewPrompt, withPriority, type OptionGroup, type Priority } from './core/spec-actions'
 import { parallelTasks } from './core/extensions'
 import { VERSION } from './core/version'
 import { ASK_MS, clockOf, decide, dropped, EXTEND_MS, HOLD_LIFT_MS, holdQuestion, nextHeld, isPaused, isReadOnlyTool, parseAllow, pauseQuestion, RAISE_MS, refusal, resumePrompt, runPrompt, usageSegment, type Decision, type Question, usageRows } from './core/governor'
@@ -789,6 +789,24 @@ async function constitutionReminder($: EngineInterface): Promise<string | undefi
 }
 
 /** `/astrolabe ask` (026 #54): one question over the session's own transcript, answered in a toast. */
+/** A press that needs a second one within ten seconds (052 #41), for actions that cost a turn (061). */
+async function confirmPress($: EngineInterface, key: string, run: () => void): Promise<void> {
+  const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
+  if (held.confirm === key) {
+    const { confirm: _gone, ...rest } = held
+    await $.state.set(PANE_STATE, rest)
+    run()
+    return
+  }
+  await $.state.set(PANE_STATE, { ...held, confirm: key })
+  $.clock.after(10_000, () => void (async () => {
+    const now = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
+    if (now.confirm !== key) return
+    const { confirm: _late, ...rest } = now
+    await $.state.set(PANE_STATE, rest)
+  })().catch(error => $.ui.log(`astrolabe: ${error instanceof Error ? error.message : String(error)}`, { to: 'debug' })))
+}
+
 /** Runs one of gstack's skills on a feature (051), from a timer: a command does not run inside a render. */
 async function runSkill($: EngineInterface, skill: string, about: string): Promise<void> {
   await $.command.run({ command: skill, args: `Spec Kit feature ${about}` }).catch(async (error: unknown) => {
@@ -922,7 +940,10 @@ function paneHeader(
         <Input key="astrolabe-filter" placeholder={t(currentLang(), pane.tab === 'specs' ? 'pane.filter' : 'pane.filterRows')} value={pane.filter ?? ''} onInput={setFilter} onSubmit={setFilter} />,
       )
       if (filterCount !== undefined) {
-        out.push(<elements.Text key="astrolabe-filter-count" color={tokens0.muted}>{t(currentLang(), 'pane.filterCount', filterCount)}</elements.Text>)
+        // The filter's tokens as one muted row with the count (061): `phase:plan · has:questions · 3/12 rows`.
+        const chips = pane.tab === 'specs' ? filterChips(pane.filter, pane.status) : []
+        const count = t(currentLang(), 'pane.filterCount', filterCount)
+        out.push(<elements.Text key="astrolabe-filter-count" color={tokens0.muted}>{chips.length === 0 ? count : `${chips.join(' · ')} ${count}`}</elements.Text>)
       }
     }
     if (pane.tab === 'tasks' && Code !== undefined && stats?.tasksDiff !== undefined && stats.tasksDiff.dir === active?.dir) {
@@ -966,6 +987,9 @@ function paneHeader(
   }
   return []
 }
+
+/** What a Specs filter token may read besides the feature itself (061): priorities and worktrees. */
+const specFilterContext = (stats: SessionStats | undefined) => ({ priorities: stats?.priorities ?? {}, worktrees: worktreesById(stats?.worktrees) })
 
 /** Notes the turn's change to the active tasks as diff hunks for the Tasks tab (024 #8). */
 async function noteTasksDiff($: EngineInterface, state: SpeckitState | undefined): Promise<void> {
@@ -2686,7 +2710,7 @@ export const register: Register = (on, options) => {
           ? await sessionTabRows($, state, usage, stats, updates)
           : [
               ...specsRows(
-                { ...filtered(state, pane.filter, pane.status), features: withWorktreeProgress(filtered(state, pane.filter, pane.status).features, stats?.worktrees) },
+                { ...filtered(state, pane.filter, pane.status, specFilterContext(stats)), features: withWorktreeProgress(filtered(state, pane.filter, pane.status, specFilterContext(stats)).features, stats?.worktrees) },
                 columns,
                 currentLang(),
                 stats?.priorities ?? {},
@@ -2694,12 +2718,13 @@ export const register: Register = (on, options) => {
                 (pane.filter ?? '').trim() === '' && (pane.status ?? 'all') === 'all',
                 stats?.worktrees?.map(w => ({ name: w.name, id: w.id, featureName: w.featureName, phase: w.phase, done: w.done, total: w.total, status: worktreeState(w) })) ?? [],
                 e.surface === 'desktop',
+                pane.sort ?? 'status',
               ),
             ]
     // A filter that keeps nothing says so (052 #7).
     const matchesNone =
       (needle !== '' || (pane.tab === 'specs' && (pane.status ?? 'all') !== 'all')) &&
-      (pane.tab === 'specs' ? filtered(state, pane.filter, pane.status).features.length === 0 && state.features.length > 0 : (pane.tab === 'tasks' || pane.tab === 'help') && rows.every(r => r.key === 'count'))
+      (pane.tab === 'specs' ? filtered(state, pane.filter, pane.status, specFilterContext(stats)).features.length === 0 && state.features.length > 0 : (pane.tab === 'tasks' || pane.tab === 'help') && rows.every(r => r.key === 'count'))
     if (matchesNone && pane.tab === 'specs') rows.splice(0, rows.length, ...rows.filter(r => r.key !== 'empty'))
     if (matchesNone) rows.push({ key: 'no-match', text: t(currentLang(), 'pane.noMatch', { filter: pane.filter?.trim() ?? '' }), role: 'muted' } as never)
     const { Box, Text, Button } = $.ui.resolve(e)
@@ -2723,23 +2748,43 @@ export const register: Register = (on, options) => {
     const activeOpen = state.features.find(f => f.dir === state.active?.dir)
     const inProgress = state.features.filter(f => f.phase !== 'done' && f.phase !== 'abandoned').length
     const pullCount = stats?.pulls?.rows.length
-    // The advisor review and gstack's skills, under the spec selected in the list (051, 055).
+    // The advisor review and gstack's skills that fit the selected spec's phase, under its row (051, 055, 061).
     const reviewed = state.features.find(f => `feature-${f.id}` === selectedSpecRow)
-    const rowButtons: Array<{ key: string; label: string; onPress: () => void }> =
+    const reviewedNext = reviewed === undefined ? undefined : nextFor(reviewed, reviewed.dir === state.active?.dir, state.isAnalyzed === true)
+    const rowButtons: Array<{ key: string; label: string; hotkey?: string; onPress: () => void }> =
       pane.tab === 'specs' && reviewed !== undefined && 'Button' in $.ui.resolve(e)
         ? [
-            { key: 'advisor-review', label: t(currentLang(), 'advisor.button'), onPress: () => askAdvisor($, reviewed) },
+            {
+              key: 'advisor-review',
+              label: pane.confirm === `advisor-${reviewed.id}` ? t(currentLang(), 'detail.confirmAdvisor') : t(currentLang(), 'advisor.button'),
+              hotkey: 'a',
+              onPress: () => void confirmPress($, `advisor-${reviewed.id}`, () => askAdvisor($, reviewed)),
+            },
             ...(stats?.gstack === true
-              ? GSTACK_SKILLS.map(skill => ({
+              ? skillsForPhase(reviewed.phase).map(skill => ({
                   key: `gstack-${skill}`,
                   label: skill,
                   onPress: () => void $.clock.after(0, () => void runSkill($, skill, `${reviewed.id} ${reviewed.name}`)),
                 }))
               : []),
+            ...(reviewedNext === undefined
+              ? []
+              : [{ key: 'copy-next', label: `⧉ ${reviewedNext}`, onPress: () => void copyNext($, reviewedNext, e.surface) }]),
           ]
         : []
+    // The line above those buttons: what the spec needs, at a glance (061).
+    const rowDetail =
+      reviewed === undefined || pane.tab !== 'specs'
+        ? undefined
+        : specDetail(reviewed, {
+            ...(stats?.priorities?.[reviewed.id] === undefined ? {} : { priority: stats.priorities[reviewed.id]! }),
+            worktrees: worktreesById(stats?.worktrees)[reviewed.id] ?? [],
+            ...(reviewedNext === undefined ? {} : { next: reviewedNext }),
+            lang: currentLang(),
+          })
     const extras = {
       rowButtons,
+      ...(rowDetail === undefined ? {} : { rowDetail }),
       badges: {
         ...(inProgress === 0 ? {} : { specs: String(inProgress) }),
         ...(activeOpen === undefined || activeOpen.total - activeOpen.done <= 0 ? {} : { tasks: String(activeOpen.total - activeOpen.done) }),
@@ -2780,6 +2825,27 @@ export const register: Register = (on, options) => {
       // file: links open only from the terminal; the desktop draws them as plain text, so none there.
       ...((el => ('Link' in el && e.surface === 'terminal' ? { Link: el.Link } : {}))($.ui.resolve(e))),
       onRefresh: () => refreshNow($).catch(() => undefined),
+      // c clears the filter box and the status filter; o cycles the order (061).
+      ...(pane.tab === 'specs'
+        ? {
+            sort: {
+              label: t(currentLang(), `pane.sort.${pane.sort ?? 'status'}` as TextKey),
+              onPress: async () => {
+                const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
+                await $.state.set(PANE_STATE, { ...held, sort: nextSort(held.sort) })
+              },
+            },
+            ...(filterChips(pane.filter, pane.status).length === 0
+              ? {}
+              : {
+                  onClear: async () => {
+                    const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
+                    const { filter: _f, status: _s, ...rest } = held
+                    await $.state.set(PANE_STATE, rest)
+                  },
+                }),
+          }
+        : {}),
       onCopy: (text: string) => copyNext($, text, e.surface),
       onFind: pane.tab === 'specs' || pane.tab === 'tasks' || pane.tab === 'help' ? () => $.ui.focus({ requestId: PANE_ID, key: 'astrolabe-filter' }).then(() => undefined) : undefined,
       // What the tab is for, then its keys; a narrow pane keeps the keys whole (052 #3).
@@ -2872,7 +2938,7 @@ export const register: Register = (on, options) => {
       const taskFilterRows = allTaskRows.filter(row => row.key.startsWith('task-') && (needle === '' || row.text.toLowerCase().includes(needle)))
       const filterCount =
         pane.tab === 'specs'
-          ? { kept: filtered(state, pane.filter, pane.status).features.length, total: state.features.length }
+          ? { kept: filtered(state, pane.filter, pane.status, specFilterContext(stats)).features.length, total: state.features.length }
           : pane.tab === 'tasks'
             ? {
                 kept: taskFilterRows.length,
@@ -2890,6 +2956,7 @@ export const register: Register = (on, options) => {
       const headerRows =
         ('Input' in $.ui.resolve(e) && pane.tab !== 'session' ? 1 + (filterCount === undefined ? 0 : 1) : 0) +
         (rowButtons.length > 0 ? 1 : 0) +
+        (rowDetail === undefined ? 0 : 1) +
         (pane.tab === 'specs'
           ? state.activeSummary === undefined
             ? 0

@@ -135,6 +135,7 @@ const buildSpecsRows = (
   fold = false,
   worktreeRows: ReadonlyArray<{ name: string; id: string; featureName: string; phase: string; done: number; total: number; status: string }> = [],
   wrapLongNames = false,
+  sort: SpecSort = 'status',
 ): PaneRow[] => {
   if (!state.present) return [noSpeckit(lang)]
   if (state.features.length === 0) return [{ key: 'empty', text: tr(lang, 'pane.noFeatures'), role: 'muted' }]
@@ -150,7 +151,7 @@ const buildSpecsRows = (
   // Sections by status (044), each only when it has features.
   for (const section of ['progress', 'next', 'done', 'abandoned'] as const) {
     // Within a section, high priority first and low last (051).
-    const inSection = byPriority(state.features.filter(f => sectionOf(f, activeDir) === section), priorities)
+    const inSection = byPriority(sortFeatures(state.features.filter(f => sectionOf(f, activeDir) === section), sort), priorities)
     if (inSection.length === 0) continue
     const folded = fold && (section === 'done' || section === 'abandoned') && inSection.length > 3 && !inSection.some(f => f.dir === activeDir)
     rows.push({ key: `section-${section}`, text: `${tr(lang, `pane.section.${section}`)} (${inSection.length})${folded ? ` · ${tr(lang, 'pane.folded.section', { status: section })}` : ''}`, role: 'muted', bold: true })
@@ -210,8 +211,9 @@ export const specsRows = (
   fold = false,
   worktreeRows: ReadonlyArray<{ name: string; id: string; featureName: string; phase: string; done: number; total: number; status: string }> = [],
   wrapLongNames = false,
+  sort: SpecSort = 'status',
 ): PaneRow[] => {
-  if (state.memoVersion === undefined) return buildSpecsRows(state, columns, lang, priorities, worktrees, fold, worktreeRows, wrapLongNames)
+  if (state.memoVersion === undefined) return buildSpecsRows(state, columns, lang, priorities, worktrees, fold, worktreeRows, wrapLongNames, sort)
   const key = JSON.stringify([
     state.root,
     state.memoVersion,
@@ -236,9 +238,10 @@ export const specsRows = (
     fold,
     worktreeRows,
     wrapLongNames,
+    sort,
   ])
   if (specsRowsCache?.key === key) return specsRowsCache.rows
-  const rows = buildSpecsRows(state, columns, lang, priorities, worktrees, fold, worktreeRows, wrapLongNames)
+  const rows = buildSpecsRows(state, columns, lang, priorities, worktrees, fold, worktreeRows, wrapLongNames, sort)
   specsRowsCache = { key, rows }
   return rows
 }
@@ -400,6 +403,18 @@ export const windowUnits = (heights: readonly number[], offset: number, room: nu
   return { start, end: Math.max(end, start + 1) }
 }
 
+/** How features order within a section (061): the files' order, most done first, or by name. */
+export type SpecSort = 'status' | 'progress' | 'name'
+const SORT_CYCLE: Readonly<Record<SpecSort, SpecSort>> = { status: 'progress', progress: 'name', name: 'status' }
+export const nextSort = (sort: SpecSort | undefined): SpecSort => SORT_CYCLE[sort ?? 'status']
+const sortFeatures = <F extends Pick<Feature, 'name' | 'done' | 'total'>>(features: readonly F[], sort: SpecSort): F[] =>
+  sort === 'status'
+    ? [...features]
+    : [...features].sort((a, b) =>
+        sort === 'name'
+          ? a.name.localeCompare(b.name)
+          : (b.total === 0 ? 0 : b.done / b.total) - (a.total === 0 ? 0 : a.done / a.total))
+
 export type StatusFilter = 'all' | 'progress' | 'next' | 'done' | 'abandoned'
 const STATUS_CYCLE: Readonly<Record<StatusFilter, StatusFilter>> = { all: 'progress', progress: 'next', next: 'done', done: 'abandoned', abandoned: 'all' }
 
@@ -410,6 +425,51 @@ export const nextStatus = (status: StatusFilter | undefined): StatusFilter => ST
  * The features a filter keeps (054 #21): words match the id or name, and `is:done`,
  * `is:progress`, `is:next` or `is:abandoned` keep one status; `status` does the same from `s`.
  */
+/** What the Specs filter box understands (061): words, plus `key:value` tokens. */
+export type SpecFilter = {
+  words: string
+  /** `is:progress|next|done|abandoned`, or `is:active` for the active feature. */
+  is?: 'progress' | 'next' | 'done' | 'abandoned' | 'active'
+  phase?: string
+  has: Array<'questions' | 'checklist' | 'warning' | 'worktree'>
+  track?: 'quick' | 'full'
+  prio?: 'high' | 'low'
+}
+
+const PHASES = ['specify', 'clarify', 'plan', 'tasks', 'implement', 'done', 'abandoned']
+
+/** The tokens of a filter string: `phase:plan has:questions track:quick prio:high is:active auth`. */
+export const parseSpecFilter = (filter: string | undefined): SpecFilter => {
+  const tokens = (filter ?? '').trim().toLowerCase().split(/\s+/).filter(x => x !== '')
+  const out: SpecFilter = { words: '', has: [] }
+  const words: string[] = []
+  for (const token of tokens) {
+    const [key, value = ''] = token.split(':', 2) as [string, string?]
+    if (key === 'is' && ['progress', 'next', 'done', 'abandoned', 'active'].includes(value)) out.is = value as SpecFilter['is']
+    else if (key === 'phase' && PHASES.includes(value)) out.phase = value
+    else if (key === 'has' && ['questions', 'checklist', 'warning', 'worktree'].includes(value)) out.has.push(value as SpecFilter['has'][number])
+    else if (key === 'track' && (value === 'quick' || value === 'full')) out.track = value
+    else if (key === 'prio' && (value === 'high' || value === 'low')) out.prio = value
+    else words.push(token)
+  }
+  out.words = words.join(' ')
+  return out
+}
+
+/** The filter's tokens as chips for the row under the box (061): `phase:plan`, `has:questions`. */
+export const filterChips = (filter: string | undefined, status: StatusFilter = 'all'): string[] => {
+  const f = parseSpecFilter(filter)
+  return [
+    ...(status === 'all' ? [] : [`status:${status}`]),
+    ...(f.is === undefined ? [] : [`is:${f.is}`]),
+    ...(f.phase === undefined ? [] : [`phase:${f.phase}`]),
+    ...f.has.map(h => `has:${h}`),
+    ...(f.track === undefined ? [] : [`track:${f.track}`]),
+    ...(f.prio === undefined ? [] : [`prio:${f.prio}`]),
+    ...(f.words === '' ? [] : [`"${f.words}"`]),
+  ]
+}
+
 /**
  * How many rows `text` takes at `columns`, counting each wrapped line: a long paragraph is
  * several rows, not one. The pane reserves its footer's rows from this, so a miscount pushes the
@@ -418,17 +478,32 @@ export const nextStatus = (status: StatusFilter | undefined): StatusFilter => ST
 export const wrappedRows = (text: string, columns: number): number =>
   text.split('\n').reduce((sum, line) => sum + Math.max(1, Math.ceil(width(line) / Math.max(1, columns))), 0)
 
-export const filterFeatures = <F extends Pick<Feature, 'id' | 'name' | 'phase' | 'dir' | 'done'>>(
+type Filterable = Pick<Feature, 'id' | 'name' | 'phase' | 'dir' | 'done'> & Partial<Pick<Feature, 'warnings' | 'track' | 'clarifications' | 'checklist'>>
+
+export const filterFeatures = <F extends Filterable>(
   features: readonly F[],
   filter: string | undefined,
   activeDir: string | undefined,
   status: StatusFilter = 'all',
+  context: { priorities?: Priorities; worktrees?: Readonly<Record<string, readonly string[]>> } = {},
 ): F[] => {
-  const tokens = (filter ?? '').trim().toLowerCase().split(/\s+/).filter(x => x !== '')
-  const is = tokens.find(x => x.startsWith('is:'))?.slice(3)
-  const words = tokens.filter(x => !x.startsWith('is:')).join(' ')
-  const wanted = is === 'progress' || is === 'next' || is === 'done' || is === 'abandoned' ? is : status === 'all' ? undefined : status
-  return features.filter(f => (words === '' || `${f.id} ${f.name}`.toLowerCase().includes(words)) && (wanted === undefined || sectionOf(f, activeDir) === wanted))
+  const f = parseSpecFilter(filter)
+  const wanted = f.is === 'active' ? undefined : f.is ?? (status === 'all' ? undefined : status)
+  return features.filter(x => {
+    if (f.words !== '' && !`${x.id} ${x.name}`.toLowerCase().includes(f.words)) return false
+    if (wanted !== undefined && sectionOf(x, activeDir) !== wanted) return false
+    if (f.is === 'active' && x.dir !== activeDir) return false
+    if (f.phase !== undefined && x.phase !== f.phase) return false
+    if (f.track !== undefined && (x.track ?? 'full') !== f.track) return false
+    if (f.prio !== undefined && (context.priorities?.[x.id] ?? 'normal') !== f.prio) return false
+    for (const h of f.has) {
+      if (h === 'questions' && !((x.clarifications ?? 0) > 0)) return false
+      if (h === 'checklist' && !((x.checklist?.open ?? 0) > 0)) return false
+      if (h === 'warning' && !((x.warnings ?? []).length > 0)) return false
+      if (h === 'worktree' && !((context.worktrees?.[x.id] ?? []).length > 0)) return false
+    }
+    return true
+  })
 }
 
 /** The Help tab's rows: sections filter as units, and links stay clickable (052 #36, 054 #81). */

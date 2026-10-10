@@ -68,7 +68,7 @@ describe('the rich pane (024)', () => {
     const ui = await mount($ as never)
     await ui.input({ key: 'astrolabe-filter', text: 'zzz', kind: 'change' })
     const body = (await ui.find({ key: 'astrolabe-pane-body' }))?.text ?? ''
-    expect(body).toContain('No rows hold "zzz"; empty the filter to see them all.')
+    expect(body).toContain('No rows hold "zzz"; press c to see them all.')
     expect(body).not.toContain('No features yet')
     await ui.press({ key: 'tab-tasks' })
     expect((await ui.find({ key: 'astrolabe-pane-body' }))?.text).toContain('No rows hold "zzz"')

@@ -1,6 +1,8 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import { filterFeatures, gatesText, helpRows, moveSpecSelection, sessionRows, specsRows, taskRows, wrappedRows } from '../../hooks/core/pane'
+import { nextFor, skillsForPhase, specDetail } from '../../hooks/core/spec-actions'
+
+import { filterChips, filterFeatures, gatesText, helpRows, moveSpecSelection, nextSort, sessionRows, specsRows, taskRows, wrappedRows } from '../../hooks/core/pane'
 import { emptyMemo, type Feature, type SessionMemo, type SpeckitState } from '../../hooks/core/types'
 
 const f = (id: string, name: string, phase: Feature['phase'], done: number, total: number, warnings: Feature['warnings'] = []): Feature => ({
@@ -341,6 +343,55 @@ describe('the Tasks tab, part three (045 #45, #47)', () => {
     const at = texts.findIndex(t => t.includes('T003'))
     expect(texts[at + 1]).toContain('files: src/x.ts, hooks/y.ts')
     expect(texts.some(t => t.includes('files:') && t.includes('T004'))).toBe(false)
+  })
+})
+
+describe('the Specs filter language and order (061)', () => {
+  const f = (id: string, name: string, over: Record<string, unknown> = {}) => ({ id, name, dir: `${id}-${name}`, phase: 'plan' as const, done: 0, total: 0, warnings: [], ...over })
+  const list = [
+    f('001', 'alpha', { phase: 'implement', done: 4, total: 5, track: 'quick' }),
+    f('002', 'beta', { phase: 'plan', clarifications: 2 }),
+    f('003', 'gamma', { phase: 'plan', checklist: { open: 1, total: 3 }, warnings: ['no-spec'] }),
+    f('004', 'delta', { phase: 'done', done: 3, total: 3 }),
+  ]
+  test('tokens: phase, has, track, prio, is:active and plain words', () => {
+    const ids = (q: string, ctx = {}) => filterFeatures(list, q, '001-alpha', 'all', ctx).map(x => x.id)
+    expect(ids('phase:plan')).toEqual(['002', '003'])
+    expect(ids('has:questions')).toEqual(['002'])
+    expect(ids('has:checklist')).toEqual(['003'])
+    expect(ids('has:warning')).toEqual(['003'])
+    expect(ids('track:quick')).toEqual(['001'])
+    expect(ids('is:active')).toEqual(['001'])
+    expect(ids('phase:plan gamma')).toEqual(['003'])
+    expect(ids('prio:high', { priorities: { '002': 'high' } })).toEqual(['002'])
+    expect(ids('has:worktree', { worktrees: { '004': ['wt'] } })).toEqual(['004'])
+  })
+  test('filterChips names the active tokens', () => {
+    expect(filterChips('phase:plan has:questions beta', 'done')).toEqual(['status:done', 'phase:plan', 'has:questions', '"beta"'])
+    expect(filterChips('', 'all')).toEqual([])
+  })
+  test('o cycles status, progress, name', () => {
+    expect([nextSort(undefined), nextSort('progress'), nextSort('name')]).toEqual(['progress', 'name', 'status'])
+  })
+})
+
+describe('what the selected spec offers (061)', () => {
+  test('skills by phase: planning skills early, review and QA while implementing, retro at the end', () => {
+    expect(skillsForPhase('specify')).toEqual(['office-hours', 'plan-ceo-review'])
+    expect(skillsForPhase('plan')).toContain('plan-eng-review')
+    expect(skillsForPhase('implement')).toEqual(['review', 'investigate', 'qa-only', 'health'])
+    expect(skillsForPhase('done')[0]).toBe('retro')
+  })
+  test('the detail line names tasks left, questions, checklist, track, priority, worktrees and the next command', () => {
+    const line = specDetail(
+      { id: '003', name: 'gamma', phase: 'plan', done: 0, total: 8, track: 'quick', clarifications: 2, checklist: { open: 1, total: 3 }, warnings: [] },
+      { priority: 'high', worktrees: ['wt-a'], next: '/speckit-plan', lang: 'en' },
+    )
+    expect(line).toBe('003 gamma · plan · 8 tasks left · 2 open questions · checklist 1/3 open · quick spec · ↑ high · ⑂ wt-a · next /speckit-plan')
+  })
+  test('a non-active spec is taken as analyzed, so implement is next', () => {
+    expect(nextFor({ phase: 'implement', done: 0 }, false, false)).toBe('/speckit-implement')
+    expect(nextFor({ phase: 'implement', done: 0 }, true, false)).toBe('/speckit-analyze')
   })
 })
 
