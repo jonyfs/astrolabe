@@ -97,7 +97,7 @@ export const EN = {
   'card.one': '1 feature here',
   'card.many': '{n} features here',
   'dash.chartImage': 'usage over the session, 0 to 100%, dashed: the projection to the reset',
-  'pane.noMatch': 'No rows hold "{filter}"; empty the filter to see them all.',
+  'pane.noMatch': 'No rows hold "{filter}"; press c to see them all.',
   'band.otherFeatures': 'Other features in progress: {features}',
   'pane.status.all': 'all',
   'pane.status.progress': 'in progress',

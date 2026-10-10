@@ -7,7 +7,7 @@ updates, and a status entry with your fullest usage window.
 
 ![Astrolabe in a 180-column terminal](docs/images/overview-180.svg)
 
-> **Version 0.119.0.** Every image in this README is a capture of the real mod running in Claude
+> **Version 0.120.0.** Every image in this README is a capture of the real mod running in Claude
 > Code 2.1.292, made with `scripts/capture/scene.sh` in the demo project
 > [docs/demo/](docs/demo/) (see [How the images are made](#how-the-images-are-made)).
 
@@ -330,9 +330,23 @@ under the selected spec does the same for that spec, and the Session tab counts 
 session. When that turn ends after the advisor ran, the Session tab also keeps Claude's report,
 its first 12 non-blank lines under `advisor 002`. Only you can start it.
 
-When gstack is installed, that row also holds its skills: `investigate`, `review`, `health`,
-`qa-only` and `retro`. The row sits under the spec selected in the list, so the buttons are
-beside the spec they act on; a press runs that skill with that feature named in its arguments.
+The advisor button asks for a second press within ten seconds (`press again: the advisor takes a
+turn`), since it costs a whole turn; `a` presses it. The selected spec gets a detail line above its
+buttons, for example `003 gamma · plan · 8 tasks left · 2 open questions · checklist 1/3 open · ↑ high ·
+next /speckit-plan`, and a `⧉ /speckit-plan` button that copies that command.
+
+When gstack is installed, that row also holds the skills that fit the spec's phase, not all of them
+at every phase: `office-hours` and `plan-ceo-review` while specifying, `plan-eng-review` and
+`plan-design-review` while planning, `review`, `investigate`, `qa-only` and `health` while
+implementing, `retro` and `document-release` once done. The row sits under the spec selected in the
+list, so the buttons are beside the spec they act on; a press runs that skill with that feature named
+in its arguments.
+
+The Specs filter box takes words and tokens: `phase:plan`, `has:questions`, `has:checklist`,
+`has:warning`, `has:worktree`, `track:quick`, `prio:high`, `is:active` (and `is:progress`,
+`is:next`, `is:done`). A muted row under the box lists the tokens and the count
+(`phase:plan · has:questions 3/12 rows`). `c` clears the filter and the status, and `o` cycles the
+order inside each section: file order, most done first, by name.
 
 `/astrolabe doctor` checks what Astrolabe needs and prints the fix next to anything missing:
 

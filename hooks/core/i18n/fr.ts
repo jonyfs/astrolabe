@@ -99,7 +99,7 @@ export const FR: Dictionary = {
   'card.one': '1 feature ici',
   'card.many': '{n} features ici',
   'dash.chartImage': 'l’usage pendant la session, de 0 à 100 %, en tirets : la projection jusqu’au reset',
-  'pane.noMatch': 'Aucune ligne ne contient « {filter} » ; videz le filtre pour tout revoir.',
+  'pane.noMatch': 'Aucune ligne ne contient « {filter} » ; appuyez sur c pour tout revoir.',
   'band.otherFeatures': 'Autres fonctionnalités en cours : {features}',
   'pane.status.all': 'toutes',
   'pane.status.progress': 'en cours',
