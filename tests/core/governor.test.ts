@@ -204,3 +204,16 @@ describe('whenOf: a time reads clock then distance (052 #29)', () => {
     expect(whenOf(new Date(2026, 9, 10, 11, 55).getTime(), now)).toBe('11:55, 5m ago')
   })
 })
+
+describe('a gateway spend limit ramps like the windows (047 #69)', () => {
+  test('spend_limit takes the same bands and reads as "spend limit"', () => {
+    const band = (p: number) => decide([r(p, 'spend_limit')], [], undefined, NOW)
+    expect([band(42), band(72), band(83), band(89), band(91)].map(d => d.band)).toEqual(['ok', 'throttle', 'hold', 'stop', 'ceiling'])
+    expect(usageSegment(band(83))).toBe('spend limit 83% hold')
+  })
+  test('past 100 on an exceeded limit reads full and stays at the ceiling', () => {
+    const d = decide([r(104.5, 'spend_limit')], [], undefined, NOW)
+    expect(d.band).toBe('ceiling')
+    expect(usageSegment(d)).toBe('spend limit full ceiling')
+  })
+})

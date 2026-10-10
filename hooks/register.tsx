@@ -23,7 +23,7 @@ import { parallelTasks } from './core/extensions'
 import { VERSION } from './core/version'
 import { ASK_MS, clockOf, decide, dropped, EXTEND_MS, HOLD_LIFT_MS, holdQuestion, nextHeld, isPaused, isReadOnlyTool, parseAllow, pauseQuestion, RAISE_MS, refusal, resumePrompt, runPrompt, usageSegment, type Decision, type Question, usageRows } from './core/governor'
 import { chipForeground, CHIPS, FLAVORS, flavorOf, isThemeKeys, lighten, STATUS_ROLE, themeOf, type ThemeRole } from './core/theme'
-import { capDiff, recapLine, recapOf, tasksDiff } from './core/summary'
+import { capDiff, DIFF_FOLD_MS, foldedDiff, recapLine, recapOf, tasksDiff } from './core/summary'
 import { styleSections } from './core/style'
 import { ageOf, parsePullList, prOpened, pullAction, PR_LIST_FIELDS } from './core/pulls'
 import { skillModelFor } from './core/skill-models'
@@ -901,6 +901,7 @@ function paneHeader(
   state: SpeckitState,
   stats: SessionStats | undefined,
   filterCount?: { kept: number; total: number },
+  now = 0,
 ): RenderNode[] {
   const elements = $.ui.resolve(e)
   const Input = 'Input' in elements ? elements.Input : undefined
@@ -925,7 +926,9 @@ function paneHeader(
       }
     }
     if (pane.tab === 'tasks' && Code !== undefined && stats?.tasksDiff !== undefined && stats.tasksDiff.dir === active?.dir) {
-      out.push(<Code source={capDiff(stats.tasksDiff.text, currentLang())} format="diff" path={stats.tasksDiff.file} />)
+      const age = stats.tasksDiff.at === undefined ? 0 : now - stats.tasksDiff.at
+      if (age > DIFF_FOLD_MS) out.push(<elements.Text key="astrolabe-diff-folded" color={tokens0.muted}>{foldedDiff(stats.tasksDiff.text, stats.tasksDiff.file, age, currentLang())}</elements.Text>)
+      else out.push(<Code source={capDiff(stats.tasksDiff.text, currentLang())} format="diff" path={stats.tasksDiff.file} />)
     }
     // A run of [P] tasks offered as one prompt to subagents (054 #89).
     if (pane.tab === 'tasks' && active !== undefined && Button !== undefined) {
@@ -969,12 +972,13 @@ async function noteTasksDiff($: EngineInterface, state: SpeckitState | undefined
   const dir = state?.active?.dir
   const tasks = state?.activeTasks
   const before = turnTasks
+  const diffAt = await $.clock.now()
   turnTasks = dir === undefined || tasks === undefined ? undefined : { dir, tasks }
   if (before === undefined || dir === undefined || tasks === undefined || before.dir !== dir) return
   const text = tasksDiff(before.tasks, tasks)
   if (text === undefined) return
   const file = state?.activeDocs?.includes('tasks.md') === true ? 'tasks.md' : 'spec.md'
-  await flushStats($, s => ({ ...s, tasksDiff: { dir, file, text } }))
+  await flushStats($, s => ({ ...s, tasksDiff: { dir, file, text, at: diffAt } }))
 }
 
 /** Asks `gh` for the branch's pull request when the cached answer is older than five minutes (023). */
@@ -2677,7 +2681,7 @@ export const register: Register = (on, options) => {
       pane.tab === 'help'
         ? helpRows(helpText(currentLang(), optionsSeen, stats?.health?.lines ?? []), pane.filter, currentLang())
         : pane.tab === 'tasks'
-        ? [...keep(taskRows(state, emptyMemo(), 1000, columns, currentLang(), await $.clock.now())), ...(await pastResetRows($, state, stats, usage))]
+        ? [...keep(taskRows(state, emptyMemo(), 1000, columns, currentLang(), await $.clock.now(), stats?.taskTimes ?? [])), ...(await pastResetRows($, state, stats, usage))]
         : pane.tab === 'session'
           ? await sessionTabRows($, state, usage, stats, updates)
           : [
@@ -2880,7 +2884,8 @@ export const register: Register = (on, options) => {
                   total: helpRows(helpText(currentLang(), optionsSeen, stats?.health?.lines ?? []), undefined, currentLang()).length,
                 }
               : undefined
-      const header = paneHeader($, e, pane, state, stats, filterCount)
+      const nowForHeader = await $.clock.now()
+      const header = paneHeader($, e, pane, state, stats, filterCount, nowForHeader)
       // Rows the header takes: the filter, the summary's lines and links, the diff's lines.
       const headerRows =
         ('Input' in $.ui.resolve(e) && pane.tab !== 'session' ? 1 + (filterCount === undefined ? 0 : 1) : 0) +
@@ -2894,7 +2899,9 @@ export const register: Register = (on, options) => {
               2 +
               (state.activeSummary.split(/\n{2,}/).length > 2 && 'Button' in $.ui.resolve(e) ? 1 : 0)
           : pane.tab === 'tasks' && stats?.tasksDiff !== undefined && stats.tasksDiff.dir === state.active?.dir
-            ? capDiff(stats.tasksDiff.text, currentLang()).split('\n').length
+            ? stats.tasksDiff.at !== undefined && nowForHeader - stats.tasksDiff.at > DIFF_FOLD_MS
+              ? 1
+              : capDiff(stats.tasksDiff.text, currentLang()).split('\n').length
             : 0)
       const room = bodyRows - 1 - headerRows - footerReserve
       const { win, pad, nav } = navFor(rows.map(() => 1), room)

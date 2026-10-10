@@ -163,6 +163,8 @@ export const FR: Dictionary = {
   'pane.unreadable': "! {id} : {file} existe mais n'a pas pu être lu",
   'pane.noActive': 'Aucune feature active. Lancez /speckit-specify pour en commencer une.',
   'pane.noTasks': "Pas encore de tâches : cette feature n'a pas de tasks.md, ou il n'en liste aucune. Lancez /speckit-tasks.",
+  'pane.diffFolded': 'dernier tour : +{added} −{removed} dans {file}, il y a {ago}',
+  'pane.taskFiles': 'fichiers : {files}',
   'pane.folded': '✓ {n} faites · {ids}',
   'pane.count': '{done}/{total} faites',
   'pane.allTicked': 'Toutes les tâches sont cochées.',

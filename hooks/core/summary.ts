@@ -56,6 +56,17 @@ export const tasksDiff = (before: readonly TaskLine[], after: readonly TaskLine[
 
 /** The last turn's tasks diff, at most 6 lines and a `+N lines` line (052 #19). */
 const DIFF_LINES = 6
+/** After five minutes the last turn's diff folds to one line (045 #48): its size and how long ago. */
+export const DIFF_FOLD_MS = 300_000
+export const foldedDiff = (text: string, file: string, ageMs: number, lang: Lang): string => {
+  const lines = text.split('\n')
+  const added = lines.filter(l => l.startsWith('+') && !l.startsWith('+++')).length
+  const removed = lines.filter(l => l.startsWith('-') && !l.startsWith('---')).length
+  const minutes = Math.floor(ageMs / 60_000)
+  const ago = minutes < 60 ? `${minutes}m` : `${Math.floor(minutes / 60)}h${String(minutes % 60).padStart(2, '0')}m`
+  return t(lang, 'pane.diffFolded', { added, removed, file, ago })
+}
+
 export const capDiff = (text: string, lang: Lang): string => {
   const lines = text.split('\n')
   return lines.length <= DIFF_LINES ? text : [...lines.slice(0, DIFF_LINES), t(lang, 'pane.diffMore', { n: lines.length - DIFF_LINES })].join('\n')
