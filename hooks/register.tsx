@@ -959,13 +959,13 @@ async function noteTasksDiff($: EngineInterface, state: SpeckitState | undefined
 }
 
 /** Asks `gh` for the branch's pull request when the cached answer is older than five minutes (023). */
-async function refreshPr($: EngineInterface, root: string, branch: string): Promise<void> {
+async function refreshPr($: EngineInterface, root: string, branch: string, force = false): Promise<void> {
   if (prRunning) return
   prRunning = true
   try {
     const now = await $.clock.now()
     const cached = (await $.state.get(SESSION)).value?.prCache
-    if (cached !== undefined && cached.branch === branch && now - cached.at < PR_TTL_MS) return
+    if (cached !== undefined && cached.branch === branch && now - cached.at < PR_TTL_MS && !force) return
     // gh missing, signed out or no pull request: no part, no error; the next try is in five minutes.
     const run = await $.process.run(GH_PR, { cwd: root, timeoutMs: 5000 }).catch(() => undefined)
     const pr = run?.exitCode === 0 ? parsePullRequest(run.stdout) : undefined
@@ -1432,7 +1432,7 @@ async function refreshNow($: EngineInterface): Promise<void> {
   await flushStats($, stats => (git === undefined ? stats : { ...stats, git: withPr(git, stats.git !== undefined && stats.git.branch === git.branch ? stats.git.pr : undefined) }))
   if (git !== undefined) gitNeedsRefresh = false
   if (root !== undefined) await refreshWorktrees($, root)
-  if (pullRequests && root !== undefined && branch !== undefined) await refreshPr($, root, branch)
+  if (pullRequests && root !== undefined && branch !== undefined) await refreshPr($, root, branch, true)
   if (((await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE).tab === 'prs') await refreshPulls($, true)
 }
 
@@ -1953,6 +1953,9 @@ export const register: Register = (on, options) => {
 
   // The person's language (019): guessed from what they type, kept for the session.
   on('prompt.submit', async ($, e, next) => {
+    // A turn starts: the idle poller waits for it to end (058).
+    idlePollTimer?.cancel()
+    idlePollTimer = undefined
     if (e.origin.kind === 'composer') {
       const guess = guessLang(e.text)
       if (guess !== undefined && guess !== guessedLang) {
