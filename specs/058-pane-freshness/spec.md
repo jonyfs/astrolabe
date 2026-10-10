@@ -1,6 +1,6 @@
 ---
 track: quick
-status: active
+status: done
 ---
 # Idle Poller and Manual Refresh
 
@@ -16,3 +16,9 @@ The spec is satisfied once the following behavior can be observed:
 2. Pressing `Ctrl‑R` refreshes the pane immediately.
 
 No changes to the core API are required; the spec is used purely to document UI behavior.
+
+## Outcome
+
+- The idle poller is a timer armed after each turn: ten minutes and one second later it runs the same refresh as the key, then re-arms, six times at most.
+- The manual key is `r` (button `↻ r`): a pane Button's hotkey is one digit or one lowercase letter, so `Ctrl-R` is not available. `r` left the queue hotkeys.
+- Tests: `tests/integration/live-sync.test.ts`, "idle poller and manual refresh (058)".

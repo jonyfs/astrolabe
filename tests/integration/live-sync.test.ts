@@ -110,3 +110,41 @@ describe('Claude spinning on a task (054 #85)', () => {
     expect(session.toasts.filter(t => t.includes('three turns on T010'))).toHaveLength(1)
   })
 })
+
+describe('idle poller and manual refresh (058)', () => {
+  const status = 'git status --porcelain=v2 --branch --show-stash'
+  const arm = async ($: never, on: never) => {
+    const session = installTree(on, { ...halfDone.tree, '/proj/.git/HEAD': 'ref: refs/heads/main\n' }, '/proj')
+    installEngine(on)
+    installRenderEngine(on)
+    installPaneEngine(on)
+    session.script.processes[status] = { stdout: '# branch.oid abc123\n# branch.head main\n# branch.ab +0 -0\n' }
+    await startSession($, '/proj')
+    await completeTurn($)
+    return session
+  }
+
+  test('ten idle minutes after a turn re-read git; the poller stops after six', async ($, on) => {
+    const session = await arm($ as never, on as never)
+    const statuses = () => session.processes.filter(p => p === status).length
+    const before = statuses()
+    await session.clock.advance(9 * 60_000)
+    expect(statuses()).toBe(before)
+    await session.clock.advance(61_000)
+    expect(statuses()).toBe(before + 1)
+    await session.clock.advance(10 * 6 * 60_000)
+    expect(statuses()).toBe(before + 6)
+    await session.clock.advance(60 * 60_000)
+    expect(statuses()).toBe(before + 6)
+  })
+
+  test('r refreshes the pane now, even before the idle time', async ($, on) => {
+    const session = await arm($ as never, on as never)
+    const statuses = () => session.processes.filter(p => p === status).length
+    const before = statuses()
+    const ui = await mountPane($ as never, 'terminal', 100, 30)
+    await ui.press('refresh')
+    expect(statuses()).toBe(before + 1)
+    await ui.unmount()
+  })
+})

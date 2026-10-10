@@ -7,7 +7,7 @@ updates, and a status entry with your fullest usage window.
 
 ![Astrolabe in a 180-column terminal](docs/images/overview-180.svg)
 
-> **Version 0.117.0.** Every image in this README is a capture of the real mod running in Claude
+> **Version 0.118.0.** Every image in this README is a capture of the real mod running in Claude
 > Code 2.1.292, made with `scripts/capture/scene.sh` in the demo project
 > [docs/demo/](docs/demo/) (see [How the images are made](#how-the-images-are-made)).
 
@@ -477,9 +477,16 @@ type (a filter that keeps nothing says so); on Specs, `s` cycles a status filter
 `h` opens the Help tab from any tab. The tab shown starts with `▸`, and the pane's title names the active feature the way the band and the footer do (`🧭 Astrolabe · ◆ 026 claude-context`, with `~` before the id when the active feature is a guess). Below 80 columns a tab shows only its number and count (`2·11`). Below 60 the pane is compact: the Specs rows drop their progress bars and keep the count. A tab label carries a count when there is one: `Specs 3` features in progress, `Tasks 11` open
 tasks of the active feature, `PRs 2` open pull requests. Above the footer, a dim row says what the
 tab is for and lists its keys, such as
-`every feature, its phase and progress · 1-7 tabs · h help · f filters · s status · j/k scroll · Esc closes`. A tab with
+`every feature, its phase and progress · 1-7 tabs · h help · f filters · s status · j/k scroll · r ↻ · Esc closes`. A tab with
 nothing to show says what would fill it and the command that does, for example
 `No active feature. Run /speckit-specify to start one.`
+
+`r` (or the `↻ r` button) refreshes the pane now: it re-reads the specs, git, the worktrees, this
+branch's pull request and, on the PRs tab, the open pull requests. Ctrl+R is not a key a pane
+button can take, so the key is `r`. When a turn ended ten minutes ago and nothing has happened
+since, the idle poller does the same refresh by itself, so a dimmed band and a stale pane catch
+up without a keypress. It repeats every ten idle minutes, six times at most, and the next turn
+starts it over.
 
 The Help tab (and `/astrolabe help`) starts with what this version changed, lists every option
 with its value now (`footerIn=pane`), the footer's parts in their fixed order (Spec Kit, deciding window, other windows, context, model, skill, git, burn, session time; a narrow screen drops session time first, then burn, git, skill, model, the other windows and context), and ends with a legend of every mark Astrolabe draws (`◆`, `●`,
