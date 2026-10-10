@@ -215,6 +215,14 @@ export const clockOf = (iso: string | undefined): string | undefined => {
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
 }
 
+/** A time read one way everywhere in the pane (052 #29): the clock, then the distance (`14:00, in 2h13m`). */
+export const whenOf = (at: number, now: number): string => {
+  const clock = clockOf(new Date(at).toISOString()) ?? '?'
+  const minutes = Math.floor(Math.abs(at - now) / 60_000)
+  const span = minutes < 60 ? `${minutes}m` : `${Math.floor(minutes / 60)}h${String(minutes % 60).padStart(2, '0')}m`
+  return at >= now ? `${clock}, in ${span}` : `${clock}, ${span} ago`
+}
+
 /** The pane's Session tab rows for the governor (016): label, value. Empty with nothing to say. */
 export const usageRows = (usage: UsageState, now: number): Array<[string, string]> => {
   const isOverride = usage.override !== undefined && usage.override.until > now
@@ -224,10 +232,10 @@ export const usageRows = (usage: UsageState, now: number): Array<[string, string
   const windows = usage.readings
     .map(r => (isRenewed(r, now) ? `${labelOf(r.kind)} renewed` : `${labelOf(r.kind)} ${Math.round(r.percentUsed)}%`))
     .join(' · ')
-  const clock = (at: number) => clockOf(new Date(at).toISOString()) ?? '?'
+  const clock = (at: number) => whenOf(at, now)
   const next = nextBand(usage.readings, usage.history, now)
   return [
-    ['state', stateText(d)],
+    ['state', stateText(d, now)],
     ...(windows === '' ? [] : [['usage', `${windows}: ${d.band}`] as [string, string]]),
     ['subagents', `${usage.inFlight} running, cap ${d.cap}`],
     // The queue, one row each, with the command that runs it now (047 #64).
@@ -247,9 +255,10 @@ export const usageRows = (usage: UsageState, now: number): Array<[string, string
 }
 
 /** The governor's state in plain words (047 #61): what waits, from where, and the level now. */
-export const stateText = (d: Decision): string => {
+export const stateText = (d: Decision, now?: number): string => {
   const from = d.highest === undefined ? '' : d.highest.renewed === true ? ` (${labelOf(d.highest.kind)} renewed)` : ` (${labelOf(d.highest.kind)} at ${Math.round(d.highest.percent)}%)`
-  const until = d.highest?.resetsAt === undefined ? 'the reset' : (clockOf(d.highest.resetsAt) ?? 'the reset')
+  const resetAt = d.highest?.resetsAt === undefined ? Number.NaN : Date.parse(d.highest.resetsAt)
+  const until = Number.isNaN(resetAt) ? 'the reset' : now === undefined ? (clockOf(d.highest!.resetsAt) ?? 'the reset') : whenOf(resetAt, now)
   if (isPaused(d)) return `paused${from}: only read-only tools run until ${until}`
   if (d.band === 'hold') return `holding${from}: new subagents wait until ${until}; other tools run`
   if (d.band === 'throttle') return `slowing down${from}: at most ${d.cap} subagent${d.cap === 1 ? '' : 's'} at a time`
@@ -290,5 +299,5 @@ export const paceRow = (
   const rate = (last.percent - first.percent) / (last.at - first.at)
   if (rate <= 0) return undefined
   const at = Math.min(100, Math.round(top.percentUsed + rate * (reset - now)))
-  return t(lang, 'pace.value', { window: labelOf(top.kind), p: at, at: clockOf(top.resetsAt) ?? '' })
+  return t(lang, 'pace.value', { window: labelOf(top.kind), p: at, at: whenOf(reset, now) })
 }

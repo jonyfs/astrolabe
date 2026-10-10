@@ -27,7 +27,7 @@ describe('the pace in words (022 #32)', () => {
   test('where the deciding window should be at its reset', () => {
     const history = [{ at: NOW - 3600_000, percent: 70 }, { at: NOW, percent: 80 }]
     const reading = { kind: 'seven_day', percentUsed: 80, resetsAt: new Date(NOW + 2 * 3600_000).toISOString() }
-    expect(paceRow([reading], history, NOW)).toMatch(/^at this pace 7d reaches about 100% by \d\d:\d\d$/)
+    expect(paceRow([reading], history, NOW)).toMatch(/^at this pace 7d reaches about 100% by \d\d:\d\d, in \d+(h\d\d)?m$/)
     expect(paceRow([reading], [], NOW)).toBeUndefined()
   })
 })
