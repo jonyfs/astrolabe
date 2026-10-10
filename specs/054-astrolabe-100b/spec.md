@@ -74,7 +74,7 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 - [x] T043 #43 A context chip that turns into `compact soon` past 85% (P1)
 - [x] T044 #44 The footer's git chip shows the PR number as a link when `pullRequest` is on (P2)
 - [x] T045 #45 A chip for the running skill with its model (`⟳ implement · sonnet`) (P2)
-- [ ] T046 #46 The footer drops its separator row when the pane is under 12 rows (P3)
+- [x] T046 #46 The footer drops its separator row when the pane is under 12 rows (P3)
 - [ ] T047 #47 The status entry under the prompt can show the full footer on one line at 140 columns and wider (P3)
 - [ ] T048 #48 The footer chips' order and colours read from one table the Help tab prints (P3)
 
@@ -102,7 +102,7 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 
 - [x] T063 #63 Config reset: a `Reset to defaults` button on the Config tab, pressed twice, and `/astrolabe config reset` (P1)
 - [x] T064 #64 The Config tab groups options: Display, Governor, Claude, Integrations (P2)
-- [ ] T065 #65 Number keys show on the tab labels (`1 Specs`) only while the pane has the keyboard (P3)
+- [x] T065 #65 Number keys show on the tab labels (`1 Specs`) only while the pane has the keyboard (P3)
 - [x] T066 #66 A row selected with the arrows on Specs, with Enter opening its spec.md link (P2)
 - [x] T067 #67 Long names wrap on Desktop and cut with `…` in the terminal, consistently (P2)
 - [ ] T068 #68 Toggling the pane with the same key that opened it (P3)

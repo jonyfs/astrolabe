@@ -789,6 +789,22 @@ async function constitutionReminder($: EngineInterface): Promise<string | undefi
 }
 
 /** `/astrolabe ask` (026 #54): one question over the session's own transcript, answered in a toast. */
+/** The Dashboard's numbers as a Markdown table (054 #99, 046 #59), or undefined before the first turn. */
+async function kpisText($: EngineInterface): Promise<string | undefined> {
+  const stats = (await $.state.get(SESSION)).value
+  if (stats === undefined) return undefined
+  const state = (await $.state.get(SPECKIT)).value
+  const feature = state === undefined ? undefined : state.features.find(f => f.dir === state.active?.dir)
+  const now = await $.clock.now()
+  const binding = decisionOf((await $.state.get(USAGE)).value ?? DEFAULT_USAGE, now).highest
+  const rows = [
+    ...(feature === undefined || feature.total === 0 ? [] : [[t(currentLang(), 'kpis.tasks'), `${feature.done}/${feature.total}`] as [string, string]]),
+    ...kpiRows(stats, binding, now, currentLang()),
+    ...historyRows(stats, feature, state === undefined || state.root === undefined ? [] : featureDurationsByRoot.get(state.root) ?? [], currentLang()),
+  ]
+  return kpisMarkdown(t(currentLang(), 'kpis.title', { feature: feature === undefined ? '—' : `${feature.id} ${feature.name}` }), rows)
+}
+
 /** A press that needs a second one within ten seconds (052 #41), for actions that cost a turn (061). */
 async function confirmPress($: EngineInterface, key: string, run: () => void): Promise<void> {
   const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
@@ -2580,20 +2596,7 @@ export const register: Register = (on, options) => {
       return { text: t(currentLang(), focusMode ? 'focus.on' : 'focus.off') }
     }
     // The Dashboard's numbers as Markdown, to paste in a PR body (054 #99).
-    if (args === 'kpis') {
-      const stats = (await $.state.get(SESSION)).value
-      if (stats === undefined) return { text: t(currentLang(), 'kpis.none') }
-      const state = (await $.state.get(SPECKIT)).value
-      const feature = state === undefined ? undefined : state.features.find(f => f.dir === state.active?.dir)
-      const now = await $.clock.now()
-      const binding = decisionOf((await $.state.get(USAGE)).value ?? DEFAULT_USAGE, now).highest
-      const rows = [
-        ...(feature === undefined || feature.total === 0 ? [] : [[t(currentLang(), 'kpis.tasks'), `${feature.done}/${feature.total}`] as [string, string]]),
-        ...kpiRows(stats, binding, now, currentLang()),
-        ...historyRows(stats, feature, state === undefined || state.root === undefined ? [] : featureDurationsByRoot.get(state.root) ?? [], currentLang()),
-      ]
-      return { text: kpisMarkdown(t(currentLang(), 'kpis.title', { feature: feature === undefined ? '—' : `${feature.id} ${feature.name}` }), rows) }
-    }
+    if (args === 'kpis') return { text: (await kpisText($)) ?? t(currentLang(), 'kpis.none') }
     if (args === 'advisor' || args.startsWith('advisor ')) {
       // A whole turn with the advisor: only the person starts it (055).
       if (e.origin?.kind !== 'composer') return { text: t(currentLang(), 'advisor.onlyYou') }
@@ -2825,6 +2828,12 @@ export const register: Register = (on, options) => {
       // file: links open only from the terminal; the desktop draws them as plain text, so none there.
       ...((el => ('Link' in el && e.surface === 'terminal' ? { Link: el.Link } : {}))($.ui.resolve(e))),
       onRefresh: () => refreshNow($).catch(() => undefined),
+      // The Dashboard's numbers copied as Markdown (046 #59).
+      ...(pane.tab === 'dashboard'
+        ? { onCopyKpis: async () => { const text = await kpisText($); if (text !== undefined) await copyNext($, text, e.surface) } }
+        : {}),
+      // Number keys show on the tab labels only while the pane has the keyboard (054 #65).
+      showKeys: e.props.isFocused === true,
       // c clears the filter box and the status filter; o cycles the order (061).
       ...(pane.tab === 'specs'
         ? {
@@ -2863,6 +2872,7 @@ export const register: Register = (on, options) => {
       if (tab === 'help') $.clock.after(0, () => void refreshHealth($))
     }
     // The footer under every tab (035), held at the bottom when the tab is shorter than the pane.
+    const shortPaneRule = (e.props.scroll?.bodyRows ?? 24) < 12
     const footerFor = async (pad: number) => {
       if (footerIn === 'status') return undefined
       const input = await footerInput($, state, Math.max(20, columns - 4), { usage, stats })
@@ -2884,11 +2894,14 @@ export const register: Register = (on, options) => {
         text: footerText(input),
         columns,
         pad: Math.max(0, pad),
-        ...(chips === undefined ? {} : { chips, separator: footerSeparator, arrow: set === 'nerd' ? '\ue0b0' : '' }),
+        ...(chips === undefined ? {} : { chips, separator: shortPaneRule ? 'none' : footerSeparator, arrow: set === 'nerd' ? '\ue0b0' : '' }),
       }
     }
     // The rows the footer holds below the body: its rule, its chip rows, and one of slack (038, 041).
-    const footerReserve = footerIn === 'status' ? 1 : (footerSeparator === 'none' ? 0 : 1) + (footerLines === '3' ? 3 : 1) + 1
+    // Under 12 rows the footer drops its rule (054 #46).
+    const shortPane = (e.props.scroll?.bodyRows ?? 24) < 12
+    const ruleRows = footerSeparator === 'none' || shortPane ? 0 : 1
+    const footerReserve = footerIn === 'status' ? 1 : ruleRows + (footerLines === '3' ? 3 : 1) + 1
     // The body scrolls inside the pane and the footer stays on the last rows (038).
     const bodyRows = e.props.scroll?.bodyRows ?? 24
     const offset = pane.scroll?.tab === pane.tab ? pane.scroll.offset : 0

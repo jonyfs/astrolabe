@@ -43,7 +43,7 @@ export const paneTree = (
   /** What is above and below the rows shown, with the presses that scroll (038). */
   nav?: { above: number; below: number; up: () => Promise<void>; down: () => Promise<void>; labels: { more: string } },
   /** Counts beside the tab labels (043 #21) and the keys of the tab shown (043 #25). */
-  extras: { badges?: Partial<Record<PaneTab, string>>; legend?: string; onClose?: () => Promise<void>; onFind?: () => Promise<void>; onCopy?: (text: string) => Promise<void>; onRefresh?: () => Promise<void>; sort?: { label: string; onPress: () => Promise<void> }; onClear?: () => Promise<void>; onPriority?: () => Promise<void>; onRunQueued?: (id: string) => Promise<void>; rowButtons?: ReadonlyArray<{ key: string; label: string; hotkey?: string; onPress: () => void }>; rowDetail?: string; onAllowUsage?: () => Promise<void>; onRevokeUsage?: () => Promise<void>; status?: { label: string; onPress: () => Promise<void> }; columns?: number; marks?: 'unicode' | 'ascii' | 'words'; colorblind?: boolean; wrapLongNames?: boolean; Link?: ElementTable<'terminal'>['Link'] } = {},
+  extras: { badges?: Partial<Record<PaneTab, string>>; legend?: string; onClose?: () => Promise<void>; onFind?: () => Promise<void>; onCopy?: (text: string) => Promise<void>; onRefresh?: () => Promise<void>; onCopyKpis?: () => Promise<void>; showKeys?: boolean; sort?: { label: string; onPress: () => Promise<void> }; onClear?: () => Promise<void>; onPriority?: () => Promise<void>; onRunQueued?: (id: string) => Promise<void>; rowButtons?: ReadonlyArray<{ key: string; label: string; hotkey?: string; onPress: () => void }>; rowDetail?: string; onAllowUsage?: () => Promise<void>; onRevokeUsage?: () => Promise<void>; status?: { label: string; onPress: () => Promise<void> }; columns?: number; marks?: 'unicode' | 'ascii' | 'words'; colorblind?: boolean; wrapLongNames?: boolean; Link?: ElementTable<'terminal'>['Link'] } = {},
 ) => {
   const Link = extras.Link
   // The pane's own marks in the set the icons option and the accessible mode pick (052 #49, #47).
@@ -73,7 +73,7 @@ export const paneTree = (
           label={
             // Below 80 columns a tab is its number and badge, so the row never wraps (052 #1).
             // The tab shown also gets ▸, beyond the button's colour (052 #2).
-            `${item.tab === tab ? '▸ ' : ''}${
+            `${item.tab === tab ? '▸ ' : ''}${extras.showKeys === true && (extras.columns === undefined || extras.columns >= 80) ? `${item.hotkey} ` : ''}${
               extras.columns !== undefined && extras.columns < 80
                 ? `${item.hotkey}${extras.badges?.[item.tab] === undefined ? '' : `·${extras.badges[item.tab]}`}`
                 : extras.badges?.[item.tab] === undefined ? t(lang, item.label) : `${t(lang, item.label)} ${extras.badges[item.tab]}`
@@ -97,6 +97,7 @@ export const paneTree = (
       {extras.onClear !== undefined && <Button key="clear-filter" label={m('✕ c')} hotkey="c" plain onPress={() => extras.onClear!()} />}
       {/* r refreshes git, worktrees, pull requests and specs now (058). */}
       {extras.onRefresh !== undefined && <Button key="refresh" label={m('↻ r')} hotkey="r" plain onPress={() => extras.onRefresh!()} />}
+      {extras.onCopyKpis !== undefined && <Button key="copy-kpis" label={m('⧉ m')} hotkey="m" plain onPress={() => extras.onCopyKpis!()} />}
       {extras.onClose !== undefined && <Button key="close-pane" label={m('✕')} plain onPress={() => extras.onClose!()} />}
     </Box>
     <Box key="astrolabe-pane-body" flexDirection="column">

@@ -19,5 +19,5 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 - [ ] T006 #55 Time per feature this week (P3)
 - [ ] T007 #56 Cost per feature (P3)
 - [ ] T008 #58 A row per subagent run with its duration (P3)
-- [ ] T009 #59 A key that copies the numbers as Markdown (P3)
+- [x] T009 #59 A key that copies the numbers as Markdown (P3)
 - [ ] T010 #60 The dial's labels in the band's colors (P3)
