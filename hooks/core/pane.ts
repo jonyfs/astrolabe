@@ -410,6 +410,14 @@ export const nextStatus = (status: StatusFilter | undefined): StatusFilter => ST
  * The features a filter keeps (054 #21): words match the id or name, and `is:done`,
  * `is:progress`, `is:next` or `is:abandoned` keep one status; `status` does the same from `s`.
  */
+/**
+ * How many rows `text` takes at `columns`, counting each wrapped line: a long paragraph is
+ * several rows, not one. The pane reserves its footer's rows from this, so a miscount pushes the
+ * footer off the last rows.
+ */
+export const wrappedRows = (text: string, columns: number): number =>
+  text.split('\n').reduce((sum, line) => sum + Math.max(1, Math.ceil(width(line) / Math.max(1, columns))), 0)
+
 export const filterFeatures = <F extends Pick<Feature, 'id' | 'name' | 'phase' | 'dir' | 'done'>>(
   features: readonly F[],
   filter: string | undefined,
