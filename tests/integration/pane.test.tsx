@@ -280,9 +280,9 @@ describe('pane navigation (043)', () => {
     const ui = await mountPane($ as never, 'terminal', 130, 30)
     expect(await ui.tabs()).toContain('Tasks 11')
     // 054 #26: the legend ends with when the state was last written.
-    expect(await ui.legend()).toMatch(/^every feature, its phase and progress · 1-7 tabs · h help · f filters · s status · j\/k scroll · Esc closes · updated \d\d:\d\d$/)
+    expect(await ui.legend()).toMatch(/^every feature, its phase and progress · 1-7 tabs · h help · f filters · s status · j\/k scroll · r ↻ · Esc closes · updated \d\d:\d\d$/)
     await ui.press('tab-tasks')
-    expect(await ui.legend()).toMatch(/^the active feature's open tasks · 1-7 tabs · h help · f filters · j\/k scroll · Esc closes · updated \d\d:\d\d$/)
+    expect(await ui.legend()).toMatch(/^the active feature's open tasks · 1-7 tabs · h help · f filters · j\/k scroll · r ↻ · Esc closes · updated \d\d:\d\d$/)
     await ui.unmount()
   })
 })
@@ -402,7 +402,7 @@ describe('design and UX (052)', () => {
     await setup($ as never, on as never)
     const st = $ as never
     const ui = await mountPane(st, 'terminal', 60, 30)
-    expect(await ui.legend()).toBe('1-7 tabs · h help · f filters · s status · j/k scroll · Esc closes')
+    expect(await ui.legend()).toBe('1-7 tabs · h help · f filters · s status · j/k scroll · r ↻ · Esc closes')
     await ui.unmount()
   })
 

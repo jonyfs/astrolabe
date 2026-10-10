@@ -57,7 +57,7 @@ const PANE_STATE = { plugin: 'astrolabe', key: 'pane' } as const
 const PANE_ID = 'astrolabe'
 const PANE_TITLE = '🧭 Astrolabe'
 const ASK_ID = 'astrolabe-usage'
-const QUEUE_HOTKEYS = 'abcdegilmnoqrtuvwxyz'
+const QUEUE_HOTKEYS = 'abcdegilmnoqtuvwxyz'
 /** `/astrolabe doctor` (048 #79): what Astrolabe needs, each line with the fix when it is missing. */
 async function doctor($: EngineInterface): Promise<string> {
   const probe = (argv: string[]) =>
@@ -1412,6 +1412,40 @@ async function sessionTabRows(
 }
 
 /** Brings the Spec Kit state up to date mid-turn (053); writes only when something moved. */
+/** After this long without a turn, the band dims (042 #19) and the idle poller refreshes (058). */
+const IDLE_POLL_MS = 600_000
+/** The idle poller stops after this many refreshes with no turn in between (058). */
+const IDLE_POLL_MAX = 6
+let idlePollTimer: ReturnType<EngineInterface['clock']['after']> | undefined
+
+/**
+ * Re-reads what the band and the pane show from outside the session (058): the specs, git, the
+ * worktrees, this branch's pull request and, on the PRs tab, the open pull requests. The write
+ * redraws both, so an idle band dims and a stale pane catches up.
+ */
+async function refreshNow($: EngineInterface): Promise<void> {
+  await syncNow($)
+  const state = (await $.state.get(SPECKIT)).value
+  const branch = (await $.state.get(MEMO)).value?.base?.branch
+  const root = state?.root ?? (await $.session.cwd())
+  const git = await readGit($, root, branch, true)
+  await flushStats($, stats => (git === undefined ? stats : { ...stats, git: withPr(git, stats.git !== undefined && stats.git.branch === git.branch ? stats.git.pr : undefined) }))
+  if (git !== undefined) gitNeedsRefresh = false
+  if (root !== undefined) await refreshWorktrees($, root)
+  if (pullRequests && root !== undefined && branch !== undefined) await refreshPr($, root, branch)
+  if (((await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE).tab === 'prs') await refreshPulls($, true)
+}
+
+/** Arms the idle poller after a turn: a refresh every ten idle minutes, at most six (058). */
+function armIdlePoll($: EngineInterface, done = 0): void {
+  idlePollTimer?.cancel()
+  idlePollTimer = $.clock.after(IDLE_POLL_MS + 1000, async () => {
+    idlePollTimer = undefined
+    await refreshNow($).catch(() => undefined)
+    if (done + 1 < IDLE_POLL_MAX) armIdlePoll($, done + 1)
+  })
+}
+
 async function syncNow($: EngineInterface): Promise<void> {
   const fs = fsOf($)
   const now = await $.clock.now()
@@ -1977,6 +2011,8 @@ export const register: Register = (on, options) => {
     resumeAt = undefined
     cacheWarningTimer?.cancel()
     cacheWarningTimer = undefined
+    idlePollTimer?.cancel()
+    idlePollTimer = undefined
     implementWaived.clear()
     remoteWeb = undefined
     // A reload starts the module over: the guess made earlier in the session is in $.state.
@@ -2128,6 +2164,7 @@ export const register: Register = (on, options) => {
       $.clock.after(0, () => void checkDiskVersion($))
       if (((await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE).tab === 'prs') $.clock.after(0, () => void refreshPulls($))
       if (checksUpdates) $.clock.after(0, () => void checkUpdates($))
+      armIdlePoll($)
       cacheWarningTimer?.cancel()
       cacheWarningTimer = $.clock.after(CACHE_WARN_MS, async () => {
         cacheWarningTimer = undefined
@@ -2709,6 +2746,7 @@ export const register: Register = (on, options) => {
         : {}),
       // file: links open only from the terminal; the desktop draws them as plain text, so none there.
       ...((el => ('Link' in el && e.surface === 'terminal' ? { Link: el.Link } : {}))($.ui.resolve(e))),
+      onRefresh: () => refreshNow($).catch(() => undefined),
       onFind: pane.tab === 'specs' || pane.tab === 'tasks' || pane.tab === 'help' ? () => $.ui.focus({ requestId: PANE_ID, key: 'astrolabe-filter' }).then(() => undefined) : undefined,
       // What the tab is for, then its keys; a narrow pane keeps the keys whole (052 #3).
       legend: ((about: string, keys: string) => ([...`${about} · ${keys}`].length <= columns ? `${about} · ${keys}` : keys))(
