@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import { filterFeatures, gatesText, moveSpecSelection, sessionRows, specsRows, taskRows } from '../../hooks/core/pane'
+import { filterFeatures, gatesText, helpRows, moveSpecSelection, sessionRows, specsRows, taskRows } from '../../hooks/core/pane'
 import { emptyMemo, type Feature, type SessionMemo, type SpeckitState } from '../../hooks/core/types'
 
 const f = (id: string, name: string, phase: Feature['phase'], done: number, total: number, warnings: Feature['warnings'] = []): Feature => ({
@@ -321,5 +321,12 @@ describe('a compact pane under 60 columns (054 #69)', () => {
     expect(narrow?.text).toContain('9/20')
     const wide = specsRows(state({ features }), 100).find(r => r.key === 'feature-002')
     expect(wide?.text).toContain('█')
+  })
+})
+
+describe('helpRows: commands copy themselves (052 #37)', () => {
+  test('the words before the gap, optional parts dropped, only for /astrolabe commands', () => {
+    const rows = helpRows(['Astrolabe commands:', '  /astrolabe focus [on|off]   focus mode', '  /astrolabe advisor [id]     review', '  /speckit-plan             plan', '  1 Specs     the specs'].join('\n'))
+    expect(rows.map(r => r.copy)).toEqual([undefined, '/astrolabe focus', '/astrolabe advisor', undefined, undefined])
   })
 })

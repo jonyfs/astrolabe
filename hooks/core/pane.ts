@@ -9,7 +9,7 @@ import { STATUS_ROLE, type ThemeRole } from './theme'
 import type { Feature, SessionMemo, SpeckitState } from './types'
 
 /** A row; `segments`, when given, colour parts of `text` (which stays their join) (052 #12). */
-export type PaneRow = { key: string; text: string; role: ThemeRole; dim?: boolean; bold?: boolean; selected?: boolean; label?: string; value?: string; action?: { id: string; label: string; hotkey: string; kind?: 'allow' | 'revoke' }; href?: string; links?: ReadonlyArray<{ label: string; href: string }>; segments?: ReadonlyArray<{ text: string; role: ThemeRole }> }
+export type PaneRow = { key: string; text: string; role: ThemeRole; dim?: boolean; bold?: boolean; selected?: boolean; label?: string; value?: string; action?: { id: string; label: string; hotkey: string; kind?: 'allow' | 'revoke' }; copy?: string; href?: string; links?: ReadonlyArray<{ label: string; href: string }>; segments?: ReadonlyArray<{ text: string; role: ThemeRole }> }
 
 const BAR_CELLS = 10
 const noSpeckit = (lang: Lang): PaneRow => ({ key: 'none', text: tr(lang, 'pane.noSpeckit'), role: 'muted' })
@@ -423,11 +423,14 @@ export const helpRows = (text: string, filter?: string, lang: Lang = 'en'): Pane
     const link = /\s(https:\/\/\S+)$/.exec(line)?.[1]
     const section = sections.get(line)
     const text = section === 'steps' ? tr(lang, 'help.block.steps') : section === 'marks' ? tr(lang, 'help.block.marks') : line
+    // A command copies itself on press (052 #37): the words before the gap, optional parts dropped.
+    const command = /^ {2}\//.test(line) ? line.trim().split(/\s{2,}/)[0]!.replace(/\s*\[[^\]]*\]/g, '') : undefined
     return {
       key: section === undefined ? `help-${i}` : `help-section-${section}`,
       text,
       role: i === 0 || !line.startsWith(' ') ? 'accent' : 'text',
       ...(link === undefined ? {} : { href: link }),
+      ...(command === undefined || !/^\/astrolabe\b/.test(command) ? {} : { copy: command }),
     }
   })
   const needle = (filter ?? '').trim().toLowerCase()

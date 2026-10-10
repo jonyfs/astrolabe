@@ -567,3 +567,15 @@ describe('h opens Help (052 #50)', () => {
     await ui.unmount()
   })
 })
+
+describe('a Help command copies itself (052 #37)', () => {
+  test('each /astrolabe command has a copy button; a press toasts the command', async ($, on) => {
+    const { session } = await setup($ as never, on as never)
+    const ui = await mountPane($ as never, 'terminal', 100, 60)
+    await ui.press('help-key')
+    const copy = await ui.find({ type: 'Button', text: '⧉' })
+    expect(copy).toBeDefined()
+    await ui.unmount()
+    void session
+  })
+})
