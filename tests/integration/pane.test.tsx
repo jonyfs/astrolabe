@@ -456,6 +456,10 @@ describe('the advisor reviews a spec (055)', () => {
     expect(session.submitted.at(-1)).toContain('specs/002-band-hint/spec.md')
     expect(session.submitted.at(-1)).toContain('call the advisor tool')
     const ui = await mountPane($ as never, 'terminal', 100, 40)
+    // A first press asks for a second one: the advisor takes a whole turn (061).
+    await ui.press('advisor-review')
+    await session.clock.settle()
+    expect(session.submitted.filter(t => t.includes('call the advisor tool'))).toHaveLength(1)
     await ui.press('advisor-review')
     await session.clock.settle()
     expect(session.submitted.filter(t => t.includes('call the advisor tool'))).toHaveLength(2)

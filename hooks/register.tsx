@@ -18,7 +18,7 @@ import { presetOf } from './core/presets'
 import { spinnerSuffix } from './core/spinner'
 import { astrolabeUpdate, firstLine, isDue, isStoredUpdates, localDay, parseCliVersion, parseGstackCheck, parseSelfCheck, skillsVersusCli, releaseNotesUrl, skillsUpdate, updateLabel } from './core/updates'
 import { fileUrl, joinPath } from './core/paths'
-import { configMark, GSTACK_SKILLS, nextPriority, OPTION_GROUPS, optionDefaults, optionGroup, parallelPrompt, parsePriority, REVIEW_MODEL, reviewPrompt, withPriority, type OptionGroup, type Priority } from './core/spec-actions'
+import { configMark, nextFor, nextPriority, skillsForPhase, specDetail, OPTION_GROUPS, optionDefaults, optionGroup, parallelPrompt, parsePriority, REVIEW_MODEL, reviewPrompt, withPriority, type OptionGroup, type Priority } from './core/spec-actions'
 import { parallelTasks } from './core/extensions'
 import { VERSION } from './core/version'
 import { ASK_MS, clockOf, decide, dropped, EXTEND_MS, HOLD_LIFT_MS, holdQuestion, nextHeld, isPaused, isReadOnlyTool, parseAllow, pauseQuestion, RAISE_MS, refusal, resumePrompt, runPrompt, usageSegment, type Decision, type Question, usageRows } from './core/governor'
@@ -789,6 +789,24 @@ async function constitutionReminder($: EngineInterface): Promise<string | undefi
 }
 
 /** `/astrolabe ask` (026 #54): one question over the session's own transcript, answered in a toast. */
+/** A press that needs a second one within ten seconds (052 #41), for actions that cost a turn (061). */
+async function confirmPress($: EngineInterface, key: string, run: () => void): Promise<void> {
+  const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
+  if (held.confirm === key) {
+    const { confirm: _gone, ...rest } = held
+    await $.state.set(PANE_STATE, rest)
+    run()
+    return
+  }
+  await $.state.set(PANE_STATE, { ...held, confirm: key })
+  $.clock.after(10_000, () => void (async () => {
+    const now = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
+    if (now.confirm !== key) return
+    const { confirm: _late, ...rest } = now
+    await $.state.set(PANE_STATE, rest)
+  })().catch(error => $.ui.log(`astrolabe: ${error instanceof Error ? error.message : String(error)}`, { to: 'debug' })))
+}
+
 /** Runs one of gstack's skills on a feature (051), from a timer: a command does not run inside a render. */
 async function runSkill($: EngineInterface, skill: string, about: string): Promise<void> {
   await $.command.run({ command: skill, args: `Spec Kit feature ${about}` }).catch(async (error: unknown) => {
@@ -2730,23 +2748,43 @@ export const register: Register = (on, options) => {
     const activeOpen = state.features.find(f => f.dir === state.active?.dir)
     const inProgress = state.features.filter(f => f.phase !== 'done' && f.phase !== 'abandoned').length
     const pullCount = stats?.pulls?.rows.length
-    // The advisor review and gstack's skills, under the spec selected in the list (051, 055).
+    // The advisor review and gstack's skills that fit the selected spec's phase, under its row (051, 055, 061).
     const reviewed = state.features.find(f => `feature-${f.id}` === selectedSpecRow)
-    const rowButtons: Array<{ key: string; label: string; onPress: () => void }> =
+    const reviewedNext = reviewed === undefined ? undefined : nextFor(reviewed, reviewed.dir === state.active?.dir, state.isAnalyzed === true)
+    const rowButtons: Array<{ key: string; label: string; hotkey?: string; onPress: () => void }> =
       pane.tab === 'specs' && reviewed !== undefined && 'Button' in $.ui.resolve(e)
         ? [
-            { key: 'advisor-review', label: t(currentLang(), 'advisor.button'), onPress: () => askAdvisor($, reviewed) },
+            {
+              key: 'advisor-review',
+              label: pane.confirm === `advisor-${reviewed.id}` ? t(currentLang(), 'detail.confirmAdvisor') : t(currentLang(), 'advisor.button'),
+              hotkey: 'a',
+              onPress: () => void confirmPress($, `advisor-${reviewed.id}`, () => askAdvisor($, reviewed)),
+            },
             ...(stats?.gstack === true
-              ? GSTACK_SKILLS.map(skill => ({
+              ? skillsForPhase(reviewed.phase).map(skill => ({
                   key: `gstack-${skill}`,
                   label: skill,
                   onPress: () => void $.clock.after(0, () => void runSkill($, skill, `${reviewed.id} ${reviewed.name}`)),
                 }))
               : []),
+            ...(reviewedNext === undefined
+              ? []
+              : [{ key: 'copy-next', label: `⧉ ${reviewedNext}`, onPress: () => void copyNext($, reviewedNext, e.surface) }]),
           ]
         : []
+    // The line above those buttons: what the spec needs, at a glance (061).
+    const rowDetail =
+      reviewed === undefined || pane.tab !== 'specs'
+        ? undefined
+        : specDetail(reviewed, {
+            ...(stats?.priorities?.[reviewed.id] === undefined ? {} : { priority: stats.priorities[reviewed.id]! }),
+            worktrees: worktreesById(stats?.worktrees)[reviewed.id] ?? [],
+            ...(reviewedNext === undefined ? {} : { next: reviewedNext }),
+            lang: currentLang(),
+          })
     const extras = {
       rowButtons,
+      ...(rowDetail === undefined ? {} : { rowDetail }),
       badges: {
         ...(inProgress === 0 ? {} : { specs: String(inProgress) }),
         ...(activeOpen === undefined || activeOpen.total - activeOpen.done <= 0 ? {} : { tasks: String(activeOpen.total - activeOpen.done) }),
@@ -2918,6 +2956,7 @@ export const register: Register = (on, options) => {
       const headerRows =
         ('Input' in $.ui.resolve(e) && pane.tab !== 'session' ? 1 + (filterCount === undefined ? 0 : 1) : 0) +
         (rowButtons.length > 0 ? 1 : 0) +
+        (rowDetail === undefined ? 0 : 1) +
         (pane.tab === 'specs'
           ? state.activeSummary === undefined
             ? 0

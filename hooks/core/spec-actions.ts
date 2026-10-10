@@ -1,6 +1,8 @@
 // Acting on a spec from the pane (spec 051): priorities, the deep review's prompt, the gstack
 // skills offered. Pure: no $.
-import type { Feature } from './types'
+import { t as tr, type Lang } from './i18n'
+import { nextCommand } from './next-command'
+import type { Feature, Phase } from './types'
 
 export type Priority = 'high' | 'normal' | 'low'
 export type Priorities = Readonly<Record<string, Priority>>
@@ -52,6 +54,48 @@ export const reviewPrompt = (feature: { id: string; name: string }, files: { spe
 
 /** The gstack skills offered on the active feature (051 T004), in the order drawn. */
 export const GSTACK_SKILLS = ['investigate', 'review', 'health', 'qa-only', 'retro'] as const
+
+/**
+ * The gstack skills that fit a spec at its phase (061), in the order drawn: the ones worth
+ * pressing now, not all five at every phase.
+ */
+export const skillsForPhase = (phase: Phase): readonly string[] =>
+  phase === 'specify'
+    ? ['office-hours', 'plan-ceo-review']
+    : phase === 'clarify'
+      ? ['plan-ceo-review', 'plan-eng-review']
+      : phase === 'plan'
+        ? ['plan-eng-review', 'plan-design-review']
+        : phase === 'tasks'
+          ? ['plan-eng-review', 'autoplan']
+          : phase === 'implement'
+            ? ['review', 'investigate', 'qa-only', 'health']
+            : phase === 'done'
+              ? ['retro', 'document-release', 'qa-only']
+              : ['retro']
+
+/** The Spec Kit command that moves one feature on (061): what the band proposes, for any spec. */
+export const nextFor = (f: Pick<Feature, 'phase' | 'done'>, isActive: boolean, isAnalyzed: boolean): string | undefined =>
+  nextCommand({ present: true, constitution: 'ratified', active: f, isAnalyzed: isActive ? isAnalyzed : true })
+
+/** One line about the selected spec (061): what it needs, in the order the person decides. */
+export const specDetail = (
+  f: Pick<Feature, 'id' | 'name' | 'phase' | 'done' | 'total' | 'track' | 'clarifications' | 'checklist' | 'warnings'>,
+  opts: { priority?: Priority; worktrees?: readonly string[]; next?: string; lang?: Lang },
+): string => {
+  const lang = opts.lang ?? 'en'
+  return [
+    `${f.id} ${f.name}`,
+    f.phase,
+    ...(f.total > 0 ? [tr(lang, 'detail.tasksLeft', { n: f.total - f.done })] : []),
+    ...((f.clarifications ?? 0) > 0 ? [tr(lang, 'detail.questions', { n: f.clarifications! })] : []),
+    ...((f.checklist?.open ?? 0) > 0 ? [tr(lang, 'detail.checklist', { open: f.checklist!.open, total: f.checklist!.total })] : []),
+    ...(f.track === 'quick' ? [tr(lang, 'detail.quick')] : []),
+    ...(opts.priority === undefined || opts.priority === 'normal' ? [] : [`${priorityMark(opts.priority)} ${opts.priority}`]),
+    ...((opts.worktrees ?? []).length > 0 ? [`⑂ ${opts.worktrees!.join(', ')}`] : []),
+    ...(opts.next === undefined ? [] : [tr(lang, 'detail.next', { cmd: opts.next })]),
+  ].join(' · ')
+}
 
 /** Each option's default from plugin.json's userConfig, keyed `astrolabe.<field>` (054 #63). */
 export const optionDefaults = (pluginJson: string): Record<string, string | number | boolean> => {
