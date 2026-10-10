@@ -1,67 +1,38 @@
 // Wires engine events to the io layer, the core and the status surface. No business logic.
 // The engine follows $ only into functions declared in this file, so every $ call lives here.
+import { ABOUT, helpText } from './modules/help'
+import { otherFeatureNamed, implementRefusal, canTouchSpecs, mayChangeGit, mayWriteFiles, isUnderSpecify } from './modules/guards'
+import { advisorFindings, advisorPrompt } from './modules/advisor'
+import { featureContext, principlesOf, tickedBy, statusText } from './modules/context'
+import { historyRows, minutes } from './modules/history-rows'
+import { readFeatureDurations } from './modules/durations'
+import { withPr, worktreesById, filtered } from './modules/pane-data'
 import type { ConfigRow, EngineInterface, Hook, Register, RenderNode } from 'claude-code'
 
 import { bandSegments, nextReason, otherFeaturesCard, stepCards, type BandDensity } from './core/band'
 import { hintTail } from './core/hint'
 import { phaseToasts } from './core/phase-toast'
 import { justFinished } from './core/next-command'
-import { filterFeatures, helpRows, moveSpecSelection, nextStatus, sessionRows, specsRows, taskRows, windowUnits, type PaneRow } from './core/pane'
+import { helpRows, moveSpecSelection, nextStatus, taskRows, windowUnits, type PaneRow, sessionRows, specsRows } from './core/pane'
 import { presetOf } from './core/presets'
 import { spinnerSuffix } from './core/spinner'
-import {
-  astrolabeUpdate,
-  firstLine,
-  isDue,
-  isStoredUpdates,
-  localDay,
-  parseCliVersion,
-  parseGstackCheck,
-  parseSelfCheck,
-  skillsVersusCli,
-  releaseNotesUrl,
-  skillsUpdate,
-  updateLabel,
-} from './core/updates'
-import { principleHeadings } from './core/constitution'
+import { astrolabeUpdate, firstLine, isDue, isStoredUpdates, localDay, parseCliVersion, parseGstackCheck, parseSelfCheck, skillsVersusCli, releaseNotesUrl, skillsUpdate, updateLabel } from './core/updates'
 import { fileUrl, joinPath } from './core/paths'
-import { configMark, focusNote, GSTACK_SKILLS, nextPriority, OPTION_GROUPS, optionDefaults, optionGroup, parallelPrompt, parsePriority, REVIEW_MODEL, reviewPrompt, withPriority, type OptionGroup, type Priority } from './core/spec-actions'
+import { configMark, GSTACK_SKILLS, nextPriority, OPTION_GROUPS, optionDefaults, optionGroup, parallelPrompt, parsePriority, REVIEW_MODEL, reviewPrompt, withPriority, type OptionGroup, type Priority } from './core/spec-actions'
 import { parallelTasks } from './core/extensions'
-import { CHANGES, VERSION } from './core/version'
-import {
-  ASK_MS,
-  clockOf,
-  decide,
-  dropped,
-  EXTEND_MS,
-  HOLD_LIFT_MS,
-  holdQuestion,
-  nextHeld,
-  isPaused,
-  isReadOnlyTool,
-  parseAllow,
-  pauseQuestion,
-  RAISE_MS,
-  refusal,
-  resumePrompt,
-  runPrompt,
-  usageRows,
-  usageSegment,
-  type Decision,
-  type Question,
-} from './core/governor'
+import { VERSION } from './core/version'
+import { ASK_MS, clockOf, decide, dropped, EXTEND_MS, HOLD_LIFT_MS, holdQuestion, nextHeld, isPaused, isReadOnlyTool, parseAllow, pauseQuestion, RAISE_MS, refusal, resumePrompt, runPrompt, usageSegment, type Decision, type Question, usageRows } from './core/governor'
 import { chipForeground, CHIPS, FLAVORS, flavorOf, isThemeKeys, lighten, STATUS_ROLE, themeOf, type ThemeRole } from './core/theme'
 import { capDiff, recapLine, recapOf, tasksDiff } from './core/summary'
 import { styleSections } from './core/style'
 import { parsePullList, prOpened, pullAction, PR_LIST_FIELDS } from './core/pulls'
-import { SKILL_MODELS, skillModelFor } from './core/skill-models'
+import { skillModelFor } from './core/skill-models'
 import { featureDirFor, mergedBranches, parseWorktrees, uncommittedCount, withWorktreeProgress, worktreeName, worktreeState } from './core/worktrees'
 import { readFeature } from './io/snapshot'
 import { deriveSpeckitState, snapshotFromMemo } from './core/speckit'
 import { deriveFeature } from './core/phase'
-import { parseTasks } from './core/tasks-parser'
 import { chartImage, dialFrames, imagesFor } from './core/pixels'
-import { emptyMemo, type PaneState, type PaneTab, type UpdateId, type UpdateItem, type UpdatesState, type UsageState, type UsageReading, type QueuedAgent, type SessionStats, type GitState, type PullRequest, type SpeckitState } from './core/types'
+import { emptyMemo, type PaneState, type PaneTab, type UpdateId, type UpdateItem, type UpdatesState, type UsageState, type UsageReading, type QueuedAgent, type SessionStats, type SpeckitState } from './core/types'
 import type { Preset } from './core/presets'
 import type { Fs } from './io/fs-port'
 import { findRoot } from './io/root'
@@ -69,8 +40,8 @@ import { applyFileTouch, applyRead, applyShell, applySkill, type Held, reconcile
 import { bandRow, nextRow, updatesRow } from './surfaces/band'
 import { askTree } from './surfaces/ask'
 import { dashboardSections, dashboardTree } from './surfaces/dashboard'
-import { burnRate, dial, kpiChips, kpiRows, kpisMarkdown, phaseBars, sparkline, trendRows, usageChart } from './core/dashboard'
-import { addDay, addWeek, dayKey, estimateLeft, lastWeeks, pastReset, slowest, updateFeatureDurations, weekKey, weekdays, type Days, type FeatureDuration, type FeatureDurations, type Weeks } from './core/history'
+import { burnRate, dial, kpiChips, kpisMarkdown, phaseBars, sparkline, usageChart, kpiRows, trendRows } from './core/dashboard'
+import { addDay, addWeek, dayKey, lastWeeks, pastReset, slowest, updateFeatureDurations, weekKey, weekdays, type Days, type FeatureDuration, type Weeks } from './core/history'
 import { footerChipLines, footerChips, footerText, linesChanged, type FooterInput } from './core/footer'
 import { branchWebUrl, parseGitStatus, parsePullRequest, remoteWebUrl } from './core/git-status'
 import { iconSet, iconsFor } from './core/icons'
@@ -122,103 +93,7 @@ async function doctor($: EngineInterface): Promise<string> {
   return lines.join('\n')
 }
 
-// /astrolabe help (025, roadmap #39): the commands, the pane's tabs and their keys, in the
-// person's language (019).
-const helpFooterPreview = (name: 'nerd' | 'emoji' | 'ascii', lang: Lang): string => {
-  const now = Date.UTC(2026, 0, 1)
-  return `  ${name.padEnd(6)} ${footerText({
-    speckit: () => '◆ 002 · implement 45%',
-    readings: [{ kind: 'five_hour', percentUsed: 42, resetsAt: new Date(now + 2 * 3_600_000).toISOString() }],
-    context: { percent: 43 },
-    model: 'claude-sonnet-4-5',
-    git: { branch: 'main', ahead: 1, behind: 0, changed: 2, conflicts: 0 },
-    startedAt: now - 60_000,
-    now,
-    icons: iconSet(name),
-    columns: 200,
-    lang,
-  })}`
-}
-
-const buildHelp = (lang: Lang): string => {
-  const labelWidth = paneLabelWidth(lang)
-  return [
-    t(lang, 'help.title'),
-    // What this version changed (048 #80).
-    t(lang, 'help.changes', { version: VERSION, changes: CHANGES }),
-    t(lang, 'help.block.commands'),
-    `  /astrolabe                  ${t(lang, 'help.open')}`,
-    `  /astrolabe help             ${t(lang, 'help.help')}`,
-    `  /astrolabe next             ${t(lang, 'help.next')}`,
-    `  /astrolabe status           ${t(lang, 'help.status')}`,
-    `  /astrolabe ask <question>   ${t(lang, 'help.ask')}`,
-    `  /astrolabe root <folder>    ${t(lang, 'help.root')}`,
-    `  /astrolabe allow <90-99> <30m-12h>   ${t(lang, 'help.allow')}`,
-    `  /astrolabe revoke           ${t(lang, 'help.revoke')}`,
-    `  /astrolabe run <id>         ${t(lang, 'help.run')}`,
-    `  /astrolabe doctor           ${t(lang, 'help.doctor')}`,
-    `  /astrolabe priority <id> <high|normal|low>   ${t(lang, 'help.priority')}`,
-    `  /astrolabe review [id]      ${t(lang, 'help.review')}`,
-    `  /astrolabe advisor [id]     ${t(lang, 'help.advisor')}`,
-    `  /astrolabe config reset     ${t(lang, 'help.configReset')}`,
-    `  /astrolabe worktrees        ${t(lang, 'help.worktrees')}`,
-    `  /astrolabe recap [id]       ${t(lang, 'help.recap')}`,
-    `  /astrolabe kpis             ${t(lang, 'help.kpis')}`,
-    `  /astrolabe focus [on|off]   ${t(lang, 'help.focus')}`,
-    t(lang, 'help.block.options'),
-    // Each option with its value now (048 #75).
-    `  ${t(lang, 'help.options')}: ${OPTION_NAMES.map(name => `${name}=${optionsSeen[name] === undefined ? 'default' : String(optionsSeen[name])}`).join(', ')}.`,
-    t(lang, 'help.block.keys'),
-    `  ${t(lang, 'help.tabs')}`,
-    `  1 ${t(lang, 'tab.specs').padEnd(labelWidth)} ${t(lang, 'help.specs')}`,
-    `  2 ${t(lang, 'tab.tasks').padEnd(labelWidth)} ${t(lang, 'help.tasksTab')}`,
-    `  3 ${t(lang, 'tab.session').padEnd(labelWidth)} ${t(lang, 'help.sessionTab')}`,
-    `  4 ${t(lang, 'tab.dashboard').padEnd(labelWidth)} ${t(lang, 'help.dashboardTab')}`,
-    `  5 ${t(lang, 'tab.help').padEnd(labelWidth)} ${t(lang, 'help.helpTab')}`,
-    `  6 ${t(lang, 'tab.config').padEnd(labelWidth)} ${t(lang, 'help.configTab')}`,
-    `  7 ${t(lang, 'tab.prs').padEnd(labelWidth)} ${t(lang, 'help.prsTab')}`,
-    `  ${t(lang, 'help.keys')}`,
-    t(lang, 'help.block.models'),
-    `  ${t(lang, 'help.models')}`,
-    ...Object.entries(SKILL_MODELS).map(([skill, m]) => `  ${skill.padEnd(22)} ${m.model.replace(/^claude-/, '').padEnd(12)} ${m.effort.padEnd(7)} ${m.why}`),
-    t(lang, 'help.marks'),
-    `  ${t(lang, 'help.footer')}`,
-    ...t(lang, 'help.marksList').split('\n').map(line => `  ${line}`),
-    t(lang, 'help.block.footer'),
-    ...(['nerd', 'emoji', 'ascii'] as const).map(name => helpFooterPreview(name, lang)),
-    t(lang, 'help.glossary'),
-    ...(['constitution', 'specify', 'clarify', 'plan', 'tasks', 'implement'] as const).map(step => `  ${step.padEnd(labelWidth)} ${t(lang, `card.${step}`)}`),
-    // The gates row under the active feature, each one explained (054 #61).
-    t(lang, 'help.gates'),
-    ...(['constitution', 'clarify', 'checklist', 'tasks', 'analyze'] as const).map(gate => `  ${t(lang, `gate.${gate}`).padEnd(labelWidth)} ${t(lang, `help.gate.${gate}`)}`),
-    // Where to read more (054 #81): each line ends with its link, which the Help tab makes clickable.
-    t(lang, 'help.docs'),
-    ...DOC_LINKS.map(d => `  ${d.name.padEnd(labelWidth)} ${d.url}`),
-  ].join('\n')
-}
-const DOC_LINKS = [
-  { name: 'Spec Kit', url: 'https://github.github.com/spec-kit/' },
-  { name: 'gstack', url: 'https://github.com/garrytan/gstack' },
-  { name: 'Astrolabe', url: 'https://github.com/jonyfs/astrolabe#readme' },
-] as const
-const OPTION_NAMES = ['preset', 'flavor', 'icons', 'language', 'bandDensity', 'checkUpdates', 'governUsage', 'observeUsage', 'askOnLimit', 'pullRequest', 'images', 'autoReload', 'footerIn', 'footerLines', 'footerSeparator', 'accessible', 'claudeContext', 'featureSummary', 'humanize', 'terse', 'skillModels'] as const
 const WELCOMED = 'welcomed'
-const ABOUT: Readonly<Record<PaneTab, TextKey>> = {
-  specs: 'help.specs',
-  tasks: 'help.tasksTab',
-  session: 'help.sessionTab',
-  dashboard: 'help.dashboardTab',
-  help: 'help.helpTab',
-  config: 'help.configTab',
-  prs: 'help.prsTab',
-}
-// The help text built once per language and option set, not on every render (054 #2).
-let helpCache: { key: string; text: string } | undefined
-const helpText = (lang: Lang): string => {
-  const key = `${lang}|${JSON.stringify(optionsSeen)}`
-  if (helpCache?.key !== key) helpCache = { key, text: buildHelp(lang) }
-  return helpCache.text
-}
 const ASK = { plugin: 'astrolabe', key: 'ask' } as const
 const DEFAULT_PANE: PaneState = { tab: 'specs', autoOpened: false }
 const UPDATES = { plugin: 'astrolabe', key: 'updates' } as const
@@ -452,25 +327,6 @@ async function loadDeferred($: EngineInterface): Promise<void> {
   } catch (error) {
     $.ui.log(`astrolabe: ${error instanceof Error ? error.message : String(error)}`, { to: 'debug' })
   }
-}
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
-
-const isFeatureDuration = (value: unknown): value is FeatureDuration => {
-  if (!isRecord(value)) return false
-  if (typeof value.dir !== 'string' || typeof value.id !== 'string' || typeof value.name !== 'string') return false
-  if (typeof value.startedAt !== 'number' || !Number.isFinite(value.startedAt)) return false
-  if (value.ms === undefined && value.completedAt === undefined) return true
-  return typeof value.ms === 'number' && Number.isFinite(value.ms) && value.ms >= 0 &&
-    typeof value.completedAt === 'number' && Number.isFinite(value.completedAt)
-}
-
-const readFeatureDurations = (value: unknown): FeatureDurations | undefined => {
-  if (!isRecord(value)) return undefined
-  return Object.entries(value).every(([dir, item]) => isFeatureDuration(item) && item.dir === dir)
-    ? value as FeatureDurations
-    : undefined
 }
 
 /** Keep project-wide specify-to-done timings in the store, not the bounded session state (054 #32). */
@@ -793,16 +649,6 @@ async function saveConfig($: EngineInterface): Promise<void> {
 // The options as loaded, for drawings that need more than one (039).
 let optionsSeen: Readonly<Record<string, unknown>> = {}
 
-/** Whether a colour is light enough to carry dark text (039), by its relative luminance. */
-const isLight = (hex: string): boolean => {
-  const n = Number.parseInt(hex.slice(1), 16)
-  const [r, g, b] = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map(c => {
-    const v = c / 255
-    return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4
-  })
-  return 0.2126 * r! + 0.7152 * g! + 0.0722 * b! > 0.3
-}
-
 // How many units each pane tab drew last (038), to clamp a scroll that arrives between draws.
 const unitsShown: Partial<Record<string, number>> = {}
 const featureDurationsByRoot = new Map<string, FeatureDuration[]>()
@@ -911,48 +757,8 @@ let lastTold: string | undefined
 // Focus mode (054 #88), kept in the session's state across a reload.
 let focusMode = false
 
-/** One line on the active feature for Claude (026 #50); undefined without one. */
-/** The note for a prompt that names a feature other than the active one, by its 3-digit id (054 #91). */
-export const otherFeatureNamed = (text: string, state: SpeckitState): string | undefined => {
-  const active = state.features.find(f => f.dir === state.active?.dir)
-  if (active === undefined) return undefined
-  const ids = [...text.matchAll(/(?:^|[^\d])(\d{3})(?![\d])/g)].map(m => m[1]!)
-  const named = state.features.find(f => f.id !== active.id && ids.includes(f.id))
-  return named === undefined ? undefined : `Astrolabe: this prompt names feature ${named.id} ${named.name}, but the active one is ${active.id} ${active.name}; .specify/feature.json decides which one Spec Kit skills work on.`
-}
-
 // Features whose implement step was refused once this session (054 #57): a repeat call goes through.
 const implementWaived = new Set<string>()
-
-/** Why `/speckit-implement` is refused while the active spec has open clarifications (054 #57); undefined to let it run. */
-export const implementRefusal = (skill: string, state: SpeckitState | undefined, waived: ReadonlySet<string>): string | undefined => {
-  if (!/^speckit[-.]implement$/.test(skill) || state === undefined) return undefined
-  const feature = state.features.find(f => f.dir === state.active?.dir)
-  if (feature === undefined || waived.has(feature.dir)) return undefined
-  const open = feature.clarifications ?? 0
-  if (open === 0 && !feature.warnings.includes('clarification-after-plan')) return undefined
-  const count = open === 0 ? 'open [NEEDS CLARIFICATION] markers' : `${open} open [NEEDS CLARIFICATION] marker${open === 1 ? '' : 's'}`
-  return `Astrolabe: feature ${feature.id} ${feature.name} still has ${count} in spec.md. Run /speckit-clarify first. To implement anyway, call /speckit-implement again.`
-}
-
-const featureContext = (state: SpeckitState, driftWarning?: { dir: string; task: string }): string | undefined => {
-  const feature = state.features.find(f => f.dir === state.active?.dir)
-  if (!state.present || feature === undefined) return undefined
-  const parts = [
-    `the active Spec Kit feature is ${feature.id} ${feature.name}, phase ${feature.phase}${feature.total === 0 ? '' : `, ${feature.done} of ${feature.total} tasks done`}`,
-    ...(state.currentTask === undefined ? [] : [`the current task is ${state.currentTask.id === undefined ? '' : `${state.currentTask.id} `}${state.currentTask.text}`]),
-    ...(state.nextCommand === undefined ? [] : [`the next command is ${state.nextCommand}`]),
-    // What still blocks the feature (054 #84, #86): open questions, open checklist items, analyze not run.
-    ...((feature.clarifications ?? 0) > 0 || feature.warnings.includes('clarification-after-plan') ? ['the spec still has [NEEDS CLARIFICATION] markers'] : []),
-    ...((feature.checklist?.open ?? 0) > 0 ? [`${feature.checklist!.open} checklist items are open`] : []),
-    ...(feature.phase === 'implement' && !state.isAnalyzed && feature.done === 0 ? ['/speckit-analyze has not run on these tasks'] : []),
-    ...(driftWarning === undefined
-      ? []
-      : [`tasks.md and code may have drifted: ${driftWarning.task} in ${driftWarning.dir} was marked done without matching code edits; reconcile before continuing`]),
-    ...(focusMode ? [focusNote(state.currentTask)] : []),
-  ]
-  return `Astrolabe: ${parts.join('; ')}.`
-}
 
 /** The constitution's Core Principles, by heading, as a reminder (026 #51). */
 async function constitutionReminder($: EngineInterface): Promise<string | undefined> {
@@ -962,9 +768,6 @@ async function constitutionReminder($: EngineInterface): Promise<string | undefi
   const principles = text === undefined ? [] : principlesOf(text)
   return principles.length === 0 ? undefined : `Astrolabe: check this step against the constitution (.specify/memory/constitution.md): ${principles.join('; ')}.`
 }
-
-/** The `###` headings under `## Core Principles`, at most 22. */
-const principlesOf = (text: string): string[] => principleHeadings(text).map(p => p.name)
 
 /** `/astrolabe ask` (026 #54): one question over the session's own transcript, answered in a toast. */
 /** Runs one of gstack's skills on a feature (051), from a timer: a command does not run inside a render. */
@@ -1031,27 +834,6 @@ async function openPane($: EngineInterface): Promise<void> {
   await $.ui.open({ id: PANE_ID, title, focus: true, closeOnEscape: true })
 }
 
-/** `/astrolabe status` (025 #42): the active feature, the next command and the footer, as text. */
-/** The tasks an edit ticks: unticked in the old text, ticked in the new (025 #43). */
-const tickedBy = (before: string, after: string): string[] => {
-  const was = new Map(parseTasks(before).map(task => [task.id ?? task.text, task.isDone]))
-  return parseTasks(after)
-    .filter(task => task.isDone && was.get(task.id ?? task.text) === false)
-    .map(task => `${task.id === undefined ? '' : `${task.id} `}${task.text}`)
-}
-
-const statusText = (state: SpeckitState, footer: string, lang: Lang): string => {
-  const feature = state.features.find(f => f.dir === state.active?.dir)
-  const lines = [
-    feature === undefined
-      ? t(lang, 'status.noActive')
-      : `◆ ${feature.id} ${feature.name}: ${feature.phase}${feature.total === 0 ? '' : `, ${feature.done}/${feature.total} tasks (${Math.floor((feature.done * 100) / feature.total)}%)`}`,
-    ...(state.nextCommand === undefined ? [] : [`${t(lang, 'status.next')}: ${state.nextCommand}`]),
-    footer,
-  ]
-  return lines.join('\n\n')
-}
-
 // Whether the plugins reload by themselves when a new version lands on disk (034).
 let autoReload = true
 // The version on disk this module last acted on, so one version reloads at most once (034).
@@ -1087,10 +869,6 @@ let isImageTerminal = false
 let pictureCache: { key: string; picture: { rgba: string; width: number; height: number } } | undefined
 // The active tasks at the end of the last main turn, to diff the next one against (024).
 let turnTasks: { dir: string; tasks: NonNullable<SpeckitState['activeTasks']> } | undefined
-
-/** Keeps the features whose id or name holds the filter (024 #49). */
-const filtered = (state: SpeckitState, filter: string | undefined, status: PaneState['status'] = 'all'): SpeckitState =>
-  (filter ?? '').trim() === '' && status === 'all' ? state : { ...state, features: filterFeatures(state.features, filter, state.active?.dir, status) }
 
 
 /**
@@ -1204,11 +982,6 @@ async function refreshPr($: EngineInterface, root: string, branch: string): Prom
   }
 }
 
-const withPr = (git: GitState, pr: PullRequest | undefined): GitState => {
-  const { pr: _old, ...rest } = git
-  return pr === undefined ? rest : { ...rest, pr }
-}
-
 /** Notes the model and effort of each main-thread request (018), leaving the request untouched. */
 async function* noteModel($: Parameters<Hook<'turn.step'>>[0], e: Parameters<Hook<'turn.step'>>[1], next: Parameters<Hook<'turn.step'>>[2]) {
   // skillModels auto (030): while a skill with an entry runs, its model and effort.
@@ -1248,24 +1021,6 @@ const askAdvisor = ($: EngineInterface, feature: { id: string; name: string; dir
   advisorAsked = { id: feature.id, ran: false }
   $.clock.after(0, () => void $.prompt.submit({ text: advisorPrompt(feature) }).catch(() => undefined))
 }
-
-/** The answer kept for the Session tab: its non-blank lines, at most 12 (055 T004). */
-export const advisorFindings = (answer: string): string =>
-  answer
-    .split(/\r?\n/)
-    .map(line => line.trimEnd())
-    .filter(line => line.trim() !== '')
-    .slice(0, 12)
-    .join('\n')
-
-/** The prompt that asks Claude to have the advisor review a spec (055); the advisor is Claude's own tool. */
-const advisorPrompt = (feature: { id: string; name: string; dir: string }): string =>
-  [
-    `Review the Spec Kit feature ${feature.id} ${feature.name} with the advisor.`,
-    `Read specs/${feature.dir}/spec.md, and plan.md and tasks.md if they exist, then call the advisor tool.`,
-    'Report what it finds that is missing, ambiguous, inconsistent between the files, untestable or risky, most serious first.',
-    'Do not edit any file; end by proposing the changes for me to approve.',
-  ].join(' ')
 
 /** Read-modify-write of astrolabe.usage with ifVersion, retried like `guarded`. */
 async function updateUsage($: EngineInterface, change: (usage: UsageState) => UsageState): Promise<UsageState> {
@@ -1571,18 +1326,6 @@ async function guardedOnce($: EngineInterface, work: (previous: Held | undefined
   return undefined
 }
 
-/** A shell command that can make a spec, move feature.json or switch the branch (054 #5). */
-export const canTouchSpecs = (command: string): boolean =>
-  /\b(git|mv|cp|rm|mkdir|touch|specify|tee|sed|python3?|node|bun|sh|bash|zsh)\b|\.specify|specs\/|>/.test(command)
-
-const mayChangeGit = (command: string): boolean =>
-  /\bgit\b/.test(command) &&
-  !/\bgit\s+(?:status|log|diff|show|rev-parse|ls-files|check-ignore|version|remote\s+get-url|branch\s+(?:--show-current|--list|-l)|worktree\s+list|config\s+--get)\b/.test(command)
-
-const mayWriteFiles = (command: string): boolean =>
-  /\b(?:mv|cp|rm|mkdir|rmdir|touch|tee|install|truncate)\b|(?:sed|perl)\s+-i\b|(?:^|[^>])>{1,2}\s*[^=&|]/.test(command) ||
-  (!/\bgit\b/.test(command) && canTouchSpecs(command))
-
 /**
  * The Session tab in four blocks (052 #24, 054 #22): Project, Governor, Activity, Updates, each
  * under a heading and only when it has rows. Each state is read once (054 #1). The governor's
@@ -1667,16 +1410,6 @@ async function sessionTabRows(
     rows.length === 0 ? [] : [{ key: `block-${key}`, text: t(lang, `session.block.${key}` as TextKey), role: 'accent' as ThemeRole, bold: true }, ...rows]
   return [...block('project', project), ...block('governor', governor), ...block('activity', activity), ...block('updates', updateRows)]
 }
-
-/** Feature id to the worktrees working on it (054 #49). */
-const worktreesById = (list: SessionStats['worktrees']): Record<string, string[]> => {
-  const out: Record<string, string[]> = {}
-  for (const w of list ?? []) (out[w.id] ??= []).push(w.name)
-  return out
-}
-
-/** A path under a `.specify/` folder: feature.json, the constitution, extensions.yml (053). */
-const isUnderSpecify = (path: string): boolean => /(^|[\\/])\.specify[\\/]/.test(path)
 
 /** Brings the Spec Kit state up to date mid-turn (053); writes only when something moved. */
 async function syncNow($: EngineInterface): Promise<void> {
@@ -1833,44 +1566,6 @@ async function noteProgress($: EngineInterface, before: Held | undefined, held: 
   } catch (error) {
     $.ui.log(`astrolabe: ${error instanceof Error ? error.message : String(error)}`, { to: 'debug' })
   }
-}
-
-const minutes = (ms: number) => {
-  const m = Math.max(1, Math.round(ms / 60_000))
-  return m < 60 ? `${m}m` : `${Math.floor(m / 60)}h${String(m % 60).padStart(2, '0')}m`
-}
-
-/** The Dashboard's rows from 021: task history, feature durations, this week. */
-function historyRows(
-  stats: SessionStats,
-  feature: { dir: string; done: number; total: number } | undefined,
-  featureDurations: readonly FeatureDuration[] = [],
-): Array<[string, string]> {
-  const lang = currentLang()
-  const rows: Array<[string, string]> = []
-  for (const duration of featureDurations) {
-    if (duration.ms !== undefined) rows.push([t(lang, 'kpi.specToDone'), `${duration.id} ${duration.name} · ${minutes(duration.ms)}`])
-  }
-  const times = stats.taskTimes ?? []
-  if (feature !== undefined) {
-    const slow = slowest(times, feature.dir, 1)[0]
-    if (slow !== undefined) rows.push([t(lang, 'kpi.slowest'), `${slow.id} · ${minutes(slow.ms)}`])
-    const open = feature.total - feature.done
-    const left = estimateLeft(times, feature.dir, open)
-    if (left !== undefined) rows.push([t(lang, 'kpi.estimate'), t(lang, 'kpi.estimateValue', { time: minutes(left), n: open })])
-  }
-  if (stats.week !== undefined) rows.push([t(lang, 'kpi.week'), t(lang, 'kpi.weekValue', { tasks: stats.week.tasks, features: stats.week.features })])
-  // Tasks per weekday this week (046 #54): one block a day, Monday first, scaled to the busiest.
-  if (stats.weekdays !== undefined && stats.weekdays.some(n => n > 0)) {
-    const top = Math.max(...stats.weekdays)
-    rows.push([t(lang, 'kpi.weekdays'), `${sparkline(stats.weekdays.map(n => (n * 100) / top))}  M T W T F S S`])
-  }
-  // Tasks done over the last 8 weeks (054 #40), once more than one week has any.
-  if (stats.weeksTrend !== undefined && stats.weeksTrend.filter(n => n > 0).length > 1) {
-    const top = Math.max(...stats.weeksTrend)
-    rows.push([t(lang, 'kpi.weeks'), t(lang, 'kpi.weeksValue', { line: sparkline(stats.weeksTrend.map(n => (n * 100) / top)), n: stats.weeksTrend.at(-1) ?? 0 })])
-  }
-  return rows
 }
 
 /** A warning when the open tasks, at this feature's pace, run past the 5h reset (045 #50). */
@@ -2236,7 +1931,7 @@ export const register: Register = (on, options) => {
         const state = (await $.state.get(SPECKIT)).value
         const memo = (await $.state.get(MEMO)).value
         const driftWarning = memo?.driftWarning
-        const told = state === undefined ? undefined : featureContext(state, driftWarning)
+        const told = state === undefined ? undefined : featureContext(state, driftWarning, focusMode)
         // A prompt that names another feature than the active one (054 #91): say so, every time.
         const other = state === undefined ? undefined : otherFeatureNamed(e.text, state)
         const extra = other === undefined ? [] : [other]
@@ -2749,7 +2444,7 @@ export const register: Register = (on, options) => {
 
   on('command.run', { command: 'astrolabe' }, async ($, e) => {
     const args = e.args.trim()
-    if (args === 'help') return { text: helpText(currentLang()) }
+    if (args === 'help') return { text: helpText(currentLang(), optionsSeen) }
     if (args.startsWith('root ')) {
       // Another Spec Kit root under this folder (020c #21): read it as the session's root.
       const cwd = await $.session.cwd()
@@ -2801,7 +2496,7 @@ export const register: Register = (on, options) => {
       const rows = [
         ...(feature === undefined || feature.total === 0 ? [] : [[t(currentLang(), 'kpis.tasks'), `${feature.done}/${feature.total}`] as [string, string]]),
         ...kpiRows(stats, binding, now, currentLang()),
-        ...historyRows(stats, feature, state === undefined || state.root === undefined ? [] : featureDurationsByRoot.get(state.root) ?? []),
+        ...historyRows(stats, feature, state === undefined || state.root === undefined ? [] : featureDurationsByRoot.get(state.root) ?? [], currentLang()),
       ]
       return { text: kpisMarkdown(t(currentLang(), 'kpis.title', { feature: feature === undefined ? '—' : `${feature.id} ${feature.name}` }), rows) }
     }
@@ -2914,7 +2609,7 @@ export const register: Register = (on, options) => {
       needle === '' ? list : list.filter(r => r.key === 'count' || r.text.toLowerCase().includes(needle))
     const rows =
       pane.tab === 'help'
-        ? helpRows(helpText(currentLang()), pane.filter, currentLang())
+        ? helpRows(helpText(currentLang(), optionsSeen), pane.filter, currentLang())
         : pane.tab === 'tasks'
         ? [...keep(taskRows(state, emptyMemo(), 1000, columns, currentLang(), await $.clock.now())), ...(await pastResetRows($, state, stats, usage))]
         : pane.tab === 'session'
@@ -3113,7 +2808,7 @@ export const register: Register = (on, options) => {
             : pane.tab === 'help'
               ? {
                   kept: rows.filter(row => row.key !== 'no-match').length,
-                  total: helpRows(helpText(currentLang()), undefined, currentLang()).length,
+                  total: helpRows(helpText(currentLang(), optionsSeen), undefined, currentLang()).length,
                 }
               : undefined
       const header = paneHeader($, e, pane, state, stats, filterCount)
@@ -3167,7 +2862,7 @@ export const register: Register = (on, options) => {
       kpis: stats === undefined ? [] : [
         ...kpiRows(stats, binding, now, currentLang()),
         ...trendRows(stats.series, currentLang()),
-        ...historyRows(stats, activeFeature, state.root === undefined ? [] : featureDurationsByRoot.get(state.root) ?? []),
+        ...historyRows(stats, activeFeature, state.root === undefined ? [] : featureDurationsByRoot.get(state.root) ?? [], currentLang()),
       ],
       chips: kpiChips(stats, activeFeature, currentLang(), binding, now),
     }
