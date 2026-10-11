@@ -20,4 +20,4 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 - [x] T007 #46 A key that ticks the selected task (with confirmation) (P3)
 - [x] T008 #47 A time column for done tasks (P3)
 - [x] T009 #48 The last turn's diff folds to one line after 5 minutes (P3)
-- [ ] T010 #49 Quick specs show their Requirements as a checklist (P3)
+- [x] T010 #49 Quick specs show their Requirements as a checklist (P3)

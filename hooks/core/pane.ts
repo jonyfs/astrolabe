@@ -282,7 +282,28 @@ export const taskRows = (
   if (!state.present) return [noSpeckit(lang)]
   if (active === undefined) return [{ key: 'none', text: tr(lang, 'pane.noActive'), role: 'muted' }]
   const tasks = state.activeTasks ?? parseTasks(memo.files[active.dir]?.tasks ?? '')
-  if (tasks.length === 0) return [{ key: 'no-tasks', text: tr(lang, 'pane.noTasks'), role: 'muted' }]
+  if (tasks.length === 0) {
+    // Quick specs show their Requirements as a checklist (045 #49).
+    const feature = state.features.find(f => f.dir === active.dir)
+    const spec = memo.files[active.dir]?.spec
+    const requirements = feature?.track === 'quick' && spec !== undefined && spec.includes('## Requirements')
+      ? spec.split(/\r?\n/)
+      : undefined
+    if (requirements) {
+      const requirementsIndex = requirements.findIndex(line => /^##\s+Requirements/i.test(line))
+      const tasksIndex = requirements.findIndex(line => /^##\s+Tasks\s*$/i.test(line))
+      if (requirementsIndex >= 0 && tasksIndex > requirementsIndex) {
+        const reqLines = requirements.slice(requirementsIndex + 1, tasksIndex).filter(l => /^\s*[-*+]\s+\[[ xX]\]/.test(l))
+        if (reqLines.length > 0) {
+          const reqTasks = reqLines.map((l, i) => ({ line: parseTasks(reqLines.join('\n'))[i]?.line ?? 0, text: l, isDone: /^\s*\[x\]/i.test(l) }))
+          // Show Requirements as a checklist
+          const requirementsText = reqTasks.map((t, i) => `${t.isDone ? '☑' : '☐'} ${t.text}`).join('\n')
+          out.push({ key: 'requirements', text: cut(`${tr(lang, 'pane.requirements')}:`, columns), role: 'muted' })
+          out.push({ key: 'requirements-list', text: requirementsText })
+        }
+      }
+    }
+  }
   const open = tasks.filter(t => !t.isDone)
   // Which feature these are, its phase and its count (052 #17).
   const phase = state.features.find(f => f.dir === active.dir)?.phase

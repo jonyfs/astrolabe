@@ -191,6 +191,7 @@ export const PT_BR: Dictionary = {
   'pane.folded': '✓ {n} feitas · {ids}',
   'pane.count': '{done}/{total} feitas',
   'pane.updated': 'atualizada há {age}',
+  'pane.requirements': 'Requisitos',
   'pane.allTicked': 'Todas as tarefas estão marcadas.',
   'pane.more': '+{n} mais',
   'session.branch': 'branch',

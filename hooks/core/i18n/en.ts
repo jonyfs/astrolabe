@@ -196,6 +196,7 @@ export const EN = {
   'pane.folded': '✓ {n} done · {ids}',
   'pane.count': '{done}/{total} done',
   'pane.updated': 'updated {age}',
+  'pane.requirements': 'Requirements',
   'pane.allTicked': 'All tasks are ticked.',
   'pane.more': '+{n} more',
   'session.branch': 'branch',
