@@ -182,6 +182,7 @@ export const installTree = (on: On, tree: Tree, cwd: string, seed: Record<string
     read: path => (denied.has(toTree(path)) ? Promise.reject(new Error(`EACCES: ${toTree(path)}`)) : rawFs.read(toTree(path))),
     list: path => rawFs.list(toTree(path)),
     exists: path => rawFs.exists(toTree(path)),
+    stat: path => rawFs.stat(toTree(path)),
   }
   const statuses: Array<string | undefined> = []
   const forbidden: string[] = []
