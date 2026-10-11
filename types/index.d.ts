@@ -44,6 +44,8 @@ export type FeatureFiles = {
   tasksInSpec?: true
   /** The source tasks.md exceeds 2 MiB and its compact task summary is reused between edits (054 #13). */
   tasksLarge?: true
+  /** The age of the spec's last change (044 #37). */
+  updatedAt?: string
 }
 
 export type FeatureWarning = 'clarification-after-plan' | 'unreadable-spec' | 'unreadable-tasks' | 'loading' | 'no-spec'
@@ -64,6 +66,8 @@ export type Feature = {
   clarifications?: number
   /** Open and total checklist items (020b). */
   checklist?: { open: number; total: number }
+  /** The age of the spec's last change (044 #37). */
+  updatedAt?: string
 }
 
 export type FeatureJson =

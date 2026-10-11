@@ -185,6 +185,7 @@ export const FR: Dictionary = {
   'pane.taskFiles': 'fichiers : {files}',
   'pane.folded': '✓ {n} faites · {ids}',
   'pane.count': '{done}/{total} faites',
+  'pane.updated': 'mise à jour il y a {age}',
   'pane.allTicked': 'Toutes les tâches sont cochées.',
   'pane.more': '+{n} de plus',
   'session.branch': 'branche',

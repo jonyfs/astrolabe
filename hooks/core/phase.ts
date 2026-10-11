@@ -44,5 +44,6 @@ export const deriveFeature = (files: FeatureFiles): Feature => {
     warnings,
     ...(files.spec === undefined || clarificationCount(files.spec) === 0 ? {} : { clarifications: clarificationCount(files.spec) }),
     ...(files.checklist === undefined || files.checklist.total === 0 ? {} : { checklist: files.checklist }),
+    ...(files.updatedAt === undefined ? {} : { updatedAt: files.updatedAt }),
   }
 }

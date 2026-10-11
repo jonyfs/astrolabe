@@ -21,7 +21,7 @@ const cut = (text: string, room: number): string =>
 const markOf = (f: Feature): string => (f.phase === 'done' ? '●' : f.phase === 'abandoned' ? '○' : '◐')
 
 /** What a row shows besides the feature: the name column's width and the skill running on it (044). */
-type RowContext = { nameWidth: number; countWidth: number; idWidth?: number; running?: string; priority?: Priority; worktrees?: readonly string[]; wrapLongNames?: boolean }
+type RowContext = { nameWidth: number; countWidth: number; idWidth?: number; running?: string; priority?: Priority; worktrees?: readonly string[]; wrapLongNames?: boolean; lang: Lang; now: number }
 
 /** One colour per phase, the rail's (054 #71). */
 const PHASE_ROLE: Partial<Record<Feature['phase'], ThemeRole>> = { specify: 'muted', clarify: 'current', plan: 'barFill', tasks: 'accent', implement: 'current', done: 'done' }
@@ -49,13 +49,15 @@ const featureRow = (f: Feature, isActive: boolean, columns: number, ctx: RowCont
   // The worktrees working on this feature (054 #49).
   const trees = ctx.worktrees === undefined || ctx.worktrees.length === 0 ? '' : `  ⑂ ${ctx.worktrees.join(', ')}`
   const running = `${chips.length === 0 ? '' : `  ${chips.join(' ')}`}${trees}${ctx.running === undefined ? '' : `  ⟳ ${ctx.running}`}`
+  // The age of the spec's last change (044 #37).
+  const updated = f.updatedAt !== undefined ? `  ${tr(ctx.lang, 'pane.updated', { age: ageOf(Date.parse(f.updatedAt), ctx.now) })}` : ''
   const name = (ctx.wrapLongNames === true ? f.name : cut(f.name, ctx.nameWidth)).padEnd(ctx.nameWidth)
   const phase = f.phase.padEnd(9)
   // Columns line up across rows (044); narrower panes drop the bar, then the count, then cut the name.
   const forms = [
-    `${head}${name}  ${phase}  ${bar.padEnd(BAR_CELLS)}  ${count} ${percent}${running}`,
-    `${head}${name}  ${phase}  ${count} ${percent}${running}`,
-    `${head}${name}  ${phase} ${percent}`,
+    `${head}${name}  ${phase}  ${bar.padEnd(BAR_CELLS)}  ${count} ${percent}${running}${updated}`,
+    `${head}${name}  ${phase}  ${count} ${percent}${running}${updated}`,
+    `${head}${name}  ${phase} ${percent}${updated}`,
   ].map(text => text.trimEnd())
   // A compact pane under 60 columns never draws bars (054 #69), even when a short name leaves room.
   const fitting = forms.slice(columns < COMPACT_COLUMNS ? 1 : 0).find(text => width(text) <= columns)
@@ -68,12 +70,12 @@ const featureRow = (f: Feature, isActive: boolean, columns: number, ctx: RowCont
       { text: '  ', role },
       { text: '█'.repeat(filled), role: fillRole },
       { text: '░'.repeat(BAR_CELLS - filled), role: 'barEmpty' as ThemeRole },
-      { text: `  ${count} ${percent}${running}`.trimEnd(), role },
+      { text: `  ${count} ${percent}${running}${updated}`.trimEnd(), role },
     ]
     return { key: `feature-${f.id}`, text: fitting, role, ...dim, segments }
   }
   if (fitting !== undefined) return { key: `feature-${f.id}`, text: fitting, role, ...dim }
-  const tail = `  ${f.phase}${percent === '' ? '' : ` ${percent.trim()}`}`
+  const tail = `  ${f.phase}${percent === '' ? '' : ` ${percent.trim()}`}${updated}`
   const cutName = ctx.wrapLongNames === true ? f.name : cut(f.name, columns - width(head) - width(tail))
   const text = cutName === '' ? `${head.trimEnd()}${tail}` : `${head}${cutName}${tail}`
   return { key: `feature-${f.id}`, text, role, ...dim }
@@ -157,7 +159,8 @@ const buildSpecsRows = (
     rows.push({ key: `section-${section}`, text: `${tr(lang, `pane.section.${section}`)} (${inSection.length})${folded ? ` · ${tr(lang, 'pane.folded.section', { status: section })}` : ''}`, role: 'muted', bold: true })
     if (folded) continue
     for (const f of inSection) {
-      const row = featureRow(f, activeDir === f.dir, columns - 2, { ...ctx, wrapLongNames, ...(running !== undefined && f.dir === activeDir ? { running } : {}), ...(priorities[f.id] === undefined ? {} : { priority: priorities[f.id] }), ...(worktrees[f.id] === undefined ? {} : { worktrees: worktrees[f.id] }) })
+      const now = Date.now()
+      const row = featureRow(f, activeDir === f.dir, columns - 2, { ...ctx, wrapLongNames, ...(running !== undefined && f.dir === activeDir ? { running } : {}), ...(priorities[f.id] === undefined ? {} : { priority: priorities[f.id] }), ...(worktrees[f.id] === undefined ? {} : { worktrees: worktrees[f.id] }), lang, now })
       // A link to the feature's spec.md (044 #35).
       const root = state.root
       // Its plan.md and tasks.md too, once they exist (054 #77); a quick spec keeps its tasks in spec.md.

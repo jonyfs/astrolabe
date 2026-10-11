@@ -195,6 +195,7 @@ export const EN = {
   'pane.taskFiles': 'files: {files}',
   'pane.folded': '✓ {n} done · {ids}',
   'pane.count': '{done}/{total} done',
+  'pane.updated': 'updated {age}',
   'pane.allTicked': 'All tasks are ticked.',
   'pane.more': '+{n} more',
   'session.branch': 'branch',
