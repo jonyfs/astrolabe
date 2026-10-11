@@ -1,0 +1,68 @@
+{
+  "version": "1.0.0",
+  "lastUpdated": "2026-10-10",
+  "dataController": {
+    "name": "Astrolabe Project",
+    "address": "GitHub Repository: github.com/jonyfs/astrolabe",
+    "email": "privacy@astrolabe.example.com",
+    "dpoEmail": "dpo@astrolabe.example.com"
+  },
+  "contactEmail": "privacy@astrolabe.example.com",
+  "jurisdictions": ["GDPR", "CCPA"],
+  "sections": [
+    {
+      "id": "data-collected",
+      "title": "Data We Collect",
+      "content": "Astrolabe is a local-first plugin that does not collect personal data from users. The plugin operates entirely within your local Claude Code environment and does not transmit any personal information to external servers. No analytics, tracking, or user identification data is collected.",
+      "requiredBy": ["GDPR", "CCPA"]
+    },
+    {
+      "id": "legal-basis",
+      "title": "Legal Basis for Processing",
+      "content": "As Astrolabe does not collect personal data, no legal basis for processing is required. All operations are performed locally on your machine.",
+      "requiredBy": ["GDPR"]
+    },
+    {
+      "id": "purpose",
+      "title": "Purpose of Processing",
+      "content": "Astrolabe provides status line, dashboard, and Spec Kit integration features within Claude Code. All processing is local to provide these features.",
+      "requiredBy": ["GDPR", "CCPA"]
+    },
+    {
+      "id": "retention",
+      "title": "Data Retention",
+      "content": "Astrolabe does not retain any personal data. Any session state is stored temporarily in memory and cleared when the session ends. No persistent storage of user data occurs.",
+      "requiredBy": ["GDPR", "CCPA"]
+    },
+    {
+      "id": "sharing",
+      "title": "Data Sharing and Disclosure",
+      "content": "Astrolabe does not share any data with third parties. The plugin has no network connectivity and cannot transmit data.",
+      "requiredBy": ["GDPR", "CCPA"]
+    },
+    {
+      "id": "user-rights",
+      "title": "Your Rights",
+      "content": "Since no personal data is collected, there is no data to access, rectify, delete, or port. You have full control over your local environment.",
+      "requiredBy": ["GDPR", "CCPA"]
+    },
+    {
+      "id": "contact",
+      "title": "Contact Us",
+      "content": "For privacy inquiries, contact: privacy@astrolabe.example.com",
+      "requiredBy": ["GDPR", "CCPA"]
+    },
+    {
+      "id": "transfers",
+      "title": "International Transfers",
+      "content": "No personal data is transferred internationally as no data is collected.",
+      "requiredBy": ["GDPR"]
+    },
+    {
+      "id": "automated-decision",
+      "title": "Automated Decision Making",
+      "content": "Astrolabe does not use automated decision making that significantly affects users.",
+      "requiredBy": ["GDPR"]
+    }
+  ]
+}

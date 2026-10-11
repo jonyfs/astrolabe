@@ -12,7 +12,6 @@ jobs:
   check:
     name: validate, test, type check (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
-    # A hung step fails the job instead of holding the merge gate for an hour (054).
     timeout-minutes: 20
     strategy:
       fail-fast: false
@@ -23,8 +22,6 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: 22
-      # Pinned to the engine that wrote types/engine/claude-code.d.ts. Bump both together:
-      # update this version, then run scripts/sync-engine-types.sh.
       - name: Install Claude Code
         run: npm install -g @anthropic-ai/claude-code@2.1.292
       - name: Validate the plugin and marketplace
@@ -51,3 +48,99 @@ jobs:
       - name: Test the image converter
         timeout-minutes: 3
         run: node scripts/capture/ansi-to-svg.test.mjs
+
+  benchmark:
+    name: Performance Benchmark
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: npm ci
+      - name: Run benchmark
+        run: npm run benchmark -- --output results/benchmark.json
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results
+          path: results/benchmark.json
+      - name: Comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const result = JSON.parse(fs.readFileSync('results/benchmark.json', 'utf-8'));
+            const status = result.passed ? '✅ PASSED' : '❌ FAILED';
+            const body = `## Benchmark Result: ${status}\n\n**Run ID**: ${result.id}\n**Threshold**: ${result.threshold}%\n\n| Metric | Current | Baseline | Delta | Status |\n|--------|---------|----------|-------|--------|\n${Object.entries(result.comparison.details).map(([key, detail]) => {
+              const icon = detail.status === 'regression' ? '🔴' : detail.status === 'improvement' ? '🟢' : '🟡';
+              return `| ${key} | ${detail.current.toFixed(2)} | ${detail.baseline.toFixed(2)} | ${detail.deltaPercent > 0 ? '+' : ''}${detail.deltaPercent.toFixed(1)}% | ${icon} ${detail.status} |`;
+            }).join('\n')}`;
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body
+            });
+
+  generate-images:
+    name: Generate README Images
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: npm ci
+      - name: Install Mermaid CLI
+        run: npm install -g @mermaid-js/mermaid-cli
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+      - name: Generate images
+        run: npm run generate-images
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/images/
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: update generated images [skip ci]"
+            git push
+          else
+            echo "No image changes to commit"
+          fi
+
+  load-test:
+    name: Load Test (500 features)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: npm ci
+      - name: Run load test
+        run: npm run load-test 500 -- --output-dir results
+      - name: Upload load test report
+        uses: actions/upload-artifact@v4
+        with:
+          name: load-test-report
+          path: results/load-test-*.json

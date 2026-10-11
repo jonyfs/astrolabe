@@ -174,6 +174,7 @@ describe('parity with the usage-governor skill (016)', () => {
         paused: false,
       },
       NOW,
+      undefined,
     )
     expect(rows.map(([label]) => label)).toEqual(['state', 'usage', 'subagents', 'queue', 'override', 'lift'])
     expect(rows[0]?.[1]).toBe('slowing down (7d at 83%): at most 1 subagent at a time')
@@ -182,7 +183,7 @@ describe('parity with the usage-governor skill (016)', () => {
     expect(rows[3]?.[1]).toBe('q1 Review · /astrolabe run q1')
     expect(rows[4]?.[1]).toMatch(/^ceiling 95% on 7d until \d\d:\d\d, in \d+(h\d\d)?m$/)
     expect(rows[5]?.[1]).toMatch(/^subagents one at a time until \d\d:\d\d, in \d+(h\d\d)?m$/)
-    expect(usageRows({ readings: [], history: [], inFlight: 0, queue: [], paused: false }, NOW)).toEqual([])
+    expect(usageRows({ readings: [], history: [], inFlight: 0, queue: [], paused: false }, NOW, undefined)).toEqual([])
   })
 
   test('047: the state in plain words and the time to the next band', () => {

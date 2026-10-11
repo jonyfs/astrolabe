@@ -1,0 +1,28 @@
+{
+  "features": [
+    {
+      "id": "test-feature-1",
+      "name": "Test Feature 1",
+      "complexity": "simple",
+      "spec": "# Test Feature 1\n\n## Requirements\n\n- FR-001: Basic test functionality",
+      "requirements": ["FR-001"],
+      "userStories": ["US1"]
+    },
+    {
+      "id": "test-feature-2",
+      "name": "Test Feature 2",
+      "complexity": "medium",
+      "spec": "# Test Feature 2\n\n## Requirements\n\n- FR-001: Core test functionality\n- FR-002: Validation\n- FR-003: Integration",
+      "requirements": ["FR-001", "FR-002", "FR-003"],
+      "userStories": ["US1", "US2"]
+    },
+    {
+      "id": "test-feature-3",
+      "name": "Test Feature 3",
+      "complexity": "complex",
+      "spec": "# Test Feature 3\n\n## Requirements\n\n- FR-001: Multi-step workflow\n- FR-002: State management\n- FR-003: External integration\n- FR-004: Real-time updates\n- FR-005: Performance",
+      "requirements": ["FR-001", "FR-002", "FR-003", "FR-004", "FR-005"],
+      "userStories": ["US1", "US2", "US3", "US4"]
+    }
+  ]
+}

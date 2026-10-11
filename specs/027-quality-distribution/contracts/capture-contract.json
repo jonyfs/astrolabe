@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Desktop Capture Contract",
+  "description": "Input/output contract for desktop app screenshot/recording capture",
+  "type": "object",
+  "properties": {
+    "input": {
+      "type": "object",
+      "required": ["appPath", "views", "outputDir"],
+      "properties": {
+        "appPath": {
+          "type": "string",
+          "description": "Path to desktop app executable or URL"
+        },
+        "views": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "url", "actions"],
+            "properties": {
+              "name": { "type": "string", "description": "Logical view name" },
+              "url": { "type": "string", "description": "Page URL or route" },
+              "actions": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["type"],
+                  "properties": {
+                    "type": { "type": "string", "enum": ["click", "type", "wait", "scroll"] },
+                    "selector": { "type": "string" },
+                    "value": { "type": "string" },
+                    "duration": { "type": "number" }
+                  }
+                },
+                "description": "Actions to perform before capture"
+              },
+              "capture": {
+                "type": "object",
+                "required": ["type"],
+                "properties": {
+                  "type": { "type": "string", "enum": ["screenshot", "video"] },
+                  "duration": { "type": "number", "description": "Video duration in ms" },
+                  "viewport": {
+                    "type": "object",
+                    "required": ["width", "height"],
+                    "properties": {
+                      "width": { "type": "integer" },
+                      "height": { "type": "integer" },
+                      "deviceScaleFactor": { "type": "number", "default": 1 }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "description": "Views to capture with actions"
+        },
+        "outputDir": {
+          "type": "string",
+          "description": "Directory for capture artifacts"
+        },
+        "browser": {
+          "type": "string",
+          "enum": ["chromium", "firefox", "webkit", "electron"],
+          "default": "chromium",
+          "description": "Browser engine for capture"
+        }
+      }
+    },
+    "output": {
+      "type": "object",
+      "required": ["manifestPath", "artifactCount"],
+      "properties": {
+        "manifestPath": {
+          "type": "string",
+          "description": "Path to capture manifest JSON"
+        },
+        "artifactCount": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of artifacts captured"
+        },
+        "coverage": {
+          "type": "object",
+          "description": "View coverage report"
+        }
+      }
+    }
+  },
+  "additionalProperties": false
+}

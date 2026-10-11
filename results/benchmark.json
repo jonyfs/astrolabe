@@ -1,0 +1,54 @@
+{
+  "id": "bench-1791661538919-um85ui",
+  "timestamp": "2026-10-10T19:45:38.919Z",
+  "branch": "local",
+  "commit": "local",
+  "metrics": {
+    "durationMs": 11,
+    "peakMemoryMB": 57.25,
+    "cpuPercent": 15,
+    "customMetrics": {
+      "page-load-ms": 10,
+      "bundle-size-kb": 150,
+      "startup-time-ms": 250
+    }
+  },
+  "baseline": {
+    "durationMs": 1000,
+    "peakMemoryMB": 100,
+    "cpuPercent": 10,
+    "customMetrics": {}
+  },
+  "comparison": {
+    "regressions": [
+      "cpuPercent"
+    ],
+    "improvements": [
+      "durationMs",
+      "peakMemoryMB"
+    ],
+    "stable": [],
+    "details": {
+      "durationMs": {
+        "current": 11,
+        "baseline": 1000,
+        "deltaPercent": -98.9,
+        "status": "improvement"
+      },
+      "peakMemoryMB": {
+        "current": 57.25,
+        "baseline": 100,
+        "deltaPercent": -42.75,
+        "status": "improvement"
+      },
+      "cpuPercent": {
+        "current": 15,
+        "baseline": 10,
+        "deltaPercent": 50,
+        "status": "regression"
+      }
+    }
+  },
+  "passed": false,
+  "threshold": 10
+}

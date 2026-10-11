@@ -1,0 +1,29 @@
+{
+  "name": "astrolabe-quality-distribution",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "benchmark": "tsx scripts/benchmark.ts",
+    "generate-images": "tsx scripts/generate-images.ts",
+    "capture": "tsx scripts/capture-desktop.ts",
+    "generate-privacy": "tsx scripts/privacy.ts",
+    "build-assets": "tsx scripts/build-assets.ts",
+    "load-test": "tsx scripts/load-test.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@mermaid-js/mermaid-cli": "^11.0.0",
+    "@types/node": "^20.0.0",
+    "playwright": "^1.40.0",
+    "sharp": "^0.33.0",
+    "tsx": "^4.0.0",
+    "vitest": "^1.0.0",
+    "zod": "^3.25.76"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

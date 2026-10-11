@@ -596,3 +596,21 @@ describe('the Health block in Help (052 #42)', () => {
     await ui.unmount()
   })
 })
+
+describe('keys and copying (046 #59, 054 #65)', () => {
+  test('the tab labels carry their number key while the pane has the keyboard', async ($, on) => {
+    await setup($ as never, on as never)
+    const ui = await mountPane($ as never, 'terminal', 100, 30)
+    expect(await ui.tabs()).toMatch(/1 Specs/)
+    expect(await ui.tabs()).toMatch(/2 Tasks/)
+    await ui.unmount()
+  })
+  test('the Dashboard has a copy button for its numbers; other tabs do not', async ($, on) => {
+    await setup($ as never, on as never)
+    const ui = await mountPane($ as never, 'terminal', 100, 30)
+    expect(await ui.find({ key: 'copy-kpis' })).toBeUndefined()
+    await ui.press('tab-dashboard')
+    expect(await ui.find({ key: 'copy-kpis' })).toBeDefined()
+    await ui.unmount()
+  })
+})

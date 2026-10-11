@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Plugin Assets Contract",
+  "description": "Input/output contract for plugin directory asset generation",
+  "type": "object",
+  "properties": {
+    "input": {
+      "type": "object",
+      "required": ["manifestPath", "sourceDir", "outputDir"],
+      "properties": {
+        "manifestPath": {
+          "type": "string",
+          "description": "Path to plugin manifest (package.json, plugin.json)"
+        },
+        "sourceDir": {
+          "type": "string",
+          "description": "Directory with source assets (logos, screenshots)"
+        },
+        "outputDir": {
+          "type": "string",
+          "description": "Directory for marketplace-ready assets"
+        },
+        "marketplaces": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["vscode", "jetbrains", "chrome"] },
+          "default": ["vscode", "jetbrains", "chrome"],
+          "description": "Target marketplaces"
+        }
+      }
+    },
+    "output": {
+      "type": "object",
+      "required": ["manifestPath", "assetsGenerated"],
+      "properties": {
+        "manifestPath": {
+          "type": "string",
+          "description": "Path to asset generation manifest"
+        },
+        "assetsGenerated": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total assets generated across marketplaces"
+        },
+        "validation": {
+          "type": "object",
+          "description": "Per-marketplace validation results"
+        }
+      }
+    }
+  },
+  "additionalProperties": false
+}

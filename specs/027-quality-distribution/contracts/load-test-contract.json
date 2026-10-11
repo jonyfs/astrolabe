@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Load Test Contract",
+  "description": "Input/output contract for 500-feature load test",
+  "type": "object",
+  "properties": {
+    "input": {
+      "type": "object",
+      "required": ["featureCount", "outputDir"],
+      "properties": {
+        "featureCount": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000,
+          "default": 500,
+          "description": "Number of synthetic features to generate and process"
+        },
+        "outputDir": {
+          "type": "string",
+          "description": "Directory for load test report"
+        },
+        "distribution": {
+          "type": "object",
+          "required": ["simple", "medium", "complex"],
+          "properties": {
+            "simple": { "type": "number", "minimum": 0, "maximum": 1, "default": 0.3 },
+            "medium": { "type": "number", "minimum": 0, "maximum": 1, "default": 0.5 },
+            "complex": { "type": "number", "minimum": 0, "maximum": 1, "default": 0.2 }
+          },
+          "description": "Feature complexity distribution (must sum to 1)"
+        },
+        "timeoutMs": {
+          "type": "integer",
+          "default": 30000,
+          "description": "Per-feature processing timeout"
+        },
+        "memoryLimitMB": {
+          "type": "integer",
+          "default": 512,
+          "description": "Memory limit for load test process"
+        },
+        "parallel": {
+          "type": "boolean",
+          "default": false,
+          "description": "Process features in parallel"
+        }
+      }
+    },
+    "output": {
+      "type": "object",
+      "required": ["reportPath", "passed"],
+      "properties": {
+        "reportPath": {
+          "type": "string",
+          "description": "Path to load test report JSON"
+        },
+        "passed": {
+          "type": "boolean",
+          "description": "Whether load test passed all criteria"
+        },
+        "summary": {
+          "type": "string",
+          "description": "Human-readable summary"
+        }
+      }
+    }
+  },
+  "additionalProperties": false
+}

@@ -67,6 +67,28 @@ describe('the PRs tab (032)', () => {
     await ui.unmount()
   })
 
+  test('054 #60: the release gate compares plugin.json with the tags', async ($, on) => {
+    const tree = { ...halfDone.tree, '/proj/.claude-plugin/plugin.json': '{ "name": "x", "version": "0.5.0" }' }
+    const session = installTree(on, tree, '/proj')
+    installEngine(on)
+    installRenderEngine(on)
+    installPaneEngine(on)
+    session.script.processes[GH_LIST] = { stdout: LIST }
+    session.script.processes['git tag --list v* --sort=-v:refname'] = { stdout: 'v0.4.0\nv0.3.0\n' }
+    await startSession($ as never, '/proj')
+    const ui = await mount($ as never)
+    await ui.press({ key: 'tab-prs' })
+    await session.clock.advance(1000)
+    expect(JSON.stringify(await ui.drawn())).toContain('plugin.json 0.5.0 is ready to tag as v0.5.0 (latest tag v0.4.0)')
+    session.script.processes['git tag --list v* --sort=-v:refname'] = { stdout: 'v0.5.0\nv0.4.0\n' }
+    await session.clock.advance(300_000)
+    await ui.press({ key: 'tab-specs' })
+    await ui.press({ key: 'tab-prs' })
+    await session.clock.advance(1000)
+    expect(JSON.stringify(await ui.drawn())).toContain('v0.5.0 is already tagged')
+    await ui.unmount()
+  })
+
   test('052 #41: a first press waits 10 s for the second, then asks again', async ($, on) => {
     const session = installTree(on, halfDone.tree, '/proj')
     installEngine(on)

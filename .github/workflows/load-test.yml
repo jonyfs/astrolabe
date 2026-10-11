@@ -1,0 +1,30 @@
+name: Load Test
+
+on:
+  schedule:
+    - cron: '0 3 * * 0'  # Weekly on Sunday 3 AM
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  load-test:
+    name: Load Test (500 features)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: npm ci
+      - name: Run load test
+        run: npm run load-test 500 -- --output-dir results
+      - name: Upload load test report
+        uses: actions/upload-artifact@v4
+        with:
+          name: load-test-report
+          path: results/load-test-*.json
+          retention-days: 90

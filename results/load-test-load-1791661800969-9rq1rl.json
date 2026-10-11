@@ -1,0 +1,47 @@
+{
+  "id": "load-1791661800969-9rq1rl",
+  "timestamp": "2026-10-10T19:50:00.969Z",
+  "featureCount": 500,
+  "config": {
+    "featureCount": 500,
+    "distribution": {
+      "simple": 0.3,
+      "medium": 0.5,
+      "complex": 0.2
+    },
+    "timeoutMs": 30000,
+    "memoryLimitMB": 512,
+    "parallel": false
+  },
+  "results": {
+    "totalDurationMs": 49284,
+    "peakMemoryMB": 59.8984375,
+    "avgCpuPercent": 37.5037465,
+    "successCount": 2000,
+    "failureCount": 0,
+    "errors": [],
+    "phaseTimings": [
+      {
+        "phase": "parse",
+        "durationMs": 5187,
+        "avgPerFeatureMs": 10.374
+      },
+      {
+        "phase": "validate",
+        "durationMs": 9960,
+        "avgPerFeatureMs": 19.92
+      },
+      {
+        "phase": "plan",
+        "durationMs": 14695,
+        "avgPerFeatureMs": 29.39
+      },
+      {
+        "phase": "tasks",
+        "durationMs": 19442,
+        "avgPerFeatureMs": 38.884
+      }
+    ]
+  },
+  "passed": true
+}

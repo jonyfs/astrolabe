@@ -44,6 +44,8 @@ export type FeatureFiles = {
   tasksInSpec?: true
   /** The source tasks.md exceeds 2 MiB and its compact task summary is reused between edits (054 #13). */
   tasksLarge?: true
+  /** The age of the spec's last change (044 #37). */
+  updatedAt?: string
 }
 
 export type FeatureWarning = 'clarification-after-plan' | 'unreadable-spec' | 'unreadable-tasks' | 'loading' | 'no-spec'
@@ -64,6 +66,8 @@ export type Feature = {
   clarifications?: number
   /** Open and total checklist items (020b). */
   checklist?: { open: number; total: number }
+  /** The age of the spec's last change (044 #37). */
+  updatedAt?: string
 }
 
 export type FeatureJson =
@@ -165,10 +169,10 @@ export type SpeckitState = {
   activeDocs?: Array<'spec.md' | 'plan.md' | 'tasks.md'>
 }
 
-export type PaneTab = 'specs' | 'tasks' | 'session' | 'dashboard' | 'help' | 'config' | 'prs'
+export type PaneTab = 'specs' | 'tasks' | 'session' | 'dashboard' | 'help' | 'config' | 'prs' | 'models'
 
 /** The /astrolabe pane's session state: the tab shown and whether it opened unasked already. */
-export type PaneState = { tab: PaneTab; autoOpened: boolean; filter?: string; status?: 'all' | 'progress' | 'next' | 'done' | 'abandoned'; sort?: 'status' | 'progress' | 'name'; scroll?: { tab: PaneTab; offset: number }; selectedFeature?: string; summary?: { dir: string; expanded: boolean }; draft?: Record<string, string | number | boolean>; confirm?: string }
+export type PaneState = { tab: PaneTab; autoOpened: boolean; filter?: string; status?: 'all' | 'progress' | 'next' | 'done' | 'abandoned'; sort?: 'status' | 'progress' | 'name'; scroll?: { tab: PaneTab; offset: number }; selectedFeature?: string; summary?: { dir: string; expanded: boolean }; draft?: Record<string, string | number | boolean>; confirm?: string; confirmSelecting?: string }
 
 export type UpdateId = 'gstack' | 'specify' | 'speckit-skills' | 'astrolabe'
 
@@ -265,6 +269,8 @@ export type SessionStats = {
   warned?: { cost80?: boolean; cost100?: boolean; context?: boolean }
   /** Turns in a row on the same current task without a tick, and whether that was said (054 #85). */
   spin?: { id: string; turns: number; told?: true }
+  /** Subagent runs this session (046 #58): each with its feature, duration and when it started. */
+  subagentRuns?: Array<{ dir: string; id: string; ms: number; at: number }>
   /** The last `gh pr view` for a branch (023): when it ran and what it found, kept five minutes. */
   prCache?: { branch: string; at: number; pr?: PullRequest }
   /** The repository's open pull requests for the PRs tab (032), and when they were read. */
@@ -305,6 +311,8 @@ export type SessionStats = {
   driftsByFeature?: Record<string, number>
   /** How many times the advisor ran this session, and the last time (055). */
   advisor?: { runs: number; at: number; last?: { id: string; text: string; at: number } }
+  /** The release gate of a repository with a plugin.json (054 #60): its version and whether that tag exists. */
+  release?: { version: string; tagged: boolean; latest?: string }
   /** What `/astrolabe doctor` found, read when the Help tab opens (052 #42). */
   health?: { at: number; lines: string[] }
   /** The full text of the last toast shortened to fit the notification limit (052 #44). */

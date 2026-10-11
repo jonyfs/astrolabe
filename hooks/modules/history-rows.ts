@@ -23,7 +23,11 @@ export function historyRows(
     if (left !== undefined) rows.push([t(lang, 'kpi.estimate'), t(lang, 'kpi.estimateValue', { time: minutes(left), n: open })])
   }
   if (stats.week !== undefined) rows.push([t(lang, 'kpi.week'), t(lang, 'kpi.weekValue', { tasks: stats.week.tasks, features: stats.week.features })])
-  // Tasks per weekday this week (046 #54): one block a day, Monday first, scaled to the busiest.
+  // Time per feature this week (046 #55): sum each feature's task times.
+  if (feature !== undefined && feature.total > 0) {
+    const featureTime = (stats.taskTimes ?? []).filter(t => t.dir === feature.dir).reduce((sum, t) => sum + t.ms, 0)
+    if (featureTime > 0) rows.push([t(lang, 'kpi.featureTime', { id: feature.id }), t(lang, 'kpi.featureTimeValue', { time: minutes(featureTime) })])
+  }
   if (stats.weekdays !== undefined && stats.weekdays.some(n => n > 0)) {
     const top = Math.max(...stats.weekdays)
     rows.push([t(lang, 'kpi.weekdays'), `${sparkline(stats.weekdays.map(n => (n * 100) / top))}  M T W T F S S`])

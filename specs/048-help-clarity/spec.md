@@ -19,5 +19,5 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 - [x] T006 #73 One toast on first install pointing at /astrolabe (P2)
 - [x] T007 #75 The Help tab shows each option's current value (P2)
 - [x] T008 #80 The Help tab shows what changed in this version (P2)
-- [ ] T009 #76 A command palette when the pane cannot open (P3)
-- [ ] T010 #77 pt-BR, es and fr README summaries (P3)
+- [x] T009 #76 A command palette when the pane cannot open (P3)
+- [x] T010 #77 pt-BR, es and fr README summaries (P3)

@@ -21,7 +21,7 @@ const cut = (text: string, room: number): string =>
 const markOf = (f: Feature): string => (f.phase === 'done' ? '●' : f.phase === 'abandoned' ? '○' : '◐')
 
 /** What a row shows besides the feature: the name column's width and the skill running on it (044). */
-type RowContext = { nameWidth: number; countWidth: number; idWidth?: number; running?: string; priority?: Priority; worktrees?: readonly string[]; wrapLongNames?: boolean }
+type RowContext = { nameWidth: number; countWidth: number; idWidth?: number; running?: string; priority?: Priority; worktrees?: readonly string[]; wrapLongNames?: boolean; lang: Lang; now: number }
 
 /** One colour per phase, the rail's (054 #71). */
 const PHASE_ROLE: Partial<Record<Feature['phase'], ThemeRole>> = { specify: 'muted', clarify: 'current', plan: 'barFill', tasks: 'accent', implement: 'current', done: 'done' }
@@ -49,13 +49,15 @@ const featureRow = (f: Feature, isActive: boolean, columns: number, ctx: RowCont
   // The worktrees working on this feature (054 #49).
   const trees = ctx.worktrees === undefined || ctx.worktrees.length === 0 ? '' : `  ⑂ ${ctx.worktrees.join(', ')}`
   const running = `${chips.length === 0 ? '' : `  ${chips.join(' ')}`}${trees}${ctx.running === undefined ? '' : `  ⟳ ${ctx.running}`}`
+  // The age of the spec's last change (044 #37).
+  const updated = f.updatedAt !== undefined ? `  ${tr(ctx.lang, 'pane.updated', { age: ageOf(Date.parse(f.updatedAt), ctx.now) })}` : ''
   const name = (ctx.wrapLongNames === true ? f.name : cut(f.name, ctx.nameWidth)).padEnd(ctx.nameWidth)
   const phase = f.phase.padEnd(9)
   // Columns line up across rows (044); narrower panes drop the bar, then the count, then cut the name.
   const forms = [
-    `${head}${name}  ${phase}  ${bar.padEnd(BAR_CELLS)}  ${count} ${percent}${running}`,
-    `${head}${name}  ${phase}  ${count} ${percent}${running}`,
-    `${head}${name}  ${phase} ${percent}`,
+    `${head}${name}  ${phase}  ${bar.padEnd(BAR_CELLS)}  ${count} ${percent}${running}${updated}`,
+    `${head}${name}  ${phase}  ${count} ${percent}${running}${updated}`,
+    `${head}${name}  ${phase} ${percent}${updated}`,
   ].map(text => text.trimEnd())
   // A compact pane under 60 columns never draws bars (054 #69), even when a short name leaves room.
   const fitting = forms.slice(columns < COMPACT_COLUMNS ? 1 : 0).find(text => width(text) <= columns)
@@ -68,12 +70,12 @@ const featureRow = (f: Feature, isActive: boolean, columns: number, ctx: RowCont
       { text: '  ', role },
       { text: '█'.repeat(filled), role: fillRole },
       { text: '░'.repeat(BAR_CELLS - filled), role: 'barEmpty' as ThemeRole },
-      { text: `  ${count} ${percent}${running}`.trimEnd(), role },
+      { text: `  ${count} ${percent}${running}${updated}`.trimEnd(), role },
     ]
     return { key: `feature-${f.id}`, text: fitting, role, ...dim, segments }
   }
   if (fitting !== undefined) return { key: `feature-${f.id}`, text: fitting, role, ...dim }
-  const tail = `  ${f.phase}${percent === '' ? '' : ` ${percent.trim()}`}`
+  const tail = `  ${f.phase}${percent === '' ? '' : ` ${percent.trim()}`}${updated}`
   const cutName = ctx.wrapLongNames === true ? f.name : cut(f.name, columns - width(head) - width(tail))
   const text = cutName === '' ? `${head.trimEnd()}${tail}` : `${head}${cutName}${tail}`
   return { key: `feature-${f.id}`, text, role, ...dim }
@@ -157,7 +159,8 @@ const buildSpecsRows = (
     rows.push({ key: `section-${section}`, text: `${tr(lang, `pane.section.${section}`)} (${inSection.length})${folded ? ` · ${tr(lang, 'pane.folded.section', { status: section })}` : ''}`, role: 'muted', bold: true })
     if (folded) continue
     for (const f of inSection) {
-      const row = featureRow(f, activeDir === f.dir, columns - 2, { ...ctx, wrapLongNames, ...(running !== undefined && f.dir === activeDir ? { running } : {}), ...(priorities[f.id] === undefined ? {} : { priority: priorities[f.id] }), ...(worktrees[f.id] === undefined ? {} : { worktrees: worktrees[f.id] }) })
+      const now = Date.now()
+      const row = featureRow(f, activeDir === f.dir, columns - 2, { ...ctx, wrapLongNames, ...(running !== undefined && f.dir === activeDir ? { running } : {}), ...(priorities[f.id] === undefined ? {} : { priority: priorities[f.id] }), ...(worktrees[f.id] === undefined ? {} : { worktrees: worktrees[f.id] }), lang, now })
       // A link to the feature's spec.md (044 #35).
       const root = state.root
       // Its plan.md and tasks.md too, once they exist (054 #77); a quick spec keeps its tasks in spec.md.
@@ -202,7 +205,7 @@ const buildSpecsRows = (
 let specsRowsCache: { key: string; rows: PaneRow[] } | undefined
 
 /** Reuse the Specs rows until the memo version or any drawing input changes (054 #3). */
-export const specsRows = (
+export const specsRows = async (
   state: SpeckitState,
   columns: number,
   lang: Lang = 'en',
@@ -212,7 +215,7 @@ export const specsRows = (
   worktreeRows: ReadonlyArray<{ name: string; id: string; featureName: string; phase: string; done: number; total: number; status: string }> = [],
   wrapLongNames = false,
   sort: SpecSort = 'status',
-): PaneRow[] => {
+): Promise<PaneRow[]> => {
   if (state.memoVersion === undefined) return buildSpecsRows(state, columns, lang, priorities, worktrees, fold, worktreeRows, wrapLongNames, sort)
   const key = JSON.stringify([
     state.root,
@@ -242,6 +245,18 @@ export const specsRows = (
   ])
   if (specsRowsCache?.key === key) return specsRowsCache.rows
   const rows = buildSpecsRows(state, columns, lang, priorities, worktrees, fold, worktreeRows, wrapLongNames, sort)
+  // Roadmap view (044 #40): show items from docs/roadmap.md not yet specs.
+  if (state.root !== undefined) {
+    try {
+      const fs = await import('fs/promises')
+      const roadmapPath = `${state.root}/docs/roadmap.md`
+      const roadmap = await fs.readFile(roadmapPath, 'utf-8')
+      const roadmapRows = parseRoadmap(roadmap, state.features, columns, lang)
+      if (roadmapRows.length > 0) rows.push(...roadmapRows)
+    } catch {
+      // No roadmap or unreadable
+    }
+  }
   specsRowsCache = { key, rows }
   return rows
 }
@@ -279,7 +294,28 @@ export const taskRows = (
   if (!state.present) return [noSpeckit(lang)]
   if (active === undefined) return [{ key: 'none', text: tr(lang, 'pane.noActive'), role: 'muted' }]
   const tasks = state.activeTasks ?? parseTasks(memo.files[active.dir]?.tasks ?? '')
-  if (tasks.length === 0) return [{ key: 'no-tasks', text: tr(lang, 'pane.noTasks'), role: 'muted' }]
+  if (tasks.length === 0) {
+    // Quick specs show their Requirements as a checklist (045 #49).
+    const feature = state.features.find(f => f.dir === active.dir)
+    const spec = memo.files[active.dir]?.spec
+    const requirements = feature?.track === 'quick' && spec !== undefined && spec.includes('## Requirements')
+      ? spec.split(/\r?\n/)
+      : undefined
+    if (requirements) {
+      const requirementsIndex = requirements.findIndex(line => /^##\s+Requirements/i.test(line))
+      const tasksIndex = requirements.findIndex(line => /^##\s+Tasks\s*$/i.test(line))
+      if (requirementsIndex >= 0 && tasksIndex > requirementsIndex) {
+        const reqLines = requirements.slice(requirementsIndex + 1, tasksIndex).filter(l => /^\s*[-*+]\s+\[[ xX]\]/.test(l))
+        if (reqLines.length > 0) {
+          const reqTasks = reqLines.map((l, i) => ({ line: parseTasks(reqLines.join('\n'))[i]?.line ?? 0, text: l, isDone: /^\s*\[x\]/i.test(l) }))
+          // Show Requirements as a checklist
+          const requirementsText = reqTasks.map((t, i) => `${t.isDone ? '☑' : '☐'} ${t.text}`).join('\n')
+          out.push({ key: 'requirements', text: cut(`${tr(lang, 'pane.requirements')}:`, columns), role: 'muted' })
+          out.push({ key: 'requirements-list', text: requirementsText })
+        }
+      }
+    }
+  }
   const open = tasks.filter(t => !t.isDone)
   // Which feature these are, its phase and its count (052 #17).
   const phase = state.features.find(f => f.dir === active.dir)?.phase
@@ -556,4 +592,31 @@ export const helpRows = (text: string, filter?: string, lang: Lang = 'en'): Pane
   }
   flush()
   return shown
+}
+
+/** Parses docs/roadmap.md and returns rows for the roadmap view (044 #40). */
+export const parseRoadmap = (roadmap: string, features: readonly Feature[], columns: number, lang: Lang): PaneRow[] => {
+  const existingDirs = new Set(features.map(f => f.dir))
+  const rows: PaneRow[] = []
+  const lines = roadmap.split('\n')
+  let inSpecTable = false
+  let inAddedTable = false
+  for (const line of lines) {
+    if (/^\| \d+ \|/.test(line) && !/^\| Spec \|/.test(line)) {
+      const parts = line.split('|').map(p => p.trim()).filter(p => p !== '')
+      if (parts.length >= 3) {
+        const specNum = parts[0]
+        const theme = parts[1]
+        const what = parts[2]
+        // Check if this spec already exists as a feature
+        if (!existingDirs.has(specNum.padStart(3, '0') + '-') && !existingDirs.has(specNum + '-')) {
+          rows.push({ key: `roadmap-${specNum}`, text: cut(`  ${specNum}  ${theme}: ${what}`, columns), role: 'muted' })
+        }
+      }
+    }
+  }
+  if (rows.length > 0) {
+    rows.unshift({ key: 'roadmap-header', text: tr(lang, 'pane.roadmap'), role: 'muted', bold: true })
+  }
+  return rows
 }

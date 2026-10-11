@@ -1,0 +1,47 @@
+{
+  "id": "load-1791661744678-vme4gt",
+  "timestamp": "2026-10-10T19:49:04.678Z",
+  "featureCount": 10,
+  "config": {
+    "featureCount": 10,
+    "distribution": {
+      "simple": 0.3,
+      "medium": 0.5,
+      "complex": 0.2
+    },
+    "timeoutMs": 30000,
+    "memoryLimitMB": 512,
+    "parallel": false
+  },
+  "results": {
+    "totalDurationMs": 982,
+    "peakMemoryMB": 72.99609375,
+    "avgCpuPercent": 28.583667499999997,
+    "successCount": 40,
+    "failureCount": 0,
+    "errors": [],
+    "phaseTimings": [
+      {
+        "phase": "parse",
+        "durationMs": 100,
+        "avgPerFeatureMs": 10
+      },
+      {
+        "phase": "validate",
+        "durationMs": 202,
+        "avgPerFeatureMs": 20.2
+      },
+      {
+        "phase": "plan",
+        "durationMs": 293,
+        "avgPerFeatureMs": 29.3
+      },
+      {
+        "phase": "tasks",
+        "durationMs": 387,
+        "avgPerFeatureMs": 38.7
+      }
+    ]
+  },
+  "passed": true
+}

@@ -1,6 +1,6 @@
 // Wires engine events to the io layer, the core and the status surface. No business logic.
 // The engine follows $ only into functions declared in this file, so every $ call lives here.
-import { ABOUT, helpText } from './modules/help'
+import { ABOUT, commandPaletteText, helpText } from './modules/help'
 import { otherFeatureNamed, implementRefusal, canTouchSpecs, mayChangeGit, mayWriteFiles, isUnderSpecify } from './modules/guards'
 import { advisorFindings, advisorPrompt } from './modules/advisor'
 import { featureContext, principlesOf, tickedBy, statusText } from './modules/context'
@@ -146,7 +146,7 @@ let guessedLang: Lang | undefined
 const currentLang = (): Lang => langOf(languageOption, guessedLang)
 
 const decisionOf = (usage: UsageState, now: number): Decision =>
-  decide(usage.readings, usage.history, usage.override, now, usage.holdLift, usage.held)
+  decide(usage.readings, usage.history, usage.override, now, usage.holdLift, usage.held, governThresholds)
 
 const STATUS_COALESCE_MS = 200
 let statusWindowUntil = Number.NEGATIVE_INFINITY
@@ -154,8 +154,8 @@ let statusTimer: ReturnType<EngineInterface['clock']['after']> | undefined
 let pendingStatus: Held['state'] | undefined
 
 /** The window an override is given for: the one binding now (016); none known, every window. */
-const kindOf = (usage: UsageState, now: number): { kind?: string } => {
-  const kind = decisionOf(usage, now).highest?.kind
+const kindOf = (usage: UsageState, now: number, governThresholds?: Record<string, { hold?: number; stop?: number }): { kind?: string } => {
+  const kind = decide(usage.readings, usage.history, usage.override, now, usage.holdLift, usage.held, governThresholds).highest?.kind
   return kind === undefined ? {} : { kind }
 }
 
@@ -215,6 +215,7 @@ async function footerInput(
       now,
       icons: iconSet(iconsFor(iconsOption, surfaceSeen as never)),
       columns: width,
+      thresholds: governThresholds,
   }
 }
 
@@ -380,6 +381,11 @@ let skillModels: unknown = 'off'
 // The skill the main thread last started this turn, cleared when the turn ends (030).
 let skillRunning: string | undefined
 
+/** Gets the currently running skill (030). */
+export function getSkillRunning(): string | undefined {
+  return skillRunning
+}
+
 const PULLS_TTL_MS = 120_000
 let pullsRunning = false
 
@@ -400,7 +406,16 @@ async function refreshPulls($: EngineInterface, force = false): Promise<void> {
       return
     }
     const rows = parsePullList(run.stdout)
-    await flushStats($, s => ({ ...s, pulls: { at, rows } }))
+    // The release gate (054 #60): plugin.json's version against the tags, where there is a plugin.json.
+    const manifest = await $.fs.read(`${root}/.claude-plugin/plugin.json`).catch(() => undefined)
+    const version = typeof manifest === 'string' ? /"version"\s*:\s*"(\d+\.\d+\.\d+)"/.exec(manifest)?.[1] : undefined
+    let release: SessionStats['release']
+    if (version !== undefined) {
+      const tags = await $.process.run(['git', 'tag', '--list', 'v*', '--sort=-v:refname'], { cwd: root, timeoutMs: 3000 }).catch(() => undefined)
+      const names = tags?.exitCode === 0 ? tags.stdout.split('\n').map(x => x.trim()).filter(x => x !== '') : []
+      release = { version, tagged: names.includes(`v${version}`), ...(names[0] === undefined ? {} : { latest: names[0] }) }
+    }
+    await flushStats($, s => ({ ...s, pulls: { at, rows }, ...(release === undefined ? {} : { release }) }))
   } catch (error) {
     $.ui.log(`astrolabe: ${error instanceof Error ? error.message : String(error)}`, { to: 'debug' })
   } finally {
@@ -440,7 +455,21 @@ function pullsBody(
     stats?.gstack === true && branch !== undefined && branch !== 'main' && branch !== 'master' && 'Button' in elements
       ? [{ rows: 1, node: <elements.Button key="gstack-ship" label={t(currentLang(), 'prs.ship', { branch })} plain onPress={() => void $.clock.after(0, () => void runSkill($, 'ship', `branch ${branch}`))} /> }]
       : []
-  return [...ship, ...pullsRows($, e, pane, stats)]
+  const release = stats?.release
+  const gate =
+    release === undefined
+      ? []
+      : [
+          {
+            rows: 1,
+            node: (
+              <elements.Text key="astrolabe-release-gate" color={release.tagged ? tokens0[STATUS_ROLE.warning] : tokens0[STATUS_ROLE.success]} wrap="truncate-end">
+                {t(currentLang(), release.tagged ? 'prs.release.tagged' : 'prs.release.ready', { version: release.version, latest: release.latest ?? '—' })}
+              </elements.Text>
+            ),
+          },
+        ]
+  return [...ship, ...gate, ...pullsRows($, e, pane, stats)]
 }
 
 /** The PRs tab's rows (032): a link per pull request, its state, and the buttons GitHub allows. */
@@ -789,6 +818,22 @@ async function constitutionReminder($: EngineInterface): Promise<string | undefi
 }
 
 /** `/astrolabe ask` (026 #54): one question over the session's own transcript, answered in a toast. */
+/** The Dashboard's numbers as a Markdown table (054 #99, 046 #59), or undefined before the first turn. */
+async function kpisText($: EngineInterface): Promise<string | undefined> {
+  const stats = (await $.state.get(SESSION)).value
+  if (stats === undefined) return undefined
+  const state = (await $.state.get(SPECKIT)).value
+  const feature = state === undefined ? undefined : state.features.find(f => f.dir === state.active?.dir)
+  const now = await $.clock.now()
+  const binding = decisionOf((await $.state.get(USAGE)).value ?? DEFAULT_USAGE, now).highest
+  const rows = [
+    ...(feature === undefined || feature.total === 0 ? [] : [[t(currentLang(), 'kpis.tasks'), `${feature.done}/${feature.total}`] as [string, string]]),
+    ...kpiRows(stats, binding, now, currentLang()),
+    ...historyRows(stats, feature, state === undefined || state.root === undefined ? [] : featureDurationsByRoot.get(state.root) ?? [], currentLang()),
+  ]
+  return kpisMarkdown(t(currentLang(), 'kpis.title', { feature: feature === undefined ? '—' : `${feature.id} ${feature.name}` }), rows)
+}
+
 /** A press that needs a second one within ten seconds (052 #41), for actions that cost a turn (061). */
 async function confirmPress($: EngineInterface, key: string, run: () => void): Promise<void> {
   const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
@@ -862,12 +907,21 @@ let accessible = false
 
 /**
  * Opened on request: it takes the keys (1 to 4 at once) and Esc closes it. An unasked open never
- * takes focus (Principle VII).
+ * takes focus (Principle VII). If the pane cannot open (preset.pane === 'command'), shows
+ * a command palette toast instead (048 #76).
  */
 async function openPane($: EngineInterface): Promise<void> {
   // The title names the active feature (052 #4) the way the band and the footer do (054 #30).
   const state = (await $.state.get(SPECKIT)).value
   const title = state?.active === undefined ? PANE_TITLE : `${PANE_TITLE} · ${activeMark(state)} ${state.active.name}`
+  
+  // When preset.pane is 'command', the pane is not available; show command palette toast instead (048 #76).
+  if (preset.pane === 'command') {
+    const palette = commandPaletteText(currentLang())
+    await showToast($, palette)
+    return
+  }
+  
   await $.ui.open({ id: PANE_ID, title, focus: true, closeOnEscape: true })
 }
 
@@ -962,6 +1016,12 @@ function paneHeader(
           <Button key="parallel-dispatch" label={t(currentLang(), 'parallel.button', { ids: run.join(', ') })} plain onPress={() => void $.clock.after(0, () => void $.prompt.submit({ text: parallelPrompt(feature, tasks) }).catch(() => undefined))} />,
         )
       }
+    }
+    // Breadcrumb row (043 #24): Specs › 026 claude-context
+    if (pane.tab === 'specs' && active !== undefined && state.root !== undefined && elements.Text !== undefined) {
+      out.push(
+        <elements.Text key="astrolabe-breadcrumb" color={tokens0.muted} size="small">{`Specs › ${active.id} ${active.name}`}</elements.Text>
+      )
     }
     if (pane.tab === 'specs' && Markdown !== undefined && active !== undefined && state.activeSummary !== undefined && state.root !== undefined) {
       const summaryBlocks = state.activeSummary.split(/\n{2,}/)
@@ -1082,7 +1142,7 @@ async function updateUsage($: EngineInterface, change: (usage: UsageState) => Us
 async function setUsageOverride($: EngineInterface, target: number, ms: number): Promise<string> {
   const now = await $.clock.now()
   const until = now + ms
-  await updateUsage($, u => ({ ...u, override: { target, until, ...kindOf(u, now) } }))
+  await updateUsage($, u => ({ ...u, override: { target, until, ...kindOf(u, now, governThresholds) } }))
   const speckit = (await $.state.get(SPECKIT)).value
   if (speckit !== undefined) await showStatus($, speckit)
   return `🧭 stop and ceiling raised to ${target}% until ${clockOf(new Date(until).toISOString())}; new subagents still wait from 80%`
@@ -1205,7 +1265,7 @@ async function applyLift($: EngineInterface, question: Question, value: string):
     value === 'lift' && question.kind === 'hold'
       ? ({ asked: _gone, ...u }) => ({ ...u, holdLift: now + HOLD_LIFT_MS })
       : (value === 'extend' || value === 'raise') && target !== undefined
-        ? ({ asked: _gone, ...u }) => ({ ...u, override: { target, until: now + (value === 'extend' ? EXTEND_MS : RAISE_MS), ...kindOf(u, now) } })
+        ? ({ asked: _gone, ...u }) => ({ ...u, override: { target, until: now + (value === 'extend' ? EXTEND_MS : RAISE_MS), ...kindOf(u, now, governThresholds) } })
         : undefined
   if (change === undefined) return false
   await updateUsage($, change)
@@ -1411,7 +1471,7 @@ async function sessionTabRows(
   ]
   let queueIndex = 0
   const governor = [
-    ...usageRows(usage, now).map(([name, text]) => {
+    ...usageRows(usage, now, governThresholds).map(([name, text]) => {
       const queued = name === 'queue' || name === '' ? usage.queue[queueIndex] : undefined
       if (queued !== undefined) {
         const hotkey = QUEUE_HOTKEYS[queueIndex]!
@@ -1908,7 +1968,7 @@ async function gateCall($: GateArgs[0], e: GateArgs[1], next: GateArgs[2]): Prom
       const input = e as unknown as { description?: string; prompt?: string; subagent_type?: string }
       // At hold the person is asked (015) after the call is queued, never before: a hook that
       // waited would run out of time and let the call through (017).
-      const isAsked = asks && isInteractive && decision.band === 'hold' && !isSubagentCall
+      const isAsked = asks && !isQuietHours() && isInteractive && decision.band === 'hold' && !isSubagentCall
       const remembered = isAsked && usage.asked?.kind === 'hold' ? usage.asked.answer : undefined
       if (isAsked) {
         // The one call the person let through ("Run this one now"), sent again by Claude.
@@ -1962,7 +2022,7 @@ async function gateCall($: GateArgs[0], e: GateArgs[1], next: GateArgs[2]): Prom
   }
   // Only the main thread pauses; a subagent's own requests for more subagents are gated above.
   if (isPaused(decision) && !isSubagentCall && !isReadOnlyTool(String(e.tool))) {
-    const isAsked = asks && isInteractive && usage.asked?.kind !== 'pause'
+    const isAsked = asks && !isQuietHours() && isInteractive && usage.asked?.kind !== 'pause'
     if (isAsked) askLater($, pauseQuestion(decision, String(e.tool), resetClock, currentLang()))
     await updateUsage($, u => (u.paused ? u : { ...u, paused: true }))
     await armResume($, decision)
@@ -1977,13 +2037,37 @@ export const register: Register = (on, options) => {
   const tokens = themeOf(options)
   optionsSeen = options
   tokens0 = tokens
-  // Whether the last band draw saw a fullscreen terminal of 144 columns or more. The pane
-  // never opens unasked below that (Principle VII); session.start reports no width.
+// Whether the last band draw saw a fullscreen terminal of 160 columns or more. The pane
+// never opens unasked below that (Principle VII); session.start reports no width.
   let isWide = false
   const checksUpdates = options['checkUpdates'] !== false
   observes = options['observeUsage'] === true || options['governUsage'] === 'observe'
   governs = !observes && options['governUsage'] !== false && options['governUsage'] !== 'off'
   asks = governs && options['askOnLimit'] !== false
+  const governThresholds = typeof options['governThresholds'] === 'string' ? (() => { try { return JSON.parse(options['governThresholds'] as string) } catch { return {} } })() : {}
+  // Quiet hours (047 #67): a local-time window never to ask, always apply the default.
+  const quietHours = (() => {
+    if (typeof options['quietHours'] !== 'string' || options['quietHours'].trim() === '') return null
+    const [start, end] = options['quietHours'].split('-').map(s => s.trim())
+    if (start === undefined || end === undefined) return null
+    const parseHour = (s: string): number | null => {
+      const m = /^(\d{1,2}):(\d{2})$/.exec(s)
+      if (m === null) return null
+      const h = Number(m[1]), min = Number(m[2])
+      return (h >= 0 && h < 24 && min >= 0 && min < 60) ? h * 60 + min : null
+    }
+    const startM = parseHour(start), endM = parseHour(end)
+    if (startM === null || endM === null) return null
+    return { start: startM, end: endM }
+  })()
+  const isQuietHours = (): boolean => {
+    if (quietHours === null) return false
+    const now = new Date()
+    const minutes = now.getHours() * 60 + now.getMinutes()
+    return quietHours.start <= quietHours.end
+      ? minutes >= quietHours.start && minutes < quietHours.end  // e.g., 09:00-17:00
+      : minutes >= quietHours.start || minutes < quietHours.end // e.g., overnight 22:00-06:00
+  }
   pullRequests = options['pullRequest'] === true
   accessible = options['accessible'] === true
   claudeContext = options['claudeContext'] !== false
@@ -2457,7 +2541,7 @@ export const register: Register = (on, options) => {
   // Drawing reads only $.state (Principle XII); a reconcile's write redraws these sites.
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     columnsSeen = e.viewport?.columns ?? columnsSeen
-    isWide = e.viewport?.isFullscreen === true && e.viewport.columns >= 144
+    isWide = e.viewport?.isFullscreen === true && e.viewport.columns >= 160
     if (!preset.band || e.props.hasSurvey) return next(e)
     const { value } = await $.state.get(SPECKIT)
     const sessionStats = (await $.state.get(SESSION)).value
@@ -2580,20 +2664,7 @@ export const register: Register = (on, options) => {
       return { text: t(currentLang(), focusMode ? 'focus.on' : 'focus.off') }
     }
     // The Dashboard's numbers as Markdown, to paste in a PR body (054 #99).
-    if (args === 'kpis') {
-      const stats = (await $.state.get(SESSION)).value
-      if (stats === undefined) return { text: t(currentLang(), 'kpis.none') }
-      const state = (await $.state.get(SPECKIT)).value
-      const feature = state === undefined ? undefined : state.features.find(f => f.dir === state.active?.dir)
-      const now = await $.clock.now()
-      const binding = decisionOf((await $.state.get(USAGE)).value ?? DEFAULT_USAGE, now).highest
-      const rows = [
-        ...(feature === undefined || feature.total === 0 ? [] : [[t(currentLang(), 'kpis.tasks'), `${feature.done}/${feature.total}`] as [string, string]]),
-        ...kpiRows(stats, binding, now, currentLang()),
-        ...historyRows(stats, feature, state === undefined || state.root === undefined ? [] : featureDurationsByRoot.get(state.root) ?? [], currentLang()),
-      ]
-      return { text: kpisMarkdown(t(currentLang(), 'kpis.title', { feature: feature === undefined ? '—' : `${feature.id} ${feature.name}` }), rows) }
-    }
+    if (args === 'kpis') return { text: (await kpisText($)) ?? t(currentLang(), 'kpis.none') }
     if (args === 'advisor' || args.startsWith('advisor ')) {
       // A whole turn with the advisor: only the person starts it (055).
       if (e.origin?.kind !== 'composer') return { text: t(currentLang(), 'advisor.onlyYou') }
@@ -2684,6 +2755,73 @@ export const register: Register = (on, options) => {
     return {}
   })
 
+  // Two-step Enter confirmation for spec selection (044 #38): first Enter selects, second Enter confirms and writes feature.json.
+  on('ui.input', { component: 'Pane', requestId: PANE_ID }, async ($, e) => {
+    if (e.key !== 'Enter' || pane.tab !== 'specs' || specSelectionRows.length === 0) return {}
+    const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
+    const activeSpecFeature = state.features.find(feature => feature.dir === state.active?.dir)
+    const preferredSelection = pane.selectedFeature === undefined
+      ? activeSpecFeature === undefined ? undefined : `feature-${activeSpecFeature.id}`
+      : `feature-${pane.selectedFeature}`
+    const currentSelected = specSelectionRows.some(row => row.key === preferredSelection)
+      ? preferredSelection
+      : specSelectionRows[0]?.key
+    if (currentSelected === undefined) return {}
+    // First Enter: select the spec (show confirm prompt)
+    if (held.confirmSelecting !== currentSelected) {
+      await $.state.set(PANE_STATE, { ...held, confirmSelecting: currentSelected })
+      await showToast($, t(currentLang(), 'specs.confirmSelect', { id: currentSelected.slice('feature-'.length) }))
+      return {}
+    }
+    // Second Enter: confirm and write feature.json
+    await $.state.set(PANE_STATE, { ...held, confirmSelecting: undefined })
+    const dir = currentSelected.slice('feature-'.length)
+    const feature = state.features.find(f => f.id === dir)
+    if (feature !== undefined && state.root !== undefined) {
+      await $.store.set(`feature:${state.root}`, dir).catch(() => undefined)
+      await showToast($, t(currentLang(), 'specs.selected', { id: dir, name: feature.name }))
+    }
+    return {}
+  })
+
+  // Two-step Enter confirmation for task tick (045 #46): first Enter selects task, second confirms tick.
+  on('ui.input', { component: 'Pane', requestId: PANE_ID }, async ($, e) => {
+    if (e.key !== 'Enter' || pane.tab !== 'tasks' || state.active === undefined) return {}
+    const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
+    const tasks = state.activeTasks ?? []
+    const openTasks = tasks.filter(t => !t.isDone && t.id !== undefined)
+    if (openTasks.length === 0) return {}
+    // Find the currently selected task row (highlighted)
+    const currentTask = state.currentTask
+    const currentTaskId = currentTask?.id
+    if (currentTaskId === undefined) return {}
+    // First Enter: select the task (show confirm prompt)
+    if (held.confirmSelecting !== `task-${currentTaskId}`) {
+      await $.state.set(PANE_STATE, { ...held, confirmSelecting: `task-${currentTaskId}` })
+      await showToast($, t(currentLang(), 'tasks.confirmTick', { id: currentTaskId }))
+      return {}
+    }
+    // Second Enter: confirm and tick the task
+    await $.state.set(PANE_STATE, { ...held, confirmSelecting: undefined })
+    // Tick the task by editing tasks.md
+    const task = openTasks.find(t => t.id === currentTaskId)
+    if (task !== undefined && task.line !== undefined && state.root !== undefined) {
+      const fs = fsOf($)
+      const taskFile = `${state.root}/specs/${state.active.dir}/${state.features.find(f => f.dir === state.active?.dir)?.track === 'quick' ? 'spec.md' : 'tasks.md'}`
+      const content = await fs.read(taskFile).catch(() => '')
+      const lines = content.split('\n')
+      if (task.line > 0 && task.line <= lines.length) {
+        const line = lines[task.line - 1]
+        if (line.includes('[ ]')) {
+          lines[task.line - 1] = line.replace('[ ]', '[x]')
+          await fs.write(taskFile, lines.join('\n'))
+          await showToast($, t(currentLang(), 'tasks.ticked', { id: currentTaskId }))
+        }
+      }
+    }
+    return {}
+  })
+
   on('ui.render', { component: 'Pane', requestId: PANE_ID }, async ($, e) => {
     const [speckitRead, sessionRead, usageRead, paneRead, updatesRead] = await Promise.all([
       $.state.get(SPECKIT),
@@ -2709,7 +2847,7 @@ export const register: Register = (on, options) => {
         : pane.tab === 'session'
           ? await sessionTabRows($, state, usage, stats, updates)
           : [
-              ...specsRows(
+              ...(await specsRows(
                 { ...filtered(state, pane.filter, pane.status, specFilterContext(stats)), features: withWorktreeProgress(filtered(state, pane.filter, pane.status, specFilterContext(stats)).features, stats?.worktrees) },
                 columns,
                 currentLang(),
@@ -2719,7 +2857,7 @@ export const register: Register = (on, options) => {
                 stats?.worktrees?.map(w => ({ name: w.name, id: w.id, featureName: w.featureName, phase: w.phase, done: w.done, total: w.total, status: worktreeState(w) })) ?? [],
                 e.surface === 'desktop',
                 pane.sort ?? 'status',
-              ),
+              )),
             ]
     // A filter that keeps nothing says so (052 #7).
     const matchesNone =
@@ -2825,6 +2963,12 @@ export const register: Register = (on, options) => {
       // file: links open only from the terminal; the desktop draws them as plain text, so none there.
       ...((el => ('Link' in el && e.surface === 'terminal' ? { Link: el.Link } : {}))($.ui.resolve(e))),
       onRefresh: () => refreshNow($).catch(() => undefined),
+      // The Dashboard's numbers copied as Markdown (046 #59).
+      ...(pane.tab === 'dashboard'
+        ? { onCopyKpis: async () => { const text = await kpisText($); if (text !== undefined) await copyNext($, text, e.surface) } }
+        : {}),
+      // Number keys show on the tab labels only while the pane has the keyboard (054 #65).
+      showKeys: e.props.isFocused === true,
       // c clears the filter box and the status filter; o cycles the order (061).
       ...(pane.tab === 'specs'
         ? {
@@ -2863,6 +3007,7 @@ export const register: Register = (on, options) => {
       if (tab === 'help') $.clock.after(0, () => void refreshHealth($))
     }
     // The footer under every tab (035), held at the bottom when the tab is shorter than the pane.
+    const shortPaneRule = (e.props.scroll?.bodyRows ?? 24) < 12
     const footerFor = async (pad: number) => {
       if (footerIn === 'status') return undefined
       const input = await footerInput($, state, Math.max(20, columns - 4), { usage, stats })
@@ -2884,11 +3029,14 @@ export const register: Register = (on, options) => {
         text: footerText(input),
         columns,
         pad: Math.max(0, pad),
-        ...(chips === undefined ? {} : { chips, separator: footerSeparator, arrow: set === 'nerd' ? '\ue0b0' : '' }),
+        ...(chips === undefined ? {} : { chips, separator: shortPaneRule ? 'none' : footerSeparator, arrow: set === 'nerd' ? '\ue0b0' : '' }),
       }
     }
     // The rows the footer holds below the body: its rule, its chip rows, and one of slack (038, 041).
-    const footerReserve = footerIn === 'status' ? 1 : (footerSeparator === 'none' ? 0 : 1) + (footerLines === '3' ? 3 : 1) + 1
+    // Under 12 rows the footer drops its rule (054 #46).
+    const shortPane = (e.props.scroll?.bodyRows ?? 24) < 12
+    const ruleRows = footerSeparator === 'none' || shortPane ? 0 : 1
+    const footerReserve = footerIn === 'status' ? 1 : ruleRows + (footerLines === '3' ? 3 : 1) + 1
     // The body scrolls inside the pane and the footer stays on the last rows (038).
     const bodyRows = e.props.scroll?.bodyRows ?? 24
     const offset = pane.scroll?.tab === pane.tab ? pane.scroll.offset : 0
@@ -2926,6 +3074,16 @@ export const register: Register = (on, options) => {
       const { win, pad, nav } = navFor(units.map(u => u.rows), bodyRows - 1 - footerReserve)
       const body = (
         <Box key="astrolabe-config" flexDirection="column">
+          {units.slice(win.start, win.end).map(u => u.node)}
+        </Box>
+      )
+      return paneTree({ Box, Text, Button }, pane.tab, rows, tokens, select, body, currentLang(), [], await footerFor(pad), nav, extras)
+    }
+    if (pane.tab === 'models') {
+      const units = modelSkillTabBody($, e, pane)
+      const { win, pad, nav } = navFor(units.map(u => u.rows), bodyRows - 1 - footerReserve)
+      const body = (
+        <Box key="astrolabe-models" flexDirection="column">
           {units.slice(win.start, win.end).map(u => u.node)}
         </Box>
       )

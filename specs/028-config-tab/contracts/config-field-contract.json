@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Config Field Contract",
+  "description": "Input/output contract for individual config field component",
+  "type": "object",
+  "properties": {
+    "input": {
+      "type": "object",
+      "required": ["option", "value", "onChange", "onBlur"],
+      "properties": {
+        "option": {
+          "type": "object",
+          "description": "ConfigOption from schema"
+        },
+        "value": {
+          "description": "Current field value"
+        },
+        "onChange": {
+          "type": "object",
+          "description": "Change handler (value) => void"
+        },
+        "onBlur": {
+          "type": "object",
+          "description": "Blur handler for validation"
+        },
+        "error": {
+          "type": "string",
+          "description": "Current validation error"
+        },
+        "dirty": {
+          "type": "boolean",
+          "description": "Whether field has been modified"
+        }
+      }
+    },
+    "output": {
+      "type": "object",
+      "required": ["renderedElement"],
+      "properties": {
+        "renderedElement": {
+          "type": "object",
+          "description": "React element for the field (TextField, Checkbox, Select)"
+        }
+      }
+    }
+  },
+  "additionalProperties": false
+}

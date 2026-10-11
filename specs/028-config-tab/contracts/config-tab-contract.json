@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Config Tab Contract",
+  "description": "Input/output contract for Config tab form",
+  "type": "object",
+  "properties": {
+    "input": {
+      "type": "object",
+      "required": ["schema"],
+      "properties": {
+        "schema": {
+          "type": "object",
+          "description": "Config schema derived from plugin.json userConfig"
+        },
+        "initialValues": {
+          "type": "object",
+          "description": "Current config values from $.config.get"
+        }
+      }
+    },
+    "output": {
+      "type": "object",
+      "required": ["formState", "onSave"],
+      "properties": {
+        "formState": {
+          "type": "object",
+          "description": "Current form state (values, errors, dirty flags)"
+        },
+        "onSave": {
+          "type": "object",
+          "description": "Save handler that calls $.config.set and triggers reload"
+        }
+      }
+    }
+  },
+  "additionalProperties": false
+}
