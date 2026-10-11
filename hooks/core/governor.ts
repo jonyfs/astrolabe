@@ -248,6 +248,19 @@ export const usageRows = (usage: UsageState, now: number, thresholds?: Record<st
     .join(' · ')
   const clock = (at: number) => whenOf(at, now)
   const next = nextBand(usage.readings, usage.history, now)
+  // Today's holds and pauses with durations (047 #68).
+  const todayStart = new Date()
+  todayStart.setHours(0, 0, 0, 0)
+  const todayMs = todayStart.getTime()
+  const todayEvents = (usage.log ?? []).filter(e => e.at >= todayMs)
+  const todayRows: Array<[string, string]> = []
+  if (todayEvents.length > 0) {
+    todayRows.push(['today', ''])
+    for (const e of todayEvents) {
+      const at = clockOf(new Date(e.at).toISOString()) ?? ''
+      todayRows.push(['', `  ${at}  ${e.text}`])
+    }
+  }
   return [
     ['state', stateText(d, now)],
     ...(windows === '' ? [] : [['usage', `${windows}: ${d.band}`] as [string, string]]),
@@ -265,6 +278,7 @@ export const usageRows = (usage: UsageState, now: number, thresholds?: Record<st
     ...(isLift && usage.holdLift !== undefined ? [['lift', `subagents one at a time until ${clock(usage.holdLift)}`] as [string, string]] : []),
     ...((pace => (pace === undefined ? [] : [['pace', pace] as [string, string]]))(paceRow(usage.readings, usage.history, now))),
     ...(next === undefined ? [] : [['next band', next] as [string, string]]),
+    ...todayRows,
   ]
 }
 

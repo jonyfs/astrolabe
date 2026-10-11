@@ -20,5 +20,5 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 - [x] T007 #70 `observeUsage: true` logs what would be held without blocking tools (P2)
 - [x] T008 #66 Hold and stop levels per window (P3)
 - [x] T009 #67 Quiet hours: never ask, apply the default (P3)
-- [ ] T010 #68 Today's holds and pauses with their durations (P3)
+- [x] T010 #68 Today's holds and pauses with their durations (P3)
 - [ ] T010 #68 Today's holds and pauses with their durations (P3)
