@@ -234,6 +234,7 @@ export const EN = {
   'kpi.drifts': 'drift alarms',
   'kpi.subagents': 'subagents',
   'kpi.subagentsValue': '{run} run, {queued} queued',
+  'kpi.subagentRun': 'subagent run',
   'chip.tasks': 'tasks {done}/{total}',
   'chip.atReset': '{window} at reset {p}%',
   'chip.burn': 'burn {n}/h',

@@ -225,6 +225,7 @@ export const FR: Dictionary = {
   'kpi.drifts': 'alarmes de dérive',
   'kpi.subagents': 'sous-agents',
   'kpi.subagentsValue': '{run} lancés, {queued} en file',
+  'kpi.subagentRun': 'exécution de sous-agent',
   'chip.tasks': 'tâches {done}/{total}',
   'chip.atReset': '{window} à la remise {p}%',
   'chip.burn': 'rythme {n}/h',

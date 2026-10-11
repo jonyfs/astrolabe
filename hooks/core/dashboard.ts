@@ -18,7 +18,8 @@ const SPOTS: Readonly<Record<string, { needle: string; nx: number; ny: number; s
   done: { needle: '↖', nx: 18, ny: 2, side: 'left', y: 2 },
 }
 
-/** An astrolabe: the Spec Kit cycle as a ring, the active step marked and pointed at. */
+/** An astrolabe: the Spec Kit cycle as a ring, the active step marked and pointed at.
+ * The dial's labels use the band's phase colours (046 #60). */
 export const dial = (active: Phase | undefined, tokens: Tokens): Grid => {
   const g = blank(40, 7)
   const ring = tokens.muted
@@ -30,6 +31,15 @@ export const dial = (active: Phase | undefined, tokens: Tokens): Grid => {
   write(g, 13, 5, `╰${'─'.repeat(13)}╯`, ring)
   put(g, 20, 3, '✦', tokens.accent)
   const at = active === undefined ? -1 : CYCLE.indexOf(active)
+  // Phase colours from the band (046 #60): specify muted, clarify current, plan barFill, tasks accent, implement current, done done
+  const phaseColour: Record<Phase, string> = {
+    specify: tokens.muted,
+    clarify: tokens.current,
+    plan: tokens.barFill,
+    tasks: tokens.accent,
+    implement: tokens.current,
+    done: tokens.done,
+  }
   for (const [i, step] of CYCLE.entries()) {
     const spot = SPOTS[step]!
     const isActive = i === at
@@ -37,7 +47,8 @@ export const dial = (active: Phase | undefined, tokens: Tokens): Grid => {
     const color = isActive ? tokens.current : at >= 0 && i < at ? tokens.done : tokens.pending
     const label = `${mark} ${step}`
     const x = spot.side === 'left' ? 12 - label.length : spot.side === 'right' ? 29 : 20 - Math.floor(label.length / 2)
-    write(g, x, spot.y, label, color)
+    // The label uses the phase's band colour (046 #60)
+    write(g, x, spot.y, label, phaseColour[step]!)
     if (isActive) put(g, spot.nx, spot.ny, spot.needle, tokens.current)
   }
   return g
@@ -183,6 +194,13 @@ export const kpiRows = (
     ])
   }
   if (stats.agentsRun + stats.agentsQueued > 0) rows.push([tr(lang, 'kpi.subagents'), tr(lang, 'kpi.subagentsValue', { run: stats.agentsRun, queued: stats.agentsQueued })])
+  // A row per subagent run with its duration (046 #58).
+  if (stats.subagentRuns !== undefined && stats.subagentRuns.length > 0) {
+    for (const run of stats.subagentRuns.slice(-10)) {
+      const feature = stats.series.find(s => s.dir === run.dir)
+      rows.push([tr(lang, 'kpi.subagentRun'), `${run.dir} ${duration(run.ms)} at ${clockOf(new Date(run.at).toISOString()) ?? ''}`])
+    }
+  }
   if (stats.context !== undefined) rows.push([tr(lang, 'kpi.context'), `${Math.round(stats.context.percent)}%`])
   rows.push([tr(lang, 'kpi.session'), duration(now - stats.startedAt)])
   // Pace (054 #31, #33): tasks ticked an hour, and turns per ticked task to see when Claude spins.

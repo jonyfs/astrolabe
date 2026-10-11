@@ -230,6 +230,7 @@ export const PT_BR: Dictionary = {
   'kpi.drifts': 'alarmes de drift',
   'kpi.subagents': 'subagentes',
   'kpi.subagentsValue': '{run} rodaram, {queued} na fila',
+  'kpi.subagentRun': 'execução de subagente',
   'chip.tasks': 'tarefas {done}/{total}',
   'chip.atReset': '{window} no reset {p}%',
   'chip.burn': 'ritmo {n}/h',

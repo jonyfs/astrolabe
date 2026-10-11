@@ -269,6 +269,8 @@ export type SessionStats = {
   warned?: { cost80?: boolean; cost100?: boolean; context?: boolean }
   /** Turns in a row on the same current task without a tick, and whether that was said (054 #85). */
   spin?: { id: string; turns: number; told?: true }
+  /** Subagent runs this session (046 #58): each with its feature, duration and when it started. */
+  subagentRuns?: Array<{ dir: string; id: string; ms: number; at: number }>
   /** The last `gh pr view` for a branch (023): when it ran and what it found, kept five minutes. */
   prCache?: { branch: string; at: number; pr?: PullRequest }
   /** The repository's open pull requests for the PRs tab (032), and when they were read. */
