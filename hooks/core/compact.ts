@@ -44,5 +44,6 @@ export const compactFiles = (files: FeatureFiles): FeatureFiles =>
         ...(files.tasksInSpec === undefined ? {} : { tasksInSpec: files.tasksInSpec }),
         ...(files.tasksLarge === undefined ? {} : { tasksLarge: files.tasksLarge }),
         ...(files.deferred === undefined ? {} : { deferred: files.deferred }),
+        ...(files.updatedAt === undefined ? {} : { updatedAt: files.updatedAt }),
         compact: true,
       }
