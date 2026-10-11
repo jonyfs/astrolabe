@@ -107,6 +107,14 @@ export const treeFs = (tree: Tree): { fs: Fs; counts: Counts } => {
       const p = normalizePath(path)
       return index.files.has(p) || index.dirs.has(p)
     },
+    stat: async path => {
+      counts.stat += 1
+      const index = indexTree(tree)
+      const p = normalizePath(path)
+      const kind = index.files.has(p) ? 'file' : index.dirs.has(p) ? 'dir' : undefined
+      if (kind === undefined) throw new Error(`ENOENT: ${p}`)
+      return { kind, size: 0, mtimeMs: 0, isLink: false }
+    },
   }
   return { fs, counts }
 }
