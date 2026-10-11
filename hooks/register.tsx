@@ -2037,8 +2037,8 @@ export const register: Register = (on, options) => {
   const tokens = themeOf(options)
   optionsSeen = options
   tokens0 = tokens
-  // Whether the last band draw saw a fullscreen terminal of 144 columns or more. The pane
-  // never opens unasked below that (Principle VII); session.start reports no width.
+// Whether the last band draw saw a fullscreen terminal of 160 columns or more. The pane
+// never opens unasked below that (Principle VII); session.start reports no width.
   let isWide = false
   const checksUpdates = options['checkUpdates'] !== false
   observes = options['observeUsage'] === true || options['governUsage'] === 'observe'
@@ -2541,7 +2541,7 @@ export const register: Register = (on, options) => {
   // Drawing reads only $.state (Principle XII); a reconcile's write redraws these sites.
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     columnsSeen = e.viewport?.columns ?? columnsSeen
-    isWide = e.viewport?.isFullscreen === true && e.viewport.columns >= 144
+    isWide = e.viewport?.isFullscreen === true && e.viewport.columns >= 160
     if (!preset.band || e.props.hasSurvey) return next(e)
     const { value } = await $.state.get(SPECKIT)
     const sessionStats = (await $.state.get(SESSION)).value
