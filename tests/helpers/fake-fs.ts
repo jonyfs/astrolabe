@@ -113,7 +113,7 @@ export const treeFs = (tree: Tree): { fs: Fs; counts: Counts } => {
       const p = normalizePath(path)
       const kind = index.files.has(p) ? 'file' : index.dirs.has(p) ? 'dir' : undefined
       if (kind === undefined) throw new Error(`ENOENT: ${p}`)
-      return { kind, size: 0, mtimeMs: 0, isLink: false }
+      return { kind, size: 0, mtime: new Date(0), isLink: false }
     },
   }
   return { fs, counts }
@@ -214,7 +214,7 @@ export const installTree = (on: On, tree: Tree, cwd: string, seed: Record<string
     const index = indexTree(tree)
     const p = normalizePath(toTree(e.path))
     const kind = index.files.has(p) ? 'file' : index.dirs.has(p) ? 'dir' : undefined
-    return kind === undefined ? deny : { value: { kind, size: 0, mtimeMs: 0, isLink: false } }
+    return kind === undefined ? deny : { value: { kind, size: 0, mtime: new Date(0), isLink: false } }
   })
   on('fs.write', ($, e) => {
     forbidden.push(`fs.write ${e.path}`)

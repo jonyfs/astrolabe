@@ -10,7 +10,7 @@ export type Fs = {
   list: (path: string) => Promise<ReadonlyArray<{ name: string; kind: FsEntryKind; isLink?: boolean }>>
   exists: (path: string) => Promise<boolean>
   /** File/dir metadata; rejects when it is missing. */
-  stat: (path: string) => Promise<{ kind: FsEntryKind; size: number; mtimeMs: number; isLink?: boolean }>
+  stat: (path: string) => Promise<{ kind: FsEntryKind; size: number; mtime: Date; isLink?: boolean }>
 }
 
 /** What a read found: the text, or why there is none. */
