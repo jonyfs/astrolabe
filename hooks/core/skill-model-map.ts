@@ -1,4 +1,4 @@
-import { SkillModelConfig, SkillModelMap } from '../types/quality-distribution.js';
+import { SkillModelConfig, SkillModelMap } from './types/quality-distribution.js';
 
 // Model capability tiers per AI-JEDI section 12
 export type SkillTier = 'deep-reasoning' | 'balanced-coding' | 'fast-lightweight';
