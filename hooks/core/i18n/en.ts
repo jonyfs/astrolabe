@@ -81,6 +81,7 @@ export const EN = {
   'governor.allow': 'Allow 95% for 2h',
   'governor.revoke': 'Revoke override',
   'config.governThresholds': 'Per-window hold/stop thresholds (JSON)',
+  'config.quietHours': 'Quiet hours (HH:MM-HH:MM)',
   'session.summary': 'summary',
   'summary.more': 'show full summary',
   'summary.less': 'show less',

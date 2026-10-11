@@ -76,6 +76,7 @@ export const FR: Dictionary = {
   'governor.allow': 'Autoriser 95 % pendant 2 h',
   'governor.revoke': 'Révoquer la dérogation',
   'config.governThresholds': 'Seuils hold/stop par fenêtre (JSON)',
+  'config.quietHours': 'Heures silencieuses (HH:MM-HH:MM)',
   'session.summary': 'résumé',
   'summary.more': 'afficher le résumé complet',
   'summary.less': 'afficher moins',

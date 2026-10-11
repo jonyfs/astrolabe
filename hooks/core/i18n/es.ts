@@ -82,6 +82,7 @@ export const ES: Dictionary = {
   'governor.allow': 'Permitir 95% por 2h',
   'governor.revoke': 'Revocar permiso',
   'config.governThresholds': 'Umbrales hold/stop por ventana (JSON)',
+  'config.quietHours': 'Horas silenciosas (HH:MM-HH:MM)',
   'session.summary': 'resumen',
   'summary.more': 'mostrar resumen completo',
   'summary.less': 'mostrar menos',

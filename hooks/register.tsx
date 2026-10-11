@@ -1968,7 +1968,7 @@ async function gateCall($: GateArgs[0], e: GateArgs[1], next: GateArgs[2]): Prom
       const input = e as unknown as { description?: string; prompt?: string; subagent_type?: string }
       // At hold the person is asked (015) after the call is queued, never before: a hook that
       // waited would run out of time and let the call through (017).
-      const isAsked = asks && isInteractive && decision.band === 'hold' && !isSubagentCall
+      const isAsked = asks && !isQuietHours() && isInteractive && decision.band === 'hold' && !isSubagentCall
       const remembered = isAsked && usage.asked?.kind === 'hold' ? usage.asked.answer : undefined
       if (isAsked) {
         // The one call the person let through ("Run this one now"), sent again by Claude.
@@ -2022,7 +2022,7 @@ async function gateCall($: GateArgs[0], e: GateArgs[1], next: GateArgs[2]): Prom
   }
   // Only the main thread pauses; a subagent's own requests for more subagents are gated above.
   if (isPaused(decision) && !isSubagentCall && !isReadOnlyTool(String(e.tool))) {
-    const isAsked = asks && isInteractive && usage.asked?.kind !== 'pause'
+    const isAsked = asks && !isQuietHours() && isInteractive && usage.asked?.kind !== 'pause'
     if (isAsked) askLater($, pauseQuestion(decision, String(e.tool), resetClock, currentLang()))
     await updateUsage($, u => (u.paused ? u : { ...u, paused: true }))
     await armResume($, decision)
@@ -2045,6 +2045,29 @@ export const register: Register = (on, options) => {
   governs = !observes && options['governUsage'] !== false && options['governUsage'] !== 'off'
   asks = governs && options['askOnLimit'] !== false
   const governThresholds = typeof options['governThresholds'] === 'string' ? (() => { try { return JSON.parse(options['governThresholds'] as string) } catch { return {} } })() : {}
+  // Quiet hours (047 #67): a local-time window never to ask, always apply the default.
+  const quietHours = (() => {
+    if (typeof options['quietHours'] !== 'string' || options['quietHours'].trim() === '') return null
+    const [start, end] = options['quietHours'].split('-').map(s => s.trim())
+    if (start === undefined || end === undefined) return null
+    const parseHour = (s: string): number | null => {
+      const m = /^(\d{1,2}):(\d{2})$/.exec(s)
+      if (m === null) return null
+      const h = Number(m[1]), min = Number(m[2])
+      return (h >= 0 && h < 24 && min >= 0 && min < 60) ? h * 60 + min : null
+    }
+    const startM = parseHour(start), endM = parseHour(end)
+    if (startM === null || endM === null) return null
+    return { start: startM, end: endM }
+  })()
+  const isQuietHours = (): boolean => {
+    if (quietHours === null) return false
+    const now = new Date()
+    const minutes = now.getHours() * 60 + now.getMinutes()
+    return quietHours.start <= quietHours.end
+      ? minutes >= quietHours.start && minutes < quietHours.end  // e.g., 09:00-17:00
+      : minutes >= quietHours.start || minutes < quietHours.end // e.g., overnight 22:00-06:00
+  }
   pullRequests = options['pullRequest'] === true
   accessible = options['accessible'] === true
   claudeContext = options['claudeContext'] !== false

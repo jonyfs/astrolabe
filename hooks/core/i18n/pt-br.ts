@@ -76,6 +76,7 @@ export const PT_BR: Dictionary = {
   'governor.allow': 'Permitir 95% por 2h',
   'governor.revoke': 'Revogar permissão',
   'config.governThresholds': 'Limites hold/stop por janela (JSON)',
+  'config.quietHours': 'Horas silenciosas (HH:MM-HH:MM)',
   'session.summary': 'resumo',
   'summary.more': 'mostrar resumo completo',
   'summary.less': 'mostrar menos',
