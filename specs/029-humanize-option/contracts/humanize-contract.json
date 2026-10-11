@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Humanize Contract",
+  "description": "Input/output contract for humanize option and prompt injection",
+  "type": "object",
+  "properties": {
+    "input": {
+      "type": "object",
+      "required": ["enabled"],
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Whether humanize option is enabled"
+        },
+        "currentPrompt": {
+          "type": "string",
+          "description": "Current system prompt before injection"
+        }
+      }
+    },
+    "output": {
+      "type": "object",
+      "required": ["modifiedPrompt"],
+      "properties": {
+        "modifiedPrompt": {
+          "type": "string",
+          "description": "System prompt with humanizer rules injected (if enabled)"
+        },
+        "injected": {
+          "type": "boolean",
+          "description": "Whether rules were injected"
+        }
+      }
+    }
+  },
+  "additionalProperties": false
+}

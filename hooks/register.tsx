@@ -1,6 +1,6 @@
 // Wires engine events to the io layer, the core and the status surface. No business logic.
 // The engine follows $ only into functions declared in this file, so every $ call lives here.
-import { ABOUT, helpText } from './modules/help'
+import { ABOUT, commandPaletteText, helpText } from './modules/help'
 import { otherFeatureNamed, implementRefusal, canTouchSpecs, mayChangeGit, mayWriteFiles, isUnderSpecify } from './modules/guards'
 import { advisorFindings, advisorPrompt } from './modules/advisor'
 import { featureContext, principlesOf, tickedBy, statusText } from './modules/context'
@@ -146,7 +146,7 @@ let guessedLang: Lang | undefined
 const currentLang = (): Lang => langOf(languageOption, guessedLang)
 
 const decisionOf = (usage: UsageState, now: number): Decision =>
-  decide(usage.readings, usage.history, usage.override, now, usage.holdLift, usage.held)
+  decide(usage.readings, usage.history, usage.override, now, usage.holdLift, usage.held, governThresholds)
 
 const STATUS_COALESCE_MS = 200
 let statusWindowUntil = Number.NEGATIVE_INFINITY
@@ -154,8 +154,8 @@ let statusTimer: ReturnType<EngineInterface['clock']['after']> | undefined
 let pendingStatus: Held['state'] | undefined
 
 /** The window an override is given for: the one binding now (016); none known, every window. */
-const kindOf = (usage: UsageState, now: number): { kind?: string } => {
-  const kind = decisionOf(usage, now).highest?.kind
+const kindOf = (usage: UsageState, now: number, governThresholds?: Record<string, { hold?: number; stop?: number }): { kind?: string } => {
+  const kind = decide(usage.readings, usage.history, usage.override, now, usage.holdLift, usage.held, governThresholds).highest?.kind
   return kind === undefined ? {} : { kind }
 }
 
@@ -215,6 +215,7 @@ async function footerInput(
       now,
       icons: iconSet(iconsFor(iconsOption, surfaceSeen as never)),
       columns: width,
+      thresholds: governThresholds,
   }
 }
 
@@ -380,6 +381,11 @@ let skillModels: unknown = 'off'
 // The skill the main thread last started this turn, cleared when the turn ends (030).
 let skillRunning: string | undefined
 
+/** Gets the currently running skill (030). */
+export function getSkillRunning(): string | undefined {
+  return skillRunning
+}
+
 const PULLS_TTL_MS = 120_000
 let pullsRunning = false
 
@@ -400,7 +406,16 @@ async function refreshPulls($: EngineInterface, force = false): Promise<void> {
       return
     }
     const rows = parsePullList(run.stdout)
-    await flushStats($, s => ({ ...s, pulls: { at, rows } }))
+    // The release gate (054 #60): plugin.json's version against the tags, where there is a plugin.json.
+    const manifest = await $.fs.read(`${root}/.claude-plugin/plugin.json`).catch(() => undefined)
+    const version = typeof manifest === 'string' ? /"version"\s*:\s*"(\d+\.\d+\.\d+)"/.exec(manifest)?.[1] : undefined
+    let release: SessionStats['release']
+    if (version !== undefined) {
+      const tags = await $.process.run(['git', 'tag', '--list', 'v*', '--sort=-v:refname'], { cwd: root, timeoutMs: 3000 }).catch(() => undefined)
+      const names = tags?.exitCode === 0 ? tags.stdout.split('\n').map(x => x.trim()).filter(x => x !== '') : []
+      release = { version, tagged: names.includes(`v${version}`), ...(names[0] === undefined ? {} : { latest: names[0] }) }
+    }
+    await flushStats($, s => ({ ...s, pulls: { at, rows }, ...(release === undefined ? {} : { release }) }))
   } catch (error) {
     $.ui.log(`astrolabe: ${error instanceof Error ? error.message : String(error)}`, { to: 'debug' })
   } finally {
@@ -440,7 +455,21 @@ function pullsBody(
     stats?.gstack === true && branch !== undefined && branch !== 'main' && branch !== 'master' && 'Button' in elements
       ? [{ rows: 1, node: <elements.Button key="gstack-ship" label={t(currentLang(), 'prs.ship', { branch })} plain onPress={() => void $.clock.after(0, () => void runSkill($, 'ship', `branch ${branch}`))} /> }]
       : []
-  return [...ship, ...pullsRows($, e, pane, stats)]
+  const release = stats?.release
+  const gate =
+    release === undefined
+      ? []
+      : [
+          {
+            rows: 1,
+            node: (
+              <elements.Text key="astrolabe-release-gate" color={release.tagged ? tokens0[STATUS_ROLE.warning] : tokens0[STATUS_ROLE.success]} wrap="truncate-end">
+                {t(currentLang(), release.tagged ? 'prs.release.tagged' : 'prs.release.ready', { version: release.version, latest: release.latest ?? '—' })}
+              </elements.Text>
+            ),
+          },
+        ]
+  return [...ship, ...gate, ...pullsRows($, e, pane, stats)]
 }
 
 /** The PRs tab's rows (032): a link per pull request, its state, and the buttons GitHub allows. */
@@ -878,12 +907,21 @@ let accessible = false
 
 /**
  * Opened on request: it takes the keys (1 to 4 at once) and Esc closes it. An unasked open never
- * takes focus (Principle VII).
+ * takes focus (Principle VII). If the pane cannot open (preset.pane === 'command'), shows
+ * a command palette toast instead (048 #76).
  */
 async function openPane($: EngineInterface): Promise<void> {
   // The title names the active feature (052 #4) the way the band and the footer do (054 #30).
   const state = (await $.state.get(SPECKIT)).value
   const title = state?.active === undefined ? PANE_TITLE : `${PANE_TITLE} · ${activeMark(state)} ${state.active.name}`
+  
+  // When preset.pane is 'command', the pane is not available; show command palette toast instead (048 #76).
+  if (preset.pane === 'command') {
+    const palette = commandPaletteText(currentLang())
+    await showToast($, palette)
+    return
+  }
+  
   await $.ui.open({ id: PANE_ID, title, focus: true, closeOnEscape: true })
 }
 
@@ -978,6 +1016,12 @@ function paneHeader(
           <Button key="parallel-dispatch" label={t(currentLang(), 'parallel.button', { ids: run.join(', ') })} plain onPress={() => void $.clock.after(0, () => void $.prompt.submit({ text: parallelPrompt(feature, tasks) }).catch(() => undefined))} />,
         )
       }
+    }
+    // Breadcrumb row (043 #24): Specs › 026 claude-context
+    if (pane.tab === 'specs' && active !== undefined && state.root !== undefined && elements.Text !== undefined) {
+      out.push(
+        <elements.Text key="astrolabe-breadcrumb" color={tokens0.muted} size="small">{`Specs › ${active.id} ${active.name}`}</elements.Text>
+      )
     }
     if (pane.tab === 'specs' && Markdown !== undefined && active !== undefined && state.activeSummary !== undefined && state.root !== undefined) {
       const summaryBlocks = state.activeSummary.split(/\n{2,}/)
@@ -1098,7 +1142,7 @@ async function updateUsage($: EngineInterface, change: (usage: UsageState) => Us
 async function setUsageOverride($: EngineInterface, target: number, ms: number): Promise<string> {
   const now = await $.clock.now()
   const until = now + ms
-  await updateUsage($, u => ({ ...u, override: { target, until, ...kindOf(u, now) } }))
+  await updateUsage($, u => ({ ...u, override: { target, until, ...kindOf(u, now, governThresholds) } }))
   const speckit = (await $.state.get(SPECKIT)).value
   if (speckit !== undefined) await showStatus($, speckit)
   return `🧭 stop and ceiling raised to ${target}% until ${clockOf(new Date(until).toISOString())}; new subagents still wait from 80%`
@@ -1221,7 +1265,7 @@ async function applyLift($: EngineInterface, question: Question, value: string):
     value === 'lift' && question.kind === 'hold'
       ? ({ asked: _gone, ...u }) => ({ ...u, holdLift: now + HOLD_LIFT_MS })
       : (value === 'extend' || value === 'raise') && target !== undefined
-        ? ({ asked: _gone, ...u }) => ({ ...u, override: { target, until: now + (value === 'extend' ? EXTEND_MS : RAISE_MS), ...kindOf(u, now) } })
+        ? ({ asked: _gone, ...u }) => ({ ...u, override: { target, until: now + (value === 'extend' ? EXTEND_MS : RAISE_MS), ...kindOf(u, now, governThresholds) } })
         : undefined
   if (change === undefined) return false
   await updateUsage($, change)
@@ -1427,7 +1471,7 @@ async function sessionTabRows(
   ]
   let queueIndex = 0
   const governor = [
-    ...usageRows(usage, now).map(([name, text]) => {
+    ...usageRows(usage, now, governThresholds).map(([name, text]) => {
       const queued = name === 'queue' || name === '' ? usage.queue[queueIndex] : undefined
       if (queued !== undefined) {
         const hotkey = QUEUE_HOTKEYS[queueIndex]!
@@ -2000,6 +2044,7 @@ export const register: Register = (on, options) => {
   observes = options['observeUsage'] === true || options['governUsage'] === 'observe'
   governs = !observes && options['governUsage'] !== false && options['governUsage'] !== 'off'
   asks = governs && options['askOnLimit'] !== false
+  const governThresholds = typeof options['governThresholds'] === 'string' ? (() => { try { return JSON.parse(options['governThresholds'] as string) } catch { return {} } })() : {}
   pullRequests = options['pullRequest'] === true
   accessible = options['accessible'] === true
   claudeContext = options['claudeContext'] !== false
@@ -2687,6 +2732,73 @@ export const register: Register = (on, options) => {
     return {}
   })
 
+  // Two-step Enter confirmation for spec selection (044 #38): first Enter selects, second Enter confirms and writes feature.json.
+  on('ui.input', { component: 'Pane', requestId: PANE_ID }, async ($, e) => {
+    if (e.key !== 'Enter' || pane.tab !== 'specs' || specSelectionRows.length === 0) return {}
+    const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
+    const activeSpecFeature = state.features.find(feature => feature.dir === state.active?.dir)
+    const preferredSelection = pane.selectedFeature === undefined
+      ? activeSpecFeature === undefined ? undefined : `feature-${activeSpecFeature.id}`
+      : `feature-${pane.selectedFeature}`
+    const currentSelected = specSelectionRows.some(row => row.key === preferredSelection)
+      ? preferredSelection
+      : specSelectionRows[0]?.key
+    if (currentSelected === undefined) return {}
+    // First Enter: select the spec (show confirm prompt)
+    if (held.confirmSelecting !== currentSelected) {
+      await $.state.set(PANE_STATE, { ...held, confirmSelecting: currentSelected })
+      await showToast($, t(currentLang(), 'specs.confirmSelect', { id: currentSelected.slice('feature-'.length) }))
+      return {}
+    }
+    // Second Enter: confirm and write feature.json
+    await $.state.set(PANE_STATE, { ...held, confirmSelecting: undefined })
+    const dir = currentSelected.slice('feature-'.length)
+    const feature = state.features.find(f => f.id === dir)
+    if (feature !== undefined && state.root !== undefined) {
+      await $.store.set(`feature:${state.root}`, dir).catch(() => undefined)
+      await showToast($, t(currentLang(), 'specs.selected', { id: dir, name: feature.name }))
+    }
+    return {}
+  })
+
+  // Two-step Enter confirmation for task tick (045 #46): first Enter selects task, second confirms tick.
+  on('ui.input', { component: 'Pane', requestId: PANE_ID }, async ($, e) => {
+    if (e.key !== 'Enter' || pane.tab !== 'tasks' || state.active === undefined) return {}
+    const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
+    const tasks = state.activeTasks ?? []
+    const openTasks = tasks.filter(t => !t.isDone && t.id !== undefined)
+    if (openTasks.length === 0) return {}
+    // Find the currently selected task row (highlighted)
+    const currentTask = state.currentTask
+    const currentTaskId = currentTask?.id
+    if (currentTaskId === undefined) return {}
+    // First Enter: select the task (show confirm prompt)
+    if (held.confirmSelecting !== `task-${currentTaskId}`) {
+      await $.state.set(PANE_STATE, { ...held, confirmSelecting: `task-${currentTaskId}` })
+      await showToast($, t(currentLang(), 'tasks.confirmTick', { id: currentTaskId }))
+      return {}
+    }
+    // Second Enter: confirm and tick the task
+    await $.state.set(PANE_STATE, { ...held, confirmSelecting: undefined })
+    // Tick the task by editing tasks.md
+    const task = openTasks.find(t => t.id === currentTaskId)
+    if (task !== undefined && task.line !== undefined && state.root !== undefined) {
+      const fs = fsOf($)
+      const taskFile = `${state.root}/specs/${state.active.dir}/${state.features.find(f => f.dir === state.active?.dir)?.track === 'quick' ? 'spec.md' : 'tasks.md'}`
+      const content = await fs.read(taskFile).catch(() => '')
+      const lines = content.split('\n')
+      if (task.line > 0 && task.line <= lines.length) {
+        const line = lines[task.line - 1]
+        if (line.includes('[ ]')) {
+          lines[task.line - 1] = line.replace('[ ]', '[x]')
+          await fs.write(taskFile, lines.join('\n'))
+          await showToast($, t(currentLang(), 'tasks.ticked', { id: currentTaskId }))
+        }
+      }
+    }
+    return {}
+  })
+
   on('ui.render', { component: 'Pane', requestId: PANE_ID }, async ($, e) => {
     const [speckitRead, sessionRead, usageRead, paneRead, updatesRead] = await Promise.all([
       $.state.get(SPECKIT),
@@ -2939,6 +3051,16 @@ export const register: Register = (on, options) => {
       const { win, pad, nav } = navFor(units.map(u => u.rows), bodyRows - 1 - footerReserve)
       const body = (
         <Box key="astrolabe-config" flexDirection="column">
+          {units.slice(win.start, win.end).map(u => u.node)}
+        </Box>
+      )
+      return paneTree({ Box, Text, Button }, pane.tab, rows, tokens, select, body, currentLang(), [], await footerFor(pad), nav, extras)
+    }
+    if (pane.tab === 'models') {
+      const units = modelSkillTabBody($, e, pane)
+      const { win, pad, nav } = navFor(units.map(u => u.rows), bodyRows - 1 - footerReserve)
+      const body = (
+        <Box key="astrolabe-models" flexDirection="column">
           {units.slice(win.start, win.end).map(u => u.node)}
         </Box>
       )

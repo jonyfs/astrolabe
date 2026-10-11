@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Benchmark Contract",
+  "description": "Input/output contract for CI performance benchmark",
+  "type": "object",
+  "properties": {
+    "input": {
+      "type": "object",
+      "required": ["baselinePath"],
+      "properties": {
+        "baselinePath": {
+          "type": "string",
+          "description": "Path to baseline benchmark result JSON"
+        },
+        "thresholdPercent": {
+          "type": "number",
+          "default": 10,
+          "minimum": 0,
+          "maximum": 50,
+          "description": "Regression threshold percentage"
+        },
+        "metrics": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Specific metrics to benchmark (empty = all)"
+        }
+      }
+    },
+    "output": {
+      "type": "object",
+      "required": ["resultPath", "passed"],
+      "properties": {
+        "resultPath": {
+          "type": "string",
+          "description": "Path to generated benchmark result JSON"
+        },
+        "passed": {
+          "type": "boolean",
+          "description": "Whether benchmark passed (no regressions beyond threshold)"
+        },
+        "summary": {
+          "type": "string",
+          "description": "Human-readable summary for PR comment"
+        }
+      }
+    }
+  },
+  "additionalProperties": false
+}

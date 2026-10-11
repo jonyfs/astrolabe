@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Model/Skill Contract",
+  "description": "Input/output contract for skill model/effort lookup",
+  "type": "object",
+  "properties": {
+    "input": {
+      "type": "object",
+      "required": ["skill"],
+      "properties": {
+        "skill": {
+          "type": "string",
+          "description": "Skill identifier (e.g., 'specify', 'benchmark')"
+        }
+      }
+    },
+    "output": {
+      "type": "object",
+      "required": ["model", "effort", "tier"],
+      "properties": {
+        "model": { "type": "string", "description": "Model identifier" },
+        "effort": { "type": "string", "description": "Effort level" },
+        "tier": { "type": "string", "enum": ["deep-reasoning", "balanced-coding", "fast-lightweight"] },
+        "category": { "type": "string", "enum": ["speckit", "gstack"] }
+      }
+    }
+  },
+  "additionalProperties": false
+}

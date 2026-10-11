@@ -31,6 +31,8 @@ export type FooterInput = {
   lead?: boolean
   /** The first three sessions end with a `/astrolabe help` chip (052 #46). */
   helpHint?: boolean
+  /** Per-window hold/stop thresholds (047 #66). */
+  thresholds?: Record<string, { hold?: number; stop?: number }>
 }
 
 
@@ -89,7 +91,7 @@ const windowText = (r: UsageReading, now: number, lang: Lang): string => {
 const parts = (input: FooterInput): Part[] => {
   const { icons, now } = input
   const out: Part[] = []
-  const decision = input.decision ?? decide(input.readings, [], undefined, now)
+  const decision = input.decision ?? decide(input.readings, [], undefined, now, undefined, undefined, input.thresholds)
   const binding = decision.highest
   if (binding !== undefined) {
     const segment = usageSegment(decision, input.lang ?? 'en') ?? ''

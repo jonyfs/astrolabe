@@ -53,6 +53,12 @@
       "description": "Keep subagent fan-out under the 5-hour and weekly windows: cap at 60%, hold new subagents from 80%, pause from 88% and resume after the reset",
       "default": true
     },
+    "governThresholds": {
+      "type": "string",
+      "title": "Govern thresholds per window",
+      "description": "JSON object with per-window hold/stop thresholds (e.g., {\"five_hour\":{\"hold\":80,\"stop\":88},\"seven_day_opus\":{\"hold\":85,\"stop\":90}})",
+      "default": "{}"
+    },
     "observeUsage": {
       "type": "boolean",
       "title": "Observe usage limits",

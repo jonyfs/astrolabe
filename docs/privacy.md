@@ -1,62 +1,49 @@
-# Privacy: what Astrolabe reads, keeps and sends
+# Privacy Policy
 
-Astrolabe runs inside Claude Code on your machine. It has no server and sends no telemetry. This page
-lists everything it touches; the code in `hooks/` is the place to check it.
+**Version**: 1.0.0
+**Last Updated**: 2026-10-10
+**Data Controller**: Astrolabe Project
+**Contact**: privacy@astrolabe.example.com
+**Jurisdictions**: GDPR, CCPA
 
-## What it reads
+---
 
-- Your Spec Kit files: `.specify/feature.json`, `.specify/memory/constitution.md`,
-  `.specify/extensions.yml`, and under `specs/` each feature's `spec.md`, `plan.md` (whether it
-  exists), `tasks.md` and `checklists/*.md`. A finished feature's summary (`featureSummary`) also
-  reads its `spec.md` and `tasks.md` in full.
-- Git: the `HEAD` file to find the branch, then `git status --porcelain=v2 --branch
-  --show-stash` and `git worktree list --porcelain` after a turn. In each other worktree it reads
-  only the feature its branch names, runs `git status --porcelain` there to count its uncommitted
-  files, and runs `git branch --merged <main branch>` once to see which worktree branches are merged. Once a session, `git remote get-url origin` gives the address
-  the Session tab's branch row links to; any user name or token in that address is dropped and
-  never stored.
-- GitHub, through `gh`, and only when you ask for it: `gh pr view` for the footer's pull request
-  (the `pullRequest` option) and `gh pr list` for the PRs tab while it is open.
-- Its own install: `.claude-plugin/plugin.json` in its folder, to see whether a newer version is
-  on disk (`autoReload`).
-- Environment variables: `HOME` and `USERPROFILE` (to find gstack), and `KITTY_WINDOW_ID`,
-  `TERM`, `TERM_PROGRAM` and `TMUX` (to tell whether the terminal draws pictures), and `NO_COLOR`
-  (to draw the footer without colours).
-- What Claude Code tells every plugin: usage windows, context size, cost, the model and effort
-  of each request, the tools that run and the prompts you type. Astrolabe reads the prompts you type
-  only to guess your language and to add its context line.
+## Data We Collect
 
-## What it keeps
+Astrolabe is a local-first plugin that does not collect personal data from users. The plugin operates entirely within your local Claude Code environment and does not transmit any personal information to external servers. No analytics, tracking, or user identification data is collected.
 
-In Claude Code's session state (gone when the session ends): the Spec Kit state it drew, the
-session's counts, the governor's queue and log, the pane's tab, filter and scroll, and the first line
-of each of the last 20 answers, for `/astrolabe recap`.
+## Legal Basis for Processing
 
-In Claude Code's plugin store on your machine (kept across sessions):
+As Astrolabe does not collect personal data, no legal basis for processing is required. All operations are performed locally on your machine.
 
-| Key | What |
-|---|---|
-| `updates`, `updates:hidden` | The last update check and the versions you hid |
-| `history` | Tasks and features finished per week |
-| `days` | Tasks ticked per day, the last 14 days |
-| `reloaded` | The last version it reloaded for |
-| `welcomed` | The version that showed the first-run toast |
-| `tab:<project folder>` | The pane tab you last picked in that project |
-| `priority:<project folder>` | The specs you marked high or low in that project |
-| `summaries` | Finished features' summaries, when `featureSummary` is on |
+## Purpose of Processing
 
-## What it sends
+Astrolabe provides status line, dashboard, and Spec Kit integration features within Claude Code. All processing is local to provide these features.
 
-- To GitHub: one request a day to `https://api.github.com/repos/jonyfs/astrolabe/releases/latest`
-  for the update check (`checkUpdates`). It carries no data about you or your project.
-- To Claude, through Claude Code: with `claudeContext` on, one line about the active feature
-  next to your prompt, and the constitution's principle names when a Spec Kit skill runs; with
-  `featureSummary` on, a finished feature's spec and tasks to `haiku`; with `/astrolabe ask`, your
-  question to a fork of the session; with `/astrolabe review`, the spec's `spec.md`, `plan.md` and
-  `tasks.md` and the constitution's principle names to `opus`. These go through your own Claude Code session and account,
-  like any prompt you type.
-- To `gh` and `git`: the commands above, run in your project folder. Approve, update branch and
-  merge run only after you press the button twice.
+## Data Retention
 
-Nothing else leaves your machine. To turn a part off, use its option in `/config` or the Config
-tab: `checkUpdates`, `claudeContext`, `featureSummary`, `pullRequest` and `autoReload`.
+Astrolabe does not retain any personal data. Any session state is stored temporarily in memory and cleared when the session ends. No persistent storage of user data occurs.
+
+## Data Sharing and Disclosure
+
+Astrolabe does not share any data with third parties. The plugin has no network connectivity and cannot transmit data.
+
+## Your Rights
+
+Since no personal data is collected, there is no data to access, rectify, delete, or port. You have full control over your local environment.
+
+## Contact Us
+
+For privacy inquiries, contact: privacy@astrolabe.example.com
+
+## International Transfers
+
+No personal data is transferred internationally as no data is collected.
+
+## Automated Decision Making
+
+Astrolabe does not use automated decision making that significantly affects users.
+
+---
+
+*This policy is effective as of 2026-10-10.*

@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Privacy Policy Contract",
+  "description": "Input/output contract for privacy page generation",
+  "type": "object",
+  "properties": {
+    "input": {
+      "type": "object",
+      "required": ["configPath", "outputPath"],
+      "properties": {
+        "configPath": {
+          "type": "string",
+          "description": "Path to privacy configuration JSON"
+        },
+        "outputPath": {
+          "type": "string",
+          "description": "Path for generated privacy.md"
+        },
+        "templatePath": {
+          "type": "string",
+          "description": "Optional custom template path"
+        },
+        "jurisdictions": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": ["GDPR", "CCPA"],
+          "description": "Applicable regulations"
+        }
+      }
+    },
+    "output": {
+      "type": "object",
+      "required": ["outputPath", "version", "sectionsGenerated"],
+      "properties": {
+        "outputPath": {
+          "type": "string",
+          "description": "Path to generated privacy.md"
+        },
+        "version": {
+          "type": "string",
+          "description": "Generated policy version"
+        },
+        "sectionsGenerated": {
+          "type": "integer",
+          "description": "Number of sections generated"
+        },
+        "compliance": {
+          "type": "object",
+          "description": "Compliance checklist results"
+        }
+      }
+    }
+  },
+  "additionalProperties": false
+}

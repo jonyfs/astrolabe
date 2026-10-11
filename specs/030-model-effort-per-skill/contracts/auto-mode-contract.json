@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Auto Mode Contract",
+  "description": "Input/output contract for turn.step hook auto mode",
+  "type": "object",
+  "properties": {
+    "input": {
+      "type": "object",
+      "required": ["skillModels", "skillRunning", "request"],
+      "properties": {
+        "skillModels": { "type": "string", "enum": ["off", "auto"] },
+        "skillRunning": { "type": "string", "description": "Currently running skill name" },
+        "request": {
+          "type": "object",
+          "description": "Original request with model/effort",
+          "properties": {
+            "model": { "type": "string" },
+            "effort": { "type": "string" }
+          }
+        }
+      }
+    },
+    "output": {
+      "type": "object",
+      "required": ["modifiedRequest", "contextReRead"],
+      "properties": {
+        "modifiedRequest": {
+          "type": "object",
+          "description": "Request with potentially modified model/effort",
+          "properties": {
+            "model": { "type": "string" },
+            "effort": { "type": "string" }
+          }
+        },
+        "contextReRead": { "type": "boolean", "description": "Whether context will be re-read" }
+      }
+    }
+  },
+  "additionalProperties": false
+}

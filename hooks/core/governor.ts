@@ -51,6 +51,15 @@ const highestOf = (r: UsageReading): NonNullable<Decision['highest']> => ({
  * binds on the one in the highest band, then the fuller one (016). A held window stays held
  * down to 75%; a renewed window caps subagents at 1 until it is read again.
  */
+type Thresholds = { hold?: number; stop?: number }
+
+const DEFAULT_THRESHOLDS: Record<string, Thresholds> = {
+  five_hour: { hold: 80, stop: 88 },
+  seven_day_opus: { hold: 80, stop: 88 },
+  seven_day_sonnet: { hold: 80, stop: 88 },
+  seven_day_haiku: { hold: 80, stop: 88 },
+}
+
 export const decide = (
   readings: readonly UsageReading[],
   history: ReadonlyArray<{ at: number; percent: number }>,
@@ -59,16 +68,20 @@ export const decide = (
   /** Until when the owner let subagents through the hold, one at a time (015). */
   holdLift?: number,
   held?: Held,
+  /** Per-window hold/stop thresholds (047 #66). */
+  thresholds?: Record<string, Thresholds>,
 ): Decision => {
   const live = readings.filter(r => !isRenewed(r, now))
   const renewed = readings.filter(r => isRenewed(r, now))
   const isOverride = override !== undefined && override.until > now
+  const getThresholds = (kind: string): Thresholds => thresholds?.[kind] ?? DEFAULT_THRESHOLDS[kind] ?? { hold: 80, stop: 88 }
   const bandOf = (r: UsageReading): Band => {
     const lifted = isOverride && (override.kind === undefined || override.kind === r.kind) ? override.target : undefined
     const p = r.percentUsed
+    const th = getThresholds(r.kind)
     if (p >= (lifted ?? 90)) return 'ceiling'
-    if (p >= (lifted ?? 88)) return 'stop'
-    if (p >= 80 || (held !== undefined && p >= REOPEN_BELOW && sameWindow(r, held))) return 'hold'
+    if (p >= (lifted ?? (th.stop ?? 88))) return 'stop'
+    if (p >= (th.hold ?? 80) || (held !== undefined && p >= REOPEN_BELOW && sameWindow(r, held))) return 'hold'
     return 'ok'
   }
   const binding = live
@@ -84,7 +97,8 @@ export const decide = (
   const fresh = renewed[0]
   if (top === undefined) return fresh === undefined ? { band: 'ok', cap: MAX_FANOUT } : { band: 'throttle', cap: 1, highest: { ...highestOf(fresh), renewed: true } }
   const p = top.percentUsed
-  const ahead = projected(p, top.resetsAt, history, now) >= 80
+  const th = getThresholds(top.kind)
+  const ahead = projected(p, top.resetsAt, history, now) >= (th.hold ?? 80)
   const band: Band = p >= 60 || ahead ? 'throttle' : 'ok'
   const cap = band === 'ok' ? MAX_FANOUT : p >= 70 || ahead ? 1 : 3
   if (fresh === undefined) return { band, cap, highest: highestOf(top) }
@@ -224,11 +238,11 @@ export const whenOf = (at: number, now: number): string => {
 }
 
 /** The pane's Session tab rows for the governor (016): label, value. Empty with nothing to say. */
-export const usageRows = (usage: UsageState, now: number): Array<[string, string]> => {
+export const usageRows = (usage: UsageState, now: number, thresholds?: Record<string, { hold?: number; stop?: number }>): Array<[string, string]> => {
   const isOverride = usage.override !== undefined && usage.override.until > now
   const isLift = usage.holdLift !== undefined && usage.holdLift > now
   if (usage.readings.length === 0 && usage.queue.length === 0 && !isOverride && !isLift) return []
-  const d = decide(usage.readings, usage.history, usage.override, now, usage.holdLift, usage.held)
+  const d = decide(usage.readings, usage.history, usage.override, now, usage.holdLift, usage.held, thresholds)
   const windows = usage.readings
     .map(r => (isRenewed(r, now) ? `${labelOf(r.kind)} renewed` : `${labelOf(r.kind)} ${Math.round(r.percentUsed)}%`))
     .join(' · ')

@@ -25,7 +25,7 @@ const PANE_LABEL_KEYS: readonly TextKey[] = [
   'kpi.burn', 'kpi.compactions', 'kpi.waited', 'kpi.pace', 'kpi.turnsPerTask',
   'kpi.contextPerTask', 'kpi.atReset', 'kpi.slowest', 'kpi.estimate', 'kpi.weekdays',
   'kpi.weeks', 'kpi.week', 'kpi.specToDone',
-  'tab.specs', 'tab.tasks', 'tab.session', 'tab.dashboard', 'tab.help', 'tab.config', 'tab.prs',
+  'tab.specs', 'tab.tasks', 'tab.session', 'tab.dashboard', 'tab.help', 'tab.config', 'tab.prs', 'tab.models',
   'gate.constitution', 'gate.clarify', 'gate.checklist', 'gate.tasks', 'gate.analyze',
 ]
 

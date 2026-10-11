@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Image Generation Contract",
+  "description": "Input/output contract for README image generation",
+  "type": "object",
+  "properties": {
+    "input": {
+      "type": "object",
+      "required": ["sourceDir", "outputDir"],
+      "properties": {
+        "sourceDir": {
+          "type": "string",
+          "description": "Directory containing source diagrams (.mmd, .html, .tsx)"
+        },
+        "outputDir": {
+          "type": "string",
+          "description": "Directory for generated images"
+        },
+        "formats": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["png", "svg", "webp"] },
+          "default": ["png", "svg"],
+          "description": "Output formats to generate"
+        },
+        "onlyChanged": {
+          "type": "boolean",
+          "default": true,
+          "description": "Only regenerate images with changed sources"
+        }
+      }
+    },
+    "output": {
+      "type": "object",
+      "required": ["manifestPath", "generatedCount"],
+      "properties": {
+        "manifestPath": {
+          "type": "string",
+          "description": "Path to generation manifest JSON"
+        },
+        "generatedCount": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of images generated"
+        },
+        "changed": {
+          "type": "boolean",
+          "description": "Whether any images changed from previous run"
+        }
+      }
+    }
+  },
+  "additionalProperties": false
+}

@@ -111,3 +111,27 @@ export const helpText = (lang: Lang, optionsSeen: Readonly<Record<string, unknow
   if (helpCache?.key !== key) helpCache = { key, text: buildHelp(lang, optionsSeen, health) }
   return helpCache.text
 }
+
+// Command palette for when the pane cannot open (preset.pane === 'command', 048 #76).
+export const commandPaletteText = (lang: Lang): string => {
+  return [
+    t(lang, 'help.commandPalette'),
+    `  help        ${t(lang, 'help.palette.help')}`,
+    `  next        ${t(lang, 'help.palette.next')}`,
+    `  status      ${t(lang, 'help.palette.status')}`,
+    `  ask <q>     ${t(lang, 'help.palette.ask')}`,
+    `  root <dir>  ${t(lang, 'help.palette.root')}`,
+    `  allow <pct> <dur>  ${t(lang, 'help.palette.allow')}`,
+    `  revoke      ${t(lang, 'help.palette.revoke')}`,
+    `  run <id>    ${t(lang, 'help.palette.run')}`,
+    `  doctor      ${t(lang, 'help.palette.doctor')}`,
+    `  priority <id> <h|l>  ${t(lang, 'help.palette.priority')}`,
+    `  review [id] ${t(lang, 'help.palette.review')}`,
+    `  advisor [id]  ${t(lang, 'help.palette.advisor')}`,
+    `  config reset    ${t(lang, 'help.palette.config')}`,
+    `  worktrees       ${t(lang, 'help.palette.worktrees')}`,
+    `  recap [id]      ${t(lang, 'help.palette.recap')}`,
+    `  kpis            ${t(lang, 'help.palette.kpis')}`,
+    `  focus [on|off]  ${t(lang, 'help.palette.focus')}`,
+  ].join('\n')
+}

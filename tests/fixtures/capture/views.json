@@ -1,0 +1,37 @@
+{
+  "views": [
+    {
+      "name": "dashboard",
+      "url": "http://localhost:3000/dashboard",
+      "actions": [
+        { "type": "wait", "duration": 1000 }
+      ],
+      "capture": {
+        "type": "screenshot",
+        "viewport": { "width": 1280, "height": 720, "deviceScaleFactor": 1 }
+      }
+    },
+    {
+      "name": "settings",
+      "url": "http://localhost:3000/settings",
+      "actions": [
+        { "type": "click", "selector": "nav a[href='/settings']" },
+        { "type": "wait", "duration": 500 }
+      ],
+      "capture": {
+        "type": "screenshot",
+        "viewport": { "width": 1280, "height": 720, "deviceScaleFactor": 1 }
+      }
+    },
+    {
+      "name": "feature-demo",
+      "url": "http://localhost:3000/demo",
+      "actions": [],
+      "capture": {
+        "type": "video",
+        "duration": 10000,
+        "viewport": { "width": 1280, "height": 720, "deviceScaleFactor": 1 }
+      }
+    }
+  ]
+}
