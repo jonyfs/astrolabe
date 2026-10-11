@@ -29,8 +29,6 @@ import { ageOf, parsePullList, prOpened, pullAction, PR_LIST_FIELDS } from './co
 import { skillModelFor } from './core/skill-models'
 import { featureDirFor, mergedBranches, parseWorktrees, uncommittedCount, withWorktreeProgress, worktreeName, worktreeState } from './core/worktrees'
 import { getAllSkills, getSkillConfig } from './core/skill-model-map.js'
-import { skillModels } from './core/skill-models.js'
-import { getSkillRunning } from './register.js'
 import { readFeature } from './io/snapshot'
 import { deriveSpeckitState, snapshotFromMemo } from './core/speckit'
 import { deriveFeature } from './core/phase'
