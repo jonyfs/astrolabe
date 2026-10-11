@@ -1358,6 +1358,7 @@ function fsOf($: EngineInterface): Fs {
     read: path => $.fs.read(path) as Promise<string>,
     list: path => $.fs.list(path),
     exists: path => $.fs.exists(path),
+    stat: path => $.fs.stat(path),
   }
 }
 
