@@ -2857,6 +2857,7 @@ export const register: Register = (on, options) => {
                 stats?.worktrees?.map(w => ({ name: w.name, id: w.id, featureName: w.featureName, phase: w.phase, done: w.done, total: w.total, status: worktreeState(w) })) ?? [],
                 e.surface === 'desktop',
                 pane.sort ?? 'status',
+                $.fs.readFile,
               )),
             ]
     // A filter that keeps nothing says so (052 #7).

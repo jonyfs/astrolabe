@@ -204,8 +204,8 @@ const buildSpecsRows = (
 
 let specsRowsCache: { key: string; rows: PaneRow[] } | undefined
 
-/** Reuse the Specs rows until the memo version or any drawing input changes (054 #3). */
-export const specsRows = async (
+  /** Reuse the Specs rows until the memo version or any drawing input changes (054 #3). */
+ export const specsRows = async (
   state: SpeckitState,
   columns: number,
   lang: Lang = 'en',
@@ -215,6 +215,7 @@ export const specsRows = async (
   worktreeRows: ReadonlyArray<{ name: string; id: string; featureName: string; phase: string; done: number; total: number; status: string }> = [],
   wrapLongNames = false,
   sort: SpecSort = 'status',
+  readFile?: (path: string) => Promise<string>,
 ): Promise<PaneRow[]> => {
   if (state.memoVersion === undefined) return buildSpecsRows(state, columns, lang, priorities, worktrees, fold, worktreeRows, wrapLongNames, sort)
   const key = JSON.stringify([
@@ -246,11 +247,10 @@ export const specsRows = async (
   if (specsRowsCache?.key === key) return specsRowsCache.rows
   const rows = buildSpecsRows(state, columns, lang, priorities, worktrees, fold, worktreeRows, wrapLongNames, sort)
   // Roadmap view (044 #40): show items from docs/roadmap.md not yet specs.
-  if (state.root !== undefined) {
+  if (state.root !== undefined && readFile !== undefined) {
     try {
-      const fs = await import('fs/promises')
       const roadmapPath = `${state.root}/docs/roadmap.md`
-      const roadmap = await fs.readFile(roadmapPath, 'utf-8')
+      const roadmap = await readFile(roadmapPath)
       const roadmapRows = parseRoadmap(roadmap, state.features, columns, lang)
       if (roadmapRows.length > 0) rows.push(...roadmapRows)
     } catch {
