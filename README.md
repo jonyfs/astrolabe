@@ -1041,6 +1041,50 @@ Every change starts as a Spec Kit feature under `specs/` and goes through
 [.specify/memory/constitution.md](.specify/memory/constitution.md). Everything in this
 repository is written in English.
 
+## README summaries
+
+### Português (pt-BR)
+
+Astrolabe é um mod para o Claude Code que mostra o progresso do seu trabalho no Spec Kit e mantém a sessão dentro dos limites de uso: uma barra de fase acima do prompt, o próximo comando a executar, a tarefa em andamento, um painel com todas as features, toasts quando algo muda, botões que instalam atualizações, e uma entrada de status com sua janela de uso mais cheia.
+
+**Instalação**: `/plugin install astrolabe --marketplace jonyfs/astrolabe` no Claude Code 2.1.292+.
+
+**O que desenha**: barra (acima do prompt), entrada de status (abaixo do prompt), hint do próximo comando, spinner narrado, painel `/astrolabe` com abas Specs/Tasks/Session/Dashboard/Help/Config/PRs, toasts de drift/phase/uso, governança de uso (queue/hold/pause de subagents).
+
+**Opções principais** (21 opções via `/config`): `preset` (minimal/compact/full), `flavor` (mocha/frappe/macchiato/latte/colorblind/theme), `language` (auto/en/pt-BR/es/fr), `governUsage`, `skillModels` (auto), `terse` (off/lite/full), `humanize`, `accessible`, `footerIn`, `bandDensity`, `checkUpdates`, `pullRequest`, `images`, `autoReload`.
+
+**Governança de uso**: janelas 5h e 7d; em 80% faz hold (subagents esperam), em 88% para, em 90% teto; override temporário via `/astrolabe allow`, revogar com `/astrolabe revoke`.
+
+**Comandos**: `/astrolabe` (abre painel), `help`, `next`, `status`, `ask`, `root`, `allow`, `revoke`, `run`, `doctor`, `priority`, `review`, `advisor`, `config reset`, `worktrees`, `recap`, `kpis`, `focus`.
+
+### Español (es)
+
+Astrolabe es un mod para Claude Code que muestra el progreso de tu trabajo en Spec Kit y mantiene la sesión dentro de los límites de uso: una barra de fase sobre el prompt, el próximo comando a ejecutar, la tarea en curso, un panel con todas las features, toasts cuando algo cambia, botones que instalan actualizaciones, y una entrada de estado con tu ventana de uso más llena.
+
+**Instalación**: `/plugin install astrolabe --marketplace jonyfs/astrolabe` en Claude Code 2.1.292+.
+
+**Qué dibuja**: banda (sobre el prompt), entrada de estado (bajo el prompt), hint del próximo comando, spinner narrado, panel `/astrolabe` con pestañas Specs/Tasks/Session/Dashboard/Help/Config/PRs, toasts de drift/phase/uso, gobernanza de uso (cola/hold/pausa de subagents).
+
+**Opciones principales** (21 opciones via `/config`): `preset` (minimal/compact/full), `flavor` (mocha/frappe/macchiato/latte/colorblind/theme), `language` (auto/en/pt-BR/es/fr), `governUsage`, `skillModels` (auto), `terse` (off/lite/full), `humanize`, `accessible`, `footerIn`, `bandDensity`, `checkUpdates`, `pullRequest`, `images`, `autoReload`.
+
+**Gobernanza de uso**: ventanas 5h y 7d; al 80% hold (subagents esperan), al 88% stop, al 90% techo; override temporal via `/astrolabe allow`, revocar con `/astrolabe revoke`.
+
+**Comandos**: `/astrolabe` (abre panel), `help`, `next`, `status`, `ask`, `root`, `allow`, `revoke`, `run`, `doctor`, `priority`, `review`, `advisor`, `config reset`, `worktrees`, `recap`, `kpis`, `focus`.
+
+### Français (fr)
+
+Astrolabe est un mod pour Claude Code qui montre la progression de votre travail Spec Kit et garde la session dans ses limites d'utilisation : une barre de phase au-dessus du prompt, la prochaine commande à lancer, la tâche en cours, un panneau avec toutes les features, des toasts quand quelque chose change, des boutons qui installent les mises à jour, et une entrée de statut avec votre fenêtre d'usage la plus remplie.
+
+**Installation**: `/plugin install astrolabe --marketplace jonyfs/astrolabe` dans Claude Code 2.1.292+.
+
+**Ce qu'il dessine**: bande (au-dessus du prompt), entrée de statut (sous le prompt), hint de la prochaine commande, spinner narré, panneau `/astrolabe` avec onglets Specs/Tasks/Session/Dashboard/Help/Config/PRs, toasts drift/phase/usage, gouvernance d'usage (file/hold/pause des sous-agents).
+
+**Options principales** (21 options via `/config`): `preset` (minimal/compact/full), `flavor` (mocha/frappe/macchiato/latte/colorblind/theme), `language` (auto/en/pt-BR/es/fr), `governUsage`, `skillModels` (auto), `terse` (off/lite/full), `humanize`, `accessible`, `footerIn`, `bandDensity`, `checkUpdates`, `pullRequest`, `images`, `autoReload`.
+
+**Gouvernance d'usage**: fenêtres 5h et 7j; à 80% hold (sous-agents attendent), à 88% stop, à 90% plafond; override temporaire via `/astrolabe allow`, révoquer avec `/astrolabe revoke`.
+
+**Commandes**: `/astrolabe` (ouvre le panneau), `help`, `next`, `status`, `ask`, `root`, `allow`, `revoke`, `run`, `doctor`, `priority`, `review`, `advisor`, `config reset`, `worktrees`, `recap`, `kpis`, `focus`.
+
 ## How the images are made
 
 Every image is a real capture, never a drawing (Constitution Principle II):
