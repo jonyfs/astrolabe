@@ -7,6 +7,7 @@ export const FR: Dictionary = {
   'pane.section.next': 'À venir',
   'pane.section.done': 'Terminées',
   'pane.section.abandoned': 'Abandonnées',
+  'pane.roadmap': 'Feuille de route',
   'pane.worktreeClash': '! {id} est ouverte dans deux worktrees ({list}) : leurs changements vont se heurter',
   'pane.noSpec': "? {id} : specs/{dir} n'a pas encore de spec.md ; lancez /speckit-specify ou supprimez le dossier",
   'gate.title': '  portes',

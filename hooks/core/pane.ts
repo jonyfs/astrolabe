@@ -205,7 +205,7 @@ const buildSpecsRows = (
 let specsRowsCache: { key: string; rows: PaneRow[] } | undefined
 
 /** Reuse the Specs rows until the memo version or any drawing input changes (054 #3). */
-export const specsRows = (
+export const specsRows = async (
   state: SpeckitState,
   columns: number,
   lang: Lang = 'en',
@@ -215,7 +215,7 @@ export const specsRows = (
   worktreeRows: ReadonlyArray<{ name: string; id: string; featureName: string; phase: string; done: number; total: number; status: string }> = [],
   wrapLongNames = false,
   sort: SpecSort = 'status',
-): PaneRow[] => {
+): Promise<PaneRow[]> => {
   if (state.memoVersion === undefined) return buildSpecsRows(state, columns, lang, priorities, worktrees, fold, worktreeRows, wrapLongNames, sort)
   const key = JSON.stringify([
     state.root,
@@ -245,6 +245,18 @@ export const specsRows = (
   ])
   if (specsRowsCache?.key === key) return specsRowsCache.rows
   const rows = buildSpecsRows(state, columns, lang, priorities, worktrees, fold, worktreeRows, wrapLongNames, sort)
+  // Roadmap view (044 #40): show items from docs/roadmap.md not yet specs.
+  if (state.root !== undefined) {
+    try {
+      const fs = await import('fs/promises')
+      const roadmapPath = `${state.root}/docs/roadmap.md`
+      const roadmap = await fs.readFile(roadmapPath, 'utf-8')
+      const roadmapRows = parseRoadmap(roadmap, state.features, columns, lang)
+      if (roadmapRows.length > 0) rows.push(...roadmapRows)
+    } catch {
+      // No roadmap or unreadable
+    }
+  }
   specsRowsCache = { key, rows }
   return rows
 }
@@ -580,4 +592,31 @@ export const helpRows = (text: string, filter?: string, lang: Lang = 'en'): Pane
   }
   flush()
   return shown
+}
+
+/** Parses docs/roadmap.md and returns rows for the roadmap view (044 #40). */
+export const parseRoadmap = (roadmap: string, features: readonly Feature[], columns: number, lang: Lang): PaneRow[] => {
+  const existingDirs = new Set(features.map(f => f.dir))
+  const rows: PaneRow[] = []
+  const lines = roadmap.split('\n')
+  let inSpecTable = false
+  let inAddedTable = false
+  for (const line of lines) {
+    if (/^\| \d+ \|/.test(line) && !/^\| Spec \|/.test(line)) {
+      const parts = line.split('|').map(p => p.trim()).filter(p => p !== '')
+      if (parts.length >= 3) {
+        const specNum = parts[0]
+        const theme = parts[1]
+        const what = parts[2]
+        // Check if this spec already exists as a feature
+        if (!existingDirs.has(specNum.padStart(3, '0') + '-') && !existingDirs.has(specNum + '-')) {
+          rows.push({ key: `roadmap-${specNum}`, text: cut(`  ${specNum}  ${theme}: ${what}`, columns), role: 'muted' })
+        }
+      }
+    }
+  }
+  if (rows.length > 0) {
+    rows.unshift({ key: 'roadmap-header', text: tr(lang, 'pane.roadmap'), role: 'muted', bold: true })
+  }
+  return rows
 }

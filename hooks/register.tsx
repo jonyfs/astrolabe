@@ -2847,7 +2847,7 @@ export const register: Register = (on, options) => {
         : pane.tab === 'session'
           ? await sessionTabRows($, state, usage, stats, updates)
           : [
-              ...specsRows(
+              ...(await specsRows(
                 { ...filtered(state, pane.filter, pane.status, specFilterContext(stats)), features: withWorktreeProgress(filtered(state, pane.filter, pane.status, specFilterContext(stats)).features, stats?.worktrees) },
                 columns,
                 currentLang(),
@@ -2857,7 +2857,7 @@ export const register: Register = (on, options) => {
                 stats?.worktrees?.map(w => ({ name: w.name, id: w.id, featureName: w.featureName, phase: w.phase, done: w.done, total: w.total, status: worktreeState(w) })) ?? [],
                 e.surface === 'desktop',
                 pane.sort ?? 'status',
-              ),
+              )),
             ]
     // A filter that keeps nothing says so (052 #7).
     const matchesNone =

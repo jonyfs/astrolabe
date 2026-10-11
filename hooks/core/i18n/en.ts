@@ -5,6 +5,7 @@ export const EN = {
   'pane.section.next': 'Next up',
   'pane.section.done': 'Done',
   'pane.section.abandoned': 'Abandoned',
+  'pane.roadmap': 'Roadmap',
   'pane.worktreeClash': '! {id} is open in two worktrees ({list}): their changes will collide',
   'pane.noSpec': '? {id}: specs/{dir} has no spec.md yet; run /speckit-specify or remove the folder',
   'gate.title': '  gates',

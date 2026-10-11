@@ -7,6 +7,7 @@ export const ES: Dictionary = {
   'pane.section.next': 'Siguientes',
   'pane.section.done': 'Terminadas',
   'pane.section.abandoned': 'Abandonadas',
+  'pane.roadmap': 'Hoja de ruta',
   'pane.worktreeClash': '! {id} está abierta en dos worktrees ({list}): sus cambios van a chocar',
   'pane.noSpec': '? {id}: specs/{dir} aún no tiene spec.md; ejecuta /speckit-specify o borra la carpeta',
   'gate.title': '  puertas',
