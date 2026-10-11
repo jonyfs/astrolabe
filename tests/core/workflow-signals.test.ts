@@ -34,11 +34,11 @@ describe('pane rows for open questions and checklists (020b)', () => {
       active: { dir: '002-b', id: '002', name: 'b', source: 'feature.json' },
       isAnalyzed: false,
     }) as never
-  test('a feature with open questions says how many', () => {
-    expect(specsRows(state({ clarifications: 3 }), 80).map(r => r.text)).toContain('? 002: 3 [NEEDS CLARIFICATION] markers to answer (/speckit-clarify)')
+  test('a feature with open questions says how many', async () => {
+    expect((await specsRows(state({ clarifications: 3 }), 80)).map(r => r.text)).toContain('? 002: 3 [NEEDS CLARIFICATION] markers to answer (/speckit-clarify)')
   })
-  test('open checklist items are named', () => {
-    expect(specsRows(state({ phase: 'implement', checklist: { open: 2, total: 12 } }), 80).map(r => r.text)).toContain('☐ 002: 2 of 12 checklist items open')
+  test('open checklist items are named', async () => {
+    expect((await specsRows(state({ phase: 'implement', checklist: { open: 2, total: 12 } }), 80)).map(r => r.text)).toContain('☐ 002: 2 of 12 checklist items open')
   })
 })
 
