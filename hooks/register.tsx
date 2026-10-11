@@ -28,7 +28,9 @@ import { styleSections } from './core/style'
 import { ageOf, parsePullList, prOpened, pullAction, PR_LIST_FIELDS } from './core/pulls'
 import { skillModelFor } from './core/skill-models'
 import { featureDirFor, mergedBranches, parseWorktrees, uncommittedCount, withWorktreeProgress, worktreeName, worktreeState } from './core/worktrees'
-import { modelSkillTabBody } from './surfaces/model-skill-tab'
+import { getAllSkills, getSkillConfig } from './core/skill-model-map.js'
+import { skillModels } from './core/skill-models.js'
+import { getSkillRunning } from './register.js'
 import { readFeature } from './io/snapshot'
 import { deriveSpeckitState, snapshotFromMemo } from './core/speckit'
 import { deriveFeature } from './core/phase'
@@ -3082,7 +3084,138 @@ export const register: Register = (on, options) => {
       return paneTree({ Box, Text, Button }, pane.tab, rows, tokens, select, body, currentLang(), [], await footerFor(pad), nav, extras)
     }
     if (pane.tab === 'models') {
-      const units = modelSkillTabBody($, e, pane)
+      const elements = $.ui.resolve(e)
+      const { Box, Text } = elements
+      const lang = currentLang()
+      const skills = getAllSkills()
+      const autoMode = skillModels === 'auto'
+      
+      const activeSkill = getSkillRunning()
+      
+      const units: Array<{ node: RenderNode; rows: number }> = []
+      
+      // Header
+      units.push({ 
+        rows: 1, 
+        node: (
+          <Box flexDirection="row" style={{ padding: '8px 16px', borderBottom: '1px solid var(--border)' }}>
+            <Text bold style={{ width: '180px' }}>Skill</Text>
+            <Text bold style={{ width: '80px' }}>Category</Text>
+            <Text bold style={{ width: '140px' }}>Tier</Text>
+            <Text bold style={{ width: '180px' }}>Model</Text>
+            <Text bold style={{ width: '80px' }}>Effort</Text>
+            {autoMode && <Text bold style={{ width: '60px' }}>Active</Text>}
+          </Box>
+        )
+      })
+      
+      // Skill rows grouped by category
+      const speckitSkills = skills.filter(s => s.category === 'speckit')
+      const gstackSkills = skills.filter(s => s.category === 'gstack')
+      
+      // Speckit section
+      units.push({ 
+        rows: 1, 
+        node: (
+          <Box style={{ padding: '4px 16px', background: 'var(--accent-bg)' }}>
+            <Text color={tokens.accent} bold>{t(lang, 'models.category.speckit')}</Text>
+          </Box>
+        )
+      })
+      
+      for (const skill of speckitSkills) {
+        const isActive = autoMode && activeSkill === skill.skill
+        units.push({ 
+          rows: 1, 
+          node: (
+            <Box 
+              key={`skill-${skill.skill}`} 
+              flexDirection="row" 
+              style={{ 
+                padding: '4px 16px',
+                background: isActive ? 'var(--accent-bg)' : undefined,
+                borderLeft: isActive ? '3px solid var(--accent)' : undefined,
+              }}
+            >
+              <Text style={{ width: '180px' }}>{skill.skill}</Text>
+              <Text color={tokens.muted} style={{ width: '80px' }}>{skill.category}</Text>
+              <Text color={getTierColor(skill.tier)} style={{ width: '140px' }}>{skill.tier}</Text>
+              <Text style={{ width: '180px' }} fontFamily="monospace">{skill.model}</Text>
+              <Text style={{ width: '80px' }}>{skill.effort}</Text>
+              {autoMode && (
+                <Text style={{ width: '60px' }}>
+                  {isActive ? '▸' : ''}
+                </Text>
+              )}
+            </Box>
+          )
+        })
+      }
+      
+      // gstack section
+      units.push({ 
+        rows: 1, 
+        node: (
+          <Box style={{ padding: '4px 16px', background: 'var(--accent-bg)' }}>
+            <Text color={tokens.accent} bold>{t(lang, 'models.category.gstack')}</Text>
+          </Box>
+        )
+      })
+      
+      for (const skill of gstackSkills) {
+        const isActive = autoMode && activeSkill === skill.skill
+        units.push({ 
+          rows: 1, 
+          node: (
+            <Box 
+              key={`skill-${skill.skill}`} 
+              flexDirection="row" 
+              style={{ 
+                padding: '4px 16px',
+                background: isActive ? 'var(--accent-bg)' : undefined,
+                borderLeft: isActive ? '3px solid var(--accent)' : undefined,
+              }}
+            >
+              <Text style={{ width: '180px' }}>{skill.skill}</Text>
+              <Text color={tokens.muted} style={{ width: '80px' }}>{skill.category}</Text>
+              <Text color={getTierColor(skill.tier)} style={{ width: '140px' }}>{skill.tier}</Text>
+              <Text style={{ width: '180px' }} fontFamily="monospace">{skill.model}</Text>
+              <Text style={{ width: '80px' }}>{skill.effort}</Text>
+              {autoMode && (
+                <Text style={{ width: '60px' }}>
+                  {isActive ? '▸' : ''}
+                </Text>
+              )}
+            </Box>
+          )
+        })
+      }
+      
+      // Auto mode status
+      if (autoMode) {
+        units.push({ 
+          rows: 1, 
+          node: (
+            <Box style={{ padding: '8px 16px', borderTop: '1px solid var(--border)' }}>
+              <Text color={tokens.muted} size="small">
+                {t(lang, 'models.autoModeActive', { active: activeSkill ?? t(lang, 'models.idle') })}
+              </Text>
+            </Box>
+          )
+        })
+      } else {
+        units.push({ 
+          rows: 1, 
+          node: (
+            <Box style={{ padding: '8px 16px', borderTop: '1px solid var(--border)' }}>
+              <Text color={tokens.muted} size="small">
+                {t(lang, 'models.autoModeOff')}
+              </Text>
+            </Box>
+          )
+        })
+      }
+      
       const { win, pad, nav } = navFor(units.map(u => u.rows), bodyRows - 1 - footerReserve)
       const body = (
         <Box key="astrolabe-models" flexDirection="column">
@@ -3090,6 +3223,14 @@ export const register: Register = (on, options) => {
         </Box>
       )
       return paneTree({ Box, Text, Button }, pane.tab, rows, tokens, select, body, currentLang(), [], await footerFor(pad), nav, extras)
+    }
+    function getTierColor(tier: string): string {
+      switch (tier) {
+        case 'deep-reasoning': return 'var(--error)'
+        case 'balanced-coding': return 'var(--accent)'
+        case 'fast-lightweight': return 'var(--success)'
+        default: return 'var(--text)'
+      }
     }
     if (pane.tab !== 'dashboard') {
       const allTaskRows = pane.tab === 'tasks'
