@@ -247,6 +247,7 @@ export const PT_BR: Dictionary = {
   'kpi.turns': 'turnos',
   'kpi.toolCalls': 'ferramentas',
   'kpi.drifts': 'alarmes de drift',
+  'kpi.agentsByFeature': 'por feature',
   'kpi.subagents': 'subagentes',
   'kpi.subagentsValue': '{run} rodaram, {queued} na fila',
   'kpi.subagentRun': 'execução de subagente',

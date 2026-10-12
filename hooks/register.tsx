@@ -141,7 +141,7 @@ const PR_TTL_MS = 300_000
 
 // The session's numbers between writes (018): a tool call costs no state write; they are
 // written at the end of each main turn and at each measure. A reload loses one turn's counts.
-const live = { toolCalls: 0, drifts: 0, driftsById: {} as Record<string, number>, agentsRun: 0, agentsQueued: 0, linesAdded: 0, linesRemoved: 0, model: undefined as string | undefined, effort: undefined as string | undefined }
+const live = { toolCalls: 0, drifts: 0, driftsById: {} as Record<string, number>, agentsRun: 0, agentsById: {} as Record<string, number>, agentsQueued: 0, linesAdded: 0, linesRemoved: 0, model: undefined as string | undefined, effort: undefined as string | undefined }
 // The footer's room: the last width a drawing saw, less the "⚠ astrolabe: " the terminal adds.
 let columnsSeen = 120
 let surfaceSeen: string | null = 'terminal'
@@ -295,6 +295,9 @@ async function flushStats($: EngineInterface, change: (s: SessionStats) => Sessi
         ? {}
         : { driftsByFeature: Object.fromEntries([...new Set([...Object.keys(before.driftsByFeature ?? {}), ...Object.keys(live.driftsById)])].map(id => [id, (before.driftsByFeature?.[id] ?? 0) + (live.driftsById[id] ?? 0)])) }),
       agentsRun: before.agentsRun + live.agentsRun,
+      ...(Object.keys(live.agentsById).length === 0
+        ? {}
+        : { agentsByFeature: Object.fromEntries([...new Set([...Object.keys(before.agentsByFeature ?? {}), ...Object.keys(live.agentsById)])].map(id => [id, (before.agentsByFeature?.[id] ?? 0) + (live.agentsById[id] ?? 0)])) }),
       agentsQueued: before.agentsQueued + live.agentsQueued,
       ...(live.linesAdded + live.linesRemoved === 0
         ? {}
@@ -309,6 +312,7 @@ async function flushStats($: EngineInterface, change: (s: SessionStats) => Sessi
       live.drifts = 0
       live.driftsById = {}
       live.agentsRun = 0
+      live.agentsById = {}
       live.agentsQueued = 0
       live.linesAdded = 0
       live.linesRemoved = 0
@@ -1111,6 +1115,13 @@ function paneHeader(
 
 /** What a Specs filter token may read besides the feature itself (061): priorities and worktrees. */
 const specFilterContext = (stats: SessionStats | undefined) => ({ priorities: stats?.priorities ?? {}, worktrees: worktreesById(stats?.worktrees) })
+
+/** Counts a subagent run, and against the feature that was active when it started (054 #37). */
+async function noteAgentRun($: EngineInterface): Promise<void> {
+  live.agentsRun += 1
+  const id = (await $.state.get(SPECKIT)).value?.active?.id
+  if (id !== undefined) live.agentsById[id] = (live.agentsById[id] ?? 0) + 1
+}
 
 /** Notes the turn's change to the active tasks as diff hunks for the Tasks tab (024 #8). */
 async function noteTasksDiff($: EngineInterface, state: SpeckitState | undefined): Promise<void> {
@@ -2068,7 +2079,7 @@ async function gateCall($: GateArgs[0], e: GateArgs[1], next: GateArgs[2]): Prom
         const detail = decision.band === 'throttle' ? `throttle, cap ${decision.cap}: ${running} subagents running` : decision.band
         await logGovernor($, `observe: would queue ${input.description ?? 'subagent'} (${detail})`)
       }
-      live.agentsRun += 1
+      await noteAgentRun($)
       try {
         return await next(e)
       } finally {
@@ -2080,7 +2091,7 @@ async function gateCall($: GateArgs[0], e: GateArgs[1], next: GateArgs[2]): Prom
     }
     return next(e)
   }
-  if (e.tool === 'Agent' && !governs) live.agentsRun += 1
+  if (e.tool === 'Agent' && !governs) await noteAgentRun($)
   if (!governs) return next(e)
   const { usage, decision } = await decisionNow($)
   if (decision.highest === undefined) return next(e)
@@ -2089,7 +2100,7 @@ async function gateCall($: GateArgs[0], e: GateArgs[1], next: GateArgs[2]): Prom
   const isSubagentCall = (e as { agentId?: string }).agentId !== undefined
   // Counted before it runs; `isCounted` when the cap check already counted it.
   const runAgent = async (isCounted = false) => {
-    live.agentsRun += 1
+    await noteAgentRun($)
     if (!isCounted) await updateUsage($, u => ({ ...u, inFlight: u.inFlight + 1 }))
     try {
       return await next(e)

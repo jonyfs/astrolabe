@@ -242,6 +242,7 @@ export const FR: Dictionary = {
   'kpi.turns': 'tours',
   'kpi.toolCalls': 'outils',
   'kpi.drifts': 'alarmes de dérive',
+  'kpi.agentsByFeature': 'par feature',
   'kpi.subagents': 'sous-agents',
   'kpi.subagentsValue': '{run} lancés, {queued} en file',
   'kpi.subagentRun': 'exécution de sous-agent',

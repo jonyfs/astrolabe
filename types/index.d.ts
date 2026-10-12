@@ -309,6 +309,8 @@ export type SessionStats = {
   compactions?: { n: number; freed: number }
   /** Drift alarms per feature id this session (054 #35). */
   driftsByFeature?: Record<string, number>
+  /** Subagent runs per feature id this session (054 #37). */
+  agentsByFeature?: Record<string, number>
   /** How many times the advisor ran this session, and the last time (055). */
   advisor?: { runs: number; at: number; last?: { id: string; text: string; at: number } }
   /** The release gate of a repository with a plugin.json (054 #60): its version and whether that tag exists. */
