@@ -246,6 +246,8 @@ export const EN = {
   'kpi.toolCalls': 'tool calls',
   'kpi.drifts': 'drift alarms',
   'kpi.agentsByFeature': 'by feature',
+  'kpi.ticksBy': 'ticked by',
+  'kpi.ticksByValue': 'subagents {sub} · main {main} ({share}% by subagents)',
   'kpi.subagents': 'subagents',
   'kpi.subagentsValue': '{run} run, {queued} queued',
   'kpi.subagentRun': 'subagent run',

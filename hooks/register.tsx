@@ -15,6 +15,7 @@ import { phaseToasts } from './core/phase-toast'
 import { justFinished } from './core/next-command'
 import { filterChips, filterFeatures, helpRows, moveSpecSelection, nextSort, nextStatus, taskRows, windowUnits, wrappedRows, type PaneRow, sessionRows, specsRows } from './core/pane'
 import { presetOf } from './core/presets'
+import { ticksIn } from './core/tasks-parser'
 import { spinnerSuffix } from './core/spinner'
 import { astrolabeUpdate, firstLine, isDue, isStoredUpdates, localDay, parseCliVersion, parseGstackCheck, parseSelfCheck, skillsVersusCli, releaseNotesUrl, skillsUpdate, updateLabel } from './core/updates'
 import { fileUrl, joinPath } from './core/paths'
@@ -141,7 +142,7 @@ const PR_TTL_MS = 300_000
 
 // The session's numbers between writes (018): a tool call costs no state write; they are
 // written at the end of each main turn and at each measure. A reload loses one turn's counts.
-const live = { toolCalls: 0, drifts: 0, driftsById: {} as Record<string, number>, agentsRun: 0, agentsById: {} as Record<string, number>, agentsQueued: 0, linesAdded: 0, linesRemoved: 0, model: undefined as string | undefined, effort: undefined as string | undefined }
+const live = { toolCalls: 0, drifts: 0, driftsById: {} as Record<string, number>, agentsRun: 0, agentsById: {} as Record<string, number>, ticksMain: 0, ticksSub: 0, agentsQueued: 0, linesAdded: 0, linesRemoved: 0, model: undefined as string | undefined, effort: undefined as string | undefined }
 // The footer's room: the last width a drawing saw, less the "⚠ astrolabe: " the terminal adds.
 let columnsSeen = 120
 let surfaceSeen: string | null = 'terminal'
@@ -299,6 +300,9 @@ async function flushStats($: EngineInterface, change: (s: SessionStats) => Sessi
         ? {}
         : { agentsByFeature: Object.fromEntries([...new Set([...Object.keys(before.agentsByFeature ?? {}), ...Object.keys(live.agentsById)])].map(id => [id, (before.agentsByFeature?.[id] ?? 0) + (live.agentsById[id] ?? 0)])) }),
       agentsQueued: before.agentsQueued + live.agentsQueued,
+      ...(live.ticksMain + live.ticksSub === 0
+        ? {}
+        : { ticksBy: { main: (before.ticksBy?.main ?? 0) + live.ticksMain, sub: (before.ticksBy?.sub ?? 0) + live.ticksSub } }),
       ...(live.linesAdded + live.linesRemoved === 0
         ? {}
         : { lines: { added: (before.lines?.added ?? 0) + live.linesAdded, removed: (before.lines?.removed ?? 0) + live.linesRemoved } }),
@@ -313,6 +317,8 @@ async function flushStats($: EngineInterface, change: (s: SessionStats) => Sessi
       live.driftsById = {}
       live.agentsRun = 0
       live.agentsById = {}
+      live.ticksMain = 0
+      live.ticksSub = 0
       live.agentsQueued = 0
       live.linesAdded = 0
       live.linesRemoved = 0
@@ -2641,6 +2647,12 @@ export const register: Register = (on, options) => {
         const changed = linesChanged(e.old_string, e.new_string)
         live.linesAdded += changed.added
         live.linesRemoved += changed.removed
+        // Which thread ticked the boxes, the main one or a subagent (054 #39).
+        if (/(^|[\\/])(tasks|spec)\.md$/.test(e.file_path)) {
+          const ticked = ticksIn(e.old_string, e.new_string)
+          if ((e as { agentId?: string }).agentId === undefined) live.ticksMain += ticked
+          else live.ticksSub += ticked
+        }
       }
     }
     await touchFile($, preset, e.file_path, true, output?.isError === true ? undefined : { before: e.old_string, after: e.new_string })
