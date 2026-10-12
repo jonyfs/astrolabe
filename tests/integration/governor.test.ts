@@ -65,7 +65,7 @@ describe('fan-out under the cap (US2)', () => {
     const ui = await mountPane($ as never, 'terminal')
     await ui.press('tab-session')
     expect(await ui.body()).toContain('q1 job a1 · /astrolabe run q1')
-    expect((await ui.find({ key: 'queue-run-q1' }))?.props['hotkey']).toBe('a')
+    expect((await ui.find({ key: 'queue-run-q1' }))?.props['hotkey']).toBe('q')
     await ui.press('queue-run-q1')
     await session.clock.settle()
     expect(session.submitted.at(-1)).toContain('do a1')

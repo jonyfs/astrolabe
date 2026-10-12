@@ -15,7 +15,7 @@ import { STATUS_ROLE, type ThemeRole } from './theme'
 import type { Feature, SessionMemo, SpeckitState } from './types'
 
 /** A row; `segments`, when given, colour parts of `text` (which stays their join) (052 #12). */
-export type PaneRow = { key: string; text: string; role: ThemeRole; bold?: boolean; selected?: boolean; label?: string; value?: string; action?: { id: string; label: string; hotkey: string; kind?: 'allow' | 'revoke' }; copy?: string; href?: string; links?: ReadonlyArray<{ label: string; href: string }>; segments?: ReadonlyArray<{ text: string; role: ThemeRole }> }
+export type PaneRow = { key: string; text: string; role: ThemeRole; bold?: boolean; selected?: boolean; label?: string; value?: string; action?: { id: string; label: string; hotkey?: string; kind?: 'allow' | 'revoke' }; copy?: string; href?: string; links?: ReadonlyArray<{ label: string; href: string }>; segments?: ReadonlyArray<{ text: string; role: ThemeRole }> }
 
 const BAR_CELLS = 10
 const noSpeckit = (lang: Lang): PaneRow => ({ key: 'none', text: tr(lang, 'pane.noSpeckit'), role: 'muted' })

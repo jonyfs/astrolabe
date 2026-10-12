@@ -5,6 +5,7 @@ import type { ElementTable, RenderNode } from 'claude-code'
 import type { PaneRow } from '../core/pane'
 import { t, type Lang, type TextKey } from '../core/i18n'
 import { markText } from '../core/icons'
+import { hotkeyOf } from '../core/keys'
 import { COLORBLIND_MARKS, type Tokens } from '../core/theme'
 import type { PaneTab } from '../core/types'
 
@@ -85,10 +86,10 @@ export const paneTree = (
           onPress={() => onSelect(item.tab)}
         />
       ))}
-      {/* h opens Help from any tab (052 #50). */}
-      {tab !== 'help' && <Button key="help-key" label="? h" hotkey="h" plain onPress={() => onSelect('help')} />}
+      {/* ? opens Help from any tab, pressed with h (052 #50, 064 #7). */}
+      {tab !== 'help' && <Button key="help-key" label={`? ${hotkeyOf('?')}`} hotkey={hotkeyOf('?')} plain onPress={() => onSelect('help')} />}
       {/* f focuses the filter (043 #23); ✕ closes the pane (043 #28). */}
-      {extras.onFind !== undefined && <Button key="find" label={m('⌕ f')} hotkey="f" plain onPress={() => extras.onFind!()} />}
+      {extras.onFind !== undefined && <Button key="find" label={m(`/ ${hotkeyOf('/')}`)} hotkey={hotkeyOf('/')} plain onPress={() => extras.onFind!()} />}
       {/* s cycles the status filter (054 #21). */}
       {extras.status !== undefined && <Button key="status-filter" label={`s ${extras.status.label}`} hotkey="s" plain onPress={() => extras.status!.onPress()} />}
       {/* p cycles the active spec's priority: normal, high, low (051). */}

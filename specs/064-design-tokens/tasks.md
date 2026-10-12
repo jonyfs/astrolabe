@@ -110,9 +110,9 @@ Each block below touches different new files; the apply tasks share `pane.ts` an
 
 ### #7 keys
 
-- [ ] T026 [P] [US5] #7 Write `tests/core/keys.test.ts`: table holds `r q ? / c o p a space esc`, `verbOf('h')` resolves to `?`, no key appears twice
-- [ ] T027 [US5] #7 Create `hooks/core/keys.ts` with `KEY_VERBS` and `verbOf`
-- [ ] T028 [US5] #7 Make `hooks/modules/help.ts`, the pane's legend text in `hooks/core/pane.ts` and the key handling in `hooks/register.tsx` read the table; `h` stays an alias of `?`; align `i18n` key labels
+- [x] T026 [P] [US5] #7 Write `tests/core/keys.test.ts`: table holds `r q ? / c o p a space esc`, `verbOf('h')` resolves to `?`, no key appears twice
+- [x] T027 [US5] #7 Create `hooks/core/keys.ts` with `KEY_VERBS` and `verbOf`
+- [x] T028 [US5] #7 Make the pane's tool buttons in `hooks/surfaces/pane.tsx` and the queued-run letters in `hooks/register.tsx` read the table (`?` is pressed with `h`, `/` with `f`, because a Button hotkey is one digit or lowercase letter; the first queued run takes `q`); add a pane integration test for the labels and hotkeys
 
 ### #8 prefix
 

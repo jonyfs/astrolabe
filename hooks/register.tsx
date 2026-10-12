@@ -21,6 +21,7 @@ import { fileUrl, joinPath } from './core/paths'
 import { configMark, nextFor, nextPriority, skillsForPhase, specDetail, OPTION_GROUPS, optionDefaults, optionGroup, parallelPrompt, parsePriority, REVIEW_MODEL, reviewPrompt, withPriority, type OptionGroup, type Priority } from './core/spec-actions'
 import { parallelTasks } from './core/extensions'
 import { VERSION } from './core/version'
+import { QUEUE_HOTKEYS } from './core/keys'
 import { ASK_MS, clockOf, decide, dropped, EXTEND_MS, HOLD_LIFT_MS, holdQuestion, nextHeld, isPaused, isReadOnlyTool, parseAllow, pauseQuestion, RAISE_MS, refusal, resumePrompt, runPrompt, usageSegment, type Decision, type Question, usageRows } from './core/governor'
 import { chipForeground, CHIPS, FLAVORS, flavorOf, isThemeKeys, lighten, STATUS_ROLE, themeOf, type ThemeRole } from './core/theme'
 import { capDiff, DIFF_FOLD_MS, foldedDiff, recapLine, recapOf, tasksDiff } from './core/summary'
@@ -59,8 +60,7 @@ const PANE_STATE = { plugin: 'astrolabe', key: 'pane' } as const
 const PANE_ID = 'astrolabe'
 const PANE_TITLE = '🧭 Astrolabe'
 const ASK_ID = 'astrolabe-usage'
-// No `b`: it pages the pane back by a window (043 #29).
-const QUEUE_HOTKEYS = 'acdegilmnoqtuvwxyz'
+// The queued run letters come from core/keys.ts: `q` first, never `b` (it pages back, 043 #29).
 /** `/astrolabe doctor` (048 #79): what Astrolabe needs, each line with the fix when it is missing. */
 /** The doctor's checks, one line each; `doctor` and the Help tab's Health block share them (052 #42). */
 async function doctorLines($: EngineInterface): Promise<string[]> {
@@ -1520,14 +1520,14 @@ async function sessionTabRows(
     ...usageRows(usage, now, governThresholds).map(([name, text]) => {
       const queued = name === 'queue' || name === '' ? usage.queue[queueIndex] : undefined
       if (queued !== undefined) {
-        const hotkey = QUEUE_HOTKEYS[queueIndex]!
+        const hotkey = QUEUE_HOTKEYS[queueIndex]
         queueIndex += 1
         return valueRow(
           `usage-queue-${queued.id}`,
           name,
           `${queued.id} ${queued.description} · /astrolabe run ${queued.id}`,
           'text',
-          { action: { id: queued.id, label: t(lang, 'queue.runButton', { key: hotkey }), hotkey } },
+          { action: { id: queued.id, label: hotkey === undefined ? t(lang, 'queue.runButton', { key: '-' }) : t(lang, 'queue.runButton', { key: hotkey }), ...(hotkey === undefined ? {} : { hotkey }) } },
         )
       }
       return valueRow(`usage-${name}`, name, text, name === 'state' ? bandRole : 'text')

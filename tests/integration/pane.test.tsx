@@ -49,6 +49,17 @@ describe('the pane tabs (US1, US2)', () => {
     })
   }
 
+  test('064 #7: the tools carry the shared key verbs; ? is pressed with h and / with f', async ($, on) => {
+    await setup($ as never, on as never)
+    const ui = await mountPane($ as never, 'terminal', 120)
+    expect((await ui.find({ key: 'help-key' }))?.props['hotkey']).toBe('h')
+    expect((await ui.find({ key: 'help-key' }))?.props['label']).toBe('? h')
+    expect((await ui.find({ key: 'find' }))?.props['hotkey']).toBe('f')
+    expect((await ui.find({ key: 'find' }))?.props['label']).toBe('/ f')
+    expect((await ui.find({ key: 'refresh' }))?.props['hotkey']).toBe('r')
+    await ui.unmount()
+  })
+
   test('050 #99: every tab renders on Desktop, with PR links or a text fallback', async ($, on) => {
     const { session } = await setup($ as never, on as never)
     session.script.processes['gh pr list --state open --limit 20 --json number,title,headRefName,headRefOid,url,labels,reviewDecision,statusCheckRollup,mergeStateStatus,isDraft,author,createdAt'] = {
