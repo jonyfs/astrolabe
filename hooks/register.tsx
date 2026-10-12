@@ -182,7 +182,7 @@ async function drawStatus($: EngineInterface, state: Held['state']): Promise<voi
   if (footerOwner === 'statusline') return
   // With the footer in the pane (035), the status entry keeps only what is never dropped.
   const [usage, stats] = await Promise.all([$.state.get(USAGE), $.state.get(SESSION)])
-  $.ui.status(footerText({ ...(await footerInput($, state, Math.max(20, columnsSeen - 14), { usage: usage.value ?? DEFAULT_USAGE, stats: stats.value })), lead: footerIn === 'pane' }))
+  $.ui.status(footerText({ ...(await footerInput($, state, Math.max(20, columnsSeen - 14), { usage: usage.value ?? DEFAULT_USAGE, stats: stats.value })), lead: footerIn === 'pane' && columnsSeen < WIDE_STATUS_COLUMNS }))
 }
 
 async function showStatus($: EngineInterface, state: Held['state']): Promise<void> {
@@ -1270,6 +1270,8 @@ let imagesOption: unknown
 let pullRequests = false
 // When the last main turn ended; the prompt cache timer fires only if no turn came after it (022 #34).
 const CACHE_WARN_MS = 270_000
+/** From this width the status entry shows the whole footer on one line, even with the footer in the pane (054 #47). */
+const WIDE_STATUS_COLUMNS = 140
 let cacheWarningTimer: ReturnType<EngineInterface['clock']['after']> | undefined
 
 // The timer is transient; session.start and later usage readings rebuild it from $.state.
@@ -2452,6 +2454,11 @@ export const register: Register = (on, options) => {
       cacheWarningTimer?.cancel()
       cacheWarningTimer = $.clock.after(CACHE_WARN_MS, async () => {
         cacheWarningTimer = undefined
+        // Only when the next step is likely soon (054 #95): a skill running, or open tasks on the active feature.
+        const speckit = (await $.state.get(SPECKIT)).value
+        const activeFeature = speckit?.features.find(f => f.dir === speckit.active?.dir)
+        const soon = speckit?.runningSkill !== undefined || (activeFeature !== undefined && activeFeature.phase === 'implement' && activeFeature.done < activeFeature.total)
+        if (!soon) return
         await showToast($, t(currentLang(), 'toast.cache'))
       })
     }

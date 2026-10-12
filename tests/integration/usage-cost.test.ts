@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
 
+import { scenario as allDone } from '../fixtures/all-done'
 import { scenario as halfDone } from '../fixtures/half-done'
 import { completeTurn, installEngine, installTree, startSession } from '../helpers/fake-fs'
 
@@ -37,6 +38,15 @@ describe('usage and cost (022)', () => {
     await measure($ as never, 86, 1)
     await measure($ as never, 90, 1)
     expect(session.toasts.filter(t => t.includes('context'))).toEqual(['🧭 The context window is 86% full: /compact before Claude Code compacts it for you'])
+  })
+  test('054 #95: no cache warning when nothing is likely to follow within five minutes', async ($, on) => {
+    const session = installTree(on, allDone.tree, allDone.cwd)
+    installEngine(on)
+    await session.clock.set(NOW)
+    await startSession($ as never, allDone.cwd)
+    await completeTurn($ as never)
+    await session.clock.advance(5 * 60_000)
+    expect(session.toasts.filter(x => x.includes('cache'))).toEqual([])
   })
   test('049 #86 prompt cache: a newer turn cancels the stale warning and starts a new 4.5-minute timer', async ($, on) => {
     const session = await setup($ as never, on as never)
