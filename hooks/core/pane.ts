@@ -515,7 +515,9 @@ export const taskRows = (
     const current = state.currentTask
     const isCurrent = current !== undefined && t.id !== undefined && current.id === t.id
     const ran = isCurrent && now !== undefined && current.startedAt !== undefined ? duration(now - current.startedAt) : ''
-    const clock = ran === '' ? bracketOf(index) : `${STATE_GLYPHS.elapsed} ${ran}`
+    // A running task in a [P] run keeps its bracket beside the clock.
+    const bracket = bracketOf(index)
+    const clock = ran === '' ? bracket : bracket === '' ? `${STATE_GLYPHS.elapsed} ${ran}` : `${bracket} ${STATE_GLYPHS.elapsed} ${ran}`
     const head = `${isCurrent ? '▸ ' : ''}${t.id === undefined ? '' : `${padId(t.id, taskIdWidth)} `}`
     // The ◷ sits at the right edge, the current row in bold (052 #20).
     const body = `${head}${cut(cleanTaskText(t.text), columns - width(head) - width(clock) - (clock === '' ? 0 : 2))}`.trimEnd()
