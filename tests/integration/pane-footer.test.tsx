@@ -31,7 +31,7 @@ const setup = async ($: never, on: never, env: Record<string, string> = {}) => {
 describe('the footer in the pane (035)', () => {
   test('default: the status entry keeps the Spec Kit part and the deciding window', { options: { icons: 'ascii' } }, async ($, on) => {
     const session = await setup($ as never, on as never)
-    expect(session.last()).toMatch(/^◆ 002 · implement 45% · 5h 42% \(\d+h\d\dm\)$/)
+    expect(session.last()).toMatch(/^◆ 002 · implement 45% │ 5h 42% \(\d+h\d\dm\)$/)
   })
   for (const tab of ['specs', 'tasks', 'session', 'dashboard', 'help', 'config', 'prs']) {
     test(`default: the ${tab} tab ends with the footer`, { options: { icons: 'ascii' } }, async ($, on) => {
@@ -47,13 +47,13 @@ describe('the footer in the pane (035)', () => {
   test('041 #9: NO_COLOR draws the footer as text with the thin separator', async ($, on) => {
     await setup($ as never, on as never, { NO_COLOR: '1' })
     const ui = await mountPane($ as never, 'terminal', 100, 80)
-    expect(await ui.footer()).toMatch(/5h 42% \(2h00m\) · /)
+    expect(await ui.footer()).toMatch(/5h 42% \(2h00m\) │ /)
     await ui.unmount()
   })
   test('041 #9: without NO_COLOR the footer is chips', async ($, on) => {
     await setup($ as never, on as never)
     const ui = await mountPane($ as never, 'terminal', 100, 80)
-    expect(await ui.footer()).not.toMatch(/5h 42% \(2h00m\) · /)
+    expect(await ui.footer()).not.toMatch(/5h 42% \(2h00m\) │ /)
     await ui.unmount()
   })
   test('footerIn status: the old status entry, no pane footer', { options: { icons: 'ascii', footerIn: 'status' } }, async ($, on) => {

@@ -1,9 +1,10 @@
 // The footer: the status entry under the prompt, in place of a statusline (spec 018).
-// Ranked parts, joined with ' · ', dropped from the least important end to fit. Pure: no $.
+// Ranked parts, one zone each and joined with ' │ ' (064 #9), dropped from the least important end to fit. Pure: no $.
 import { clockOf, decide, isPaused, labelOf, usageSegment, type Decision } from './governor'
 import { branchWebUrl } from './git-status'
 import { duration, resetIn } from './duration'
 import { usageRamp } from './usage-ramp'
+import { joinZones, ZONE_SEPARATOR } from './zones'
 import { EMOJI_WIDE } from './glyphs'
 import type { Icons } from './icons'
 import { t, type Lang } from './i18n'
@@ -43,7 +44,7 @@ export type FooterInput = {
 }
 
 
-const SEP = ' · '
+const SEP = ZONE_SEPARATOR
 
 /** Columns a text takes: pictographs and the declared wide emoji-set entries count two (064 #3). */
 export const textWidth = (text: string): number =>
@@ -191,7 +192,7 @@ const parts = (input: FooterInput): Part[] => {
 /** The parts that fit `columns`, Spec Kit first, the least important dropped first. */
 const fitted = (input: FooterInput): { speckit: string; kept: Part[] } => {
   let kept = input.lead === true ? parts(input).filter(p => p.rank === 0) : parts(input)
-  const join = (speckit: string) => [speckit, ...kept.map(p => p.text)].filter(s => s !== '').join(SEP)
+  const join = (speckit: string) => joinZones([[speckit], ...kept.map(p => [p.text])])
   let speckit = input.speckit()
   while (textWidth(join(speckit)) > input.columns) {
     const droppable = kept.filter(p => p.rank > 0)
@@ -200,7 +201,7 @@ const fitted = (input: FooterInput): { speckit: string; kept: Part[] } => {
     kept = kept.filter(p => p !== worst)
   }
   if (textWidth(join(speckit)) > input.columns) {
-    const rest = kept.map(p => p.text).join(SEP)
+    const rest = joinZones(kept.map(p => [p.text]))
     const room = input.columns - (rest === '' ? 0 : textWidth(rest) + SEP.length)
     speckit = input.speckit(Math.max(1, room))
   }
@@ -210,7 +211,7 @@ const fitted = (input: FooterInput): { speckit: string; kept: Part[] } => {
 /** The footer text: Spec Kit first, then the parts in order, fitted to `columns`. */
 export const footerText = (input: FooterInput): string => {
   const { speckit, kept } = fitted(input)
-  return [speckit, ...kept.map(p => p.text)].filter(s => s !== '').join(SEP)
+  return joinZones([[speckit], ...kept.map(p => [p.text])])
 }
 
 export type Chip = { key: string; text: string; colour: ChipColour; rank?: number; links?: ReadonlyArray<{ text: string; href: string }>; /** The whole text of a chip cut to fit, shown on hover (052 #45). */ full?: string }

@@ -122,9 +122,9 @@ Each block below touches different new files; the apply tasks share `pane.ts` an
 
 ### #9 separators
 
-- [ ] T032 [P] [US5] #9 Write `tests/core/zones.test.ts`: zones are joined by ` │ `, items by ` · `, an item that contains `│` makes the test helper throw
-- [ ] T033 [US5] #9 Create `hooks/core/zones.ts` with `joinZones`
-- [ ] T034 [US5] #9 Build the footer line, the band text and the status entry through `joinZones` in `hooks/core/footer.ts`, `hooks/core/band.ts` and `hooks/core/status-text.ts`; add assertions that no rendered zone holds both separators
+- [x] T032 [P] [US5] #9 Write `tests/core/zones.test.ts`: zones are joined by ` │ `, items by ` · `, an item that contains `│` makes the test helper throw
+- [x] T033 [US5] #9 Create `hooks/core/zones.ts` with `joinZones`
+- [x] T034 [US5] #9 Build the footer line through `joinZones` in `hooks/core/footer.ts`: each chip is a zone, so chips are joined with `│` and a chip's own items with `·`; the band's segments and the status entry candidates are single zones already; add assertions that no rendered zone holds both separators
 
 ---
 

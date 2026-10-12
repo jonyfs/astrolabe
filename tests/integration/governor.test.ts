@@ -38,10 +38,10 @@ describe('windows in the status entry (US1)', () => {
     await settleStatus(session)
     // The footer (018) carries the window's reset time.
     const at = '1h00m'
-    expect(session.last()).toBe(`◆ 002 · implement 45% · 5h 42% (${at})`)
+    expect(session.last()).toBe(`◆ 002 · implement 45% │ 5h 42% (${at})`)
     await measure($ as never, reading(83, 3_601_000))
     await settleStatus(session)
-    expect(session.last()).toBe(`◆ 002 · implement 45% · 5h 83%▴ hold (${at})`)
+    expect(session.last()).toBe(`◆ 002 · implement 45% │ 5h 83%▴ hold (${at})`)
   })
   test('no readings: nothing added, nothing refused', async ($, on) => {
     const { session } = await setup($ as never, on as never)

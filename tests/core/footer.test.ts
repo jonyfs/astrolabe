@@ -27,7 +27,7 @@ describe('the footer (018 FR-001, FR-002)', () => {
   test('every part in order, ascii icons', () => {
     const text = footerText({ ...full, icons: iconSet('ascii'), columns: 200 })
     expect(text).toBe(
-      `◆ 002 · implement 45% · 7d 83%▴ hold (${resetOf(full.readings[1]!.resetsAt, full.now)}) · 5h 42% (${resetOf(reset, full.now)}) · ctx 61% · opus 5.5 high · git:main ^2 v1 ~3 · t 1h05m`,
+      `◆ 002 · implement 45% │ 7d 83%▴ hold (${resetOf(full.readings[1]!.resetsAt, full.now)}) │ 5h 42% (${resetOf(reset, full.now)}) │ ctx 61% │ opus 5.5 high │ git:main ^2 v1 ~3 │ t 1h05m`,
     )
   })
 
@@ -93,7 +93,7 @@ describe('the footer (018 FR-001, FR-002)', () => {
   test('a renewed window says so', () => {
     const past = new Date(NOW - 60_000).toISOString()
     const text = footerText({ speckit: () => '◆ 002', readings: [{ kind: 'five_hour', percentUsed: 95, resetsAt: past }], now: NOW, icons: iconSet('ascii'), columns: 120 })
-    expect(text).toBe('◆ 002 · 5h renewed')
+    expect(text).toBe('◆ 002 │ 5h renewed')
   })
 
   test('model names', () => {

@@ -59,7 +59,7 @@ describe('the footer (018 US1)', () => {
     await completeTurn($)
     await settleStatus(session)
     const text = session.last() ?? ''
-    expect(text.startsWith('◆ 002 · implement 45% · 5h 42%')).toBe(true)
+    expect(text.startsWith('◆ 002 · implement 45% │ 5h 42%')).toBe(true)
     expect(text).toContain('ctx 61%')
     expect(text).toContain('opus 5.5 high')
     expect(text).not.toContain('haiku')
@@ -122,6 +122,6 @@ describe('icons by surface (018 US2)', () => {
   test('ascii wins everywhere when chosen', { options: { footerIn: 'status', icons: 'ascii' } }, async ($, on) => {
     const session = await start($ as never, on as never, 'desktop')
     expect(session.last()).toContain('ctx 61%')
-    expect(/^[\x20-\x7e◆·]*$/.test(session.last() ?? '')).toBe(true)
+    expect(/^[\x20-\x7e◆·│]*$/.test(session.last() ?? '')).toBe(true)
   })
 })
