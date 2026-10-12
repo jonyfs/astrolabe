@@ -45,16 +45,16 @@ Constraints that hold for every task: colours only from `theme.ts` (IX), nothing
 
 ### B. Band, status and prompt → 065-band-and-status
 
-- [ ] T011 #11 Quick-track rail: spec → tasks → impl (P1) → 065
-- [ ] T012 #12 The current step is a chip holding `9/20` (P1) → 065
-- [ ] T013 #13 Paused state takes the band with a lift button (P1) → 065
-- [ ] T014 #14 The next command in one place (P1) → 065
-- [ ] T015 #15 With `footerIn=pane` the status entry is the lead only (P2) → 065
-- [ ] T016 #16 No repeats between spinner, live table and band (P2) → 065
-- [ ] T017 #17 Band chips are links (P2) → 065
-- [ ] T018 #18 Brighten the step chip instead of a second toast in compact (P2) → 065
-- [ ] T019 #19 One `⬆ N` update button (P3) → 065
-- [ ] T020 #20 Idle band keeps the deciding window (P3) → 065
+- [x] T011 #11 Quick-track rail: spec → tasks → impl (P1) → 065
+- [x] T012 #12 The current step is a chip holding `9/20` (P1) → 065
+- [x] T013 #13 Paused state takes the band with a lift button (P1) → 065
+- [x] T014 #14 The next command in one place (P1) → 065
+- [x] T015 #15 With `footerIn=pane` the status entry is the lead only (P2) → 065
+- [x] T016 #16 No repeats between spinner, live table and band (P2) → 065
+- [x] T017 #17 Band chips are links (P2) → 065
+- [x] T018 #18 Brighten the step chip instead of a second toast in compact (P2) → 065
+- [x] T019 #19 One `⬆ N` update button (P3) → 065
+- [x] T020 #20 Idle band keeps the deciding window (P3) → 065
 
 ### C. Pane and navigation → 066-pane-five-tabs
 

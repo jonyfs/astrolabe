@@ -8,7 +8,11 @@ import { scenario as worktree } from '../fixtures/branch-worktree'
 import { completeTurn, installEngine, installTree, startSession } from '../helpers/fake-fs'
 import { drawBand, installRenderEngine, SURFACES } from '../helpers/render'
 
-const BAND_002 = '◆ 002 band-hint  constitution ● specify ● clarify ● plan ● tasks ● implement ◐  ████░░░░░░ 9/20 45%'
+// 120 columns is the 100-column tier of board 2: marks only, a 9-cell bar, the task id.
+const BAND_002 = ' 002  band-hint  ✓✓✓✓  ▶ implement 9/20  ████░░░░░ │ ▸ T010'
+// A terminal draws a link as its text and, without OSC 8, the address after it.
+// The open-pane button ends the row (`≡ a`) and is not part of the rail.
+const noLinks = (text: string) => text.replace(/file:\/\/\/[^\s✓]*?\.md/g, '').replace(/≡ a$/, '')
 
 const colorsOf = (tree: unknown): string[] => {
   const out: string[] = []
@@ -30,7 +34,7 @@ describe('the band above the prompt (US1)', () => {
       installRenderEngine(on)
       await startSession($, halfDone.cwd)
       const drawn = await drawBand($ as never, surface, 120)
-      expect(drawn.text).toBe(BAND_002)
+      expect(noLinks(drawn.text)).toBe(BAND_002)
       expect(drawn.engineKept).toBe(true)
     })
 
@@ -66,6 +70,21 @@ describe('the band above the prompt (US1)', () => {
   }
 })
 
+describe('the band always includes next(e) (065 #20, Principle VII)', () => {
+  for (const surface of SURFACES) {
+    test(`${surface}: the engine's own tree is kept at 80, 100, 144, 180 and 200 columns`, async ($, on) => {
+      installTree(on, halfDone.tree, halfDone.cwd)
+      installEngine(on)
+      installRenderEngine(on)
+      await startSession($, halfDone.cwd)
+      for (const columns of [80, 100, 144, 180, 200]) {
+        const drawn = await drawBand($ as never, surface, columns)
+        expect({ columns, kept: drawn.engineKept, drew: drawn.text.includes(' 002 ') }).toEqual({ columns, kept: true, drew: true })
+      }
+    })
+  }
+})
+
 describe('presets and flavors (US4)', () => {
   test('minimal draws no band', { options: { preset: 'minimal' } }, async ($, on) => {
     const session = installTree(on, halfDone.tree, halfDone.cwd)
@@ -73,7 +92,7 @@ describe('presets and flavors (US4)', () => {
     installRenderEngine(on)
     await startSession($, halfDone.cwd)
     expect((await drawBand($ as never, 'terminal')).text).toBe('')
-    expect(session.last()).toBe('◆ 002 · implement 45%')
+    expect(session.last()).toBe('◆ 002 impl 45%')
   })
 
   for (const flavor of ['mocha', 'latte', 'colorblind'] as const) {
@@ -83,7 +102,8 @@ describe('presets and flavors (US4)', () => {
       installRenderEngine(on)
       await startSession($, halfDone.cwd)
       const colors = colorsOf((await drawBand($ as never, 'terminal')).tree)
-      const allowed = new Set(Object.values(FLAVORS[flavor]))
+      // A chip's foreground is the stronger-contrast of two fixed colours (chipForeground).
+      const allowed = new Set([...Object.values(FLAVORS[flavor]), '#11111b', '#eff1f5'])
       expect(colors.length > 0).toBe(true)
       expect(colors.filter(c => !allowed.has(c))).toEqual([])
     })

@@ -45,7 +45,7 @@ export const paneTree = (
   /** What is above and below the rows shown, with the presses that scroll (038). */
   nav?: { above: number; below: number; up: () => Promise<void>; down: () => Promise<void>; labels: { more: string } },
   /** Counts beside the tab labels (043 #21) and the keys of the tab shown (043 #25). */
-  extras: { badges?: Partial<Record<PaneTab, string>>; legend?: string; onClose?: () => Promise<void>; onFind?: () => Promise<void>; onCopy?: (text: string) => Promise<void>; onRefresh?: () => Promise<void>; onCopyKpis?: () => Promise<void>; showKeys?: boolean; sort?: { label: string; onPress: () => Promise<void> }; onClear?: () => Promise<void>; onPriority?: () => Promise<void>; onRunQueued?: (id: string) => Promise<void>; rowButtons?: ReadonlyArray<{ key: string; label: string; hotkey?: string; onPress: () => void }>; rowDetail?: string; onAllowUsage?: () => Promise<void>; onRevokeUsage?: () => Promise<void>; status?: { label: string; onPress: () => Promise<void> }; columns?: number; marks?: 'unicode' | 'ascii' | 'words'; colorblind?: boolean; wrapLongNames?: boolean; Link?: ElementTable<'terminal'>['Link'] } = {},
+  extras: { onUpdate?: (id: string) => Promise<void>; badges?: Partial<Record<PaneTab, string>>; legend?: string; onClose?: () => Promise<void>; onFind?: () => Promise<void>; onCopy?: (text: string) => Promise<void>; onRefresh?: () => Promise<void>; onCopyKpis?: () => Promise<void>; showKeys?: boolean; sort?: { label: string; onPress: () => Promise<void> }; onClear?: () => Promise<void>; onPriority?: () => Promise<void>; onRunQueued?: (id: string) => Promise<void>; rowButtons?: ReadonlyArray<{ key: string; label: string; hotkey?: string; onPress: () => void }>; rowDetail?: string; onAllowUsage?: () => Promise<void>; onRevokeUsage?: () => Promise<void>; status?: { label: string; onPress: () => Promise<void> }; columns?: number; marks?: 'unicode' | 'ascii' | 'words'; colorblind?: boolean; wrapLongNames?: boolean; Link?: ElementTable<'terminal'>['Link'] } = {},
 ) => {
   const Link = extras.Link
   // The pane's own marks in the set the icons option and the accessible mode pick (052 #49, #47).
@@ -125,7 +125,15 @@ export const paneTree = (
               {row.href !== undefined && Link !== undefined && <Text> </Text>}
               {row.href !== undefined && Link !== undefined && rowLink(row, `${row.key}-spec-link`, row.href, m('↗'))}
               {Link !== undefined && (row.links ?? []).map(link => rowLink(row, `link-${link.label}`, link.href, ` ${link.label}${m('↗')}`))}
-              {row.action !== undefined && extras.onRunQueued !== undefined && (
+              {row.action !== undefined && row.action.kind === 'update' && extras.onUpdate !== undefined && (
+                <Button
+                  key={`update-${row.action.id}`}
+                  label={row.action.label}
+                  plain
+                  onPress={() => extras.onUpdate!(row.action!.id)}
+                />
+              )}
+              {row.action !== undefined && row.action.kind !== 'update' && extras.onRunQueued !== undefined && (
                 <Button
                   key={`queue-run-${row.action.id}`}
                   label={row.action.label}
@@ -140,13 +148,15 @@ export const paneTree = (
               ? extras.onAllowUsage !== undefined
               : row.action.kind === 'revoke'
                 ? extras.onRevokeUsage !== undefined
-                : extras.onRunQueued !== undefined) ? (
+                : row.action.kind === 'update'
+                  ? extras.onUpdate !== undefined
+                  : extras.onRunQueued !== undefined) ? (
             <Box key={row.key} flexDirection="row">
               <Text color={tokens[row.role]} bold={row.bold === true} wrap={extras.wrapLongNames === true ? 'wrap' : 'truncate-end'}>
                 {m(colorblindText(row, extras.colorblind))}
               </Text>
               <Button
-                key={row.action.kind === undefined ? `queue-run-${row.action.id}` : `usage-${row.action.kind}`}
+                key={row.action.kind === undefined ? `queue-run-${row.action.id}` : row.action.kind === 'update' ? `update-${row.action.id}` : `usage-${row.action.kind}`}
                 label={row.action.label}
                 hotkey={row.action.hotkey}
                 plain
@@ -154,7 +164,9 @@ export const paneTree = (
                   ? extras.onAllowUsage!()
                   : row.action?.kind === 'revoke'
                     ? extras.onRevokeUsage!()
-                    : extras.onRunQueued!(row.action!.id)}
+                    : row.action?.kind === 'update'
+                      ? extras.onUpdate!(row.action.id)
+                      : extras.onRunQueued!(row.action!.id)}
               />
             </Box>
           ) : row.segments !== undefined ? (

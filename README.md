@@ -114,13 +114,18 @@ For a one-off session without installing, run `claude --plugin-dir ~/src/astrola
 ## What the status entry shows
 
 Astrolabe adds one entry to the status line under the prompt. Claude Code puts the mod's
-name in front of it:
+name in front of it. With the footer in the pane (`footerIn=pane`, the default) the entry is the
+lead and nothing else: the feature, its phase and percentage, and the window that decides.
 
 ```text
-  ⚠ astrolabe: ◆ 002 · implement 45% │ 7d 81%▴ hold
+  ⚠ astrolabe: ◆ 002 implement 45% │ 7d 81%▴ hold · Mon 07:00
 ```
 
-Each part, from left to right:
+It follows the band's tiers. From 144 columns it is the line above. At 100 columns the phase
+takes its short form and the reset goes (`◆ 002 impl 45% │ 7d 81%▴ hold`); below 100 the phase
+goes too (`◆ 002 45% │ 7d 81%▴ hold`). The id and the deciding window are never dropped. With
+`footerIn=status` or `both` the whole footer draws here, in the form the table describes, from
+left to right:
 
 | Part | Example | What it means |
 |---|---|---|
@@ -248,42 +253,55 @@ turn.
 
 ## What the band shows
 
-The band is the row directly above the prompt (the first row in the image at the top):
+The band is one row directly above the prompt (the first row in the image at the top). At 200
+columns, with the 9th of 20 tasks of feature 002 in progress:
 
 ```text
-◆ 002 shopping-cart  constitution ● specify ● clarify ● plan ● tasks ● implement ◐  ████░░░░░░ 9/20 45%
+ 002  shopping-cart  ✓ specify ✓ clarify ✓ plan ✓ tasks  ▶ implement 9/20  █████████░░░░░░░░░░░ 45%  │ ▸ T011 Show an empty-cart message · 4m   ≡ a [ ⬆ gstack 1.91.33 ] [ ✕ ]
 ```
 
 | Part | Example | What it means |
 |---|---|---|
-| Id and name | `◆ 002 band-hint` | The active feature, from `specs/002-band-hint/`. A `~` before the id means the feature was guessed, as in the status entry. |
-| The rail | `constitution ● specify ● … implement ◐` | The six Spec Kit steps in order. `●` is finished, `◐` is the step the feature is in now, `○` is still ahead. The constitution is `●` once it is ratified; while it is missing or still the template it is `◐` and every later step is `○`. When a spec still has `[NEEDS CLARIFICATION` after its plan exists, the current step turns red and shows `?` instead of `◐`. |
-| `…` after a mark | `plan ◐…` | A Spec Kit skill for that step is running in this turn. The dots cycle while it runs; `accessible` keeps them still. |
-| The bar | `███████░░░` | Ten cells, one per tenth of the tasks ticked, rounded down. It appears once `tasks.md` has tasks. Its color follows the share left: green from two thirds ticked, peach from a third, red before that. |
-| The count | `9/20 45%` | Ticked tasks, all tasks, and the percentage rounded down. |
-| Sparkline | `▂▃▅▆` | The deciding usage window over its last 12 readings, one block per reading, from 0% (`▁`) to 100% (`█`). It shows once there are 3 readings, on a band of 70 columns or more. |
-| Update buttons | `updates: [ gstack 1.91.33.0 ]` | A second row when something has a newer version. See [Update notices](#update-notices). |
+| Id chip | ` 002 ` | The active feature, from `specs/002-band-hint/`, as a chip. A `~` before the id means the feature was guessed. It opens `spec.md`. |
+| Name | `shopping-cart` | The feature's name in bold. A `+2` after it counts the other features in progress, and `⑂ name` names the linked worktree this session runs in. |
+| Finished steps | `✓ specify ✓ clarify ✓ plan ✓ tasks` | Each step already done. A click opens the step's file (`spec.md`, `plan.md`, `tasks.md`). The constitution step appears only while the constitution is not ratified. |
+| Current step | ` ▶ implement 9/20 ` | The step the feature is in, as a peach chip holding the ticked and total tasks. With open questions left after the plan it is a red ` ? clarify 2 ` chip. A quick-track spec (`track: quick`) shows `✓ spec ✓ tasks` and ` ▶ impl 3/5 `. |
+| `…` after the chip | `▶ plan …` | A Spec Kit skill for that step is running in this turn. |
+| The bar | `█████████░░░` | One cell per tenth of the tasks ticked at 100 columns, 13 cells from 144, 20 from 200. Green from two thirds ticked, peach from a third, red before that. |
+| The percentage | `45%` | Ticked tasks out of all, rounded down, from 144 columns. Below that the chip's count says it. |
+| The task | `│ ▸ T011 Show an empty-cart message · 4m` | The first open task, its text from 144 columns and how long it has been current from 200. |
+| Counts | `3 agents · 3 gates` | How many subagents and git gates are live. Names are in the live table, not here. |
+| Buttons | `≡ a`, `[ ⬆ gstack 1.91.33 ]`, `[ ✕ ]` | Open the pane (`a` once the band has the keyboard, from 100 columns); one update button, or `⬆ 2` for two or more, which opens the list in the pane's Session tab; hide the update button. |
 
-With the pointer on a step of the rail, a card under the band says what the step is for and how
-many features are in it (`plan: the technical plan, research and data model · 2 features here`).
+With the governor at its pause level the task is replaced by a red `‖ paused until 07:00` and a
+`lift 1h` button; at hold it reads `‖ holding new subagents`.
 
-A finished feature shows every mark as `●` and a full bar. An abandoned feature named by
-`feature.json` shows `◆ 003 name  abandoned` instead of the rail.
+With the pointer on a step name, a card under the band says what the step is for and how many
+features are in it (`plan: the technical plan, research and data model · 2 features here`).
 
-Below 100 columns the rail shows only the current step's name; the hover cards name the others.
-When the band is narrower, it drops detail in this order and never cuts the id: the labels of
-the finished and later steps, then the name, then the bar. Below that it turns compact: the
-current step and the count (`◆ 002  ◐ implement 14/31 45%`), then the rail alone, then the step
-alone (`◆ 002  ◐ implement`), then `◆ 002`. The `bandDensity` option starts lower: `compact` at the
-current step and the count, `minimal` at the step alone. A `+2` after the name counts the other
-features in progress, and `⑂ name` names the linked worktree this session runs in or, from the main checkout, the worktree where the active feature is being worked on.
+A finished feature reads ` ✓ done `. An abandoned feature named by `feature.json` shows
+` 003  name  abandoned` instead of the rail.
 
-After ten minutes with nothing running and nothing typed, the band dims to one line: the id and
-the step (`◆ 002  ◐ implement`). The next activity brings it back.
+The band follows one drop order as the terminal narrows and never cuts the id, the current step,
+its count or (in the status entry) the deciding window: the task's title, then the step names (the
+`✓` marks stay), then the feature name, then the bar and percentage, then the update label (`⬆1`).
+At 144 columns the percentage and the cut title are still there, at 100 the steps are marks
+(`✓✓✓✓`), at 80 the row is the id, the marks, the chip and the task id:
 
-On the next-command row, the run button is where the focus starts, so Enter runs it once the band
-has the keyboard, and with the pointer on it a line says why it is next (`the plan is ready: break
-it into tasks`). In a 100-column terminal it looks like this:
+```text
+ 002  ✓✓✓✓  ▶ implement 9/20  │ ▸ T011                                  ⬆1
+```
+
+The `bandDensity` option starts lower: `compact` at the 100-column row, `minimal` at the 80-column
+row at any width. After ten minutes with nothing running and nothing typed, the band is that
+80-column row, dimmed, with the deciding window (`7d 81%▴ hold`) at its end; the next activity
+brings it back.
+
+Under the `compact` preset a finished phase brightens its step chip for 30 seconds instead of
+raising a toast. The `full` preset keeps the toast.
+
+The next command is not on the band: see [The next command](#the-next-command). In a 100-column
+terminal the band looks like this:
 
 ![Astrolabe in a 100-column terminal](docs/images/narrow-100.svg)
 
@@ -315,16 +333,17 @@ example), that message wins.
 
 ## The next command
 
-Under the band, a row shows the next Spec Kit command as a button. Press it and the command
-runs, as if you had typed it. From 60 columns a `copy` button sits beside it and copies the
-command. Each time the next command changes, it is also proposed in the empty prompt box: press
-Tab (or the right arrow) to take it. `/astrolabe next` runs it from the prompt. When the last task
-of a feature is ticked, the prompt box proposes a retrospective instead: `/speckit-retro` when the
-project has that skill in `.claude/skills/`, gstack's `/retro` otherwise. The `minimal`
-preset shows none of this.
+The next Spec Kit command lives in one place at a time. While the prompt is empty, it is
+proposed in the prompt box: press Tab (or the right arrow) to take it, then Enter. Once you type,
+the prompt hint under the box shows it instead (`next: /speckit-implement · 11 tasks left`), so
+you never see both at once. Each time the next command changes it is proposed again.
+`/astrolabe next` runs it from the prompt, and `/astrolabe` opens the pane, whose Specs tab has
+a button for it on the selected spec. When the last task of a feature is ticked, the prompt box
+proposes a retrospective instead: `/speckit-retro` when the project has that skill in
+`.claude/skills/`, gstack's `/retro` otherwise. The `minimal` preset shows none of this.
 
-The row's buttons have keys once the band has the keyboard (ctrl+x tab, or a click): `n` runs
-the next command, `c` copies it, and `a` opens the `/astrolabe` pane (from 70 columns).
+The band no longer carries a next-command row or the `n` and `c` keys. Its buttons are `a`
+(open the pane), the update button and hide.
 
 ### Acting on a spec
 

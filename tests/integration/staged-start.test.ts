@@ -19,7 +19,7 @@ describe('a staged start (040)', () => {
     const session = installTree(on, tree(), '/proj')
     installEngine(on)
     await startSession($, '/proj')
-    expect(session.last()).toBe('◆ 006 · implement 25%')
+    expect(session.last()).toBe('◆ 006 impl 25%')
     const loading = () => (session.held()?.state.features ?? []).filter(f => f.warnings.includes('loading')).length
     // 220 features: the active one and the twenty newest now, 199 later.
     expect(loading()).toBe(199)

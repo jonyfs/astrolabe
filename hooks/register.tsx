@@ -9,19 +9,22 @@ import { readFeatureDurations } from './modules/durations'
 import { withPr, worktreesById, filtered } from './modules/pane-data'
 import type { ConfigRow, EngineInterface, Hook, Register, RenderNode } from 'claude-code'
 
-import { bandSegments, nextReason, otherFeaturesCard, stepCards, type BandDensity } from './core/band'
+import { bandSegments, bandText, nextReason, otherFeaturesCard, stepCards, type BandDensity } from './core/band'
 import { hintTail } from './core/hint'
 import { phaseToasts } from './core/phase-toast'
 import { justFinished } from './core/next-command'
 import { filterChips, filterFeatures, helpRows, moveSpecSelection, nextSort, nextStatus, taskRows, windowUnits, wrappedRows, type PaneRow, sessionRows, specsRows } from './core/pane'
 import { presetOf } from './core/presets'
 import { spinnerSuffix } from './core/spinner'
-import { astrolabeUpdate, firstLine, isDue, isStoredUpdates, localDay, parseCliVersion, parseGstackCheck, parseSelfCheck, skillsVersusCli, releaseNotesUrl, skillsUpdate, updateLabel } from './core/updates'
+import { bandUpdateLabel, astrolabeUpdate, firstLine, isDue, isStoredUpdates, localDay, parseCliVersion, parseGstackCheck, parseSelfCheck, skillsVersusCli, releaseNotesUrl, skillsUpdate, updateLabel } from './core/updates'
 import { fileUrl, joinPath } from './core/paths'
 import { configMark, nextFor, nextPriority, skillsForPhase, specDetail, OPTION_GROUPS, optionDefaults, optionGroup, parallelPrompt, parsePriority, REVIEW_MODEL, reviewPrompt, withPriority, type OptionGroup, type Priority } from './core/spec-actions'
 import { parallelTasks } from './core/extensions'
 import { VERSION } from './core/version'
 import { QUEUE_HOTKEYS } from './core/keys'
+import { duration } from './core/duration'
+import { statusLead } from './core/status-lead'
+import { usageRamp } from './core/usage-ramp'
 import { ASK_MS, clockOf, decide, dropped, EXTEND_MS, HOLD_LIFT_MS, holdQuestion, nextHeld, isPaused, isReadOnlyTool, parseAllow, pauseQuestion, RAISE_MS, refusal, resumePrompt, runPrompt, usageSegment, type Decision, type Question, usageRows } from './core/governor'
 import { chipForeground, CHIPS, FLAVORS, flavorOf, isThemeKeys, lighten, STATUS_ROLE, themeOf, type ThemeRole } from './core/theme'
 import { capDiff, DIFF_FOLD_MS, foldedDiff, recapLine, recapOf, tasksDiff } from './core/summary'
@@ -39,7 +42,7 @@ import type { Preset } from './core/presets'
 import type { Fs } from './io/fs-port'
 import { findRoot } from './io/root'
 import { activeFilesChanged, applyFileTouch, applyRead, applyShell, applySkill, type Held, reconcileDeferred, reconcileNow, reconcileStart, reconcileTurn } from './io/reconcile'
-import { bandRow, nextRow, updatesRow } from './surfaces/band'
+import { bandRow, edgeWidth, type BandEdge } from './surfaces/band'
 import { askTree } from './surfaces/ask'
 import { dashboardSections, dashboardTree } from './surfaces/dashboard'
 import { burnRate, dial, kpiChips, kpisMarkdown, phaseBars, sparkline, usageChart, kpiRows, trendRows } from './core/dashboard'
@@ -182,7 +185,15 @@ async function drawStatus($: EngineInterface, state: Held['state']): Promise<voi
   if (footerOwner === 'statusline') return
   // With the footer in the pane (035), the status entry keeps only what is never dropped.
   const [usage, stats] = await Promise.all([$.state.get(USAGE), $.state.get(SESSION)])
-  $.ui.status(footerText({ ...(await footerInput($, state, Math.max(20, columnsSeen - 14), { usage: usage.value ?? DEFAULT_USAGE, stats: stats.value })), lead: footerIn === 'pane' }))
+  if (footerIn === 'pane') {
+    // The lead only (065 #15): feature, phase, percentage and the deciding window.
+    const now = await $.clock.now()
+    const decision = decisionOf(usage.value ?? DEFAULT_USAGE, now)
+    const kind = decision.highest?.kind
+    $.ui.status(statusLead(state, decision.highest === undefined ? undefined : decision, Math.max(20, columnsSeen), now, currentLang(), kind === undefined ? undefined : governThresholds[kind], 14))
+    return
+  }
+  $.ui.status(footerText({ ...(await footerInput($, state, Math.max(20, columnsSeen - 14), { usage: usage.value ?? DEFAULT_USAGE, stats: stats.value })), lead: false }))
 }
 
 async function showStatus($: EngineInterface, state: Held['state']): Promise<void> {
@@ -1192,6 +1203,14 @@ async function setUsageOverride($: EngineInterface, target: number, ms: number):
   return `🧭 stop and ceiling raised to ${target}% until ${clockOf(new Date(until).toISOString())}; new subagents still wait from 80%`
 }
 
+/** The band's `lift 1h` button (065 #13): one hour past the hold, and past stop and ceiling too. */
+async function liftBand($: EngineInterface): Promise<void> {
+  const now = await $.clock.now()
+  await updateUsage($, u => ({ ...u, holdLift: now + HOLD_LIFT_MS, override: { target: 95, until: now + HOLD_LIFT_MS, ...kindOf(u, now, governThresholds) } }))
+  const speckit = (await $.state.get(SPECKIT)).value
+  if (speckit !== undefined) await showStatus($, speckit)
+}
+
 async function revokeUsageOverride($: EngineInterface): Promise<string> {
   await updateUsage($, ({ override: _gone, ...u }) => u)
   const speckit = (await $.state.get(SPECKIT)).value
@@ -1490,6 +1509,8 @@ async function sessionTabRows(
   usage: UsageState,
   stats: SessionStats | undefined,
   updates: readonly UpdateItem[],
+  /** The update waiting for its second click (Spec Kit skills rewrite files). */
+  confirming?: string,
 ): Promise<PaneRow[]> {
   const lang = currentLang()
   const labelWidth = paneLabelWidth(lang)
@@ -1556,7 +1577,7 @@ async function sessionTabRows(
     ]),
   ]
   // Each with a link to the new version's release notes when there is one (054 #82).
-  const updateRows = updates.map(item => ((url => valueRow(`update-${item.id}`, 'update', `${updateLabel(item, false)} (installed ${item.installed})`, 'current', url === undefined ? {} : { href: url }))(releaseNotesUrl(item))))
+  const updateRows = updates.map(item => ((url => valueRow(`update-${item.id}`, 'update', `${updateLabel(item, confirming === item.id)} (installed ${item.installed})`, 'current', { action: { id: item.id, label: t(lang, 'updates.install'), kind: 'update' as const }, ...(url === undefined ? {} : { href: url }) }))(releaseNotesUrl(item))))
   // Without Spec Kit the project rows say so on their own; no headings then.
   if (!state.present) return [...project, ...governor, ...activity, ...updateRows]
   const block = (key: string, rows: Array<{ key: string; text: string; role: ThemeRole; bold?: boolean }>) =>
@@ -1694,14 +1715,24 @@ async function touchFile(
  * on one project never hide each other's toasts. Writes the memo only when it changed.
  */
 async function afterReconcile($: EngineInterface, preset: Preset, held: Held | undefined): Promise<void> {
-  if (preset.toasts !== 'all' || held === undefined || held.state.root === undefined) return
+  // Under the compact preset a finished phase brightens its chip for 30 seconds instead of a toast (065 #18).
+  const brightens = preset.toasts !== 'all' && preset.band
+  if ((preset.toasts !== 'all' && !brightens) || held === undefined || held.state.root === undefined) return
   try {
     const baseline = held.memo.baseline ?? {}
     const active = held.state.active
     const nextOf = active !== undefined && held.state.nextCommand !== undefined ? { [active.dir]: held.state.nextCommand } : {}
     const toasted = held.memo.toasted ?? []
     const out = phaseToasts(held.state.features, baseline, toasted, held.memo.baselined === true, nextOf, currentLang())
-    for (const toast of out.toasts) await showToast($, toast.text)
+    if (brightens) {
+      if (out.toasts.length > 0) {
+        const until = (await $.clock.now()) + 30_000
+        await flushStats($, stats => ({ ...stats, phaseBrightUntil: until }))
+        $.clock.after(30_000, () => $.ui.invalidate('ui.render'))
+      }
+    } else {
+      for (const toast of out.toasts) await showToast($, toast.text)
+    }
     const isSame = held.memo.baselined === true && out.toasted.length === toasted.length && JSON.stringify(out.baseline) === JSON.stringify(baseline)
     if (!isSame) {
       await guarded($, async previous =>
@@ -2672,29 +2703,58 @@ export const register: Register = (on, options) => {
     if (!preset.band || e.props.hasSurvey) return next(e)
     const { value } = await $.state.get(SPECKIT)
     const sessionStats = (await $.state.get(SESSION)).value
+    const usage = (await $.state.get(USAGE)).value ?? DEFAULT_USAGE
+    const now = await $.clock.now()
     // The linked worktree this session runs in (054 #54), else the active feature's work in another one (042 #18).
     const elsewhere = sessionStats?.git?.worktree ?? sessionStats?.worktrees?.find(w => w.id === value?.active?.id)?.name
-    // After 10 idle minutes the band dims to one line (042 #19).
+    // After 10 idle minutes the band dims to one line (042 #19) that keeps the deciding window (065 #20).
     const lastActivity = sessionStats?.series?.at(-1)?.at ?? sessionStats?.startedAt
-    const idle = value?.runningSkill === undefined && lastActivity !== undefined && (await $.clock.now()) - lastActivity > 600_000
-    const base = value === undefined ? [] : bandSegments(value, e.props.bodyColumns, { density: idle ? 'minimal' : bandDensity, ...(elsewhere === undefined ? {} : { worktree: elsewhere }) })
+    const idle = value?.runningSkill === undefined && lastActivity !== undefined && now - lastActivity > 600_000
+    const updates = (await $.state.get(UPDATES)).value ?? { items: [] }
+    // One update button and the hide button at the right edge of the band row (065 #12, #19).
+    const names = updates.items.map(item => (updates.running === item.id ? `${updateLabel(item, false)}…` : updateLabel(item, updates.confirming === item.id)))
+    const updateText = bandUpdateLabel(names, e.props.bodyColumns)
+    const only = updates.items.length === 1 ? updates.items[0] : undefined
+    const edge: BandEdge = {
+      // File links are drawn on the terminal only: a desktop takes https links alone.
+      ...(value?.root === undefined || e.surface !== 'terminal' ? {} : { root: value.root }),
+      ...(updateText === undefined
+        ? {}
+        : {
+            update: { label: updateText, onPress: async () => (only === undefined ? openPane($) : runUpdate($, only.id)) },
+            hide: { label: t(currentLang(), 'updates.hide'), onPress: () => hideUpdates($) },
+          }),
+      onLift: () => liftBand($),
+      // `a` opens the pane once the band has the focus (025 #41); from 100 columns.
+      ...(e.props.bodyColumns >= 100 ? { open: { label: t(currentLang(), 'next.paneShort'), onPress: () => openPane($) } } : {}),
+    }
+    const decision = decisionOf(usage, now)
+    const governor = usage.readings.length === 0 ? undefined : { band: decision.band, ...(decision.highest?.resetsAt === undefined ? {} : { until: clockOf(decision.highest.resetsAt) ?? '?' }) }
+    const ramp = decision.highest === undefined ? undefined : usageRamp(decision.highest.percent, governThresholds[decision.highest.kind])
+    const decidingText = usageSegment(decision, currentLang(), decision.highest === undefined ? undefined : governThresholds[decision.highest.kind])
+    const taskStart = value?.currentTask?.startedAt
+    const base =
+      value === undefined
+        ? []
+        : bandSegments(value, e.props.bodyColumns, {
+            density: idle ? 'minimal' : bandDensity,
+            reserved: edgeWidth(edge) + (edge.open === undefined && updateText === undefined ? 0 : 1),
+            ...(elsewhere === undefined ? {} : { worktree: elsewhere }),
+            ...(governor === undefined ? {} : { governor }),
+            ...(idle && decidingText !== undefined && ramp !== undefined ? { deciding: { text: decidingText, role: ramp.role } } : {}),
+            ...(taskStart === undefined ? {} : { taskElapsed: duration(now - taskStart) }),
+            ...(sessionStats?.phaseBrightUntil !== undefined && sessionStats.phaseBrightUntil > now ? { bright: true } : {}),
+          })
     // The usage sparkline (022 #25): the last readings of the binding window, on a wide band only.
     const series = sessionStats?.series ?? []
     const segments =
-      base.length > 0 && series.length >= 3 && e.props.bodyColumns >= 70
-        ? [...base, { key: 'spark', text: sparkline(series.slice(-12).map(p => p.percent)), role: 'muted' as const }]
+      base.length > 0 && series.length >= 3 && e.props.bodyColumns >= 70 && !idle && [...bandText(base)].length + 13 + edgeWidth(edge) <= e.props.bodyColumns
+        ? [...base, { key: 'spark', text: ` ${sparkline(series.slice(-12).map(p => p.percent))}`, role: 'muted' as const }]
         : base
-    const updates = (await $.state.get(UPDATES)).value ?? { items: [] }
-    const command = value?.nextCommand
-    if (segments.length === 0 && updates.items.length === 0 && command === undefined) return next(e)
+    if (segments.length === 0 && updates.items.length === 0) return next(e)
     const elements = $.ui.resolve(e)
     const { Box, Text, Button } = elements
-    const bandElements = { Box, Text, ...('Client' in elements ? { Client: elements.Client } : {}) }
-    const buttons = updates.items.map(item => ({
-      key: `update-${item.id}`,
-      label: updates.running === item.id ? `${updateLabel(item, false)}…` : updateLabel(item, updates.confirming === item.id),
-    }))
-    const press = (key: string) => runUpdate($, key.replace(/^update-/, '') as UpdateId)
+    const bandElements = { Box, Text, Button, ...('Client' in elements ? { Client: elements.Client } : {}), ...('Link' in elements ? { Link: elements.Link } : {}) }
     return (
       <Box flexDirection="column">
         {segments.length > 0 && bandRow(
@@ -2704,20 +2764,9 @@ export const register: Register = (on, options) => {
           accessible ? [] : stepCards(value?.features ?? [], currentLang()),
           !accessible,
           accessible || value === undefined ? undefined : otherFeaturesCard(value, currentLang()),
+          edge,
+          idle,
         )}
-        {command !== undefined &&
-          nextRow(
-            { Box, Text, Button },
-            command,
-            tokens,
-            () => runNext($, command),
-            surface => copyNext($, command, surface),
-            e.props.bodyColumns,
-            { next: t(currentLang(), 'status.next'), copy: t(currentLang(), 'next.copy'), pane: t(currentLang(), 'next.pane') },
-            () => openPane($),
-            accessible || value === undefined ? undefined : nextReason(value, currentLang(), sessionStats?.priorities),
-          )}
-        {buttons.length > 0 && updatesRow({ Box, Text, Button }, buttons, tokens, press, e.props.bodyColumns, () => hideUpdates($), t(currentLang(), 'updates.hide'))}
         {await next(e)}
       </Box>
     )
@@ -2988,7 +3037,7 @@ export const register: Register = (on, options) => {
         : pane.tab === 'tasks'
         ? [...keep(taskRows(state, emptyMemo(), 1000, columns, currentLang(), await $.clock.now(), stats?.taskTimes ?? [])), ...(await pastResetRows($, state, stats, usage))]
         : pane.tab === 'session'
-          ? await sessionTabRows($, state, usage, stats, updates)
+          ? await sessionTabRows($, state, usage, stats, updates, updatesRead.value?.confirming)
           : [
               ...specsRows(
                 { ...filtered(state, pane.filter, pane.status, specFilterContext(stats)), features: withWorktreeProgress(filtered(state, pane.filter, pane.status, specFilterContext(stats)).features, stats?.worktrees) },
@@ -3079,6 +3128,7 @@ export const register: Register = (on, options) => {
       ...(pane.tab === 'session' && e.surface === 'terminal'
         ? { onRunQueued: async (id: string) => showToast($, await runQueued($, id)) }
         : {}),
+      ...(pane.tab === 'session' ? { onUpdate: async (id: string) => runUpdate($, id as UpdateId) } : {}),
       ...(pane.tab === 'session'
         ? {
             onAllowUsage: async () => showToast($, await setUsageOverride($, 95, 2 * 3_600_000)),

@@ -3,15 +3,33 @@
 import type { ElementTable } from 'claude-code'
 
 import { stepOf, type Segment } from '../core/band'
-import type { Tokens } from '../core/theme'
-import { fitUpdateButtons } from '../core/updates'
+import { fileUrl } from '../core/paths'
+import { chipForeground, lighten, type Tokens } from '../core/theme'
 
 type BandElements = Pick<ElementTable<'terminal' | 'desktop'>, 'Box' | 'Text'> & {
   Client?: ElementTable<'terminal'>['Client']
+  Button?: ElementTable<'terminal' | 'desktop'>['Button']
+  Link?: ElementTable<'terminal' | 'desktop'>['Link']
 }
 
+/** What sits at the right edge of the band row: the update button and the hide button (065 #12, #19). */
+export type BandEdge = {
+  /** Opens the pane: `a` once the band has the focus (025 #41). */
+  open?: { label: string; onPress: () => Promise<void> }
+  update?: { label: string; onPress: () => Promise<void> }
+  hide?: { label: string; onPress: () => Promise<void> }
+  /** The lift button of a paused or holding band. */
+  onLift?: () => Promise<void>
+  /** The project root, to turn a segment's path into a link. */
+  root?: string
+}
+
+/** Cells the right-edge buttons take, each drawn as `[ label ]`. */
+export const edgeWidth = (edge: BandEdge): number =>
+  [edge.open, edge.update, edge.hide].reduce((n, b) => (b === undefined ? n : n + [...b.label].length + 5), 0)
+
 export const bandRow = (
-  { Box, Text, Client }: BandElements,
+  { Box, Text, Client, Button, Link }: BandElements,
   segments: readonly Segment[],
   tokens: Tokens,
   /** One card per rail step, shown while the pointer is on that step (024 #10). */
@@ -20,8 +38,35 @@ export const bandRow = (
   hover = true,
   /** The names behind the +N badge, shown while its text is hovered (052 #43). */
   otherFeatures?: string,
+  edge: BandEdge = {},
+  /** The band dims after ten idle minutes (042 #19). */
+  dim = false,
 ) => {
   const steps = new Set(segments.map(stepOf).filter(s => s !== undefined))
+  const draw = (segment: Segment) => {
+    const base = tokens[segment.role]
+    const color = segment.bright === true ? lighten(base, 0.25) : base
+    const text = segment.chip === true ? (
+      <Text key={segment.key} color={chipForeground(color)} backgroundColor={color} bold wrap="truncate-end" {...(dim ? { dimColor: true } : {})}>
+        {segment.text}
+      </Text>
+    ) : (
+      <Text key={segment.key} color={color} {...(segment.bold === true ? { bold: true } : {})} {...(dim ? { dimColor: true } : {})} wrap="truncate-end">
+        {segment.text}
+      </Text>
+    )
+    if (segment.action === 'lift' && Button !== undefined && edge.onLift !== undefined) {
+      return <Button key="band-lift" label={segment.text} onPress={() => edge.onLift!()} />
+    }
+    if (segment.href !== undefined && Link !== undefined && edge.root !== undefined && segment.text.trim() !== '') {
+      return (
+        <Link key={`${segment.key}-link`} href={fileUrl(`${edge.root}/${segment.href}`)}>
+          {text}
+        </Link>
+      )
+    }
+    return text
+  }
   const row = (
     <Box key="astrolabe-band" flexDirection="row">
       {segments.map(segment => {
@@ -32,21 +77,26 @@ export const bandRow = (
         const step = stepOf(segment)
         if (segment.key === 'others' && hover) {
           return (
-            <Text color={tokens[segment.role]} wrap="truncate-end" hover={{ scope: 'astrolabe-other-features', bold: true, underline: true }}>
+            <Text key={segment.key} color={tokens[segment.role]} wrap="truncate-end" hover={{ scope: 'astrolabe-other-features', bold: true, underline: true }}>
               {segment.text}
             </Text>
           )
         }
-        return step === undefined || !hover ? (
-          <Text color={tokens[segment.role]} wrap="truncate-end">
-            {segment.text}
-          </Text>
-        ) : (
-          <Text color={tokens[segment.role]} wrap="truncate-end" hover={{ scope: `astrolabe-step-${step}`, bold: true, underline: true }}>
-            {segment.text}
-          </Text>
-        )
+        if (step !== undefined && hover && segment.key.startsWith('label-')) {
+          return (
+            <Text key={segment.key} color={tokens[segment.role]} wrap="truncate-end" hover={{ scope: `astrolabe-step-${step}`, bold: true, underline: true }}>
+              {segment.text}
+            </Text>
+          )
+        }
+        return draw(segment)
       })}
+      <Box flexGrow={1} />
+      {Button !== undefined && edge.open !== undefined && <Button key="open-pane" label={edge.open.label} hotkey="a" onPress={() => edge.open!.onPress()} />}
+      {Button !== undefined && edge.open !== undefined && edge.update !== undefined && <Text> </Text>}
+      {Button !== undefined && edge.update !== undefined && <Button key="band-update" label={edge.update.label} onPress={() => edge.update!.onPress()} />}
+      {Button !== undefined && edge.hide !== undefined && <Text> </Text>}
+      {Button !== undefined && edge.hide !== undefined && <Button key="updates-hide" label={edge.hide.label} onPress={() => edge.hide!.onPress()} />}
     </Box>
   )
   const shown = hover ? cards.filter(card => steps.has(card.step as never)) : []
@@ -72,62 +122,3 @@ export const bandRow = (
     </Box>
   )
 }
-
-/** The second band row (spec 007): one Button per available update. */
-export const updatesRow = (
-  { Box, Text, Button }: Pick<ElementTable<'terminal' | 'desktop'>, 'Box' | 'Text' | 'Button'>,
-  buttons: ReadonlyArray<{ key: string; label: string }>,
-  tokens: Tokens,
-  onPress: (key: string) => Promise<void>,
-  columns: number,
-  onHide: () => Promise<void>,
-  hideLabel = 'hide',
-) => {
-  // The hide button ("[ hide ]", 8 cells) always stays at the end of the row.
-  const { shown, more } = fitUpdateButtons(buttons.map(b => b.label), columns - 9)
-  return (
-    <Box key="astrolabe-updates" flexDirection="row">
-      <Text color={tokens.muted}>updates: </Text>
-      {buttons.slice(0, shown).map(b => (
-        <Button key={b.key} label={b.label} onPress={() => onPress(b.key)} />
-      ))}
-      {more > 0 && <Text color={tokens.muted}>{` +${more}`}</Text>}
-      <Text> </Text>
-      <Button key="updates-hide" label={hideLabel} onPress={() => onHide()} />
-    </Box>
-  )
-}
-
-/** The next Spec Kit command (020a): a button that runs it and, when there is room, one that copies it. */
-export const nextRow = (
-  { Box, Text, Button }: Pick<ElementTable<'terminal' | 'desktop'>, 'Box' | 'Text' | 'Button'>,
-  command: string,
-  tokens: Tokens,
-  onRun: () => Promise<void>,
-  onCopy: (surface: string) => Promise<void>,
-  columns: number,
-  labels: { next: string; copy: string; pane: string },
-  /** Opens the pane (025 #41): `a` once the band has the focus (ctrl+x tab). */
-  onOpen?: () => Promise<void>,
-  /** Why this command is next, shown while the pointer is on its button (042 #14). */
-  reason?: string,
-) => (
-  <Box flexDirection="column">
-  <Box key="astrolabe-next" flexDirection="row">
-    <Text color={tokens.muted}>{`${labels.next}: `}</Text>
-    {/* The first focus stop, so Enter runs it once the band has the keyboard (042 #15). */}
-    <Button key="next-run" label={`▶ ${command}`} hotkey="n" autoFocus onPress={() => onRun()} {...(reason === undefined ? {} : { hover: { scope: 'astrolabe-next-reason', bold: true } })} />
-    {columns >= 60 && <Text> </Text>}
-    {columns >= 60 && <Button key="next-copy" label={labels.copy} hotkey="c" onPress={press => onCopy(press.surface)} />}
-    {onOpen !== undefined && columns >= 70 && <Text> </Text>}
-    {onOpen !== undefined && columns >= 70 && <Button key="open-pane" label={labels.pane} hotkey="a" onPress={() => onOpen()} />}
-  </Box>
-  {reason !== undefined && (
-    <Box key="astrolabe-next-reason" display="none" hover={{ scope: 'astrolabe-next-reason', display: 'flex' }}>
-      <Text color={tokens.muted} wrap="truncate-end">
-        {reason}
-      </Text>
-    </Box>
-  )}
-  </Box>
-)

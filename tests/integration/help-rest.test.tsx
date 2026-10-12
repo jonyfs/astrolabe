@@ -21,10 +21,11 @@ const setup = async ($: never, on: never) => {
 }
 
 describe('help, part two (025)', () => {
-  test('T004: hotkeys on the band: a opens the pane, n runs the next command, c copies it', async ($, on) => {
+  test('T004: hotkey on the band: a opens the pane; the next command is in the prompt suggestion (065 #14)', async ($, on) => {
     const { pane } = await setup($ as never, on as never)
     const band = JSON.stringify((await drawBand($ as never, 'terminal', 120)).tree)
-    for (const key of ['a', 'n', 'c']) expect(band).toContain(`"hotkey":"${key}"`)
+    expect(band).toContain('"hotkey":"a"')
+    for (const key of ['n', 'c']) expect(band).not.toContain(`"hotkey":"${key}"`)
     const ui = await mount($ as never, 'AbovePrompt', { hasSurvey: false, isWorking: false, maxRows: 10, bodyColumns: 120, scroll: { bodyRows: 9, top: 0 } })
     await ui.press({ key: 'open-pane' })
     expect(pane.opened.at(-1)).toEqual({ id: 'astrolabe', title: '🧭 Astrolabe · ◆ 002 band-hint', focus: true, closeOnEscape: true })

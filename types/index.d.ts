@@ -317,6 +317,8 @@ export type SessionStats = {
   health?: { at: number; lines: string[] }
   /** The full text of the last toast shortened to fit the notification limit (052 #44). */
   toastDetails?: string
+  /** Until when the step chip of the band shows brighter: a phase finished under the compact preset (065 #18). */
+  phaseBrightUntil?: number
   /** gstack's skills are installed under the home directory (051). */
   gstack?: boolean
   /** The features the repository's other worktrees work on (037), read after each main turn. */

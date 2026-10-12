@@ -13,8 +13,9 @@ describe('the prompt hint tail (US3)', () => {
       installEngine(on)
       const handed = installRenderEngine(on)
       await startSession($, halfDone.cwd)
-      expect(await drawHint($ as never, handed, surface)).toBe('next: /speckit-implement · 11 tasks left')
-      expect(await drawHint($ as never, handed, surface, true)).toBeUndefined()
+      // The next command is in the prompt suggestion while the prompt is empty, and in the hint only once it has text (065 #14).
+      expect(await drawHint($ as never, handed, surface)).toBeUndefined()
+      expect(await drawHint($ as never, handed, surface, true)).toBe('next: /speckit-implement · 11 tasks left')
     })
   }
   test('plan phase names /speckit-plan', async ($, on) => {
@@ -22,7 +23,7 @@ describe('the prompt hint tail (US3)', () => {
     installEngine(on)
     const handed = installRenderEngine(on)
     await startSession($, specOnly.cwd)
-    expect(await drawHint($ as never, handed, 'terminal')).toBe('next: /speckit-plan')
+    expect(await drawHint($ as never, handed, 'terminal', true)).toBe('next: /speckit-plan')
   })
   test('no Spec Kit leaves the hint alone', async ($, on) => {
     installTree(on, noSpeckit.tree, noSpeckit.cwd)

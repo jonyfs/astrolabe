@@ -24,23 +24,12 @@ const mountBand = async ($: never, columns = 120) =>
   } as never)) as BandUi
 
 describe('the next command (020a)', () => {
-  test('the band has a button that runs it and one that copies it', async ($, on) => {
+  test('the band has no next row: the empty prompt carries the command (065 #14)', async ($, on) => {
     const { session } = await setup($ as never, on as never)
     const ui = await mountBand($ as never)
-    expect((await ui.find({ key: 'astrolabe-next' }))?.text).toContain('/speckit-implement')
-    await ui.press({ key: 'next-run' })
-    expect(session.prompts).toContain('/speckit-implement')
-    await ui.press({ key: 'next-copy' })
-    expect(session.copied).toEqual(['/speckit-implement'])
-    await ui.unmount()
-  })
-
-  test('narrow: the copy button goes first, the run button stays', async ($, on) => {
-    await setup($ as never, on as never)
-    const ui = await mountBand($ as never, 50)
-    const row = (await ui.find({ key: 'astrolabe-next' }))?.text ?? ''
-    expect(row).toContain('/speckit-implement')
-    expect(row).not.toContain('copy')
+    expect(await ui.find({ key: 'astrolabe-next' })).toBeUndefined()
+    expect(await ui.find({ key: 'next-run' })).toBeUndefined()
+    expect(session.suggested).toEqual(['/speckit-implement 002'])
     await ui.unmount()
   })
 

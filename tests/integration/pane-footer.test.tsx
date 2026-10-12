@@ -31,7 +31,7 @@ const setup = async ($: never, on: never, env: Record<string, string> = {}) => {
 describe('the footer in the pane (035)', () => {
   test('default: the status entry keeps the Spec Kit part and the deciding window', { options: { icons: 'ascii' } }, async ($, on) => {
     const session = await setup($ as never, on as never)
-    expect(session.last()).toMatch(/^◆ 002 · implement 45% │ 5h 42% \(\d+h\d\dm\)$/)
+    expect(session.last()).toMatch(/^◆ 002 impl 45% │ 5h 42%$/)
   })
   for (const tab of ['specs', 'tasks', 'session', 'dashboard', 'help', 'config', 'prs']) {
     test(`default: the ${tab} tab ends with the footer`, { options: { icons: 'ascii' } }, async ($, on) => {
