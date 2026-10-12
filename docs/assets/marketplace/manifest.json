@@ -1,0 +1,475 @@
+{
+  "generatedAt": "2026-10-11T21:02:18.710Z",
+  "assetCount": 9,
+  "assets": [
+    {
+      "id": "asset-vscode-banner-banner-1791752538539",
+      "marketplace": "vscode",
+      "type": "banner",
+      "sourcePath": "docs/assets/source/banner.png",
+      "outputPaths": [
+        "docs/assets/marketplace/vscode/banner/banner-1280x640.png"
+      ],
+      "specs": {
+        "widths": [
+          1280
+        ],
+        "heights": [
+          640
+        ],
+        "formats": [
+          "png"
+        ],
+        "maxSizeKB": 500,
+        "namingPattern": "banner-{width}x{height}.{format}"
+      },
+      "generatedAt": "2026-10-11T21:02:18.539Z"
+    },
+    {
+      "id": "asset-vscode-icon-logo-1791752538549",
+      "marketplace": "vscode",
+      "type": "icon",
+      "sourcePath": "docs/assets/source/logo.png",
+      "outputPaths": [
+        "docs/assets/marketplace/vscode/icon/logo-128x128.png"
+      ],
+      "specs": {
+        "widths": [
+          128
+        ],
+        "heights": [
+          128
+        ],
+        "formats": [
+          "png"
+        ],
+        "maxSizeKB": 200,
+        "namingPattern": "logo-{width}x{height}.{format}"
+      },
+      "generatedAt": "2026-10-11T21:02:18.549Z"
+    },
+    {
+      "id": "asset-vscode-screenshot-screenshot-1791752538584",
+      "marketplace": "vscode",
+      "type": "screenshot",
+      "sourcePath": "docs/assets/source/screenshot.png",
+      "outputPaths": [
+        "docs/assets/marketplace/vscode/screenshot/screenshot-1280x720.png"
+      ],
+      "specs": {
+        "widths": [
+          1280
+        ],
+        "heights": [
+          720
+        ],
+        "formats": [
+          "png"
+        ],
+        "maxSizeKB": 1000,
+        "namingPattern": "screenshot-{width}x{height}.{format}"
+      },
+      "generatedAt": "2026-10-11T21:02:18.584Z"
+    },
+    {
+      "id": "asset-jetbrains-banner-banner-1791752538608",
+      "marketplace": "jetbrains",
+      "type": "banner",
+      "sourcePath": "docs/assets/source/banner.png",
+      "outputPaths": [
+        "docs/assets/marketplace/jetbrains/banner/banner-1400x320.png"
+      ],
+      "specs": {
+        "widths": [
+          1400
+        ],
+        "heights": [
+          320
+        ],
+        "formats": [
+          "png"
+        ],
+        "maxSizeKB": 500,
+        "namingPattern": "banner-{width}x{height}.{format}"
+      },
+      "generatedAt": "2026-10-11T21:02:18.608Z"
+    },
+    {
+      "id": "asset-jetbrains-icon-logo-1791752538617",
+      "marketplace": "jetbrains",
+      "type": "icon",
+      "sourcePath": "docs/assets/source/logo.png",
+      "outputPaths": [
+        "docs/assets/marketplace/jetbrains/icon/logo-128x128.png"
+      ],
+      "specs": {
+        "widths": [
+          128
+        ],
+        "heights": [
+          128
+        ],
+        "formats": [
+          "png"
+        ],
+        "maxSizeKB": 200,
+        "namingPattern": "logo-{width}x{height}.{format}"
+      },
+      "generatedAt": "2026-10-11T21:02:18.617Z"
+    },
+    {
+      "id": "asset-jetbrains-screenshot-screenshot-1791752538630",
+      "marketplace": "jetbrains",
+      "type": "screenshot",
+      "sourcePath": "docs/assets/source/screenshot.png",
+      "outputPaths": [
+        "docs/assets/marketplace/jetbrains/screenshot/screenshot-1600x900.png"
+      ],
+      "specs": {
+        "widths": [
+          1600
+        ],
+        "heights": [
+          900
+        ],
+        "formats": [
+          "png"
+        ],
+        "maxSizeKB": 1000,
+        "namingPattern": "screenshot-{width}x{height}.{format}"
+      },
+      "generatedAt": "2026-10-11T21:02:18.630Z"
+    },
+    {
+      "id": "asset-chrome-banner-banner-1791752538657",
+      "marketplace": "chrome",
+      "type": "banner",
+      "sourcePath": "docs/assets/source/banner.png",
+      "outputPaths": [
+        "docs/assets/marketplace/chrome/banner/banner-1400x560.png"
+      ],
+      "specs": {
+        "widths": [
+          1400
+        ],
+        "heights": [
+          560
+        ],
+        "formats": [
+          "png"
+        ],
+        "maxSizeKB": 500,
+        "namingPattern": "banner-{width}x{height}.{format}"
+      },
+      "generatedAt": "2026-10-11T21:02:18.657Z"
+    },
+    {
+      "id": "asset-chrome-icon-logo-1791752538667",
+      "marketplace": "chrome",
+      "type": "icon",
+      "sourcePath": "docs/assets/source/logo.png",
+      "outputPaths": [
+        "docs/assets/marketplace/chrome/icon/logo-128x128.png"
+      ],
+      "specs": {
+        "widths": [
+          128
+        ],
+        "heights": [
+          128
+        ],
+        "formats": [
+          "png"
+        ],
+        "maxSizeKB": 100,
+        "namingPattern": "logo-{width}x{height}.{format}"
+      },
+      "generatedAt": "2026-10-11T21:02:18.667Z"
+    },
+    {
+      "id": "asset-chrome-screenshot-screenshot-1791752538708",
+      "marketplace": "chrome",
+      "type": "screenshot",
+      "sourcePath": "docs/assets/source/screenshot.png",
+      "outputPaths": [
+        "docs/assets/marketplace/chrome/screenshot/screenshot-1280x800.png"
+      ],
+      "specs": {
+        "widths": [
+          1280
+        ],
+        "heights": [
+          800
+        ],
+        "formats": [
+          "png"
+        ],
+        "maxSizeKB": 1000,
+        "namingPattern": "screenshot-{width}x{height}.{format}"
+      },
+      "generatedAt": "2026-10-11T21:02:18.708Z"
+    }
+  ],
+  "validation": {
+    "results": [
+      {
+        "asset": {
+          "id": "asset-vscode-banner-banner-1791752538539",
+          "marketplace": "vscode",
+          "type": "banner",
+          "sourcePath": "docs/assets/source/banner.png",
+          "outputPaths": [
+            "docs/assets/marketplace/vscode/banner/banner-1280x640.png"
+          ],
+          "specs": {
+            "widths": [
+              1280
+            ],
+            "heights": [
+              640
+            ],
+            "formats": [
+              "png"
+            ],
+            "maxSizeKB": 500,
+            "namingPattern": "banner-{width}x{height}.{format}"
+          },
+          "generatedAt": "2026-10-11T21:02:18.539Z"
+        },
+        "valid": true,
+        "errors": [],
+        "warnings": []
+      },
+      {
+        "asset": {
+          "id": "asset-vscode-icon-logo-1791752538549",
+          "marketplace": "vscode",
+          "type": "icon",
+          "sourcePath": "docs/assets/source/logo.png",
+          "outputPaths": [
+            "docs/assets/marketplace/vscode/icon/logo-128x128.png"
+          ],
+          "specs": {
+            "widths": [
+              128
+            ],
+            "heights": [
+              128
+            ],
+            "formats": [
+              "png"
+            ],
+            "maxSizeKB": 200,
+            "namingPattern": "logo-{width}x{height}.{format}"
+          },
+          "generatedAt": "2026-10-11T21:02:18.549Z"
+        },
+        "valid": true,
+        "errors": [],
+        "warnings": []
+      },
+      {
+        "asset": {
+          "id": "asset-vscode-screenshot-screenshot-1791752538584",
+          "marketplace": "vscode",
+          "type": "screenshot",
+          "sourcePath": "docs/assets/source/screenshot.png",
+          "outputPaths": [
+            "docs/assets/marketplace/vscode/screenshot/screenshot-1280x720.png"
+          ],
+          "specs": {
+            "widths": [
+              1280
+            ],
+            "heights": [
+              720
+            ],
+            "formats": [
+              "png"
+            ],
+            "maxSizeKB": 1000,
+            "namingPattern": "screenshot-{width}x{height}.{format}"
+          },
+          "generatedAt": "2026-10-11T21:02:18.584Z"
+        },
+        "valid": true,
+        "errors": [],
+        "warnings": []
+      },
+      {
+        "asset": {
+          "id": "asset-jetbrains-banner-banner-1791752538608",
+          "marketplace": "jetbrains",
+          "type": "banner",
+          "sourcePath": "docs/assets/source/banner.png",
+          "outputPaths": [
+            "docs/assets/marketplace/jetbrains/banner/banner-1400x320.png"
+          ],
+          "specs": {
+            "widths": [
+              1400
+            ],
+            "heights": [
+              320
+            ],
+            "formats": [
+              "png"
+            ],
+            "maxSizeKB": 500,
+            "namingPattern": "banner-{width}x{height}.{format}"
+          },
+          "generatedAt": "2026-10-11T21:02:18.608Z"
+        },
+        "valid": true,
+        "errors": [],
+        "warnings": []
+      },
+      {
+        "asset": {
+          "id": "asset-jetbrains-icon-logo-1791752538617",
+          "marketplace": "jetbrains",
+          "type": "icon",
+          "sourcePath": "docs/assets/source/logo.png",
+          "outputPaths": [
+            "docs/assets/marketplace/jetbrains/icon/logo-128x128.png"
+          ],
+          "specs": {
+            "widths": [
+              128
+            ],
+            "heights": [
+              128
+            ],
+            "formats": [
+              "png"
+            ],
+            "maxSizeKB": 200,
+            "namingPattern": "logo-{width}x{height}.{format}"
+          },
+          "generatedAt": "2026-10-11T21:02:18.617Z"
+        },
+        "valid": true,
+        "errors": [],
+        "warnings": []
+      },
+      {
+        "asset": {
+          "id": "asset-jetbrains-screenshot-screenshot-1791752538630",
+          "marketplace": "jetbrains",
+          "type": "screenshot",
+          "sourcePath": "docs/assets/source/screenshot.png",
+          "outputPaths": [
+            "docs/assets/marketplace/jetbrains/screenshot/screenshot-1600x900.png"
+          ],
+          "specs": {
+            "widths": [
+              1600
+            ],
+            "heights": [
+              900
+            ],
+            "formats": [
+              "png"
+            ],
+            "maxSizeKB": 1000,
+            "namingPattern": "screenshot-{width}x{height}.{format}"
+          },
+          "generatedAt": "2026-10-11T21:02:18.630Z"
+        },
+        "valid": true,
+        "errors": [],
+        "warnings": []
+      },
+      {
+        "asset": {
+          "id": "asset-chrome-banner-banner-1791752538657",
+          "marketplace": "chrome",
+          "type": "banner",
+          "sourcePath": "docs/assets/source/banner.png",
+          "outputPaths": [
+            "docs/assets/marketplace/chrome/banner/banner-1400x560.png"
+          ],
+          "specs": {
+            "widths": [
+              1400
+            ],
+            "heights": [
+              560
+            ],
+            "formats": [
+              "png"
+            ],
+            "maxSizeKB": 500,
+            "namingPattern": "banner-{width}x{height}.{format}"
+          },
+          "generatedAt": "2026-10-11T21:02:18.657Z"
+        },
+        "valid": true,
+        "errors": [],
+        "warnings": []
+      },
+      {
+        "asset": {
+          "id": "asset-chrome-icon-logo-1791752538667",
+          "marketplace": "chrome",
+          "type": "icon",
+          "sourcePath": "docs/assets/source/logo.png",
+          "outputPaths": [
+            "docs/assets/marketplace/chrome/icon/logo-128x128.png"
+          ],
+          "specs": {
+            "widths": [
+              128
+            ],
+            "heights": [
+              128
+            ],
+            "formats": [
+              "png"
+            ],
+            "maxSizeKB": 100,
+            "namingPattern": "logo-{width}x{height}.{format}"
+          },
+          "generatedAt": "2026-10-11T21:02:18.667Z"
+        },
+        "valid": true,
+        "errors": [],
+        "warnings": []
+      },
+      {
+        "asset": {
+          "id": "asset-chrome-screenshot-screenshot-1791752538708",
+          "marketplace": "chrome",
+          "type": "screenshot",
+          "sourcePath": "docs/assets/source/screenshot.png",
+          "outputPaths": [
+            "docs/assets/marketplace/chrome/screenshot/screenshot-1280x800.png"
+          ],
+          "specs": {
+            "widths": [
+              1280
+            ],
+            "heights": [
+              800
+            ],
+            "formats": [
+              "png"
+            ],
+            "maxSizeKB": 1000,
+            "namingPattern": "screenshot-{width}x{height}.{format}"
+          },
+          "generatedAt": "2026-10-11T21:02:18.708Z"
+        },
+        "valid": true,
+        "errors": [],
+        "warnings": []
+      }
+    ],
+    "allValid": true,
+    "summary": {
+      "total": 9,
+      "valid": 9,
+      "invalid": 0
+    }
+  }
+}
