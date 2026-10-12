@@ -2,6 +2,7 @@
 // Ranked parts, joined with ' · ', dropped from the least important end to fit. Pure: no $.
 import { clockOf, decide, isPaused, labelOf, usageSegment, type Decision } from './governor'
 import { branchWebUrl } from './git-status'
+import { duration, resetIn } from './duration'
 import { usageRamp } from './usage-ramp'
 import { EMOJI_WIDE } from './glyphs'
 import type { Icons } from './icons'
@@ -57,10 +58,6 @@ export const shortModel = (model: string): string => {
 }
 
 const withIcon = (icon: string, text: string) => (icon === '' ? text : `${icon} ${text}`)
-const duration = (ms: number): string => {
-  const minutes = Math.max(0, Math.floor(ms / 60_000))
-  return minutes < 60 ? `${minutes}m` : `${Math.floor(minutes / 60)}h${String(minutes % 60).padStart(2, '0')}m`
-}
 
 /** A palette colour name (statusline's), or a ramp read from a level. */
 export type ChipColour = 'mauve' | 'sapphire' | 'yellow' | 'red' | 'lavender' | 'teal' | 'peach' | 'surface1' | 'green'
@@ -96,15 +93,12 @@ const prText = (icons: Icons, pr: PullRequest): string => {
   return mark === '' ? number : `${number} ${mark}`
 }
 
-const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-
 /** When a window resets (041 #2): a countdown within a day (`2h13m`), else weekday and clock (`Mon 07:00`). */
 export const resetOf = (iso: string | undefined, now: number): string | undefined => {
   const at = clockOf(iso)
   if (at === undefined || iso === undefined) return undefined
-  const left = Date.parse(iso) - now
-  if (left <= 0) return undefined
-  return left < 86_400_000 ? duration(left) : `${WEEKDAYS[new Date(Date.parse(iso)).getDay()]} ${at}`
+  if (Date.parse(iso) - now <= 0) return undefined
+  return resetIn(iso, now)
 }
 
 const windowText = (r: UsageReading, now: number, lang: Lang, thresholds?: { hold?: number; stop?: number }): string => {

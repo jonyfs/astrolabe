@@ -34,7 +34,7 @@ Measured on 2026-10-12 with the same relative-luminance formula `hooks/core/them
 
 **Decision**: one function. Under 60 seconds `40s`; under one hour `4m12s`; one hour or more `2h09m`; not a finite number `?`. A reset under a day counts down with that function; beyond a day it prints weekday and time (`Thu 18:00`).
 
-**Rationale**: it is the format in the spec. It replaces six copies of `minutes < 60 ? ...` in `footer.ts:60`, `governor.ts:236`, `governor.ts:311`, `pane.ts:278`, `summary.ts:66` and `dashboard.ts:155`, which today print `4m` and `2h09m` only. Seconds appear for anything under an hour, so a reset 42 minutes away prints `42m00s` style; that is the one visible change.
+**Rationale**: it is the format in the spec. It replaces seven copies of the minutes-only format in `footer.ts`, `governor.ts` (twice), `pane.ts`, `summary.ts`, `dashboard.ts` and `spinner.ts` (`formatElapsed`), which today print `4m` and `2h09m` only. Seconds appear for anything under an hour unless they are zero, so a reset 42 minutes and 5 seconds away prints `42m05s` and one exactly 42 minutes away prints `42m`. The spinner's `2m` became `2m05s`; that is the visible change. Estimates ("in about 12m") are rounded to whole minutes before formatting.
 
 **Draw cost**: the footer redraws on the existing clock tick; formatting is pure arithmetic.
 

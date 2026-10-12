@@ -98,9 +98,9 @@ Each block below touches different new files; the apply tasks share `pane.ts` an
 
 ### #5 duration
 
-- [ ] T020 [P] [US5] #5 Write `tests/core/duration.test.ts`: `40000` is `40s`, `252000` is `4m12s`, `7740000` is `2h09m`, `undefined` and `NaN` are `?`; `resetIn` under a day counts down, beyond a day is `Thu 18:00`, missing or past is `?`
-- [ ] T021 [US5] #5 Create `hooks/core/duration.ts` with `duration` and `resetIn`
-- [ ] T022 [US5] #5 Replace the six copies: `hooks/core/footer.ts` (`duration`, `resetOf`), `hooks/core/governor.ts` (two spans), `hooks/core/pane.ts`, `hooks/core/summary.ts`, `hooks/core/dashboard.ts`; update the expected strings in their tests
+- [x] T020 [P] [US5] #5 Write `tests/core/duration.test.ts`: `40000` is `40s`, `252000` is `4m12s`, `7740000` is `2h09m`, `undefined` and `NaN` are `?`; `resetIn` under a day counts down, beyond a day is `Thu 18:00`, missing or past is `?`
+- [x] T021 [US5] #5 Create `hooks/core/duration.ts` with `duration` and `resetIn`
+- [x] T022 [US5] #5 Replace the seven copies: `hooks/core/footer.ts` (`duration`, `resetOf`), `hooks/core/governor.ts` (two spans), `hooks/core/pane.ts`, `hooks/core/summary.ts`, `hooks/core/dashboard.ts` and `formatElapsed` in `hooks/core/spinner.ts`; update the expected strings in their tests
 
 ### #6 phases
 

@@ -30,7 +30,7 @@ describe('formatElapsed (contract)', () => {
       '0s',
       '45s',
       '12m',
-      '1h 5m',
+      '1h05m',
     ])
     expect(formatElapsed(-5)).toBe('0s')
   })

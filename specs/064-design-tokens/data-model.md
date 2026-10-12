@@ -33,7 +33,7 @@ Rules: `blockAt = thresholds.hold ?? 80`; `warnAt = min(60, blockAt)`. An undefi
 |---|---|
 | not finite or negative | `?` |
 | under 60 000 ms | `40s` |
-| under 3 600 000 ms | `4m12s` |
+| under 3 600 000 ms | `4m12s`; whole minutes drop the zero seconds (`4m`) |
 | otherwise | `2h09m` |
 
 `resetIn(iso, now) -> string`: under a day `duration(left)`, beyond a day `Thu 18:00`, missing or past `?`.

@@ -175,7 +175,7 @@ describe('sessionRows', () => {
       'next          /speckit-implement',
       'running       speckit-implement',
       'analyzed      yes',
-      'current task  T010 · 2m',
+      'current task  T010 · 2m05s',
     ])
   })
   test('without Spec Kit', () => {

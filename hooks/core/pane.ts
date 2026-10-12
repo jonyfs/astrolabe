@@ -8,6 +8,7 @@ import { byPriority, priorityMark, taskFiles, type Priorities, type Priority } f
 import { parseTasks } from './tasks-parser'
 import { groupOpenTasks } from './task-groups'
 import { STATE_GLYPHS } from './glyphs'
+import { duration } from './duration'
 import { idWidth, padId } from './ids'
 import { STATUS_ROLE, type ThemeRole } from './theme'
 import type { Feature, SessionMemo, SpeckitState } from './types'
@@ -275,11 +276,6 @@ export const moveSpecSelection = (
   return to === from && found >= 0 ? undefined : rows[to]?.key
 }
 
-const elapsed = (ms: number): string => {
-  const minutes = Math.max(0, Math.floor(ms / 60_000))
-  return minutes < 60 ? `${minutes}m` : `${Math.floor(minutes / 60)}h${String(minutes % 60).padStart(2, '0')}m`
-}
-
 export const taskRows = (
   state: SpeckitState,
   memo: SessionMemo,
@@ -330,7 +326,7 @@ export const taskRows = (
   // The fold row counts what it folds (052 #23).
   // The time they took, from the session's task times (045 #47).
   const took = times.filter(x => x.dir === active.dir && done.includes(x.id)).reduce((sum, x) => sum + x.ms, 0)
-  const tookText = took > 0 ? ` · ${elapsed(took)}` : ''
+  const tookText = took > 0 ? ` · ${duration(took)}` : ''
   if (done.length > 0) out.push({ key: 'done-folded', text: cut(`${tr(lang, 'pane.folded', { n: done.length, ids: done.length === 1 ? done[0]! : `${done[0]}…${done.at(-1)}` })}${tookText}`, columns), role: 'faint' })
   const room = Math.max(1, rows - 1)
   const shown = open.length <= room ? open : open.slice(0, room - 1)
@@ -373,7 +369,7 @@ export const taskRows = (
     // The task being worked on (045 #42): marked, with how long it has run.
     const current = state.currentTask
     const isCurrent = current !== undefined && t.id !== undefined && current.id === t.id
-    const ran = isCurrent && now !== undefined && current.startedAt !== undefined ? elapsed(now - current.startedAt) : ''
+    const ran = isCurrent && now !== undefined && current.startedAt !== undefined ? duration(now - current.startedAt) : ''
     const clock = ran === '' ? '' : `${STATE_GLYPHS.elapsed} ${ran}`
     const head = `${isCurrent ? '▸ ' : ''}${groupOf(index)}${t.id === undefined ? '' : `${padId(t.id, taskIdWidth)} `}`
     // The ◷ sits at the right edge, the current row in bold (052 #20).
