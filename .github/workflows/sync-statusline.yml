@@ -1,0 +1,61 @@
+name: Sync statusline
+
+# Refreshes vendor/statusline/ from github.com/jonyfs/statusline (spec 070) and opens a pull
+# request for review. It never pushes to main. A pull request is opened only when the copy
+# changed and the contract test passes against it.
+on:
+  schedule:
+    - cron: '17 6 * * 1'
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Branch, tag or commit of jonyfs/statusline to vendor'
+        required: false
+        default: main
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Refresh the copy
+        run: sh scripts/sync-statusline.sh "${{ inputs.ref || 'main' }}"
+      - name: Stop when nothing changed
+        id: changed
+        run: |
+          if git diff --quiet -- vendor/statusline; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Install test tooling
+        if: steps.changed.outputs.changed == 'true'
+        run: npm ci
+      - name: Contract test
+        if: steps.changed.outputs.changed == 'true'
+        run: npx vitest run tool-tests/unit/statusline-contract.vitest.ts
+      - name: Open the pull request
+        if: steps.changed.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=$(node -e 'process.stdout.write(require("./vendor/statusline/VERSION").version)')
+          commit=$(node -e 'process.stdout.write(require("./vendor/statusline/VERSION").commit.slice(0,7))')
+          branch="sync-statusline-${commit}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$branch"
+          git add vendor/statusline
+          git commit -m "chore: vendor statusline ${version} (${commit})"
+          git push --set-upstream origin "$branch"
+          gh pr create --base main --head "$branch" \
+            --title "chore: vendor statusline ${version} (${commit})" \
+            --body "Refreshes vendor/statusline from jonyfs/statusline at ${commit}. The contract test passed against it. Review the diff; merging it ships with the next Astrolabe release."
