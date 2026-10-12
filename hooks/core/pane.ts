@@ -76,7 +76,7 @@ const featureRow = (f: Feature, isActive: boolean, columns: number, ctx: RowCont
     return { key: `feature-${f.id}`, text: fitting, role, ...dim, segments }
   }
   if (fitting !== undefined) return { key: `feature-${f.id}`, text: fitting, role, ...dim }
-  const tail = `  ${f.phase}${percent === '' ? '' : ` ${percent.trim()}`}${updated}`
+  const tail = `  ${f.phase}${percent === '' ? '' : ` ${percent.trim()}`}`
   const cutName = ctx.wrapLongNames === true ? f.name : cut(f.name, columns - width(head) - width(tail))
   const text = cutName === '' ? `${head.trimEnd()}${tail}` : `${head}${cutName}${tail}`
   return { key: `feature-${f.id}`, text, role, ...dim }
@@ -297,6 +297,7 @@ export const taskRows = (
   const count = tr(lang, 'pane.count', { done: tasks.length - open.length, total: tasks.length })
   const out: PaneRow[] = [{ key: 'count', text: cut([`${active.id} ${active.name}`, phase, count].filter(x => x !== undefined).join(' · '), columns), role: 'muted' }]
   if (tasks.length === 0) {
+    let requirementsShown = false
     // Quick specs show their Requirements as a checklist (045 #49).
     const feature = state.features.find(f => f.dir === active.dir)
     const spec = memo.files[active.dir]?.spec
@@ -314,9 +315,11 @@ export const taskRows = (
           const requirementsText = reqTasks.map((t, i) => `${t.isDone ? '☑' : '☐'} ${t.text}`).join('\n')
           out.push({ key: 'requirements', text: cut(`${tr(lang, 'pane.requirements')}:`, columns), role: 'muted' })
           out.push({ key: 'requirements-list', text: requirementsText, role: 'text' })
+          requirementsShown = true
         }
       }
     }
+    if (!requirementsShown) return [{ key: 'no-tasks', text: tr(lang, 'pane.noTasks'), role: 'muted' }]
   }
   if (open.length === 0) return [...out, { key: 'all-done', text: tr(lang, 'pane.allTicked'), role: 'done' }]
   // Done tasks folded under one row (045 #41).

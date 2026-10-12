@@ -160,7 +160,7 @@ export const paneTree = (
             <Box flexDirection="row">
               {row.selected === true && <Text color={tokens.accent} bold>{m('❯ ')}</Text>}
               {row.segments.map(seg => (
-                <Text color={tokens[seg.role]} dimColor={row.dim === true} hover={rowHover(row)}>
+                <Text color={tokens[seg.role]} dimColor={row.dim === true} wrap={extras.wrapLongNames === true ? 'wrap' : 'truncate-end'} hover={rowHover(row)}>
                   {m(seg.text)}
                 </Text>
               ))}

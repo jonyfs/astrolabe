@@ -72,7 +72,7 @@ export const ES: Dictionary = {
   'pane.scrollMore': 'más',
   'legend.updated': 'actualizado a las {at}',
   'legend.default': '1-7 pestañas · h ayuda · j/k desplaza · r ↻ · Esc cierra',
-  'legend.specs': '1-7 pestañas · h ayuda · f filtra · s estado · j/k desplaza · Enter selecciona · r ↻ · Esc cierra',
+  'legend.specs': '1-7 pestañas · h ayuda · f filtra · s estado · j/k desplaza · r ↻ · Esc cierra',
   'legend.filter': '1-7 pestañas · h ayuda · f filtra · j/k desplaza · r ↻ · Esc cierra',
   'legend.config': '1-7 pestañas · h ayuda · Enter cambia un valor · r ↻ · Esc cierra',
   'summary.ready': '🧭 {feature} terminó: el resumen está en la pestaña Sesión de /astrolabe',
