@@ -213,7 +213,10 @@ const buildSpecsRows = (
     text: cut(`· ${runLabel(run)} ${tr(lang, 'pane.notRead')}`, columns),
     role: 'faint',
   })
-  const effective: SpecView | undefined = scale?.view ?? (state.features.length > 12 ? 'focus' : undefined)
+  // Focus folds finished specs into counts, so a filter or a status picks the All view instead:
+  // the person asked for those rows by name (067 review).
+  const requested: SpecView | undefined = scale?.view ?? (state.features.length > 12 ? 'focus' : undefined)
+  const effective: SpecView | undefined = requested === 'focus' && scale?.filtered === true ? 'all' : requested
   if (effective !== undefined) {
     const group: SpecGroup = scale?.group ?? 'status'
     const open = new Set(scale?.open ?? [])
@@ -276,11 +279,13 @@ const buildSpecsRows = (
         ? blocksOf(loaded, ctx.idWidth).map(b => ({ key: b.label, label: b.label, features: b.features }))
         : [...new Set(loaded.map(f => groupKeyOf(group, f, activeDir, priorities[f.id])))].map(k => ({ key: k, label: k, features: loaded.filter(f => groupKeyOf(group, f, activeDir, priorities[f.id]) === k) }))
       for (const h of headings) {
-        const isOpen = open.has(h.key) || h.features.some(f => f.dir === activeDir)
+        // With a filter on, every block is open: the rows were asked for by name.
+        const isOpen = open.has(h.key) || scale?.filtered === true || h.features.some(f => f.dir === activeDir)
         const c = countsOf(h.features, activeDir, checkDirs)
         rows.push({ key: `block-${h.key}`, text: cut(`${isOpen ? '▾' : '▸'} ${h.label} ${countsText(c)}`.trimEnd(), columns), role: 'muted', bold: true })
         if (!isOpen) continue
-        for (const f of sorted(h.features)) rows.push(...featureBlock(f))
+        // A touched spec has its block in the Touched section above (067 review).
+        for (const f of sorted(h.features.filter(x => !touched.includes(x)))) rows.push(...featureBlock(f))
       }
       for (const run of runs) rows.push(placeholder(run))
     }
@@ -515,7 +520,9 @@ export const taskRows = (
     const current = state.currentTask
     const isCurrent = current !== undefined && t.id !== undefined && current.id === t.id
     const ran = isCurrent && now !== undefined && current.startedAt !== undefined ? duration(now - current.startedAt) : ''
-    const clock = ran === '' ? bracketOf(index) : `${STATE_GLYPHS.elapsed} ${ran}`
+    // A running task in a [P] run keeps its bracket beside the clock.
+    const bracket = bracketOf(index)
+    const clock = ran === '' ? bracket : bracket === '' ? `${STATE_GLYPHS.elapsed} ${ran}` : `${bracket} ${STATE_GLYPHS.elapsed} ${ran}`
     const head = `${isCurrent ? '▸ ' : ''}${t.id === undefined ? '' : `${padId(t.id, taskIdWidth)} `}`
     // The ◷ sits at the right edge, the current row in bold (052 #20).
     const body = `${head}${cut(cleanTaskText(t.text), columns - width(head) - width(clock) - (clock === '' ? 0 : 2))}`.trimEnd()
@@ -600,6 +607,8 @@ export type ScaleOptions = {
   open?: readonly string[]
   group?: SpecGroup
   touched?: readonly string[]
+  /** A text filter or a status is on: Focus gives way to All so the rows asked for are listed. */
+  filtered?: boolean
   /** Files plan.md names that are not there, by feature dir, from the reconcile's own reads. */
   planMissing?: Readonly<Record<string, readonly string[]>>
 }
