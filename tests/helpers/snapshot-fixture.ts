@@ -2,6 +2,9 @@
 // imports only hooks/core, so the mod tests and scripts/update-snapshots.ts build the same
 // object. Colours are the flavor's own hex values, so a role that loses its colour, or a
 // literal one, changes the snapshot.
+// Reset times print as a weekday and a clock in the machine's time zone, so the snapshots are
+// taken in UTC: the golden file is the same on every machine.
+if (typeof process !== 'undefined') process.env['TZ'] = 'UTC'
 import { bandSegments, type Segment } from '../../hooks/core/band'
 import { footerChips, footerText } from '../../hooks/core/footer'
 import { iconSet } from '../../hooks/core/icons'
