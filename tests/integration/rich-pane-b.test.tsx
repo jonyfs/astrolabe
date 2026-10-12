@@ -44,7 +44,7 @@ describe('the rich pane, part two (024)', () => {
   test('kitty: the usage chart is a picture', async ($, on) => {
     const session = await setup($ as never, on as never, { KITTY_WINDOW_ID: '1' })
     const ui = await mount($ as never)
-    await ui.press({ key: 'tab-dashboard' })
+    await ui.press({ key: 'tab-session' })
     const image = await ui.find({ type: 'Image' })
     expect(image?.props['alt']).toContain('usage')
     expect(await ui.find({ key: 'astrolabe-usage-chart', type: 'Raster' })).toBeUndefined()
@@ -54,7 +54,7 @@ describe('the rich pane, part two (024)', () => {
   test('another terminal keeps the Raster; images off never reads the environment', { options: { images: 'off' } }, async ($, on) => {
     const session = await setup($ as never, on as never, { KITTY_WINDOW_ID: '1' })
     const ui = await mount($ as never)
-    await ui.press({ key: 'tab-dashboard' })
+    await ui.press({ key: 'tab-session' })
     expect(await ui.find({ type: 'Image' })).toBeUndefined()
     expect(await ui.find({ key: 'astrolabe-usage-chart' })).toBeDefined()
     await ui.unmount()
@@ -63,7 +63,7 @@ describe('the rich pane, part two (024)', () => {
   test('the dial is a Client that sweeps to the active step', async ($, on) => {
     await setup($ as never, on as never)
     const ui = await mount($ as never)
-    await ui.press({ key: 'tab-dashboard' })
+    await ui.press({ key: 'tab-session' })
     const client = await ui.find({ type: 'Client' })
     expect(client).toBeDefined()
     const props = client?.props['props'] as { frames: unknown[] } | undefined

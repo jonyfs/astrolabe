@@ -24,6 +24,7 @@ import { VERSION } from './core/version'
 import { QUEUE_HOTKEYS } from './core/keys'
 import { duration } from './core/duration'
 import { statusLead } from './core/status-lead'
+import { badgesOf, legacyTab } from './core/pane-tabs'
 import { usageRamp } from './core/usage-ramp'
 import { ASK_MS, clockOf, decide, dropped, EXTEND_MS, HOLD_LIFT_MS, holdQuestion, nextHeld, isPaused, isReadOnlyTool, parseAllow, pauseQuestion, RAISE_MS, refusal, resumePrompt, runPrompt, usageSegment, type Decision, type Question, usageRows } from './core/governor'
 import { chipForeground, CHIPS, FLAVORS, flavorOf, isThemeKeys, lighten, STATUS_ROLE, themeOf, type ThemeRole } from './core/theme'
@@ -37,7 +38,7 @@ import { readFeature } from './io/snapshot'
 import { deriveSpeckitState, snapshotFromMemo } from './core/speckit'
 import { deriveFeature } from './core/phase'
 import { chartImage, dialFrames, imagesFor } from './core/pixels'
-import { emptyMemo, type PaneState, type PaneTab, type UpdateId, type UpdateItem, type UpdatesState, type UsageState, type UsageReading, type QueuedAgent, type SessionStats, type SpeckitState } from './core/types'
+import { emptyMemo, type PaneState, type PaneTab, type PaneView, type UpdateId, type UpdateItem, type UpdatesState, type UsageState, type UsageReading, type QueuedAgent, type SessionStats, type SpeckitState } from './core/types'
 import type { Preset } from './core/presets'
 import type { Fs } from './io/fs-port'
 import { findRoot } from './io/root'
@@ -755,6 +756,8 @@ let optionsSeen: Readonly<Record<string, unknown>> = {}
 
 // How many units each pane tab drew last (038), to clamp a scroll that arrives between draws.
 const unitsShown: Partial<Record<string, number>> = {}
+/** What the pane body shows: the help overlay above the tab, or the tab (066 #21). */
+const viewOf = (pane: Pick<PaneState, 'tab' | 'help'>): PaneView => (pane.help === true ? 'help' : pane.tab)
 const featureDurationsByRoot = new Map<string, FeatureDuration[]>()
 let specSelectionRows: Array<{ key: string; index: number }> = []
 let selectedSpecRow: string | undefined
@@ -1032,7 +1035,7 @@ function paneHeader(
   const Button = 'Button' in elements ? elements.Button : undefined
   const active = state.active
   // One filter for Specs, Tasks and Help (043 #23).
-  if (pane.tab === 'specs' || pane.tab === 'tasks' || pane.tab === 'help') {
+  if (viewOf(pane) === 'specs' || viewOf(pane) === 'tasks' || viewOf(pane) === 'help') {
     const out: RenderNode[] = []
     if (Input !== undefined) {
       // Each keystroke filters; Enter keeps the text the same way.
@@ -1041,22 +1044,22 @@ function paneHeader(
         await $.state.set(PANE_STATE, { ...held, filter: value })
       }
       out.push(
-        <Input key="astrolabe-filter" placeholder={t(currentLang(), pane.tab === 'specs' ? 'pane.filter' : 'pane.filterRows')} value={pane.filter ?? ''} onInput={setFilter} onSubmit={setFilter} />,
+        <Input key="astrolabe-filter" placeholder={t(currentLang(), viewOf(pane) === 'specs' ? 'pane.filter' : 'pane.filterRows')} value={pane.filter ?? ''} onInput={setFilter} onSubmit={setFilter} />,
       )
       if (filterCount !== undefined) {
         // The filter's tokens as one muted row with the count (061): `phase:plan · has:questions · 3/12 rows`.
-        const chips = pane.tab === 'specs' ? filterChips(pane.filter, pane.status) : []
+        const chips = viewOf(pane) === 'specs' ? filterChips(pane.filter, pane.status) : []
         const count = t(currentLang(), 'pane.filterCount', filterCount)
         out.push(<elements.Text key="astrolabe-filter-count" color={tokens0.muted}>{chips.length === 0 ? count : `${chips.join(' · ')} ${count}`}</elements.Text>)
       }
     }
-    if (pane.tab === 'tasks' && Code !== undefined && stats?.tasksDiff !== undefined && stats.tasksDiff.dir === active?.dir) {
+    if (viewOf(pane) === 'tasks' && Code !== undefined && stats?.tasksDiff !== undefined && stats.tasksDiff.dir === active?.dir) {
       const age = stats.tasksDiff.at === undefined ? 0 : now - stats.tasksDiff.at
       if (age > DIFF_FOLD_MS) out.push(<elements.Text key="astrolabe-diff-folded" color={tokens0.muted}>{foldedDiff(stats.tasksDiff.text, stats.tasksDiff.file, age, currentLang())}</elements.Text>)
       else out.push(<Code source={capDiff(stats.tasksDiff.text, currentLang())} format="diff" path={stats.tasksDiff.file} />)
     }
     // A run of [P] tasks offered as one prompt to subagents (054 #89).
-    if (pane.tab === 'tasks' && active !== undefined && Button !== undefined) {
+    if (viewOf(pane) === 'tasks' && active !== undefined && Button !== undefined) {
       const open = (state.activeTasks ?? []).filter(task => !task.isDone)
       const run = parallelTasks(open)
       const feature = state.features.find(f => f.dir === active.dir)
@@ -1069,7 +1072,7 @@ function paneHeader(
     }
     // The breadcrumb and summary name the active feature only while the filter keeps it (024 #49).
     const activeShown =
-      pane.tab === 'specs' && active !== undefined
+      viewOf(pane) === 'specs' && active !== undefined
         ? filterFeatures(state.features, pane.filter, active.dir, pane.status, specFilterContext(stats)).some(feature => feature.dir === active.dir)
         : false
     // Breadcrumb row (043 #24): Specs › 026 claude-context
@@ -2363,10 +2366,12 @@ export const register: Register = (on, options) => {
     try {
       const root = started?.state.root
       const saved = root === undefined ? undefined : await $.store.get(`tab:${root}`)
-      if (typeof saved === 'string' && ['specs', 'tasks', 'session', 'dashboard', 'help', 'config', 'prs'].includes(saved)) {
+      if (typeof saved === 'string') {
+        // A tab an earlier version stored maps to its new tab (066 #21).
+        const tab = legacyTab(saved)
         const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
-        const offset = (await savedScrolls($, root))[saved] ?? 0
-        if (held.tab !== saved || offset > 0) await $.state.set(PANE_STATE, { ...held, tab: saved as PaneTab, ...(offset > 0 ? { scroll: { tab: saved as PaneTab, offset } } : {}) })
+        const offset = (await savedScrolls($, root))[tab] ?? 0
+        if (held.tab !== tab || offset > 0) await $.state.set(PANE_STATE, { ...held, tab, ...(offset > 0 ? { scroll: { tab, offset } } : {}) })
       }
     } catch {
       // No saved tab: Specs.
@@ -2931,12 +2936,13 @@ export const register: Register = (on, options) => {
       }
       return {}
     }
-    const from = held.scroll?.tab === held.tab ? held.scroll.offset : 0
+    const at = viewOf(held)
+    const from = held.scroll?.tab === at ? held.scroll.offset : 0
     const by = e.by === 0 ? 0 : Math.sign(e.by) * Math.max(1, Math.round(Math.abs(e.by)))
-    const to = Math.max(0, Math.min(Math.max(0, (unitsShown[held.tab] ?? 1) - 1), from + by))
+    const to = Math.max(0, Math.min(Math.max(0, (unitsShown[at] ?? 1) - 1), from + by))
     if (to !== from) {
-      await $.state.set(PANE_STATE, { ...held, scroll: { tab: held.tab, offset: to } })
-      await rememberScroll($, held.tab, to)
+      await $.state.set(PANE_STATE, { ...held, scroll: { tab: at, offset: to } })
+      await rememberScroll($, at, to)
     }
     return {}
   })
@@ -3027,16 +3033,18 @@ export const register: Register = (on, options) => {
     const usage = usageRead.value ?? DEFAULT_USAGE
     const updates = updatesRead.value?.items ?? []
     const pane = paneRead.value ?? DEFAULT_PANE
+    // The help overlay above the tab, or the tab itself (066 #21).
+    const view = viewOf(pane)
     const columns = e.props.bodyColumns
     const needle = (pane.filter ?? '').trim().toLowerCase()
     const keep = <R extends { key: string; text: string }>(list: R[]): R[] =>
       needle === '' ? list : list.filter(r => r.key === 'count' || r.text.toLowerCase().includes(needle))
     const rows =
-      pane.tab === 'help'
+      view === 'help'
         ? helpRows(helpText(currentLang(), optionsSeen, stats?.health?.lines ?? []), pane.filter, currentLang())
-        : pane.tab === 'tasks'
+        : view === 'tasks'
         ? [...keep(taskRows(state, emptyMemo(), 1000, columns, currentLang(), await $.clock.now(), stats?.taskTimes ?? [])), ...(await pastResetRows($, state, stats, usage))]
-        : pane.tab === 'session'
+        : view === 'session'
           ? await sessionTabRows($, state, usage, stats, updates, updatesRead.value?.confirming)
           : [
               ...specsRows(
@@ -3055,13 +3063,13 @@ export const register: Register = (on, options) => {
             ]
     // A filter that keeps nothing says so (052 #7).
     const matchesNone =
-      (needle !== '' || (pane.tab === 'specs' && (pane.status ?? 'all') !== 'all')) &&
-      (pane.tab === 'specs' ? filtered(state, pane.filter, pane.status, specFilterContext(stats)).features.length === 0 && state.features.length > 0 : (pane.tab === 'tasks' || pane.tab === 'help') && rows.every(r => r.key === 'count'))
-    if (matchesNone && pane.tab === 'specs') rows.splice(0, rows.length, ...rows.filter(r => r.key !== 'empty'))
+      (needle !== '' || (view === 'specs' && (pane.status ?? 'all') !== 'all')) &&
+      (view === 'specs' ? filtered(state, pane.filter, pane.status, specFilterContext(stats)).features.length === 0 && state.features.length > 0 : (view === 'tasks' || view === 'help') && rows.every(r => r.key === 'count'))
+    if (matchesNone && view === 'specs') rows.splice(0, rows.length, ...rows.filter(r => r.key !== 'empty'))
     if (matchesNone) rows.push({ key: 'no-match', text: t(currentLang(), 'pane.noMatch', { filter: pane.filter?.trim() ?? '' }), role: 'muted' } as never)
     const { Box, Text, Button } = $.ui.resolve(e)
     const featureRowKeys = new Set(state.features.map(feature => `feature-${feature.id}`))
-    specSelectionRows = pane.tab === 'specs'
+    specSelectionRows = view === 'specs'
       ? rows.flatMap((row, index) => featureRowKeys.has(row.key) && 'href' in row && row.href !== undefined ? [{ key: row.key, index }] : [])
       : []
     const activeSpecFeature = state.features.find(feature => feature.dir === state.active?.dir)
@@ -3084,7 +3092,7 @@ export const register: Register = (on, options) => {
     const reviewed = state.features.find(f => `feature-${f.id}` === selectedSpecRow)
     const reviewedNext = reviewed === undefined ? undefined : nextFor(reviewed, reviewed.dir === state.active?.dir, state.isAnalyzed === true)
     const rowButtons: Array<{ key: string; label: string; hotkey?: string; onPress: () => void }> =
-      pane.tab === 'specs' && reviewed !== undefined && 'Button' in $.ui.resolve(e)
+      view === 'specs' && reviewed !== undefined && 'Button' in $.ui.resolve(e)
         ? [
             {
               key: 'advisor-review',
@@ -3106,7 +3114,7 @@ export const register: Register = (on, options) => {
         : []
     // The line above those buttons: what the spec needs, at a glance (061).
     const rowDetail =
-      reviewed === undefined || pane.tab !== 'specs'
+      reviewed === undefined || view !== 'specs'
         ? undefined
         : specDetail(reviewed, {
             ...(stats?.priorities?.[reviewed.id] === undefined ? {} : { priority: stats.priorities[reviewed.id]! }),
@@ -3117,19 +3125,28 @@ export const register: Register = (on, options) => {
     const extras = {
       rowButtons,
       ...(rowDetail === undefined ? {} : { rowDetail }),
-      badges: {
-        ...(inProgress === 0 ? {} : { specs: String(inProgress) }),
-        ...(activeOpen === undefined || activeOpen.total - activeOpen.done <= 0 ? {} : { tasks: String(activeOpen.total - activeOpen.done) }),
-        ...(pullCount === undefined || pullCount === 0 ? {} : { prs: String(pullCount) }),
+      // What waits on the person (066 #23): never a total.
+      badges: badgesOf({
+        inProgress,
+        openTasks: activeOpen === undefined ? 0 : activeOpen.total - activeOpen.done,
+        pulls: pullCount,
+        governor: decisionOf(usage, await $.clock.now()).band,
+      }),
+      help: pane.help === true,
+      onHelp: async () => {
+        const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
+        const { help: _off, ...rest } = held
+        await $.state.set(PANE_STATE, held.help === true ? rest : { ...rest, help: true })
+        if (held.help !== true) $.clock.after(0, () => void refreshHealth($))
       },
       // What the tab is for, then its keys (048 #72).
       onClose: () => $.ui.close({ id: PANE_ID }).then(() => undefined),
       columns,
-      ...(pane.tab === 'session' && e.surface === 'terminal'
+      ...(view === 'session' && e.surface === 'terminal'
         ? { onRunQueued: async (id: string) => showToast($, await runQueued($, id)) }
         : {}),
-      ...(pane.tab === 'session' ? { onUpdate: async (id: string) => runUpdate($, id as UpdateId) } : {}),
-      ...(pane.tab === 'session'
+      ...(view === 'session' ? { onUpdate: async (id: string) => runUpdate($, id as UpdateId) } : {}),
+      ...(view === 'session'
         ? {
             onAllowUsage: async () => showToast($, await setUsageOverride($, 95, 2 * 3_600_000)),
             onRevokeUsage: async () => showToast($, await revokeUsageOverride($)),
@@ -3139,7 +3156,7 @@ export const register: Register = (on, options) => {
       wrapLongNames: e.surface === 'desktop',
       marks: accessible ? ('words' as const) : iconsFor(iconsOption, e.surface) === 'ascii' ? ('ascii' as const) : ('unicode' as const),
       // s cycles the Specs tab's status filter (054 #21).
-      ...(pane.tab === 'specs'
+      ...(view === 'specs'
         ? {
             status: { label: t(currentLang(), `pane.status.${pane.status ?? 'all'}` as TextKey), onPress: async () => {
               const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
@@ -3147,7 +3164,7 @@ export const register: Register = (on, options) => {
             } },
           }
         : {}),
-      ...(pane.tab === 'specs' && state.active !== undefined
+      ...(view === 'specs' && state.active !== undefined
         ? {
             onPriority: async () => {
               const id = state.active!.id
@@ -3159,13 +3176,13 @@ export const register: Register = (on, options) => {
       ...((el => ('Link' in el && e.surface === 'terminal' ? { Link: el.Link } : {}))($.ui.resolve(e))),
       onRefresh: () => refreshNow($).catch(() => undefined),
       // The Dashboard's numbers copied as Markdown (046 #59).
-      ...(pane.tab === 'dashboard'
+      ...(view === 'session'
         ? { onCopyKpis: async () => { const text = await kpisText($); if (text !== undefined) await copyNext($, text, e.surface) } }
         : {}),
       // Number keys show on the tab labels only while the pane has the keyboard (054 #65).
       showKeys: e.props.isFocused === true,
       // c clears the filter box and the status filter; o cycles the order (061).
-      ...(pane.tab === 'specs'
+      ...(view === 'specs'
         ? {
             sort: {
               label: t(currentLang(), `pane.sort.${pane.sort ?? 'status'}` as TextKey),
@@ -3186,22 +3203,23 @@ export const register: Register = (on, options) => {
           }
         : {}),
       onCopy: (text: string) => copyNext($, text, e.surface),
-      onFind: pane.tab === 'specs' || pane.tab === 'tasks' || pane.tab === 'help' ? () => $.ui.focus({ requestId: PANE_ID, key: 'astrolabe-filter' }).then(() => undefined) : undefined,
+      onFind: view === 'specs' || view === 'tasks' || view === 'help' ? () => $.ui.focus({ requestId: PANE_ID, key: 'astrolabe-filter' }).then(() => undefined) : undefined,
       // What the tab is for, then its keys; a narrow pane keeps the keys whole (052 #3).
       legend: ((about: string, keys: string) => ([...`${about} · ${keys}`].length <= columns ? `${about} · ${keys}` : keys))(
-        t(currentLang(), ABOUT[pane.tab]),
-        t(currentLang(), pane.tab === 'specs' ? 'legend.specs' : pane.tab === 'tasks' || pane.tab === 'help' ? 'legend.filter' : pane.tab === 'config' ? 'legend.config' : 'legend.default'),
+        t(currentLang(), ABOUT[view]),
+        t(currentLang(), view === 'specs' ? 'legend.specs' : view === 'tasks' || view === 'help' ? 'legend.filter' : view === 'setup' ? 'legend.config' : 'legend.default'),
       ) + (state.updatedAt === undefined || columns < 80 ? '' : ` · ${t(currentLang(), 'legend.updated', { at: clockOf(new Date(state.updatedAt).toISOString()) ?? '' })}`),
     }
     const select = async (tab: PaneTab) => {
       const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
       // The offset this tab had last, kept across reloads (043 #30).
       const offset = (await savedScrolls($, state.root))[tab] ?? 0
-      await $.state.set(PANE_STATE, { ...held, tab, ...(offset > 0 ? { scroll: { tab, offset } } : {}) })
+      // A tab press closes the help overlay.
+      const { help: _help, ...rest } = held
+      await $.state.set(PANE_STATE, { ...rest, tab, ...(offset > 0 ? { scroll: { tab, offset } } : {}) })
       // The last tab, per project, for the next session (043 #22).
       if (state.root !== undefined) await $.store.set(`tab:${state.root}`, tab).catch(() => undefined)
       if (tab === 'prs') $.clock.after(0, () => void refreshPulls($))
-      if (tab === 'help') $.clock.after(0, () => void refreshHealth($))
     }
     // The footer under every tab (035), held at the bottom when the tab is shorter than the pane.
     const shortPaneRule = (e.props.scroll?.bodyRows ?? 24) < 12
@@ -3236,20 +3254,21 @@ export const register: Register = (on, options) => {
     const footerReserve = footerIn === 'status' ? 1 : ruleRows + (footerLines === '3' ? 3 : 1) + 1
     // The body scrolls inside the pane and the footer stays on the last rows (038).
     const bodyRows = e.props.scroll?.bodyRows ?? 24
-    const offset = pane.scroll?.tab === pane.tab ? pane.scroll.offset : 0
+    const offset = pane.scroll?.tab === view ? pane.scroll.offset : 0
     const scrollBy = async (by: number) => {
       const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
-      const from = held.scroll?.tab === held.tab ? held.scroll.offset : 0
-      const to = Math.max(0, Math.min(Math.max(0, (unitsShown[held.tab] ?? 1) - 1), from + by))
+      const at = viewOf(held)
+      const from = held.scroll?.tab === at ? held.scroll.offset : 0
+      const to = Math.max(0, Math.min(Math.max(0, (unitsShown[at] ?? 1) - 1), from + by))
       if (to !== from) {
-        await $.state.set(PANE_STATE, { ...held, scroll: { tab: held.tab, offset: to } })
-        await rememberScroll($, held.tab, to)
+        await $.state.set(PANE_STATE, { ...held, scroll: { tab: at, offset: to } })
+        await rememberScroll($, at, to)
       }
     }
     const navFor = (heights: readonly number[], room: number) => {
       const win = windowUnits(heights, offset, room)
-      unitsShown[pane.tab] = heights.length
-      if (pane.tab === 'specs') specSelectionWindow = win
+      unitsShown[view] = heights.length
+      if (view === 'specs') specSelectionWindow = win
       const step = Math.max(1, win.end - win.start - 1)
       const shownRows = heights.slice(win.start, win.end).reduce((a, b) => a + b, 0)
       const arrows = (win.start > 0 ? 1 : 0) + (win.end < heights.length ? 1 : 0)
@@ -3259,7 +3278,7 @@ export const register: Register = (on, options) => {
         nav: { above: win.start, below: heights.length - win.end, up: () => scrollBy(-step), down: () => scrollBy(step), labels: { more: t(currentLang(), 'pane.scrollMore') } },
       }
     }
-    if (pane.tab === 'prs') {
+    if (view === 'prs') {
       const units = pullsBody($, e, pane, stats)
       const { win, pad, nav } = navFor(units.map(u => u.rows), bodyRows - 1 - footerReserve)
       const body = (
@@ -3269,40 +3288,31 @@ export const register: Register = (on, options) => {
       )
       return paneTree({ Box, Text, Button }, pane.tab, rows, tokens, select, body, currentLang(), [], await footerFor(pad), nav, extras)
     }
-    if (pane.tab === 'config') {
-      const units = configBody($, e, pane)
+    if (view === 'setup') {
+      // Setup (066 #21): the options, then the model per skill.
+      const units = [...configBody($, e, pane), ...modelSkillTabBody($, e, pane)]
       const { win, pad, nav } = navFor(units.map(u => u.rows), bodyRows - 1 - footerReserve)
       const body = (
-        <Box key="astrolabe-config" flexDirection="column">
+        <Box key="astrolabe-setup" flexDirection="column">
           {units.slice(win.start, win.end).map(u => u.node)}
         </Box>
       )
       return paneTree({ Box, Text, Button }, pane.tab, rows, tokens, select, body, currentLang(), [], await footerFor(pad), nav, extras)
     }
-    if (pane.tab === 'models') {
-      const units = modelSkillTabBody($, e, pane)
-      const { win, pad, nav } = navFor(units.map(u => u.rows), bodyRows - 1 - footerReserve)
-      const body = (
-        <Box key="astrolabe-models" flexDirection="column">
-          {units.slice(win.start, win.end).map(u => u.node)}
-        </Box>
-      )
-      return paneTree({ Box, Text, Button }, pane.tab, rows, tokens, select, body, currentLang(), [], await footerFor(pad), nav, extras)
-    }
-    if (pane.tab !== 'dashboard') {
-      const allTaskRows = pane.tab === 'tasks'
+    if (view !== 'session') {
+      const allTaskRows = view === 'tasks'
         ? taskRows(state, emptyMemo(), Number.MAX_SAFE_INTEGER, columns, currentLang())
         : []
       const taskFilterRows = allTaskRows.filter(row => row.key.startsWith('task-') && (needle === '' || row.text.toLowerCase().includes(needle)))
       const filterCount =
-        pane.tab === 'specs'
+        view === 'specs'
           ? { kept: filtered(state, pane.filter, pane.status, specFilterContext(stats)).features.length, total: state.features.length }
-          : pane.tab === 'tasks'
+          : view === 'tasks'
             ? {
                 kept: taskFilterRows.length,
                 total: allTaskRows.filter(row => row.key.startsWith('task-')).length,
               }
-            : pane.tab === 'help'
+            : view === 'help'
               ? {
                   kept: rows.filter(row => row.key !== 'no-match').length,
                   total: helpRows(helpText(currentLang(), optionsSeen, stats?.health?.lines ?? []), undefined, currentLang()).length,
@@ -3312,10 +3322,10 @@ export const register: Register = (on, options) => {
       const header = paneHeader($, e, pane, state, stats, filterCount, nowForHeader)
       // Rows the header takes: the filter, the summary's lines and links, the diff's lines.
       const headerRows =
-        ('Input' in $.ui.resolve(e) && pane.tab !== 'session' ? 1 + (filterCount === undefined ? 0 : 1) : 0) +
+        ('Input' in $.ui.resolve(e) && view !== 'session' ? 1 + (filterCount === undefined ? 0 : 1) : 0) +
         (rowButtons.length > 0 ? 1 : 0) +
         (rowDetail === undefined ? 0 : 1) +
-        (pane.tab === 'specs'
+        (view === 'specs'
           ? state.activeSummary === undefined
             ? 0
             : (pane.summary !== undefined && pane.summary.dir === state.active?.dir && pane.summary.expanded
@@ -3323,7 +3333,7 @@ export const register: Register = (on, options) => {
                 : wrappedRows(state.activeSummary.split(/\n{2,}/).slice(0, 2).join('\n\n'), columns - 2)) +
               2 +
               (state.activeSummary.split(/\n{2,}/).length > 2 && 'Button' in $.ui.resolve(e) ? 1 : 0)
-          : pane.tab === 'tasks' && stats?.tasksDiff !== undefined && stats.tasksDiff.dir === state.active?.dir
+          : view === 'tasks' && stats?.tasksDiff !== undefined && stats.tasksDiff.dir === state.active?.dir
             ? stats.tasksDiff.at !== undefined && nowForHeader - stats.tasksDiff.at > DIFF_FOLD_MS
               ? 1
               : wrappedRows(capDiff(stats.tasksDiff.text, currentLang()), columns - 2)
@@ -3351,7 +3361,7 @@ export const register: Register = (on, options) => {
       pictureCache = made === undefined ? undefined : { key: pictureKey, picture: made }
     }
     const picture = pictures ? pictureCache?.picture : undefined
-    const view = {
+    const dash = {
       dial: dial(activeFeature?.phase, rgb),
       dialFrames: dialFrames(activeFeature?.phase, rgb),
       ...(activeFeature === undefined ? {} : { currentStep: t(currentLang(), 'dash.currentStep', { step: activeFeature.phase }) }),
@@ -3377,15 +3387,20 @@ export const register: Register = (on, options) => {
         ...('Image' in elements ? { Image: elements.Image } : {}),
         ...('Client' in elements ? { Client: elements.Client } : {}),
       },
-      view,
+      dash,
       tokens,
       ascii,
       currentLang(),
       paneLabelWidth(currentLang()),
     )
-    // The Dashboard scrolls by section, so a chart is never cut in half (038).
-    const { win, pad, nav } = navFor(sections.map(section => section.rows), bodyRows - 1 - footerReserve)
-    const body = dashboardTree({ Box: elements.Box, Text: elements.Text }, sections.slice(win.start, win.end))
-    return paneTree({ Box, Text, Button }, pane.tab, rows, tokens, select, body, currentLang(), [], await footerFor(pad), nav, extras)
+    // The Session tab (066 #21): the session rows (usage, the governor, the project, the
+    // activity, the updates), then the Dashboard (dial, phases, chart, numbers). One list of
+    // units that scroll together, so a chart is never cut in half (038).
+    const heights = [...rows.map(() => 1), ...sections.map(section => section.rows)]
+    const { win, pad, nav } = navFor(heights, bodyRows - 1 - footerReserve)
+    const shownRows = rows.slice(win.start, Math.min(win.end, rows.length))
+    const shownSections = sections.slice(Math.max(0, win.start - rows.length), Math.max(0, win.end - rows.length))
+    const body = dashboardTree({ Box: elements.Box, Text: elements.Text }, shownSections)
+    return paneTree({ Box, Text, Button }, pane.tab, shownRows, tokens, select, body, currentLang(), [], await footerFor(pad), nav, extras)
   })
 }

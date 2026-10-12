@@ -169,10 +169,13 @@ export type SpeckitState = {
   activeDocs?: Array<'spec.md' | 'plan.md' | 'tasks.md'>
 }
 
-export type PaneTab = 'specs' | 'tasks' | 'session' | 'dashboard' | 'help' | 'config' | 'prs' | 'models'
+export type PaneTab = 'specs' | 'tasks' | 'session' | 'prs' | 'setup'
+
+/** What the pane body shows: a tab, or the help overlay above it (066 #21). */
+export type PaneView = PaneTab | 'help'
 
 /** The /astrolabe pane's session state: the tab shown and whether it opened unasked already. */
-export type PaneState = { tab: PaneTab; autoOpened: boolean; filter?: string; status?: 'all' | 'progress' | 'next' | 'done' | 'abandoned'; sort?: 'status' | 'progress' | 'name'; scroll?: { tab: PaneTab; offset: number }; selectedFeature?: string; summary?: { dir: string; expanded: boolean }; draft?: Record<string, string | number | boolean>; confirm?: string; confirmSelecting?: string }
+export type PaneState = { tab: PaneTab; /** The help overlay is on, above the tab. */ help?: true; autoOpened: boolean; filter?: string; status?: 'all' | 'progress' | 'next' | 'done' | 'abandoned'; sort?: 'status' | 'progress' | 'name'; scroll?: { tab: PaneView; offset: number }; selectedFeature?: string; summary?: { dir: string; expanded: boolean }; draft?: Record<string, string | number | boolean>; confirm?: string; confirmSelecting?: string }
 
 export type UpdateId = 'gstack' | 'specify' | 'speckit-skills' | 'astrolabe'
 

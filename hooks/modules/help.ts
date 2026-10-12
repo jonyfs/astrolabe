@@ -1,6 +1,6 @@
 import { CHANGES, VERSION } from '../core/version'
 import { SKILL_MODELS } from '../core/skill-models'
-import { type PaneTab } from '../core/types'
+import { type PaneView } from '../core/types'
 import { CHIP_TABLE, footerText } from '../core/footer'
 import { iconSet } from '../core/icons'
 import { paneLabelWidth, t, type Lang, type TextKey } from '../core/i18n'
@@ -60,11 +60,10 @@ export const buildHelp = (lang: Lang, optionsSeen: Readonly<Record<string, unkno
     `  ${t(lang, 'help.filterSyntax')}`,
     `  1 ${t(lang, 'tab.specs').padEnd(labelWidth)} ${t(lang, 'help.specs')}`,
     `  2 ${t(lang, 'tab.tasks').padEnd(labelWidth)} ${t(lang, 'help.tasksTab')}`,
-    `  3 ${t(lang, 'tab.session').padEnd(labelWidth)} ${t(lang, 'help.sessionTab')}`,
-    `  4 ${t(lang, 'tab.dashboard').padEnd(labelWidth)} ${t(lang, 'help.dashboardTab')}`,
-    `  5 ${t(lang, 'tab.help').padEnd(labelWidth)} ${t(lang, 'help.helpTab')}`,
-    `  6 ${t(lang, 'tab.config').padEnd(labelWidth)} ${t(lang, 'help.configTab')}`,
-    `  7 ${t(lang, 'tab.prs').padEnd(labelWidth)} ${t(lang, 'help.prsTab')}`,
+    `  3 ${t(lang, 'tab.session').padEnd(labelWidth)} ${t(lang, 'help.sessionTab')} · ${t(lang, 'help.dashboardTab')}`,
+    `  4 ${t(lang, 'tab.prs').padEnd(labelWidth)} ${t(lang, 'help.prsTab')}`,
+    `  5 ${t(lang, 'tab.setup').padEnd(labelWidth)} ${t(lang, 'help.configTab')} · ${t(lang, 'help.modelsTab')}`,
+    `  ? ${t(lang, 'tab.help').padEnd(labelWidth)} ${t(lang, 'help.helpTab')}`,
     `  ${t(lang, 'help.keys')}`,
     t(lang, 'help.block.models'),
     `  ${t(lang, 'help.models')}`,
@@ -97,15 +96,13 @@ export const DOC_LINKS = [
   { name: 'Astrolabe', url: 'https://github.com/jonyfs/astrolabe#readme' },
 ] as const
 
-export const ABOUT: Readonly<Record<PaneTab, TextKey>> = {
+export const ABOUT: Readonly<Record<PaneView, TextKey>> = {
   specs: 'help.specs',
   tasks: 'help.tasksTab',
   session: 'help.sessionTab',
-  dashboard: 'help.dashboardTab',
-  help: 'help.helpTab',
-  config: 'help.configTab',
   prs: 'help.prsTab',
-  models: 'help.modelsTab',
+  setup: 'help.configTab',
+  help: 'help.helpTab',
 }
 
 // The help text built once per language and option set, not on every render (054 #2).

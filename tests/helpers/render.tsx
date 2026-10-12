@@ -117,13 +117,13 @@ type PaneUi = {
 }
 
 /** Mounts the pane; returns its body text and a way to press its buttons. */
-export const mountPane = async ($: Mounter, surface: RenderSurface, bodyColumns = 80, rows = 30) => {
+export const mountPane = async ($: Mounter, surface: RenderSurface, bodyColumns = 80, rows = 30, bodyRows = 30) => {
   const ui = (await $.ui.mount({
     plugin: 'astrolabe',
     surface,
     component: 'Pane',
     requestId: 'astrolabe',
-    props: paneProps(bodyColumns),
+    props: { ...paneProps(bodyColumns), scroll: { bodyRows, top: 0 } },
     viewport: { columns: bodyColumns + 4, rows, isFullscreen: true },
   } as never)) as unknown as PaneUi
   return {

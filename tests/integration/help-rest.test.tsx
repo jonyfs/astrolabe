@@ -59,9 +59,11 @@ describe('help, part two (025)', () => {
   test('036: no welcome card; the Help tab lists the commands, keys and options', async ($, on) => {
     await setup($ as never, on as never)
     const ui = await mountPane($ as never, 'terminal', 100, 40)
-    expect(await ui.tabs()).toContain('Help')
+    // Help is an overlay on `?` (pressed as h), not a tab (066 #21).
+    expect(await ui.tabs()).not.toContain('Help')
+    expect(await ui.find({ key: 'help-key' })).toBeDefined()
     expect(await ui.body()).not.toContain('Welcome')
-    await ui.press('tab-help')
+    await ui.press('help-key')
     const first = await ui.body()
     // Help is longer than the pane: the rest is one scroll away.
     await ui.press('scroll-down')
@@ -75,7 +77,7 @@ describe('help, part two (025)', () => {
   test('043 #29: b pages back by a window, as k does', async ($, on) => {
     await setup($ as never, on as never)
     const ui = await mountPane($ as never, 'terminal', 100, 40)
-    await ui.press('tab-help')
+    await ui.press('help-key')
     expect(await ui.find({ key: 'page-back' })).toBeUndefined()
     await ui.press('scroll-down')
     const down = await ui.body()
@@ -88,7 +90,7 @@ describe('help, part two (025)', () => {
   test('043 #30: a tab keeps its scroll across a reload', async ($, on) => {
     await setup($ as never, on as never)
     const ui = await mountPane($ as never, 'terminal', 100, 40)
-    await ui.press('tab-help')
+    await ui.press('help-key')
     await ui.press('scroll-down')
     const scrolled = await ui.body()
     await ui.unmount()
@@ -101,7 +103,7 @@ describe('help, part two (025)', () => {
   test('041 #10: the Help tab previews the footer in all icon sets', async ($, on) => {
     await setup($ as never, on as never)
     const ui = await mountPane($ as never, 'terminal', 120, 60)
-    await ui.press('tab-help')
+    await ui.press('help-key')
     const views = [await ui.body()]
     for (let i = 0; i < 8; i += 1) {
       if (await ui.find({ key: 'scroll-down' }) === undefined) break
@@ -180,7 +182,7 @@ describe('help, part two (025)', () => {
     const band = JSON.stringify((await drawBand($ as never, 'terminal', 120)).tree)
     expect(band).not.toContain('astrolabe-step-')
     const ui = await mountPane($ as never, 'terminal', 100, 60)
-    await ui.press('tab-dashboard')
+    await ui.press('tab-session')
     expect(await ui.body()).toContain('* implement')
     await ui.unmount()
   })

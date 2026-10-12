@@ -8,13 +8,13 @@ description: "Task list for 066-pane-five-tabs"
 
 ## Phase 1: Five tabs, overlay, legend, badges (P1)
 
-- [ ] T001 [US1] #21 Write `tests/core/pane-tabs.test.ts`: five tabs with hotkeys 1 to 5, `legacyTab` maps `dashboard` to `session`, `config` and `models` to `setup`, `help` and unknown to `specs`
-- [ ] T002 [US1] #21 Create `hooks/core/pane-tabs.ts`; change `PaneTab` and `PaneState.help` in `types/index.d.ts`; use the table in `hooks/surfaces/pane.tsx` and `hooks/register.tsx` (select, stored tab, per-tab render): Session shows the session rows then the Dashboard sections, Setup shows the options then the model block
-- [ ] T003 [US1] #21 Help as an overlay: `?` (pressed as `h`) toggles `PaneState.help`, a tab press clears it; add integration tests on terminal and desktop
-- [ ] T004 [P] [US2] #22 Tests: the tab row holds tabs and the close button only; the legend row holds `key verb` buttons whose labels carry no hotkey prefix (no `hf:` or `po:`)
-- [ ] T005 [US2] #22 Move filter, status, order, priority, advisor and refresh into a legend row of plain Buttons in `hooks/surfaces/pane.tsx`; shorten verbs at 80 columns
-- [ ] T006 [P] [US3] #23 Tests for `badgesOf`: features in progress, open tasks of the active feature, open pull requests, `▲` for a holding or pausing governor, nothing when nothing waits
-- [ ] T007 [US3] #23 Implement `badgesOf` and use it in the pane render
+- [x] T001 [US1] #21 Write `tests/core/pane-tabs.test.ts`: five tabs with hotkeys 1 to 5, `legacyTab` maps `dashboard` to `session`, `config` and `models` to `setup`, `help` and unknown to `specs`
+- [x] T002 [US1] #21 Create `hooks/core/pane-tabs.ts`; change `PaneTab` and `PaneState.help` in `types/index.d.ts`; use the table in `hooks/surfaces/pane.tsx` and `hooks/register.tsx` (select, stored tab, per-tab render): Session shows the session rows then the Dashboard sections, Setup shows the options then the model block
+- [x] T003 [US1] #21 Help as an overlay: `?` (pressed as `h`) toggles `PaneState.help`, a tab press clears it; add integration tests on terminal and desktop
+- [x] T004 [P] [US2] #22 Tests: the tab row holds tabs and the close button only; the legend row holds `key verb` buttons whose labels carry no hotkey prefix (no `hf:` or `po:`)
+- [x] T005 [US2] #22 Move filter, status, order, priority, advisor and refresh into a legend row of plain Buttons in `hooks/surfaces/pane.tsx`; shorten verbs at 80 columns
+- [x] T006 [P] [US3] #23 Tests for `badgesOf`: features in progress, open tasks of the active feature, open pull requests, `▲` for a holding or pausing governor, nothing when nothing waits
+- [x] T007 [US3] #23 Implement `badgesOf` and use it in the pane render
 
 ## Phase 2: Bodies (P1 to P3)
 

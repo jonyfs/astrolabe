@@ -7,18 +7,11 @@ import { t, type Lang, type TextKey } from '../core/i18n'
 import { markText } from '../core/icons'
 import { hotkeyOf } from '../core/keys'
 import { COLORBLIND_MARKS, type Tokens } from '../core/theme'
+import { legendOf } from '../core/pane-tabs'
+import { TABS } from '../core/pane-tabs'
 import type { PaneTab } from '../core/types'
 
-export const PANE_TABS: ReadonlyArray<{ tab: PaneTab; label: TextKey; hotkey: string }> = [
-  { tab: 'specs', label: 'tab.specs', hotkey: '1' },
-  { tab: 'tasks', label: 'tab.tasks', hotkey: '2' },
-  { tab: 'session', label: 'tab.session', hotkey: '3' },
-  { tab: 'dashboard', label: 'tab.dashboard', hotkey: '4' },
-  { tab: 'help', label: 'tab.help', hotkey: '5' },
-  { tab: 'config', label: 'tab.config', hotkey: '6' },
-  { tab: 'prs', label: 'tab.prs', hotkey: '7' },
-  { tab: 'models', label: 'tab.models', hotkey: '8' },
-]
+export const PANE_TABS = TABS
 
 export const paneTree = (
   { Box, Text, Button }: Pick<ElementTable<'terminal' | 'desktop'>, 'Box' | 'Text' | 'Button'>,
@@ -45,7 +38,7 @@ export const paneTree = (
   /** What is above and below the rows shown, with the presses that scroll (038). */
   nav?: { above: number; below: number; up: () => Promise<void>; down: () => Promise<void>; labels: { more: string } },
   /** Counts beside the tab labels (043 #21) and the keys of the tab shown (043 #25). */
-  extras: { onUpdate?: (id: string) => Promise<void>; badges?: Partial<Record<PaneTab, string>>; legend?: string; onClose?: () => Promise<void>; onFind?: () => Promise<void>; onCopy?: (text: string) => Promise<void>; onRefresh?: () => Promise<void>; onCopyKpis?: () => Promise<void>; showKeys?: boolean; sort?: { label: string; onPress: () => Promise<void> }; onClear?: () => Promise<void>; onPriority?: () => Promise<void>; onRunQueued?: (id: string) => Promise<void>; rowButtons?: ReadonlyArray<{ key: string; label: string; hotkey?: string; onPress: () => void }>; rowDetail?: string; onAllowUsage?: () => Promise<void>; onRevokeUsage?: () => Promise<void>; status?: { label: string; onPress: () => Promise<void> }; columns?: number; marks?: 'unicode' | 'ascii' | 'words'; colorblind?: boolean; wrapLongNames?: boolean; Link?: ElementTable<'terminal'>['Link'] } = {},
+  extras: { help?: boolean; onHelp?: () => Promise<void>; onUpdate?: (id: string) => Promise<void>; badges?: Partial<Record<PaneTab, string>>; legend?: string; onClose?: () => Promise<void>; onFind?: () => Promise<void>; onCopy?: (text: string) => Promise<void>; onRefresh?: () => Promise<void>; onCopyKpis?: () => Promise<void>; showKeys?: boolean; sort?: { label: string; onPress: () => Promise<void> }; onClear?: () => Promise<void>; onPriority?: () => Promise<void>; onRunQueued?: (id: string) => Promise<void>; rowButtons?: ReadonlyArray<{ key: string; label: string; hotkey?: string; onPress: () => void }>; rowDetail?: string; onAllowUsage?: () => Promise<void>; onRevokeUsage?: () => Promise<void>; status?: { label: string; onPress: () => Promise<void> }; columns?: number; marks?: 'unicode' | 'ascii' | 'words'; colorblind?: boolean; wrapLongNames?: boolean; Link?: ElementTable<'terminal'>['Link'] } = {},
 ) => {
   const Link = extras.Link
   // The pane's own marks in the set the icons option and the accessible mode pick (052 #49, #47).
@@ -86,28 +79,39 @@ export const paneTree = (
           onPress={() => onSelect(item.tab)}
         />
       ))}
-      {/* ? opens Help from any tab, pressed with h (052 #50, 064 #7). */}
-      {tab !== 'help' && <Button key="help-key" label={`? ${hotkeyOf('?')}`} hotkey={hotkeyOf('?')} plain onPress={() => onSelect('help')} />}
-      {/* f focuses the filter (043 #23); ✕ closes the pane (043 #28). */}
-      {extras.onFind !== undefined && <Button key="find" label={m(`/ ${hotkeyOf('/')}`)} hotkey={hotkeyOf('/')} plain onPress={() => extras.onFind!()} />}
-      {/* s cycles the status filter (054 #21). */}
-      {extras.status !== undefined && <Button key="status-filter" label={`s ${extras.status.label}`} hotkey="s" plain onPress={() => extras.status!.onPress()} />}
-      {/* p cycles the active spec's priority: normal, high, low (051). */}
-      {extras.onPriority !== undefined && <Button key="priority" label={m('↑↓ p')} hotkey="p" plain onPress={() => extras.onPriority!()} />}
-      {/* o cycles how specs are ordered; c clears the filter (061). */}
-      {extras.sort !== undefined && <Button key="sort" label={`o ${extras.sort.label}`} hotkey="o" plain onPress={() => extras.sort!.onPress()} />}
-      {extras.onClear !== undefined && <Button key="clear-filter" label={m('✕ c')} hotkey="c" plain onPress={() => extras.onClear!()} />}
-      {/* r refreshes git, worktrees, pull requests and specs now (058). */}
-      {extras.onRefresh !== undefined && <Button key="refresh" label={m('↻ r')} hotkey="r" plain onPress={() => extras.onRefresh!()} />}
-      {extras.onCopyKpis !== undefined && <Button key="copy-kpis" label={m('⧉ m')} hotkey="m" plain onPress={() => extras.onCopyKpis!()} />}
       {extras.onClose !== undefined && <Button key="close-pane" label={m('✕')} plain onPress={() => extras.onClose!()} />}
+    </Box>
+    {/* The legend row (066 #22): the tab's keys as plain buttons, each drawing its own hotkey, so no label carries one. */}
+    <Box key="astrolabe-pane-keys" flexDirection="row">
+      {(() => {
+        const pairs = legendOf(tab, { wide: extras.columns === undefined || extras.columns >= 80 })
+        const verb = (id: string) => pairs.find(p => p.id === id)?.verb
+        return (
+          <>
+            {extras.onHelp !== undefined && <Button key="help-key" label={extras.help === true ? 'close' : 'help'} hotkey={hotkeyOf('?')} plain onPress={() => extras.onHelp!()} />}
+            {extras.onHelp !== undefined && <Text> </Text>}
+            {extras.onFind !== undefined && verb('filter') !== undefined && <Button key="find" label={m(verb('filter')!)} hotkey={hotkeyOf('/')} plain onPress={() => extras.onFind!()} />}
+            {extras.onFind !== undefined && verb('filter') !== undefined && <Text> </Text>}
+            {extras.status !== undefined && <Button key="status-filter" label={extras.status.label} hotkey="s" plain onPress={() => extras.status!.onPress()} />}
+            {extras.status !== undefined && <Text> </Text>}
+            {extras.sort !== undefined && <Button key="sort" label={extras.sort.label} hotkey="o" plain onPress={() => extras.sort!.onPress()} />}
+            {extras.sort !== undefined && <Text> </Text>}
+            {extras.onPriority !== undefined && verb('priority') !== undefined && <Button key="priority" label={verb('priority')!} hotkey="p" plain onPress={() => extras.onPriority!()} />}
+            {extras.onPriority !== undefined && <Text> </Text>}
+            {extras.onClear !== undefined && <Button key="clear-filter" label={verb('clear') ?? 'clear'} hotkey="c" plain onPress={() => extras.onClear!()} />}
+            {extras.onClear !== undefined && <Text> </Text>}
+            {extras.onRefresh !== undefined && verb('refresh') !== undefined && <Button key="refresh" label={verb('refresh')!} hotkey="r" plain onPress={() => extras.onRefresh!()} />}
+            {extras.onCopyKpis !== undefined && verb('copy') !== undefined && <Text> </Text>}
+            {extras.onCopyKpis !== undefined && verb('copy') !== undefined && <Button key="copy-kpis" label={verb('copy')!} hotkey="m" plain onPress={() => extras.onCopyKpis!()} />}
+          </>
+        )
+      })()}
     </Box>
     <Box key="astrolabe-pane-body" flexDirection="column">
       {header}
       {nav !== undefined && nav.above > 0 && <Button key="scroll-up" label={`▲ ${nav.above} ${nav.labels.more} (k)`} hotkey="k" plain onPress={() => nav.up()} />}
       {nav !== undefined && nav.above > 0 && <Button key="page-back" label="⇞ b" hotkey="b" plain onPress={() => nav.up()} />}
-      {body ??
-        rows.flatMap(row => {
+      {rows.flatMap(row => {
           const node = (
           row.copy !== undefined && extras.onCopy !== undefined ? (
             <Box key={row.key} flexDirection="row">
@@ -210,6 +214,7 @@ export const paneTree = (
             </Box>,
           ]
         })}
+      {body}
       {nav !== undefined && nav.below > 0 && <Button key="scroll-down" label={`▼ ${nav.below} ${nav.labels.more} (j)`} hotkey="j" plain onPress={() => nav.down()} />}
     </Box>
     {extras.legend === undefined ? null : (
