@@ -1,9 +1,14 @@
 // The only place colors live (Principle IX): Catppuccin roles per flavor. Pure: no $.
-// Values are Catppuccin's palette: done green, current peach, accent mauve, pending
-// overlay0, muted subtext0, bar empty surface1, blocked red.
+// Values are Catppuccin's palette: done green, current peach, warn yellow, accent mauve,
+// pending overlay0, muted subtext0, faint overlay2, bar empty surface1, blocked red.
+// `pending` and `barEmpty` are for rules, separators and glyphs: they fall under 4.5:1 as text.
+// `faint` is the muted role for text (064 #2) and `warn` the yellow of the usage ramp (064 #1).
 
-export const ROLES = ['accent', 'text', 'muted', 'done', 'current', 'pending', 'barFill', 'barEmpty', 'blocked'] as const
+export const ROLES = ['accent', 'text', 'muted', 'faint', 'done', 'current', 'warn', 'pending', 'barFill', 'barEmpty', 'blocked'] as const
 export type ThemeRole = (typeof ROLES)[number]
+
+/** The roles that carry text: each reaches 4.5:1 on its flavor's base (064 #2). */
+export const TEXT_ROLES = ['text', 'muted', 'faint', 'accent', 'done', 'warn', 'current', 'blocked', 'barFill'] as const satisfies readonly ThemeRole[]
 
 /** One colour per kind of message, everywhere (054 #72): warnings peach, errors red, success green. */
 export const STATUS_ROLE = { warning: 'current', error: 'blocked', success: 'done' } as const satisfies Record<string, ThemeRole>
@@ -16,8 +21,10 @@ export const THEME_TOKENS: Tokens = {
   accent: 'claude',
   text: 'text',
   muted: 'subtle',
+  faint: 'subtle',
   done: 'success',
   current: 'warning',
+  warn: 'warning',
   pending: 'inactive',
   barFill: 'suggestion',
   barEmpty: 'subtle',
@@ -32,8 +39,10 @@ export const FLAVORS: Readonly<Record<FlavorName, Tokens>> = {
     accent: '#cba6f7',
     text: '#cdd6f4',
     muted: '#a6adc8',
+    faint: '#9399b2',
     done: '#a6e3a1',
     current: '#fab387',
+    warn: '#f9e2af',
     pending: '#6c7086',
     barFill: '#89b4fa',
     barEmpty: '#45475a',
@@ -43,8 +52,10 @@ export const FLAVORS: Readonly<Record<FlavorName, Tokens>> = {
     accent: '#ca9ee6',
     text: '#c6d0f5',
     muted: '#a5adce',
+    faint: '#949cbb',
     done: '#a6d189',
     current: '#ef9f76',
+    warn: '#e5c890',
     pending: '#737994',
     barFill: '#8caaee',
     barEmpty: '#51576d',
@@ -54,20 +65,25 @@ export const FLAVORS: Readonly<Record<FlavorName, Tokens>> = {
     accent: '#c6a0f6',
     text: '#cad3f5',
     muted: '#a5adcb',
+    faint: '#939ab7',
     done: '#a6da95',
     current: '#f5a97f',
+    warn: '#eed49f',
     pending: '#6e738d',
     barFill: '#8aadf4',
     barEmpty: '#494d64',
     blocked: '#ed8796',
   },
   // Latte's subtext0, green, peach and blue fall under 4.5:1 on its base: darker shades of each (052 #48).
+  // Its overlay2 (#7c7f93) is 3.49:1, so faint is a darker grey and warn a darkened yellow (064 R1, R2).
   latte: {
     accent: '#8839ef',
     text: '#4c4f69',
     muted: '#5c5f77',
+    faint: '#686b80',
     done: '#2a7a1c',
     current: '#b5470a',
+    warn: '#946000',
     pending: '#9ca0b0',
     barFill: '#1859d6',
     barEmpty: '#bcc0cc',
@@ -78,8 +94,10 @@ export const FLAVORS: Readonly<Record<FlavorName, Tokens>> = {
     accent: '#d4a6e8',
     text: '#f2f2f2',
     muted: '#bdbdbd',
+    faint: '#9a9a9a',
     done: '#6bd3a8',
     current: '#ffd166',
+    warn: '#fff0a6',
     pending: '#aebdca',
     barFill: '#77bdf2',
     barEmpty: '#454545',

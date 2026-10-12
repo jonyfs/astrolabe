@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import { chipForeground, CHIPS, COLORBLIND_MARKS, FLAVORS, flavorOf, isThemeKeys, lighten, ROLES, STATUS_ROLE, themeOf } from '../../hooks/core/theme'
+import { chipForeground, CHIPS, COLORBLIND_MARKS, FLAVORS, flavorOf, isThemeKeys, lighten, ROLES, STATUS_ROLE, TEXT_ROLES, themeOf } from '../../hooks/core/theme'
 
 describe('theme tokens (FR-009)', () => {
   test('flavors, each with every role as #rrggbb', () => {
@@ -25,8 +25,10 @@ describe('theme tokens (FR-009)', () => {
       accent: 'claude',
       text: 'text',
       muted: 'subtle',
+      faint: 'subtle',
       done: 'success',
       current: 'warning',
+      warn: 'warning',
       pending: 'inactive',
       barFill: 'suggestion',
       barEmpty: 'subtle',
@@ -48,10 +50,19 @@ describe('contrast (052 #48, 054 #74)', () => {
     return (hi! + 0.05) / (lo! + 0.05)
   }
   const BASE = { mocha: '#1e1e2e', frappe: '#303446', macchiato: '#24273a', latte: '#eff1f5', colorblind: '#151515' } as const
+  test('faint and warn are text roles (064 #2)', () => {
+    expect([...TEXT_ROLES]).toEqual(expect.arrayContaining(['faint', 'warn']))
+    expect(ROLES).toContain('faint')
+    expect(ROLES).toContain('warn')
+  })
+  test('pending is for rules and glyphs, so it is not a text role (064 #2)', () => {
+    expect([...TEXT_ROLES]).not.toContain('pending')
+    expect([...TEXT_ROLES]).not.toContain('barEmpty')
+  })
   test('every text role reads at 4.5:1 or more on its flavor', () => {
     for (const [flavor, base] of Object.entries(BASE)) {
       const tokens = FLAVORS[flavor as keyof typeof BASE]
-      for (const role of ['text', 'muted', 'accent', 'done', 'current', 'blocked', 'barFill'] as const) {
+      for (const role of TEXT_ROLES) {
         expect({ flavor, role, ok: ratio(tokens[role], base) >= 4.5 }).toEqual({ flavor, role, ok: true })
       }
     }
