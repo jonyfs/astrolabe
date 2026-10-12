@@ -42,7 +42,7 @@ description: "Task list for 064-design-tokens"
 
 **Independent Test**: `npx vitest run tests/core/usage-ramp.test.ts tests/core/footer.test.ts tests/core/governor.test.ts`
 
-- [ ] T006 [P] [US1] #1 Write `tests/core/usage-ramp.test.ts` from contracts/tokens-api.md: 59 ok no mark, 60 warn `▵`, 79 warn, 80 block `▴`, 100 block `▴` and `full`, `{ hold: 70 }` moves the block level to 70, undefined and NaN give ok with no mark
+- [ ] T006 [P] [US1] #1 Write `tests/core/usage-ramp.test.ts` from contracts/tokens-api.md: 59 ok no mark, 60 warn `▵`, 79 warn, 80 block `▴`, 100 block `▴` and `full`, `{ hold: 70 }` moves the block level to 70, `{ hold: 50 }` warns and blocks from 50 with no inverted band, undefined and NaN give ok with no mark
 - [ ] T007 [US1] #1 Create `hooks/core/usage-ramp.ts` exporting `usageRamp` and `UsageRamp` as in data-model.md; T006 passes
 - [ ] T008 [US1] #1 In `hooks/core/footer.ts` delete `rampOf` and build chip colour and mark from `usageRamp` (context chip keeps no mark); add a case to `tests/core/footer.test.ts` that the 7d reading at 81% on hold reads `7d 81%▴` in the block colour, and one that `thresholds` move the ramp
 - [ ] T009 [US1] #1 In `hooks/core/governor.ts` make `usageSegment` print the ramp mark and `full` beside the reset from `usageRamp`; update `tests/core/governor.test.ts` so the held 7d chip reads `7d 81%▴ hold`
