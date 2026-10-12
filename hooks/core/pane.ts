@@ -6,6 +6,7 @@ import { ageOf } from './pulls'
 import { fileUrl } from './paths'
 import { byPriority, priorityMark, taskFiles, type Priorities, type Priority } from './spec-actions'
 import { parseTasks } from './tasks-parser'
+import { groupOpenTasks } from './task-groups'
 import { STATUS_ROLE, type ThemeRole } from './theme'
 import type { Feature, SessionMemo, SpeckitState } from './types'
 
@@ -347,9 +348,19 @@ export const taskRows = (
   // Ids padded to the widest shown, so the text column lines up (052 #22).
   const idWidth = Math.max(0, ...shown.map(t => t.id?.length ?? 0))
   let story: string | undefined
+  // The tasks by where they stand: current, next, blocked by an earlier open one, later (054 #27).
+  // Headers show only when the shown tasks fall in more than one group.
+  const grouped = groupOpenTasks(shown, state.currentTask?.id)
+  const groupHeaders = new Set(grouped.map(g => g.group)).size > 1
+  let lastGroup: string | undefined
   // Each task links to its line (054 #78); a quick spec keeps its tasks in spec.md.
   const taskFile = state.root === undefined ? undefined : `${state.root}/specs/${active.dir}/${state.features.find(f => f.dir === active.dir)?.track === 'quick' ? 'spec.md' : 'tasks.md'}`
   for (const [index, t] of shown.entries()) {
+    const group = grouped[index]!.group
+    if (groupHeaders && group !== lastGroup) {
+      lastGroup = group
+      out.push({ key: `group-${group}-${index}`, text: cut(tr(lang, `tasks.group.${group}` as TextKey), columns), role: 'muted' })
+    }
     // The user story a run of tasks belongs to (045 #44).
     if (t.story !== undefined && t.story !== story) {
       story = t.story

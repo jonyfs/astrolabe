@@ -506,6 +506,10 @@ since, the idle poller does the same refresh by itself, so a dimmed band and a s
 up without a keypress. It repeats every ten idle minutes, six times at most, and the next turn
 starts it over.
 
+The Tasks tab groups the open tasks under `current`, `next`, `blocked by an earlier task` and `later`,
+in file order. A task is blocked when its text says `depends on`, `after`, `blocked by` or `requires`
+and names an open task above it; the headers show only when the tasks shown fall in two groups or more.
+
 `k` and `j` scroll the pane by a window, up and down, and `b` also pages back by a window. Space is not
 a key a pane button can take, so forward stays `j`. Each tab keeps its scroll offset per project,
 across a `/reload-plugins` and a new session.
