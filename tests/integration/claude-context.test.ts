@@ -81,7 +81,7 @@ describe('context for Claude (026)', () => {
     await session.clock.advance(1000)
     expect(asked[0]).toContain('what is left?')
     expect(asked[0]).toContain('002 band-hint')
-    expect(session.toasts.at(-1)).toBe('🧭 T011 comes next; nothing blocks it.')
+    expect(session.toasts.at(-1)).toBe('astrolabe ✓ T011 comes next; nothing blocks it.')
   })
 
   test('052 #44: long toast text is bounded and its full text is in the Session tab', async ($, on) => {
@@ -96,12 +96,12 @@ describe('context for Claude (026)', () => {
     await $.command.run({ command: 'astrolabe', args: 'ask what is left?' } as never)
     await session.clock.advance(1000)
     const toast = session.toasts.at(-1) ?? ''
-    expect(toast.startsWith('🧭 ')).toBe(true)
+    expect(toast.startsWith('astrolabe ✓ ')).toBe(true)
     expect(toast.length < 120).toBe(true)
     expect(toast).toContain('full text in /astrolabe → Session')
     const pane = await mountPane($ as never, 'terminal')
     await pane.press('tab-session')
-    expect(await pane.body()).toContain(`🧭 ${answer.trim()}`)
+    expect(await pane.body()).toContain(`astrolabe ✓ ${answer.trim()}`)
     await pane.unmount()
   })
 })
@@ -121,7 +121,7 @@ describe('a summary when a feature finishes (026 #53)', () => {
     await completeTurn($)
     await session.clock.advance(1000)
     expect(asked).toEqual(['haiku'])
-    expect(session.toasts.at(-1)).toBe('🧭 001 a is done: its summary is in the Session tab of /astrolabe')
+    expect(session.toasts.at(-1)).toBe('astrolabe ✓ 001 a is done: its summary is in the Session tab of /astrolabe')
     expect((session.store.get('summaries') as Record<string, string>)['001-a']).toBe('Delivers a. Nothing open.')
   })
   test('off by default: no model call', async ($, on) => {

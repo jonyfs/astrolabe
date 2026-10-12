@@ -78,7 +78,7 @@ describe('the Config tab (028)', () => {
       { key: 'astrolabe.preset', value: 'full' },
       { key: 'astrolabe.checkUpdates', value: false },
     ])
-    expect(session.toasts.at(-1)).toBe('🧭 2 options saved; Astrolabe reloads with them')
+    expect(session.toasts.at(-1)).toBe('astrolabe ✓ 2 options saved; Astrolabe reloads with them')
     await ui.unmount()
   })
 

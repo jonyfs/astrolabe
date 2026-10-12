@@ -69,7 +69,7 @@ describe('fan-out under the cap (US2)', () => {
     await ui.press('queue-run-q1')
     await session.clock.settle()
     expect(session.submitted.at(-1)).toContain('do a1')
-    expect(session.toasts.at(-1)).toBe('🧭 running q1 now: job a1')
+    expect(session.toasts.at(-1)).toBe('astrolabe ✓ running q1 now: job a1')
     await ui.unmount()
   })
 
@@ -318,7 +318,7 @@ describe('the queue across a reload (054 #18)', () => {
     await $.tool.call(agent('a1'))
     await $.tool.call(agent('a2'))
     await startSession($ as never, '/proj')
-    expect(session.toasts.at(-1)).toBe(`🧭 2 subagents still waiting since ${clockOf(new Date(NOW).toISOString())}; /astrolabe run <id> runs one now`)
+    expect(session.toasts.at(-1)).toBe(`astrolabe ✓ 2 subagents still waiting since ${clockOf(new Date(NOW).toISOString())}; /astrolabe run <id> runs one now`)
   })
 
   test('an empty queue says nothing', async ($, on) => {

@@ -371,7 +371,7 @@ describe('acting on a spec (051)', () => {
     expect(ran.text).toBe('🧭 reviewing 002 band-hint with opus; the findings land in the Session tab')
     await session.clock.settle()
     expect(asked[0]).toMatchObject({ model: 'opus', effort: 'xhigh' })
-    expect(session.toasts.at(-1)).toBe('🧭 the review of 002 band-hint is in the Session tab')
+    expect(session.toasts.at(-1)).toBe('astrolabe ✓ the review of 002 band-hint is in the Session tab')
     await session.clock.advance(5 * 60_000)
     const ui = await mountPane($ as never, 'terminal', 120, 40)
     await ui.press('tab-session')

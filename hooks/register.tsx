@@ -318,10 +318,10 @@ async function flushStats($: EngineInterface, change: (s: SessionStats) => Sessi
 }
 
 /** Shows a bounded notification and keeps its full text in the Session tab (052 #44). */
-async function showToast($: EngineInterface, text: string, options?: { timeoutMs?: number }): Promise<void> {
-  const formatted = formatToast(text, t(currentLang(), 'toast.details'))
+async function showToast($: EngineInterface, text: string, options?: { timeoutMs?: number; kind?: 'ok' | 'warn' }): Promise<void> {
+  const formatted = formatToast(text, t(currentLang(), 'toast.details'), options?.kind ?? 'ok')
   if (formatted.full !== undefined) await flushStats($, stats => ({ ...stats, toastDetails: formatted.full }))
-  $.ui.toast(formatted.text, options)
+  $.ui.toast(formatted.text, options?.timeoutMs === undefined ? undefined : { timeoutMs: options.timeoutMs })
 }
 
 /** One `git status` at the end of a main turn (018 FR-003): no shell, 2 s at most. */
@@ -451,12 +451,12 @@ async function runPullAction($: EngineInterface, action: 'approve' | 'update' | 
     // A merge waits for green checks (054 #58): pending or failing checks refuse it here.
     const checks = (await $.state.get(SESSION)).value?.pulls?.rows.find(r => r.number === n)?.checks
     if (action === 'merge' && (checks === 'pending' || checks === 'fail')) {
-      await showToast($, t(lang, checks === 'pending' ? 'prs.mergePending' : 'prs.mergeFailing', { n }))
+      await showToast($, t(lang, checks === 'pending' ? 'prs.mergePending' : 'prs.mergeFailing', { n }), { kind: 'warn' })
       return
     }
     const root = (await $.state.get(SPECKIT)).value?.root ?? (await $.session.cwd())
     const run = await $.process.run(pullAction(action, n, head), { cwd: root, timeoutMs: 30_000 })
-    await showToast($, run.exitCode === 0 ? t(lang, `prs.done.${action}`, { n }) : t(lang, 'prs.failed', { n, error: (run.stderr || run.stdout).trim().split('\n')[0] ?? '', fix: pullAction(action, n).join(' ') }))
+    await showToast($, run.exitCode === 0 ? t(lang, `prs.done.${action}`, { n }) : t(lang, 'prs.failed', { n, error: (run.stderr || run.stdout).trim().split('\n')[0] ?? '', fix: pullAction(action, n).join(' ') }), run.exitCode === 0 ? undefined : { kind: 'warn' })
     await refreshPulls($, true)
   } catch (error) {
     $.ui.log(`astrolabe: ${error instanceof Error ? error.message : String(error)}`, { to: 'debug' })
@@ -736,7 +736,7 @@ async function saveConfig($: EngineInterface): Promise<void> {
   await $.state.set(PANE_STATE, rest)
   configRows = (await $.config.list().catch(() => [] as ConfigRow[])).filter(row => row.key.startsWith('astrolabe.'))
   const lang = currentLang()
-  await showToast($, refused.length === 0 ? t(lang, 'config.applied', { n: saved }) : t(lang, 'config.refused', { list: refused.join('; ') }))
+  await showToast($, refused.length === 0 ? t(lang, 'config.applied', { n: saved }) : t(lang, 'config.refused', { list: refused.join('; ') }), refused.length === 0 ? undefined : { kind: 'warn' })
 }
 
 // The options as loaded, for drawings that need more than one (039).
@@ -903,7 +903,7 @@ async function confirmPress($: EngineInterface, key: string, run: () => void): P
 /** Runs one of gstack's skills on a feature (051), from a timer: a command does not run inside a render. */
 async function runSkill($: EngineInterface, skill: string, about: string): Promise<void> {
   await $.command.run({ command: skill, args: `Spec Kit feature ${about}` }).catch(async (error: unknown) => {
-    await showToast($, t(currentLang(), 'gstack.failed', { skill }))
+    await showToast($, t(currentLang(), 'gstack.failed', { skill }), { kind: 'warn' })
     $.ui.log(`astrolabe: ${error instanceof Error ? error.message : String(error)}`, { to: 'debug' })
   })
 }
@@ -1244,7 +1244,7 @@ async function warnUsage($: EngineInterface, percent: number | undefined): Promi
   }
   if (JSON.stringify(warned) === JSON.stringify(stats?.warned ?? {})) return
   await flushStats($, s => ({ ...s, warned }))
-  for (const text of toasts) await showToast($, text)
+  for (const text of toasts) await showToast($, text, { kind: 'warn' })
 }
 
 // The images option (024): auto, on or off.
@@ -1684,7 +1684,7 @@ async function touchFile(
     // Per feature too (054 #35): the one active when the alarm went off.
     const id = held.state.active?.id
     if (id !== undefined) live.driftsById[id] = (live.driftsById[id] ?? 0) + 1
-    await showToast($, drift)
+    await showToast($, drift, { kind: 'warn' })
   }
 }
 
@@ -1794,7 +1794,7 @@ async function noteProgress($: EngineInterface, before: Held | undefined, held: 
         spinning = turns >= 3 && s.spin?.told !== true
         return { ...s, spin: { id: current, turns, ...(spinning || (s.spin?.id === current && s.spin.told === true && ticked === 0) ? { told: true as const } : {}) } }
       })
-      if (spinning && presetOf(optionsSeen).toasts !== 'none') await showToast($, t(currentLang(), 'toast.spin', { id: current }))
+      if (spinning && presetOf(optionsSeen).toasts !== 'none') await showToast($, t(currentLang(), 'toast.spin', { id: current }), { kind: 'warn' })
     }
     if (ticked > 0 || finished > 0) {
       const stored = await $.store.get(HISTORY)
@@ -1996,14 +1996,14 @@ async function runUpdate($: EngineInterface, id: UpdateId): Promise<void> {
       }
     }
     if (failure !== undefined) {
-      await showToast($, failure)
+      await showToast($, failure, { kind: 'warn' })
       await setUpdates($, h => ({ items: h.items }))
       return
     }
     await dropUpdate($, id)
-    if (id === 'specify') await showToast($, `🧭 specify updated to ${item.latest}`)
-    if (id === 'speckit-skills') await showToast($, `🧭 Spec Kit skills refreshed to ${item.latest}`)
-    if (id === 'astrolabe') await showToast($, `🧭 Astrolabe updated to ${item.latest}; run /reload-plugins`)
+    if (id === 'specify') await showToast($, `specify updated to ${item.latest}`)
+    if (id === 'speckit-skills') await showToast($, `Spec Kit skills refreshed to ${item.latest}`)
+    if (id === 'astrolabe') await showToast($, `Astrolabe updated to ${item.latest}; run /reload-plugins`)
   } catch (error) {
     logError($, error)
     await setUpdates($, h => ({ items: h.items })).catch(() => undefined)
@@ -2435,7 +2435,7 @@ export const register: Register = (on, options) => {
       cacheWarningTimer?.cancel()
       cacheWarningTimer = $.clock.after(CACHE_WARN_MS, async () => {
         cacheWarningTimer = undefined
-        await showToast($, t(currentLang(), 'toast.cache'))
+        await showToast($, t(currentLang(), 'toast.cache'), { kind: 'warn' })
       })
     }
     return result

@@ -1,8 +1,10 @@
+import { message, type MessageKind, withoutPrefix } from './message'
+
 const MAX_TOAST_LENGTH = 119
 
-/** Adds the shared compass and preserves overflow for the Session tab. */
-export const formatToast = (text: string, details: string): { text: string; full?: string } => {
-  const full = `🧭 ${text.trim().replace(/^🧭\s*/u, '')}`
+/** Adds the shared prefix (064 #8) and preserves overflow for the Session tab. */
+export const formatToast = (text: string, details: string, kind: MessageKind = 'ok'): { text: string; full?: string } => {
+  const full = message(kind, text)
   if (full.length <= MAX_TOAST_LENGTH) return { text: full }
   const suffix = `… ${details}`
   let preview = ''
@@ -12,3 +14,5 @@ export const formatToast = (text: string, details: string): { text: string; full
   }
   return { text: `${preview}${suffix}`, full }
 }
+
+export { withoutPrefix }

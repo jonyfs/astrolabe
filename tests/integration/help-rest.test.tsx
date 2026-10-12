@@ -154,7 +154,7 @@ describe('help, part two (025)', () => {
     const session = installTree(on as never, halfDone.tree, '/proj', {})
     installEngine(on as never)
     await startSession($ as never, '/proj')
-    expect(session.toasts).toEqual(['🧭 Astrolabe is on: /astrolabe opens the pane, /astrolabe help lists the commands'])
+    expect(session.toasts).toEqual(['astrolabe ✓ Astrolabe is on: /astrolabe opens the pane, /astrolabe help lists the commands'])
     expect(session.store.has('welcomed')).toBe(true)
   })
 

@@ -116,9 +116,9 @@ Each block below touches different new files; the apply tasks share `pane.ts` an
 
 ### #8 prefix
 
-- [ ] T029 [P] [US5] #8 Write `tests/core/message.test.ts` (`message('ok','x')` is `astrolabe ✓ x`, `message('warn','x')` is `astrolabe ▲ x`) and update `tests/core/toasts.test.ts` and `tests/core/status-text.test.ts` to expect the prefix and no `🧭` or `astrolabe:`
-- [ ] T030 [US5] #8 Create `hooks/core/message.ts` with `message`
-- [ ] T031 [US5] #8 Build every toast and the status entry text through `message` in `hooks/core/toasts.ts`, `hooks/core/status-text.ts`, `hooks/core/phase-toast.ts` and the toast call sites in `hooks/register.tsx`; leave the `$.ui.log(..., { to: 'debug' })` strings as they are (research.md R6); keep `MAX_TOAST_LENGTH`
+- [x] T029 [P] [US5] #8 Write `tests/core/message.test.ts` (`message('ok','x')` is `astrolabe ✓ x`, `message('warn','x')` is `astrolabe ▲ x`, an old `🧭`, `astrolabe:` or marked prefix is replaced, never doubled; `formatToast` carries the prefix, cuts below 120 characters and keeps the full text) and move the toast expectations in `tests/integration` from `🧭 …` to `astrolabe ✓ …` or `astrolabe ▲ …`
+- [x] T030 [US5] #8 Create `hooks/core/message.ts` with `message` and `withoutPrefix`
+- [x] T031 [US5] #8 Build every toast through `message`: `hooks/core/toasts.ts` takes a `kind`, `showToast` in `hooks/register.tsx` passes `warn` for failures, drift, the context and cache warnings and the spin warning; drop the `🧭` from the three update toasts; leave the `$.ui.log(..., { to: 'debug' })` strings, command output and the refusals sent to Claude as they are (research.md R6). The status entry line itself is drawn by the engine with its own mod marker, and its text keeps the form `◆ 002 · implement 45%`; spec 065 owns that row's layout
 
 ### #9 separators
 

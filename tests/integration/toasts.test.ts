@@ -28,7 +28,7 @@ describe('phase toasts (US1)', () => {
     expect(session.toasts).toEqual([])
     tree['/proj/specs/002-b/plan.md'] = '# Plan\n'
     await completeTurn($)
-    expect(session.toasts).toEqual(['🧭 002 b moved to tasks · next: /speckit-tasks'])
+    expect(session.toasts).toEqual(['astrolabe ✓ 002 b moved to tasks · next: /speckit-tasks'])
     await completeTurn($)
     expect(session.toasts.length).toBe(1)
   })
@@ -41,7 +41,7 @@ describe('phase toasts (US1)', () => {
     await startSession($, '/proj')
     tree['/proj/specs/002-b/plan.md'] = '# Plan\n'
     await completeTurn($)
-    expect(session.toasts).toEqual(['🧭 002 b moved to tasks · next: /speckit-tasks'])
+    expect(session.toasts).toEqual(['astrolabe ✓ 002 b moved to tasks · next: /speckit-tasks'])
     expect(session.store.get('baseline:/proj')).toEqual({ '002-b': 'tasks' })
     expect([...session.store.keys()]).toEqual(['welcomed', 'baseline:/proj'])
   })
@@ -76,7 +76,7 @@ describe('the drift alarm (US2)', () => {
     await startSession($, '/proj')
     tickT014(tree)
     await $.tool.call(tickEdit('e1', 'T014'))
-    expect(session.toasts).toEqual(['🧭 T014 was ticked with no code edited since the last tick'])
+    expect(session.toasts).toEqual(['astrolabe ▲ T014 was ticked with no code edited since the last tick'])
   })
 
   test('one batch of work covers every tick of the turn, then the window resets', async ($, on) => {
@@ -95,7 +95,7 @@ describe('the drift alarm (US2)', () => {
     await completeTurn($)
     tree['/proj/specs/002-b/tasks.md'] = tree['/proj/specs/002-b/tasks.md']!.replace('- [ ] T017', '- [x] T017')
     await $.tool.call(tickEdit('e4', 'T017'))
-    expect(session.toasts).toEqual(['🧭 T017 was ticked with no code edited since the last tick'])
+    expect(session.toasts).toEqual(['astrolabe ▲ T017 was ticked with no code edited since the last tick'])
   })
 
   test('at most one drift toast per turn', async ($, on) => {
@@ -168,7 +168,7 @@ describe('the drift alarm (US2)', () => {
     await $.tool.call(edit('e1', '/proj/src/other.ts'))
     tickT014(tree)
     await $.tool.call(tickEdit('e2', 'T014'))
-    expect(session.toasts).toEqual(['🧭 T014 was ticked, but none of its files were edited: tests/core/parser.test.ts'])
+    expect(session.toasts).toEqual(['astrolabe ▲ T014 was ticked, but none of its files were edited: tests/core/parser.test.ts'])
   })
 
   test('a Bash call in the window keeps quiet', async ($, on) => {
