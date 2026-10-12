@@ -648,3 +648,16 @@ describe('keys and copying (046 #59, 054 #65)', () => {
     await ui.unmount()
   })
 })
+
+describe('open tasks as GitHub issues (050 #96)', () => {
+  test('the Tasks tab has one button that needs a second press and then runs speckit-taskstoissues', async ($, on) => {
+    await setup($ as never, on as never)
+    const ui = await mountPane($ as never, 'terminal', 100, 40)
+    await ui.press('tab-tasks')
+    const button = await ui.find({ key: 'tasks-to-issues' })
+    expect(button?.text).toContain('open')
+    await ui.press('tasks-to-issues')
+    expect(JSON.stringify(await ui.drawn())).toContain('press again')
+    await ui.unmount()
+  })
+})
