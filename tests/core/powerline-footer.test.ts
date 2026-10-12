@@ -47,13 +47,8 @@ describe('statusline colours (039)', () => {
       icons: iconSet('ascii'),
       columns: 200,
     })
-    expect(chips[0]).toMatchObject({
-      text: 'git:main PR#31 ok',
-      links: [
-        { text: 'main', href: 'https://github.com/o/r/tree/main' },
-        { text: '#31', href: 'https://github.com/o/r/pull/31' },
-      ],
-    })
+    expect(chips.find(c => c.name === 'git')).toMatchObject({ text: 'git:main', links: [{ text: 'main', href: 'https://github.com/o/r/tree/main' }] })
+    expect(chips.find(c => c.name === 'pr')).toMatchObject({ text: 'PR #31 ok', links: [{ text: '#31', href: 'https://github.com/o/r/pull/31' }] })
   })
 })
 

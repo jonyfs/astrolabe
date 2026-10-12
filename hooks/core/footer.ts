@@ -6,6 +6,7 @@ import { duration, resetIn } from './duration'
 import { usageRamp } from './usage-ramp'
 import { joinZones, ZONE_SEPARATOR } from './zones'
 import { EMOJI_WIDE } from './glyphs'
+import { asciiFold, branchChip, burnChips, cacheChip, ciChip, dirChip, prChip, repoName, skillsChip, todoChip, treeChip, worktreeChip, type CacheFact } from './footer-chips'
 import type { Icons } from './icons'
 import { t, type Lang } from './i18n'
 import type { GitState, PullRequest, UsageReading } from './types'
@@ -41,6 +42,20 @@ export type FooterInput = {
   helpHint?: boolean
   /** Per-window hold/stop thresholds (047 #66). */
   thresholds?: Record<string, { hold?: number; stop?: number }>
+  /** The folder the session works in now and the one it started in (068 #41). */
+  dir?: { path: string; start?: string }
+  /** The remote's web page, for the repository chip (068 #41). */
+  repo?: string
+  /** Skills in play this session, the session's own (068 #45). */
+  skills?: readonly string[]
+  /** Todo list progress (068 #46). */
+  todo?: { title: string; done: number; total: number }
+  /** The prompt cache, from the last main-thread response (068 #42). */
+  cache?: CacheFact
+  /** Fast mode is on (068 #47). */
+  fast?: boolean
+  /** How many usage samples the burn rate rests on, and their span (068 #48). */
+  burnSamples?: { count: number; spanMs: number }
 }
 
 
@@ -69,22 +84,32 @@ export type ChipColour = 'mauve' | 'sapphire' | 'yellow' | 'red' | 'lavender' | 
 export const CHIP_TABLE = [
   { name: 'deciding', rank: 0, colour: 'sapphire' },
   { name: 'context', rank: 1, colour: 'yellow' },
+  { name: 'dir', rank: 1.5, colour: 'lavender' },
   { name: 'windows', rank: 2, colour: 'sapphire' },
+  { name: 'git', rank: 2.8, colour: 'lavender' },
   { name: 'model', rank: 3, colour: 'red' },
   { name: 'skill', rank: 3.5, colour: 'peach' },
-  { name: 'git', rank: 4, colour: 'lavender' },
-  { name: 'lines', rank: 4.5, colour: 'teal' },
-  { name: 'advisor', rank: 5, colour: 'mauve' },
-  { name: 'burn', rank: 5.5, colour: 'peach' },
-  { name: 'time', rank: 6, colour: 'surface1' },
-  { name: 'help', rank: 7, colour: 'surface1' },
-  { name: 'astrolabe', rank: 8, colour: 'surface1' },
+  { name: 'worktree', rank: 4.6, colour: 'lavender' },
+  { name: 'todo', rank: 5.1, colour: 'teal' },
+  { name: 'skills', rank: 5.2, colour: 'peach' },
+  { name: 'advisor', rank: 5.5, colour: 'mauve' },
+  { name: 'cache', rank: 6, colour: 'teal' },
+  { name: 'tree', rank: 6.4, colour: 'lavender' },
+  { name: 'burn', rank: 6.8, colour: 'peach' },
+  { name: 'pr', rank: 7, colour: 'lavender' },
+  { name: 'ci', rank: 7.5, colour: 'green' },
+  { name: 'projection', rank: 8, colour: 'peach' },
+  { name: 'lines', rank: 8.5, colour: 'teal' },
+  { name: 'time', rank: 9, colour: 'surface1' },
+  { name: 'repo', rank: 9.5, colour: 'lavender' },
+  { name: 'help', rank: 10, colour: 'surface1' },
+  { name: 'astrolabe', rank: 11, colour: 'surface1' },
 ] as const satisfies ReadonlyArray<{ name: string; rank: number; colour: string }>
 
 type ChipName = (typeof CHIP_TABLE)[number]['name']
 /** A chip's rank and colour from the table. */
-const chipOf = (name: ChipName): { rank: number; colour: ChipColour } => CHIP_TABLE.find(c => c.name === name)!
-type Part = { text: string; rank: number; colour?: ChipColour; level?: number; /** The window's own hold level, when it has one. */ hold?: number; /** The ramp mark is already in the text. */ inlineMark?: true; first?: true; links?: ReadonlyArray<{ text: string; href: string }> }
+const chipOf = (name: ChipName): { name: ChipName; rank: number; colour: ChipColour } => CHIP_TABLE.find(c => c.name === name)!
+type Part = { name?: ChipName; text: string; rank: number; colour?: ChipColour; level?: number; /** The window's own hold level, when it has one. */ hold?: number; /** The ramp mark is already in the text. */ inlineMark?: true; first?: true; links?: ReadonlyArray<{ text: string; href: string }> }
 
 // An ASCII label ending in ':' is glued to its value (`stash:2`); a glyph takes a space.
 const glued = (icon: string, text: string) => (icon.endsWith(':') ? `${icon}${text}` : withIcon(icon, text))
@@ -142,50 +167,63 @@ const parts = (input: FooterInput): Part[] => {
     out.push({ text: withIcon(icons.context, text), ...chipOf('context'), level: input.context.percent })
   }
   if (input.model !== undefined) {
-    const effort = input.effort === undefined ? '' : ` ${input.effort}`
-    out.push({ text: withIcon(icons.model, `${shortModel(input.model)}${effort}`), ...chipOf('model') })
+    // Items inside one chip are joined with · (064 #9): `opus 5.5 · high · fast` (068 #47).
+    const model = [shortModel(input.model), ...(input.effort === undefined ? [] : [input.effort]), ...(input.fast === true ? ['fast'] : [])].join(' · ')
+    out.push({ text: withIcon(icons.model, model), ...chipOf('model') })
   }
   if (input.skill !== undefined) {
     const name = input.skill.name.replace(/^[a-z0-9-]+:/, '').replace(/^speckit[-.]/, '')
     out.push({ text: `⟳ ${name}${input.skill.model === undefined ? '' : ` · ${shortModel(input.skill.model)}`}`, ...chipOf('skill') })
   }
+  // Place and git (068 #41): the directory, the repository, the branch, the worktree's origin,
+  // the tree counters, the pull request and the last CI run, each its own chip.
+  const place = input.dir === undefined ? undefined : dirChip(input.dir.path, input.dir.start)
+  if (place !== undefined) out.push({ text: place, ...chipOf('dir') })
+  const repo = repoName(input.repo)
+  if (repo !== undefined) out.push({ text: repo, ...chipOf('repo'), ...(input.repo === undefined ? {} : { links: [{ text: repo, href: input.repo }] }) })
   const git = input.git
   if (git?.branch !== undefined) {
-    const counts = [
-      git.ahead > 0 ? `${icons.ahead}${git.ahead}` : '',
-      git.behind > 0 ? `${icons.behind}${git.behind}` : '',
-      git.changed > 0 ? (icons.changed.length === 1 && icons.changed.codePointAt(0)! < 0x7f ? `${icons.changed}${git.changed}` : `${icons.changed} ${git.changed}`) : '',
-      git.conflicts > 0 ? `${icons.conflict}${git.conflicts}` : '',
-      git.stashes !== undefined && git.stashes > 0 ? glued(icons.stash, String(git.stashes)) : '',
-      git.worktree === undefined ? '' : glued(icons.worktree, git.worktree),
-      git.pr === undefined ? '' : prText(icons, git.pr),
-    ].filter(s => s !== '')
-    const branch = icons.branch.endsWith(':') ? `${icons.branch}${git.branch}` : withIcon(icons.branch, git.branch)
+    const branch = branchChip(git, icons)!
     out.push({
-      text: [branch, ...counts].join(' '),
+      text: branch.text,
       ...chipOf('git'),
-      links: [
-        ...(git.remote === undefined ? [] : [{ text: git.branch, href: branchWebUrl(git.remote, git.branch) }]),
-        ...(git.pr?.url === undefined ? [] : [{ text: `#${git.pr.number}`, href: git.pr.url }]),
-      ],
+      links: git.remote === undefined || !branch.linkBranch ? [] : [{ text: git.branch, href: branchWebUrl(git.remote, git.branch) }],
     })
+    const wt = worktreeChip(git, icons)
+    if (wt !== undefined) out.push({ text: wt, ...chipOf('worktree') })
+    const tree = treeChip(git, icons)
+    if (tree !== undefined) out.push({ text: tree, ...chipOf('tree') })
+    if (git.pr !== undefined) {
+      out.push({ text: prChip(git.pr, icons), ...chipOf('pr'), links: git.pr.url === undefined ? [] : [{ text: `#${git.pr.number}`, href: git.pr.url }] })
+    }
+    const ci = ciChip(git.ci)
+    if (ci !== undefined) out.push({ text: ci, ...chipOf('ci'), colour: git.ci === 'fail' ? 'red' : git.ci === 'pass' ? 'green' : 'yellow' })
   }
-  // Burn rate (041 #4): points an hour, and where the deciding window lands at its reset.
-  if (input.burn !== undefined && input.burn > 0) {
-    const reset = binding?.resetsAt === undefined ? Number.NaN : Date.parse(binding.resetsAt)
-    const landing = binding === undefined || binding.renewed === true || Number.isNaN(reset) || reset <= now ? undefined : Math.min(100, Math.round(binding.percent + (input.burn * (reset - now)) / 3_600_000))
-    out.push({ text: `${icons.burn === '' ? '' : `${icons.burn} `}${Math.round(input.burn)}/h${landing === undefined ? '' : ` → ${landing}%`}`, ...chipOf('burn'), ...(landing === undefined ? {} : { level: landing }) })
-  }
+  // Work (068 #45, #46): skills in play and the todo list.
+  const skills = skillsChip(input.skills ?? [])
+  if (skills !== undefined) out.push({ text: skills, ...chipOf('skills') })
+  const todo = todoChip(input.todo)
+  if (todo !== undefined) out.push({ text: todo, ...chipOf('todo') })
+  // The prompt cache (068 #42): silent until it is about to go cold.
+  const cache = cacheChip(input.cache, now)
+  if (cache !== undefined) out.push({ text: cache, ...chipOf('cache'), colour: cache.startsWith('cache cold') ? 'red' : 'yellow' })
+  // The burn rate and the projection (068 #48): after five samples over a minute, and the
+  // limit's time only when it lands before the window's reset.
+  const burned = binding === undefined || binding.renewed === true
+    ? burnChips({ rate: input.burn, samples: input.burnSamples?.count ?? 0, spanMs: input.burnSamples?.spanMs ?? 0, percent: undefined, resetsAt: undefined, now, clock: at => clockOf(new Date(at).toISOString()) ?? '?' }, binding === undefined ? '' : labelOf(binding.kind))
+    : burnChips({ rate: input.burn, samples: input.burnSamples?.count ?? 0, spanMs: input.burnSamples?.spanMs ?? 0, percent: binding.percent, resetsAt: binding.resetsAt, now, clock: at => clockOf(new Date(at).toISOString()) ?? '?' }, labelOf(binding.kind))
+  if (burned.burn !== undefined) out.push({ text: burned.burn, ...chipOf('burn') })
+  if (burned.projection !== undefined) out.push({ text: burned.projection, ...chipOf('projection') })
   // Lines changed this session (041 #7): what the tools wrote, added and removed.
   if (input.lines !== undefined && input.lines.added + input.lines.removed > 0)
-    out.push({ text: `±${input.lines.added + input.lines.removed}`, ...chipOf('lines') })
+    out.push({ text: `+${input.lines.added} −${input.lines.removed}`, ...chipOf('lines') })
   if (input.startedAt !== undefined && now - input.startedAt >= 60_000) out.push({ text: withIcon(icons.clock, duration(now - input.startedAt)), ...chipOf('time') })
   // The advisor consulted this session, and Astrolabe's own version (the mod's footer, not a statusline's).
   if (input.advisor !== undefined && input.advisor.runs > 0) out.push({ text: `adv ${input.advisor.runs}`, ...chipOf('advisor') })
   if (input.astrolabe !== undefined) out.push({ text: `astrolabe ${input.astrolabe.version}`, ...chipOf('astrolabe') })
   // A newcomer's last chip says where the commands are; it is the first to go on a narrow footer (052 #46).
   if (input.helpHint === true) out.push({ text: '/astrolabe help', ...chipOf('help') })
-  return out
+  return input.icons.ahead === '^' ? out.map(p => ({ ...p, text: asciiFold(p.text) })) : out
 }
 
 /** The footer text: Spec Kit first, then the parts in order, fitted to `columns`. */
@@ -214,7 +252,7 @@ export const footerText = (input: FooterInput): string => {
   return joinZones([[speckit], ...kept.map(p => [p.text])])
 }
 
-export type Chip = { key: string; text: string; colour: ChipColour; rank?: number; links?: ReadonlyArray<{ text: string; href: string }>; /** The whole text of a chip cut to fit, shown on hover (052 #45). */ full?: string }
+export type Chip = { key: string; /** The chip's entry in CHIP_TABLE, when it has one (068 #49). */ name?: ChipName; text: string; colour: ChipColour; rank?: number; links?: ReadonlyArray<{ text: string; href: string }>; /** The whole text of a chip cut to fit, shown on hover (052 #45). */ full?: string }
 
 /** The footer as Powerline chips in statusline's colours (039); the context ramps without a mark. */
 export const footerChips = (input: FooterInput): Chip[] => {
@@ -228,9 +266,10 @@ export const footerChips = (input: FooterInput): Chip[] => {
       const ramp = p.level === undefined ? undefined : usageRamp(p.level, p.hold === undefined ? undefined : { hold: p.hold })
       const isContext = p.colour === 'yellow'
       return {
-        key: `part-${i}`,
+        key: p.name ?? `part-${i}`,
+        ...(p.name === undefined ? {} : { name: p.name }),
         text: ramp === undefined || isContext || p.inlineMark === true ? p.text : `${p.text}${ramp.mark}`,
-        colour: ramp?.chip ?? p.colour ?? 'surface1',
+        colour: p.name === 'ci' || p.name === 'cache' ? p.colour ?? 'surface1' : ramp?.chip ?? p.colour ?? 'surface1',
         rank: p.rank,
         ...(p.links === undefined || p.links.length === 0 ? {} : { links: p.links }),
       }
@@ -241,9 +280,11 @@ export const footerChips = (input: FooterInput): Chip[] => {
 /** statusline's three-line order (041 #1): place and git, the Spec Kit work and the skill, the model and the limits. */
 export const footerChipLines = (input: FooterInput): Chip[][] => {
   const flat = footerChips(input)
-  const ofLine = (line: number) => (chip: Chip) =>
-    line === 0 ? chip.rank === 4 : line === 1 ? chip.key === 'speckit' || chip.rank === 3.5 || chip.rank === 4.5 : chip.rank !== 4 && chip.key !== 'speckit' && chip.rank !== 3.5 && chip.rank !== 4.5
-  return [0, 1, 2].map(line => flat.filter(ofLine(line))).filter(line => line.length > 0)
+  // Place and git on line one, the work on line two, the model and the limits on line three (068).
+  const PLACE = new Set<string>(['dir', 'repo', 'git', 'worktree', 'tree', 'lines', 'pr', 'ci'])
+  const WORK = new Set<string>(['skill', 'skills', 'todo', 'advisor'])
+  const lineOf = (chip: Chip): number => (chip.key === 'speckit' || (chip.name !== undefined && WORK.has(chip.name)) ? 1 : chip.name !== undefined && PLACE.has(chip.name) ? 0 : 2)
+  return [0, 1, 2].map(line => flat.filter(chip => lineOf(chip) === line)).filter(line => line.length > 0)
 }
 
 /** A text's lines: a trailing newline ends no line (041 #7). */

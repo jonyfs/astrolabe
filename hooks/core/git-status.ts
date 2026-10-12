@@ -9,6 +9,11 @@ export const parseGitStatus = (out: string): GitState => {
     else if (line.startsWith('# branch.head ')) {
       const head = line.slice(14).trim()
       state.branch = head === '(detached)' ? `(${(oid ?? '').slice(0, 7)})` : head
+      // A detached HEAD has a commit and no branch page (068 #41).
+      if (head === '(detached)' && oid !== undefined && oid !== '') state.detached = oid.slice(0, 7)
+    } else if (line.startsWith('# branch.upstream ')) {
+      const upstream = line.slice(18).trim()
+      if (upstream !== '') state.upstream = upstream
     } else if (line.startsWith('# branch.ab ')) {
       const m = /^\+(\d+) -(\d+)$/.exec(line.slice(12).trim())
       if (m !== null) {
@@ -36,10 +41,20 @@ export const parsePullRequest = (out: string): PullRequest | undefined => {
     return undefined
   }
   if (typeof value !== 'object' || value === null) return undefined
-  const { number, url, statusCheckRollup } = value as { number?: unknown; url?: unknown; statusCheckRollup?: unknown }
+  const { number, url, statusCheckRollup, isDraft, labels } = value as { number?: unknown; url?: unknown; statusCheckRollup?: unknown; isDraft?: unknown; labels?: unknown }
   if (typeof number !== 'number') return undefined
   const page = typeof url === 'string' ? safeHttpsUrl(url) : undefined
-  return { number, checks: checksOf(statusCheckRollup), ...(page === undefined ? {} : { url: page }) }
+  const names = (Array.isArray(labels) ? labels : []).flatMap(l => {
+    const name = typeof l === 'object' && l !== null ? (l as { name?: unknown }).name : l
+    return typeof name === 'string' && plainText(name, 24) !== '' ? [plainText(name, 24)] : []
+  })
+  return {
+    number,
+    checks: checksOf(statusCheckRollup),
+    ...(page === undefined ? {} : { url: page }),
+    ...(isDraft === true ? { draft: true } : {}),
+    ...(names.length === 0 ? {} : { labels: names.slice(0, 3) }),
+  }
 }
 
 /** All passed, one failed, some still running, or none (023, 032), from a statusCheckRollup. */
@@ -89,3 +104,21 @@ export const remoteWebUrl = (remote: string): string | undefined => {
 
 /** A branch's page on the remote, each path segment encoded. */
 export const branchWebUrl = (web: string, branch: string): string => `${web}/tree/${branch.split('/').map(encodeURIComponent).join('/')}`
+
+/** The last CI run of a branch (068 #41), from `gh run list --json status,conclusion --limit 1`. */
+export const parseCiRun = (out: string): GitState['ci'] => {
+  let value: unknown
+  try {
+    value = JSON.parse(out)
+  } catch {
+    return undefined
+  }
+  const run = Array.isArray(value) ? value[0] : undefined
+  if (typeof run !== 'object' || run === null) return undefined
+  const { status, conclusion } = run as { status?: unknown; conclusion?: unknown }
+  if (typeof status === 'string' && status !== 'completed') return 'pending'
+  const word = typeof conclusion === 'string' ? conclusion.toUpperCase() : ''
+  if (FAILED.has(word)) return 'fail'
+  if (PASSED.has(word)) return 'pass'
+  return word === '' ? 'pending' : undefined
+}

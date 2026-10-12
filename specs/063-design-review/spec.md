@@ -84,16 +84,16 @@ Constraints that hold for every task: colours only from `theme.ts` (IX), nothing
 
 ### E. statusline parity and live table → 068-footer-statusline-parity, 069-live-table
 
-- [ ] T041 #41 Footer line 1 git parity (P1) → 068
-- [ ] T042 #42 Prompt cache chip (P1) → 068
+- [x] T041 #41 Footer line 1 git parity (P1) → 068
+- [x] T042 #42 Prompt cache chip (P1) → 068
 - [ ] T043 #43 One live table for agents, gates, cache and limits (P1) → 069
 - [ ] T044 #44 Git gate rows from the process list on `$.clock` (P2) → 069
-- [ ] T045 #45 Skills as one chip (P2) → 068
-- [ ] T046 #46 Todo progress on line 2 (P2) → 068
-- [ ] T047 #47 Spend limit and `fast` on line 3 (P2) → 068
-- [ ] T048 #48 Projection only when it lands before the reset (P2) → 068
-- [ ] T049 #49 Brighten on change for branch, PR, skills, model (P3) → 068
-- [ ] T050 #50 Hover row that explains a chip (P3) → 068
+- [x] T045 #45 Skills as one chip (P2) → 068
+- [x] T046 #46 Todo progress on line 2 (P2) → 068
+- [x] T047 #47 Spend limit and `fast` on line 3 (P2) → 068
+- [x] T048 #48 Projection only when it lands before the reset (P2) → 068
+- [x] T049 #49 Brighten on change for branch, PR, skills, model (P3) → 068
+- [x] T050 #50 Hover row that explains a chip (P3) → 068
 
 ## Out of scope
 

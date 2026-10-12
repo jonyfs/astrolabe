@@ -54,7 +54,7 @@ import { dashboardSections, dashboardTree } from './surfaces/dashboard'
 import { burnRate, dial, kpiChips, kpisMarkdown, phaseBars, sparkline, usageChart, kpiRows, trendRows } from './core/dashboard'
 import { addDay, addWeek, dayKey, lastWeeks, pastReset, slowest, updateFeatureDurations, weekKey, weekdays, type Days, type FeatureDuration, type Weeks } from './core/history'
 import { footerChipLines, footerChips, footerText, linesChanged, type FooterInput } from './core/footer'
-import { branchWebUrl, parseGitStatus, parsePullRequest, remoteWebUrl } from './core/git-status'
+import { branchWebUrl, parseCiRun, parseGitStatus, parsePullRequest, remoteWebUrl } from './core/git-status'
 import { iconSet, iconsFor } from './core/icons'
 import { guessLang, langOf, paneLabelWidth, t, type Lang, type TextKey } from './core/i18n'
 import { paneTree } from './surfaces/pane'
@@ -145,12 +145,14 @@ const FOOTER_OWNER = 'footerOwner'
 let footerOwner: FooterOwner = 'astrolabe'
 const GIT_STATUS = ['git', 'status', '--porcelain=v2', '--branch', '--show-stash']
 // The branch's pull request and its checks (023), opt-in, at most once per five minutes per branch.
-const GH_PR = ['gh', 'pr', 'view', '--json', 'number,url,statusCheckRollup']
+const GH_PR = ['gh', 'pr', 'view', '--json', 'number,url,statusCheckRollup,isDraft,labels']
+// The branch's last CI run (068 #41), read with the pull request: at most once per five minutes.
+const GH_RUN = (branch: string): string[] => ['gh', 'run', 'list', '--branch', branch, '--limit', '1', '--json', 'status,conclusion']
 const PR_TTL_MS = 300_000
 
 // The session's numbers between writes (018): a tool call costs no state write; they are
 // written at the end of each main turn and at each measure. A reload loses one turn's counts.
-const live = { toolCalls: 0, drifts: 0, driftsById: {} as Record<string, number>, agentsRun: 0, agentsQueued: 0, linesAdded: 0, linesRemoved: 0, model: undefined as string | undefined, effort: undefined as string | undefined }
+const live = { toolCalls: 0, drifts: 0, driftsById: {} as Record<string, number>, agentsRun: 0, agentsQueued: 0, linesAdded: 0, linesRemoved: 0, model: undefined as string | undefined, effort: undefined as string | undefined, skills: [] as string[], todo: undefined as SessionStats['todo'], cache: undefined as SessionStats['cache'], fast: undefined as boolean | undefined, dirs: undefined as SessionStats['dirs'] }
 // The footer's room: the last width a drawing saw, less the warning mark and "astrolabe: " the terminal adds.
 let columnsSeen = 120
 let surfaceSeen: string | null = 'terminal'
@@ -245,6 +247,13 @@ async function footerInput(
       ...(stats?.effort === undefined ? {} : { effort: stats.effort }),
       ...(stats?.git === undefined ? {} : { git: stats.git }),
       ...(stats?.lines === undefined ? {} : { lines: stats.lines }),
+      ...(stats?.dirs === undefined ? {} : { dir: { path: stats.dirs.cwd, start: stats.dirs.start } }),
+      ...(stats?.git?.remote === undefined ? {} : { repo: stats.git.remote }),
+      ...(stats?.skills === undefined || stats.skills.length === 0 ? {} : { skills: stats.skills }),
+      ...(stats?.todo === undefined || stats.todo.total === 0 ? {} : { todo: stats.todo }),
+      ...(stats?.cache === undefined ? {} : { cache: stats.cache }),
+      ...(stats?.fast === true ? { fast: true } : {}),
+      ...(stats === undefined ? {} : { burnSamples: { count: stats.series.length, spanMs: stats.series.length < 2 ? 0 : stats.series[stats.series.length - 1]!.at - stats.series[0]!.at } }),
       ...(stats?.advisor === undefined || stats.advisor.runs === 0 ? {} : { advisor: { runs: stats.advisor.runs } }),
       astrolabe: { version: VERSION },
       ...(stats === undefined ? {} : { startedAt: stats.startedAt }),
@@ -266,8 +275,10 @@ let footerIn: 'pane' | 'status' | 'both' = 'pane'
 let footerLines: '1' | '3' = '1'
 // The rule above the pane footer's chips (041 #8).
 let footerSeparator: 'solid' | 'thin' | 'none' = 'solid'
-// A chip that just changed draws a shade lighter for a few seconds (041 #5), then settles.
-const FRESH_MS = 5000
+// A branch, PR, skills or model chip that just changed draws a shade lighter for 30 seconds
+// (041 #5, 068 #49), then settles; usage chips never brighten.
+const FRESH_MS = 30_000
+const BRIGHTEN_CHIPS: ReadonlySet<string> = new Set(['git', 'pr', 'skills', 'model'])
 const FRESH_SHARE = 0.25
 const chipAges = new Map<string, { text: string; at?: number }>()
 let freshDeadline: number | undefined
@@ -321,6 +332,12 @@ async function flushStats($: EngineInterface, change: (s: SessionStats) => Sessi
         : { lines: { added: (before.lines?.added ?? 0) + live.linesAdded, removed: (before.lines?.removed ?? 0) + live.linesRemoved } }),
       ...(live.model === undefined ? {} : { model: live.model }),
       ...(live.effort === undefined ? {} : { effort: live.effort }),
+      // Facts the footer reads (068): kept in memory between turns, written with the next flush.
+      ...(live.skills.length === 0 ? {} : { skills: [...new Set([...(before.skills ?? []), ...live.skills])].slice(-12) }),
+      ...(live.todo === undefined ? {} : { todo: live.todo }),
+      ...(live.cache === undefined ? {} : { cache: live.cache }),
+      ...(live.fast === undefined ? {} : { fast: live.fast }),
+      ...(live.dirs === undefined ? {} : { dirs: live.dirs }),
     }
     const next = change(counted)
     if (value !== undefined && JSON.stringify(next) === JSON.stringify(value)) return
@@ -871,7 +888,14 @@ async function refreshWorktrees($: EngineInterface, root: string): Promise<void>
         ...(wt.branch !== undefined && merged.has(wt.branch) ? { merged: true as const } : {}),
       })
     }
-    await flushStats($, ({ worktrees: _old, ...s }) => (found.length === 0 ? s : { ...s, worktrees: found }))
+    // A linked worktree names the main checkout's branch (068 #41).
+    const origin = main?.branch !== undefined && norm(root) !== norm(main.path) ? main.branch : undefined
+    await flushStats($, ({ worktrees: _old, ...s }) => {
+      const kept = found.length === 0 ? s : { ...s, worktrees: found }
+      if (kept.git === undefined) return kept
+      const { origin: _origin, ...git } = kept.git
+      return { ...kept, git: origin === undefined ? git : { ...git, origin } }
+    })
   } catch (error) {
     $.ui.log(`astrolabe: ${error instanceof Error ? error.message : String(error)}`, { to: 'debug' })
   } finally {
@@ -1159,9 +1183,13 @@ async function refreshPr($: EngineInterface, root: string, branch: string, force
     // gh missing, signed out or no pull request: no part, no error; the next try is in five minutes.
     const run = await $.process.run(GH_PR, { cwd: root, timeoutMs: 5000 }).catch(() => undefined)
     const pr = run?.exitCode === 0 ? parsePullRequest(run.stdout) : undefined
+    const runs = await $.process.run(GH_RUN(branch), { cwd: root, timeoutMs: 5000 }).catch(() => undefined)
+    const ci = runs?.exitCode === 0 ? parseCiRun(runs.stdout) : undefined
     await flushStats($, s => {
-      const git = s.git?.branch === branch ? withPr(s.git, pr) : s.git
-      return { ...s, prCache: { branch, at: now, ...(pr === undefined ? {} : { pr }) }, ...(git === undefined ? {} : { git }) }
+      const base = s.git?.branch === branch ? withPr(s.git, pr) : s.git
+      const { ci: _old, ...rest } = base ?? { ahead: 0, behind: 0, changed: 0, conflicts: 0 }
+      const git = base === undefined ? undefined : ci === undefined ? rest : { ...rest, ci }
+      return { ...s, prCache: { branch, at: now, ...(pr === undefined ? {} : { pr }), ...(ci === undefined ? {} : { ci }) }, ...(git === undefined ? {} : { git }) }
     })
     const speckit = (await $.state.get(SPECKIT)).value
     if (speckit !== undefined) await showStatus($, speckit)
@@ -1171,6 +1199,33 @@ async function refreshPr($: EngineInterface, root: string, branch: string, force
     prRunning = false
   }
 }
+
+/** The prompt cache's time to live: five minutes, an hour when the response created an hour-long entry (068 #42). */
+const CACHE_TTL_MS = 300_000
+const CACHE_TTL_LONG_MS = 3_600_000
+
+/**
+ * Keeps what the last main-thread response says about the prompt cache (068 #42). The engine
+ * hands a mod no cache payload, so the chip rests on the response's usage when it carries one.
+ */
+function noteCache(model: string | undefined, result: unknown, at: number): void {
+  const usage = (result as { usage?: Record<string, unknown> | null } | undefined)?.usage
+  if (usage === undefined || usage === null) return
+  const num = (...keys: string[]): number => {
+    for (const key of keys) if (typeof usage[key] === 'number') return usage[key] as number
+    return 0
+  }
+  const read = num('cache_read_input_tokens', 'cacheReadInputTokens', 'cacheRead')
+  const created = num('cache_creation_input_tokens', 'cacheCreationInputTokens', 'cacheCreation')
+  const input = num('input_tokens', 'inputTokens', 'input')
+  if (read + created === 0) return
+  const long = typeof usage.cache_creation === 'object' && usage.cache_creation !== null && Number((usage.cache_creation as Record<string, unknown>).ephemeral_1h_input_tokens) > 0
+  // A response that read nothing right after a model switch rebuilt the cache because of the switch.
+  const changed = read === 0 && model !== undefined && lastCacheModel !== undefined && lastCacheModel !== model
+  lastCacheModel = model
+  live.cache = { at, tokens: read + created + input, ttlMs: long ? CACHE_TTL_LONG_MS : CACHE_TTL_MS, ...(changed ? { reason: 'model changed' } : {}) }
+}
+let lastCacheModel: string | undefined
 
 /** Notes the model and effort of each main-thread request (018), leaving the request untouched. */
 async function* noteModel($: Parameters<Hook<'turn.step'>>[0], e: Parameters<Hook<'turn.step'>>[1], next: Parameters<Hook<'turn.step'>>[2]) {
@@ -1182,6 +1237,7 @@ async function* noteModel($: Parameters<Hook<'turn.step'>>[0], e: Parameters<Hoo
     live.effort = step.effort === undefined ? undefined : String(step.effort)
   }
   const result = yield* next(step)
+  if (e.agentId === undefined) noteCache(step.model, result, await $.clock.now())
   // The advisor is a server tool the API runs inside the request (055): count each run.
   const advised = ((result as { serverToolUses?: ReadonlyArray<{ name: string }> } | undefined)?.serverToolUses ?? []).filter(use => use.name === 'advisor').length
   if (advised > 0 && e.agentId === undefined) {
@@ -2419,6 +2475,7 @@ export const register: Register = (on, options) => {
     freshDeadline = undefined
     const fs = fsOf($)
     const now = await $.clock.now()
+    live.dirs = { start: e.cwd, cwd: e.cwd }
     const started = await guarded($, previous => reconcileStart(fs, e.cwd, previous, now))
     // Note the active feature's file times, so the first probe of a turn reads nothing.
     if (started !== undefined) await activeFilesChanged(fs, started).catch(() => undefined)
@@ -2493,6 +2550,7 @@ export const register: Register = (on, options) => {
       skillRunning = undefined
       const fs = fsOf($)
       const cwd = await $.session.cwd()
+      live.dirs = { start: live.dirs?.start ?? (await $.state.get(SESSION)).value?.dirs?.start ?? cwd, cwd }
       const now = await $.clock.now()
       let before: Held | undefined
       const held = await guarded($, previous => {
@@ -2521,11 +2579,13 @@ export const register: Register = (on, options) => {
       const turnGit = git ?? fallback
       await flushStats($, s => {
         const cached = s.prCache !== undefined && s.prCache.branch === turnGit?.branch ? s.prCache.pr : undefined
+        const ci = s.prCache !== undefined && s.prCache.branch === turnGit?.branch ? s.prCache.ci : undefined
+        const origin = s.git?.origin
         // The answer's first line for /astrolabe recap (054 #92), the last 20 turns, in $.state only.
         const line = recapLine(e.answer)
         const id = held?.state.active?.id
         const recap = line === '' ? s.recap : [...(s.recap ?? []), { at: now, ...(id === undefined ? {} : { id }), text: line }].slice(-20)
-        return { ...s, turns: s.turns + 1, ...(turnGit === undefined ? {} : { git: withPr(turnGit, cached) }), ...(recap === undefined ? {} : { recap }) }
+        return { ...s, turns: s.turns + 1, ...(turnGit === undefined ? {} : { git: { ...withPr(turnGit, cached), ...(ci === undefined ? {} : { ci }), ...(origin === undefined ? {} : { origin }) } }), ...(recap === undefined ? {} : { recap }) }
       })
       if (root !== undefined && turnGit?.branch !== undefined) {
         const repoRoot = root
@@ -2564,6 +2624,7 @@ export const register: Register = (on, options) => {
     // A subagent's skill may outlive the main turn, so only main-thread calls set a marker.
     if (e.agentId === undefined) {
       skillRunning = e.skill
+      if (!live.skills.includes(e.skill)) live.skills.push(e.skill)
       const now = await $.clock.now()
       await guarded($, async previous => (previous === undefined ? undefined : applySkill(previous, e.skill, now)))
     }
@@ -2695,6 +2756,17 @@ export const register: Register = (on, options) => {
     // A subagent may have written specs or tasks: the tabs follow when it returns (053).
     await syncNow($)
     return result
+  }).catch(($, e, next) => next(e))
+
+  // The todo list's progress for the footer's todo chip (068 #46); no state write per call.
+  on('tool.call', { tool: 'TodoWrite' } as never, async ($, e, next) => {
+    const todos = (e as unknown as { todos?: ReadonlyArray<{ content?: string; status?: string }> }).todos
+    if (Array.isArray(todos) && todos.length > 0) {
+      const done = todos.filter(item => item.status === 'completed').length
+      const current = todos.find(item => item.status === 'in_progress') ?? todos.find(item => item.status !== 'completed')
+      live.todo = { title: current?.content ?? '', done, total: todos.length }
+    }
+    return next(e)
   }).catch(($, e, next) => next(e))
 
   // Before the read runs, so the narration shows while the file loads.
@@ -3366,9 +3438,9 @@ export const register: Register = (on, options) => {
       const chips = grouped?.map(row =>
         row.map(chip => {
           const plain = palette[chip.colour] ?? palette['surface1']!
-          const bg = freshChip(chip.key, chip.text, input.now) ? lighten(plain, FRESH_SHARE) : plain
+          const bg = chip.name !== undefined && BRIGHTEN_CHIPS.has(chip.name) && freshChip(chip.key, chip.text, input.now) ? lighten(plain, FRESH_SHARE) : plain
           if (bg !== plain) anyFresh = true
-          return { key: chip.key, text: chip.text, bg, fg: chipForeground(bg), ...(chip.full === undefined ? {} : { full: chip.full }), ...(chip.links === undefined || chip.links.length === 0 ? {} : { links: chip.links }) }
+          return { key: chip.key, text: chip.text, bg, fg: chipForeground(bg), ...(chip.full === undefined ? {} : { full: chip.full }), ...(chip.links === undefined || chip.links.length === 0 ? {} : { links: chip.links }), ...(chip.name === undefined ? {} : { explain: t(currentLang(), `chip.explain.${chip.name}` as TextKey) }) }
         }),
       )
       if (anyFresh) scheduleFresh($, input.now)

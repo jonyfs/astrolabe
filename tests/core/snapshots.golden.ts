@@ -65,12 +65,12 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     "◆ 002 · implement 45%"
   ],
   "mocha/100/footer": [
-    "◆ 002 · implement 45% │ 7d 81%▴ hold (Thu 09:00) │ 5h 42% (2h09m) │ ctx 61% │ opus 5.5 high",
+    "◆ 002 · implement 45% │ 7d 81%▴ hold (Thu 09:00) │ 5h 42% (2h09m) │ ctx 61% │ git:main",
     "◆ 002 · implement 45%|#cba6f7",
     "7d 81%▴ hold (Thu 09:00)|#f38ba8",
     "5h 42% (2h09m)|#a6e3a1",
     "ctx 61%|#f9e2af",
-    "opus 5.5 high|#f38ba8"
+    "git:main|#b4befe"
   ],
   "mocha/100/pane": [
     "Active (1)|#a6adc8",
@@ -127,13 +127,14 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     "◆ 002 · implement 45%"
   ],
   "mocha/144/footer": [
-    "◆ 002 · implement 45% │ 7d 81%▴ hold (Thu 09:00) │ 5h 42% (2h09m) │ ctx 61% │ opus 5.5 high │ git:main ^2 v1 ~3 │ t 1h05m",
+    "◆ 002 · implement 45% │ 7d 81%▴ hold (Thu 09:00) │ 5h 42% (2h09m) │ ctx 61% │ opus 5.5 · high │ git:main │ ~3 │ t 1h05m",
     "◆ 002 · implement 45%|#cba6f7",
     "7d 81%▴ hold (Thu 09:00)|#f38ba8",
     "5h 42% (2h09m)|#a6e3a1",
     "ctx 61%|#f9e2af",
-    "opus 5.5 high|#f38ba8",
-    "git:main ^2 v1 ~3|#b4befe",
+    "opus 5.5 · high|#f38ba8",
+    "git:main|#b4befe",
+    "~3|#b4befe",
     "t 1h05m|#45475a"
   ],
   "mocha/144/pane": [
@@ -191,13 +192,14 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     "◆ 002 · implement 45%"
   ],
   "mocha/200/footer": [
-    "◆ 002 · implement 45% │ 7d 81%▴ hold (Thu 09:00) │ 5h 42% (2h09m) │ ctx 61% │ opus 5.5 high │ git:main ^2 v1 ~3 │ t 1h05m",
+    "◆ 002 · implement 45% │ 7d 81%▴ hold (Thu 09:00) │ 5h 42% (2h09m) │ ctx 61% │ opus 5.5 · high │ git:main │ ~3 │ t 1h05m",
     "◆ 002 · implement 45%|#cba6f7",
     "7d 81%▴ hold (Thu 09:00)|#f38ba8",
     "5h 42% (2h09m)|#a6e3a1",
     "ctx 61%|#f9e2af",
-    "opus 5.5 high|#f38ba8",
-    "git:main ^2 v1 ~3|#b4befe",
+    "opus 5.5 · high|#f38ba8",
+    "git:main|#b4befe",
+    "~3|#b4befe",
     "t 1h05m|#45475a"
   ],
   "mocha/200/pane": [
@@ -281,12 +283,12 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     "◆ 002 · implement 45%"
   ],
   "latte/100/footer": [
-    "◆ 002 · implement 45% │ 7d 81%▴ hold (Thu 09:00) │ 5h 42% (2h09m) │ ctx 61% │ opus 5.5 high",
+    "◆ 002 · implement 45% │ 7d 81%▴ hold (Thu 09:00) │ 5h 42% (2h09m) │ ctx 61% │ git:main",
     "◆ 002 · implement 45%|#8839ef",
     "7d 81%▴ hold (Thu 09:00)|#d20f39",
     "5h 42% (2h09m)|#40a02b",
     "ctx 61%|#df8e1d",
-    "opus 5.5 high|#d20f39"
+    "git:main|#7287fd"
   ],
   "latte/100/pane": [
     "Active (1)|#5c5f77",
@@ -343,13 +345,14 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     "◆ 002 · implement 45%"
   ],
   "latte/144/footer": [
-    "◆ 002 · implement 45% │ 7d 81%▴ hold (Thu 09:00) │ 5h 42% (2h09m) │ ctx 61% │ opus 5.5 high │ git:main ^2 v1 ~3 │ t 1h05m",
+    "◆ 002 · implement 45% │ 7d 81%▴ hold (Thu 09:00) │ 5h 42% (2h09m) │ ctx 61% │ opus 5.5 · high │ git:main │ ~3 │ t 1h05m",
     "◆ 002 · implement 45%|#8839ef",
     "7d 81%▴ hold (Thu 09:00)|#d20f39",
     "5h 42% (2h09m)|#40a02b",
     "ctx 61%|#df8e1d",
-    "opus 5.5 high|#d20f39",
-    "git:main ^2 v1 ~3|#7287fd",
+    "opus 5.5 · high|#d20f39",
+    "git:main|#7287fd",
+    "~3|#7287fd",
     "t 1h05m|#bcc0cc"
   ],
   "latte/144/pane": [
@@ -407,13 +410,14 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     "◆ 002 · implement 45%"
   ],
   "latte/200/footer": [
-    "◆ 002 · implement 45% │ 7d 81%▴ hold (Thu 09:00) │ 5h 42% (2h09m) │ ctx 61% │ opus 5.5 high │ git:main ^2 v1 ~3 │ t 1h05m",
+    "◆ 002 · implement 45% │ 7d 81%▴ hold (Thu 09:00) │ 5h 42% (2h09m) │ ctx 61% │ opus 5.5 · high │ git:main │ ~3 │ t 1h05m",
     "◆ 002 · implement 45%|#8839ef",
     "7d 81%▴ hold (Thu 09:00)|#d20f39",
     "5h 42% (2h09m)|#40a02b",
     "ctx 61%|#df8e1d",
-    "opus 5.5 high|#d20f39",
-    "git:main ^2 v1 ~3|#7287fd",
+    "opus 5.5 · high|#d20f39",
+    "git:main|#7287fd",
+    "~3|#7287fd",
     "t 1h05m|#bcc0cc"
   ],
   "latte/200/pane": [
@@ -497,12 +501,12 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     "◆ 002 · implement 45%"
   ],
   "frappe/100/footer": [
-    "◆ 002 · implement 45% │ 7d 81%▴ hold (Thu 09:00) │ 5h 42% (2h09m) │ ctx 61% │ opus 5.5 high",
+    "◆ 002 · implement 45% │ 7d 81%▴ hold (Thu 09:00) │ 5h 42% (2h09m) │ ctx 61% │ git:main",
     "◆ 002 · implement 45%|#ca9ee6",
     "7d 81%▴ hold (Thu 09:00)|#e78284",
     "5h 42% (2h09m)|#a6d189",
     "ctx 61%|#e5c890",
-    "opus 5.5 high|#e78284"
+    "git:main|#babbf1"
   ],
   "frappe/100/pane": [
     "Active (1)|#a5adce",
@@ -559,13 +563,14 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     "◆ 002 · implement 45%"
   ],
   "frappe/144/footer": [
-    "◆ 002 · implement 45% │ 7d 81%▴ hold (Thu 09:00) │ 5h 42% (2h09m) │ ctx 61% │ opus 5.5 high │ git:main ^2 v1 ~3 │ t 1h05m",
+    "◆ 002 · implement 45% │ 7d 81%▴ hold (Thu 09:00) │ 5h 42% (2h09m) │ ctx 61% │ opus 5.5 · high │ git:main │ ~3 │ t 1h05m",
     "◆ 002 · implement 45%|#ca9ee6",
     "7d 81%▴ hold (Thu 09:00)|#e78284",
     "5h 42% (2h09m)|#a6d189",
     "ctx 61%|#e5c890",
-    "opus 5.5 high|#e78284",
-    "git:main ^2 v1 ~3|#babbf1",
+    "opus 5.5 · high|#e78284",
+    "git:main|#babbf1",
+    "~3|#babbf1",
     "t 1h05m|#51576d"
   ],
   "frappe/144/pane": [
@@ -623,13 +628,14 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     "◆ 002 · implement 45%"
   ],
   "frappe/200/footer": [
-    "◆ 002 · implement 45% │ 7d 81%▴ hold (Thu 09:00) │ 5h 42% (2h09m) │ ctx 61% │ opus 5.5 high │ git:main ^2 v1 ~3 │ t 1h05m",
+    "◆ 002 · implement 45% │ 7d 81%▴ hold (Thu 09:00) │ 5h 42% (2h09m) │ ctx 61% │ opus 5.5 · high │ git:main │ ~3 │ t 1h05m",
     "◆ 002 · implement 45%|#ca9ee6",
     "7d 81%▴ hold (Thu 09:00)|#e78284",
     "5h 42% (2h09m)|#a6d189",
     "ctx 61%|#e5c890",
-    "opus 5.5 high|#e78284",
-    "git:main ^2 v1 ~3|#babbf1",
+    "opus 5.5 · high|#e78284",
+    "git:main|#babbf1",
+    "~3|#babbf1",
     "t 1h05m|#51576d"
   ],
   "frappe/200/pane": [
@@ -713,12 +719,12 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     "◆ 002 · implement 45%"
   ],
   "macchiato/100/footer": [
-    "◆ 002 · implement 45% │ 7d 81%▴ hold (Thu 09:00) │ 5h 42% (2h09m) │ ctx 61% │ opus 5.5 high",
+    "◆ 002 · implement 45% │ 7d 81%▴ hold (Thu 09:00) │ 5h 42% (2h09m) │ ctx 61% │ git:main",
     "◆ 002 · implement 45%|#c6a0f6",
     "7d 81%▴ hold (Thu 09:00)|#ed8796",
     "5h 42% (2h09m)|#a6da95",
     "ctx 61%|#eed49f",
-    "opus 5.5 high|#ed8796"
+    "git:main|#b7bdf8"
   ],
   "macchiato/100/pane": [
     "Active (1)|#a5adcb",
@@ -775,13 +781,14 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     "◆ 002 · implement 45%"
   ],
   "macchiato/144/footer": [
-    "◆ 002 · implement 45% │ 7d 81%▴ hold (Thu 09:00) │ 5h 42% (2h09m) │ ctx 61% │ opus 5.5 high │ git:main ^2 v1 ~3 │ t 1h05m",
+    "◆ 002 · implement 45% │ 7d 81%▴ hold (Thu 09:00) │ 5h 42% (2h09m) │ ctx 61% │ opus 5.5 · high │ git:main │ ~3 │ t 1h05m",
     "◆ 002 · implement 45%|#c6a0f6",
     "7d 81%▴ hold (Thu 09:00)|#ed8796",
     "5h 42% (2h09m)|#a6da95",
     "ctx 61%|#eed49f",
-    "opus 5.5 high|#ed8796",
-    "git:main ^2 v1 ~3|#b7bdf8",
+    "opus 5.5 · high|#ed8796",
+    "git:main|#b7bdf8",
+    "~3|#b7bdf8",
     "t 1h05m|#494d64"
   ],
   "macchiato/144/pane": [
@@ -839,13 +846,14 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     "◆ 002 · implement 45%"
   ],
   "macchiato/200/footer": [
-    "◆ 002 · implement 45% │ 7d 81%▴ hold (Thu 09:00) │ 5h 42% (2h09m) │ ctx 61% │ opus 5.5 high │ git:main ^2 v1 ~3 │ t 1h05m",
+    "◆ 002 · implement 45% │ 7d 81%▴ hold (Thu 09:00) │ 5h 42% (2h09m) │ ctx 61% │ opus 5.5 · high │ git:main │ ~3 │ t 1h05m",
     "◆ 002 · implement 45%|#c6a0f6",
     "7d 81%▴ hold (Thu 09:00)|#ed8796",
     "5h 42% (2h09m)|#a6da95",
     "ctx 61%|#eed49f",
-    "opus 5.5 high|#ed8796",
-    "git:main ^2 v1 ~3|#b7bdf8",
+    "opus 5.5 · high|#ed8796",
+    "git:main|#b7bdf8",
+    "~3|#b7bdf8",
     "t 1h05m|#494d64"
   ],
   "macchiato/200/pane": [
@@ -929,12 +937,12 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     "◆ 002 · implement 45%"
   ],
   "colorblind/100/footer": [
-    "◆ 002 · implement 45% │ 7d 81%▴ hold (Thu 09:00) │ 5h 42% (2h09m) │ ctx 61% │ opus 5.5 high",
+    "◆ 002 · implement 45% │ 7d 81%▴ hold (Thu 09:00) │ 5h 42% (2h09m) │ ctx 61% │ git:main",
     "◆ 002 · implement 45%|#d9a3c7",
     "7d 81%▴ hold (Thu 09:00)|#ff8a75",
     "5h 42% (2h09m)|#6bd3a8",
     "ctx 61%|#fff0a6",
-    "opus 5.5 high|#ff8a75"
+    "git:main|#d4a6e8"
   ],
   "colorblind/100/pane": [
     "Active (1)|#bdbdbd",
@@ -991,13 +999,14 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     "◆ 002 · implement 45%"
   ],
   "colorblind/144/footer": [
-    "◆ 002 · implement 45% │ 7d 81%▴ hold (Thu 09:00) │ 5h 42% (2h09m) │ ctx 61% │ opus 5.5 high │ git:main ^2 v1 ~3 │ t 1h05m",
+    "◆ 002 · implement 45% │ 7d 81%▴ hold (Thu 09:00) │ 5h 42% (2h09m) │ ctx 61% │ opus 5.5 · high │ git:main │ ~3 │ t 1h05m",
     "◆ 002 · implement 45%|#d9a3c7",
     "7d 81%▴ hold (Thu 09:00)|#ff8a75",
     "5h 42% (2h09m)|#6bd3a8",
     "ctx 61%|#fff0a6",
-    "opus 5.5 high|#ff8a75",
-    "git:main ^2 v1 ~3|#d4a6e8",
+    "opus 5.5 · high|#ff8a75",
+    "git:main|#d4a6e8",
+    "~3|#d4a6e8",
     "t 1h05m|#454545"
   ],
   "colorblind/144/pane": [
@@ -1055,13 +1064,14 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     "◆ 002 · implement 45%"
   ],
   "colorblind/200/footer": [
-    "◆ 002 · implement 45% │ 7d 81%▴ hold (Thu 09:00) │ 5h 42% (2h09m) │ ctx 61% │ opus 5.5 high │ git:main ^2 v1 ~3 │ t 1h05m",
+    "◆ 002 · implement 45% │ 7d 81%▴ hold (Thu 09:00) │ 5h 42% (2h09m) │ ctx 61% │ opus 5.5 · high │ git:main │ ~3 │ t 1h05m",
     "◆ 002 · implement 45%|#d9a3c7",
     "7d 81%▴ hold (Thu 09:00)|#ff8a75",
     "5h 42% (2h09m)|#6bd3a8",
     "ctx 61%|#fff0a6",
-    "opus 5.5 high|#ff8a75",
-    "git:main ^2 v1 ~3|#d4a6e8",
+    "opus 5.5 · high|#ff8a75",
+    "git:main|#d4a6e8",
+    "~3|#d4a6e8",
     "t 1h05m|#454545"
   ],
   "colorblind/200/pane": [

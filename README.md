@@ -177,30 +177,65 @@ lavender, and the usage windows and the context follow statusline's ramp: green 
 mark. The `flavor` option picks the palette; with `ascii` icons, the accessible mode or the
 `NO_COLOR` environment variable set, the footer is plain text with ` │ ` between the parts.
 
-When the room is too narrow, the parts go from the end: duration first, then the burn rate, git, model,
-the other window and the context. The Spec Kit part and the window that decides always stay.
+With `footerLines` set to `3` the footer draws statusline's three lines, each chip its own zone:
+
+```text
+⌂ astrolabe │ jonyfs/astrolabe │ git:063-statusline-parity │ ~3 ✖2 ⇡2 ⇣5 │ +156 −23 │ PR #41 draft · ux │ ✓ CI
+◆ 059 · specify │ ❖ humanizer, dataviz, mermaid +2 │ ▸ Fix authentication (1/3)
+opus 5.5 · high · fast │ ctx 41% │ 5h 72%▵ (2h09m) │ 7d 84%▴ (Thu 18:00) │ cache warm · 1m │ ⇡ 9%/h │ 5h limit ~16:40 │ t 1h12m
+```
+
+Line one is the place and git, line two the work, line three the model and the limits. Each part
+appears only when it has something to say:
+
+- `✖2` counts merge conflicts apart from `~3` changed files. `⇡2` and `⇣5` are commits ahead of and
+  behind the upstream, and show only when the branch has one. A detached HEAD shows its short
+  commit id, and a linked worktree shows the branch of the main checkout it came from.
+- The directory follows Claude: `⌂ src ⇐ astrolabe` after it moved from the folder the session
+  started in.
+- `PR #41 draft · ux` carries the pull request's draft state and first labels. `✓ CI`, `✖ CI` or
+  `◷ CI` is the last run of the current branch. Both need the `pullRequest` option and `gh`.
+- `❖ humanizer, dataviz +2` is the skills used in this session, five names and then a count. The
+  todo chip `▸ Fix authentication (1/3)` is the todo list's current item and its progress.
+- `fast` follows the effort while fast mode is on.
+- `⇡ 9%/h` is the burn rate, shown after five usage readings over at least a minute.
+  `5h limit ~16:40` is the projection and shows only when the window would fill before it resets.
+- The cache chip is silent while the prompt cache has time to spare. It reads `cache warm · 1m` in
+  the last two minutes of a five-minute cache, and `cache cold · 182k` once it expired, with
+  `· model changed` when a model switch caused it. It rests on the usage of each answer; the
+  engine gives a mod nothing else about the cache, so a cache Astrolabe never saw answer shows no chip.
+
+A branch, PR, skills or model chip that changed draws a shade lighter for 30 seconds. Usage chips
+never do. Point at a chip and a row under the footer explains it in one sentence:
+`↳ The prompt cache: warm means the next prompt reuses it; cold means ...`. With the `ascii` icon
+set the marks above become `dir`, `<-`, `^`, `v`, `!`, `ok`, `..`, `*` and `>`.
+
+When the room is too narrow, chips go in this order: the version and help hint, repository name, duration, lines changed,
+projection, CI, PR, burn rate, advisor, the tree counters and the cache. The context, branch,
+directory, 5h and 7d windows and the model stay. The Spec Kit part and the window that decides
+always stay.
 
 | A statusline showed | In Astrolabe |
 |---|---|
-| Directory, repository, branch, ahead and behind, changed files, stashes, worktree | The footer's git part (the directory is the project you opened) |
-| Model, effort, context window | The footer |
-| 5-hour and 7-day windows with their resets | The footer, and the governor acts on them |
-| Session duration | The footer (Astrolabe shows no cost: on a subscription it means nothing) |
-| Burn rate and projection | The Dashboard tab |
-| Todo progress, Claude working or idle | The band, the spinner and the Tasks tab |
-| Skills in use | The band and the prompt hint show the running Spec Kit skill |
-| Pull request and last CI run | The footer's git part with the `pullRequest` option on |
-| Prompt cache timer | A toast 30 seconds before the cache goes cold (see [Toasts](#toasts)) |
+| Directory, repository, branch, ahead and behind, changed files, conflicts, stashes, worktree | Line one of the footer |
+| Model, effort, fast mode, context window | Line three |
+| 5-hour and 7-day windows with their resets | Line three, and the governor acts on them |
+| Session duration | Line three (Astrolabe shows no cost: on a subscription it means nothing) |
+| Burn rate and projection | Line three, and the Dashboard tab |
+| Todo progress, Claude working or idle | Line two, the band, the spinner and the Tasks tab |
+| Skills in use | Line two, with the running Spec Kit skill in the band |
+| Pull request, draft state and last CI run | Line one with the `pullRequest` option on |
+| Prompt cache timer | The cache chip, and a toast 30 seconds before the cache goes cold (see [Toasts](#toasts)) |
 | Vim mode, rtk savings | Left out |
 
 The git part reads like this with `icons` set to `ascii`:
 
 ```text
-git:023-git-footer ^2 ~3 stash:1 wt:review PR#32 ok
+git:023-git-footer │ ~3 ^2 │ stash:1 │ wt:review │ PR #32 ok
 ```
 
-`^2` and `~3` are commits ahead and changed files, `stash:1` is one stash entry, and `wt:review`
-says the checkout is the linked worktree `review`. `PR#32 ok` is the branch's open pull request
+`~3` and `^2` are changed files and commits ahead, `stash:1` is one stash entry, and `wt:review`
+says the checkout is the linked worktree `review`. `PR #32 ok` is the branch's open pull request
 with every check passed; `x` means one failed and `..` that some are still running. The pull
 request part needs the `pullRequest` option and the `gh` command, signed in. Astrolabe asks `gh`
 at most once every five minutes per branch, on a timer after the turn, so a slow network never

@@ -127,11 +127,11 @@ describe('the footer like statusline (041)', () => {
     await completeTurn($ as never)
     await settleStatus(session)
     const ui = await mountPane($ as never, 'terminal', 100, 80)
-    expect(await ui.footer()).toContain('±3')
+    expect(await ui.footer()).toContain('+2 −1')
     await ui.unmount()
   })
 
-  test('041 #5: a chip that just changed draws a shade lighter, then settles', async ($, on) => {
+  test('068 #49: a usage chip that changed never brightens', async ($, on) => {
     const session = await setup($ as never, on as never)
     const ui = await mountPane($ as never, 'terminal', 100, 80)
     const contextChip = () => ui.find({ type: 'Text', text: /6[15]%/ })
@@ -143,9 +143,6 @@ describe('the footer like statusline (041)', () => {
       rateLimits: [{ kind: 'five_hour', percentUsed: 42, resetsAt: new Date(NOW + 2 * 3600_000 + 1000).toISOString() }],
       changed: ['rateLimits', 'context', 'cost'],
     } as never)
-    await session.clock.settle()
-    expect((await contextChip())?.props['backgroundColor']).toBe('#fbe9c3')
-    await session.clock.advance(6000)
     await session.clock.settle()
     expect((await contextChip())?.props['backgroundColor']).toBe('#f9e2af')
     await ui.unmount()

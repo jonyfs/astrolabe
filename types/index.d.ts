@@ -229,10 +229,18 @@ export type GitState = {
   worktree?: string
   /** The branch's open pull request and its checks (023), from `gh`, opt-in. */
   pr?: PullRequest
+  /** The upstream branch, when there is one: ahead and behind only mean something then (068 #41). */
+  upstream?: string
+  /** The short commit id of a detached HEAD, which has no branch page (068 #41). */
+  detached?: string
+  /** The main worktree's branch, when this checkout is a linked worktree (068 #41). */
+  origin?: string
+  /** The last CI run for the current branch, from `gh run list` (068 #41). */
+  ci?: 'pass' | 'fail' | 'pending'
 }
 
 /** A pull request and the state of its checks: all passed, one failed, some still running, or none. */
-export type PullRequest = { number: number; checks: 'pass' | 'fail' | 'pending' | 'none'; url?: string }
+export type PullRequest = { number: number; checks: 'pass' | 'fail' | 'pending' | 'none'; url?: string; /** Draft, and its labels (068 #41). */ draft?: boolean; labels?: string[] }
 
 /** The session's numbers for the footer and the Dashboard (018); bounded, written per turn. */
 export type SessionStats = {
@@ -275,7 +283,7 @@ export type SessionStats = {
   /** Subagent runs this session (046 #58): each with its feature, duration and when it started. */
   subagentRuns?: Array<{ dir: string; id: string; ms: number; at: number }>
   /** The last `gh pr view` for a branch (023): when it ran and what it found, kept five minutes. */
-  prCache?: { branch: string; at: number; pr?: PullRequest }
+  prCache?: { branch: string; at: number; pr?: PullRequest; ci?: GitState['ci'] }
   /** The repository's open pull requests for the PRs tab (032), and when they were read. */
   pulls?: {
     at: number
@@ -326,6 +334,16 @@ export type SessionStats = {
   planMissing?: Record<string, string[]>
   /** Until when the step chip of the band shows brighter: a phase finished under the compact preset (065 #18). */
   phaseBrightUntil?: number
+  /** The folder the session started in and the one it works in now (068 #41). */
+  dirs?: { start: string; cwd: string }
+  /** Skills invoked in this session, in order of first use (068 #45). */
+  skills?: string[]
+  /** The todo list's title and progress, from the last TodoWrite call (068 #46). */
+  todo?: { title: string; done: number; total: number }
+  /** The prompt cache, from the last main-thread response's usage (068 #42). */
+  cache?: { at: number; tokens: number; ttlMs: number; reason?: string }
+  /** Fast mode is on (068 #47). */
+  fast?: boolean
   /** gstack's skills are installed under the home directory (051). */
   gstack?: boolean
   /** The features the repository's other worktrees work on (037), read after each main turn. */

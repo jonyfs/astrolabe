@@ -32,7 +32,7 @@ export const paneTree = (
     /** The rule above the chips (041 #8): solid, thin or none. */
     separator?: 'solid' | 'thin' | 'none'
     /** The chips in rows: one row, or statusline's three lines (041 #1). */
-    chips?: ReadonlyArray<ReadonlyArray<{ key: string; text: string; bg: string; fg: string; full?: string; links?: ReadonlyArray<{ text: string; href: string }> }>>
+    chips?: ReadonlyArray<ReadonlyArray<{ key: string; text: string; bg: string; fg: string; full?: string; /** One sentence for the hover row under the chips (068 #50). */ explain?: string; links?: ReadonlyArray<{ text: string; href: string }> }>>
     arrow?: string
   },
   /** What is above and below the rows shown, with the presses that scroll (038). */
@@ -258,7 +258,7 @@ export const paneTree = (
                     const before = chip.text.slice(cursor, at)
                     cursor = at + link.text.length
                     return [
-                      ...(before === '' ? [] : [<Text key={`chip-${chip.key}-before-${linkIndex}`} color={chip.fg} backgroundColor={chip.bg} bold>{`${linkIndex === 0 ? ' ' : ''}${before}`}</Text>]),
+                      ...(before === '' ? [] : [<Text key={`chip-${chip.key}-before-${linkIndex}`} color={chip.fg} backgroundColor={chip.bg} bold {...(chip.explain === undefined ? {} : { hover: { scope: `astrolabe-chip-${chip.key}`, underline: true } })}>{`${linkIndex === 0 ? ' ' : ''}${before}`}</Text>]),
                       ...chipLink(`chip-${chip.key}-link-${linkIndex}`, link.href, link.text),
                     ]
                   })
@@ -266,7 +266,7 @@ export const paneTree = (
                   return [
                     ...(linked.length === 0
                       ? [
-                          <Text key={`chip-${chip.key}`} color={chip.fg} backgroundColor={chip.bg} bold {...(chip.full === undefined ? {} : { hover: { scope: `astrolabe-chip-${chip.key}`, underline: true } })}>{` ${chip.text} `}</Text>,
+                          <Text key={`chip-${chip.key}`} color={chip.fg} backgroundColor={chip.bg} bold {...(chip.full === undefined && chip.explain === undefined ? {} : { hover: { scope: `astrolabe-chip-${chip.key}`, underline: true } })}>{` ${chip.text} `}</Text>,
                           // A chip cut to fit shows its whole text above the row on hover (052 #45).
                           ...(chip.full === undefined
                             ? []
@@ -276,7 +276,7 @@ export const paneTree = (
                                 </Box>,
                               ]),
                         ]
-                      : [...linked, ...(after === '' ? [] : [<Text key={`chip-${chip.key}-after`} color={chip.fg} backgroundColor={chip.bg} bold>{`${after} `}</Text>])]),
+                      : [...linked, ...(after === '' ? [] : [<Text key={`chip-${chip.key}-after`} color={chip.fg} backgroundColor={chip.bg} bold {...(chip.explain === undefined ? {} : { hover: { scope: `astrolabe-chip-${chip.key}`, underline: true } })}>{`${after} `}</Text>])]),
                     ...(arrow === ''
                       ? next === undefined ? [] : [<Text> </Text>]
                       : [next === undefined ? <Text color={chip.bg}>{arrow}</Text> : <Text color={chip.bg} backgroundColor={next.bg}>{arrow}</Text>]),
@@ -285,6 +285,12 @@ export const paneTree = (
               </Box>
             ))
           )}
+          {/* One sentence for the chip under the pointer (068 #50), hidden until a chip is hovered. */}
+          {(footer.chips ?? []).flatMap(row => row).filter(chip => chip.explain !== undefined).map(chip => (
+            <Box key={`chip-${chip.key}-explain`} display="none" hover={{ scope: `astrolabe-chip-${chip.key}`, display: 'flex' }}>
+              <Text color={tokens.faint} wrap="truncate-end">{`↳ ${chip.explain}`}</Text>
+            </Box>
+          ))}
         </Box>
       </Box>
     )}

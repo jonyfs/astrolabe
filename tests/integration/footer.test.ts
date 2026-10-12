@@ -61,7 +61,7 @@ describe('the footer (018 US1)', () => {
     const text = session.last() ?? ''
     expect(text.startsWith('◆ 002 · implement 45% │ 5h 42%')).toBe(true)
     expect(text).toContain('ctx 61%')
-    expect(text).toContain('opus 5.5 high')
+    expect(text).toContain('opus 5.5 · high')
     expect(text).not.toContain('haiku')
     expect(text).not.toContain('$1.20')
   })
@@ -72,7 +72,7 @@ describe('the footer (018 US1)', () => {
     await completeTurn($)
     await settleStatus(session)
     expect(session.processes.filter(p => p === GIT).length).toBe(1)
-    expect(session.last()).toContain('git:main ^2 ~2')
+    expect(session.last()).toContain('git:main │ ~2 ^2')
     await completeTurn($)
     expect(session.processes.filter(p => p === GIT).length).toBe(1)
   })
@@ -122,6 +122,6 @@ describe('icons by surface (018 US2)', () => {
   test('ascii wins everywhere when chosen', { options: { footerIn: 'status', icons: 'ascii' } }, async ($, on) => {
     const session = await start($ as never, on as never, 'desktop')
     expect(session.last()).toContain('ctx 61%')
-    expect(/^[\x20-\x7e◆·│]*$/.test(session.last() ?? '')).toBe(true)
+    expect(session.last() ?? '').toMatch(/^[\x20-\x7e◆·│]*$/)
   })
 })
