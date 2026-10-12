@@ -6,7 +6,10 @@ tags `vX.Y.Z` equal to `plugin.json`'s `version`.
 
 ## [Unreleased]
 
-## [0.124.0] - 2026-10-12
+## [0.134.0] - 2026-10-12
+
+The release line continues above the tag v0.133.0 already on the remote, so this release is
+0.134.0 and carries everything of 0.122.0 to 0.124.0 below.
 
 ### Added
 
@@ -19,7 +22,7 @@ tags `vX.Y.Z` equal to `plugin.json`'s `version`.
 - Spec 054 T048 (#48): the footer chips read their order and colour from one table, which the Help
   tab prints.
 - The footer of the mod carries the advisor (`adv N`, the runs this session) and Astrolabe's own
-  version (`astrolabe 0.124.0`, the first chip a narrow footer drops), so a separate statusline is
+  version (`astrolabe 0.134.0`, the first chip a narrow footer drops), so a separate statusline is
   not needed for them.
 
 ### Fixed
