@@ -95,6 +95,7 @@ export const EN = {
   'summary.ready': '🧭 {feature} is done: its summary is in the Session tab of /astrolabe',
   'session.block.project': 'Project',
   'session.block.governor': 'Governor',
+  'session.block.live': 'Live',
   'session.block.activity': 'Activity',
   'session.block.updates': 'Updates',
   'session.toastDetails': 'toast details',
@@ -437,6 +438,15 @@ export const EN = {
   'chip.explain.repo': 'The repository this folder belongs to.',
   'chip.explain.help': 'Where the commands are: /astrolabe help.',
   'chip.explain.astrolabe': 'The Astrolabe version installed.',
+  'live.waiting': 'waiting for gates.lock',
+  'live.running': 'running',
+  'live.cache.reuse': 'the next message reuses it',
+  'live.cache.rewrite': 'the next message rewrites it',
+  'live.rule.throttle': 'new subagents queued',
+  'live.rule.hold': 'new subagents wait',
+  'live.rule.stop': 'work paused',
+  'live.rule.ceiling': 'ceiling reached',
+  'toast.gateFailed': '🧭 A git gate failed: the commit or push did not go through',
 } as const
 
 export type TextKey = keyof typeof EN

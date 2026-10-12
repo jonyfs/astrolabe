@@ -86,8 +86,8 @@ Constraints that hold for every task: colours only from `theme.ts` (IX), nothing
 
 - [x] T041 #41 Footer line 1 git parity (P1) → 068
 - [x] T042 #42 Prompt cache chip (P1) → 068
-- [ ] T043 #43 One live table for agents, gates, cache and limits (P1) → 069
-- [ ] T044 #44 Git gate rows from the process list on `$.clock` (P2) → 069
+- [x] T043 #43 One live table for agents, gates, cache and limits (P1) → 069
+- [x] T044 #44 Git gate rows from the process list on `$.clock` (P2) → 069
 - [x] T045 #45 Skills as one chip (P2) → 068
 - [x] T046 #46 Todo progress on line 2 (P2) → 068
 - [x] T047 #47 Spend limit and `fast` on line 3 (P2) → 068

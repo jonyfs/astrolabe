@@ -12,6 +12,7 @@ const ALLOWED: Readonly<Record<string, string>> = {
   [join('hooks', 'core', 'pixels.ts')]: 'the projected-trend line of the usage picture (a graphic)',
   [join('hooks', 'core', 'band.ts')]: 'the ○ mark of a step not reached (a glyph)',
   [join('hooks', 'surfaces', 'pane.tsx')]: 'the rule above the pinned footer',
+  [join('hooks', 'surfaces', 'live-table.tsx')]: 'the rule between kinds of live rows',
 }
 const USE = /\btokens0?\.pending\b|\.tokens\.pending\b|role: 'pending'|'○': 'pending'/
 

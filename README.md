@@ -344,6 +344,52 @@ The band shows nothing of its own when the project has no Spec Kit, when no feat
 (the prompt hint then names the command to run), or while a survey uses the band. Whatever
 other mods draw there stays.
 
+## What the live table shows
+
+One table sits above the prompt, under the band, for everything that is running or about to bite: subagents, git gates, the prompt cache and the usage limits. It draws nothing when nothing is live.
+
+```text
+  WHO        WHERE   WHAT                         NOW     LEVEL           SIZE TIME
+◇ opus       Explore Review the spec              reading ▰▰▰▱▱▱▱▱▱ 33%    12k 4m12s
+◇ sonnet     Plan    Write the tests                                            40s
+─
+⛭ pre-commit *       gates.sh › review.test.sh    running                       14s
+─
+◌ cache      5m      the next message rewrites it cold    ▱▱▱▱▱▱▱▱▱ 0%   182k
+─
+◔ 7d                 new subagents wait           hold    ▰▰▰▰▰▰▰▱▱ 81%▴       Wed 12:00
+```
+
+Rows group as agents, gates, cache, limits, three of each at most and then `+N`; the Session tab
+lists every live row. A cell a kind has nothing for stays blank, never `0`. A column keeps the
+width it first needed for the rest of the session, so rows do not jump.
+
+| Kind | WHO | WHERE | WHAT | NOW | LEVEL | SIZE | TIME |
+|---|---|---|---|---|---|---|---|
+| `◇` agent | opus, sonnet, haiku | agent type, blank when two share it | the brief | the step, when the engine reports one | context gauge | tokens | age |
+| `⛭` gate | the hook, or `gate` | worktree, `*` for yours | chain of programs | `running`, or `waiting for gates.lock` in yellow | blank | blank | age |
+| `◌` cache | `cache` | 5m or 1h | what the next message does | `warm` or `cold` | time left | tokens to rewrite | expires in |
+| `◔` limit | 5h, 7d | blank | the governor rule in words | `cap`, `hold` or `pause` | usage gauge with the ramp marks | blank | reset |
+
+The cache row shows in the last two minutes of a five-minute cache (ten for an hour) and once it
+is cold. A limit row shows from 60%.
+
+**Gates.** Astrolabe reads the process list, at most every 15 seconds, while a command that may
+run a git hook (`git commit`, `git push`, merge, rebase, cherry-pick) or a gate script is running,
+and for as long as a gate is seen. A hook shows as one row whose chain holds the scripts it ran.
+A script is a gate when its name starts with `gate` or `gates` and `-`, `_` or `.`, or when it sits
+in a `gates/` folder, or when it matches `gates.patterns` of the project's `.statusline.json`.
+A pid named in `gates.lock` at the repository root or in `.git/` reads as waiting. One toast
+appears when a `git commit` or `git push` fails within a minute of a gate being seen. A hook that
+a terminal outside Claude Code starts is not seen.
+
+**Narrow widths.** The table drops SIZE, then TIME, then NOW, then WHERE; WHO, WHAT and LEVEL stay.
+On a short window the gate rows go first, then the agent rows, before any footer line; the band
+keeps the counts.
+
+The `liveRows` option picks `agents`, `gates`, `both` (default) or `off`. It covers the agent and
+gate rows; the cache and limit rows follow their own rules above.
+
 ## What the spinner says
 
 While a turn works on the active feature, the spinner line names the task in progress and how
@@ -522,6 +568,7 @@ one reloads the mod right away.
 | `skillModels` | `off`, `auto` | `off` | `auto` sends each Spec Kit and gstack skill's requests with the model and effort it does best with, as the Help tab lists them (Opus for specify, clarify, plan, analyze and review; Sonnet for tasks, implement and ship; Haiku for quick reports). Switching models re-reads the context, so on a long session it costs more. |
 | `accessible` | `true`, `false` | `false` | Text only, for screen readers and plain terminals: ASCII icons, charts as text, no hover styles on the band, no animated dial and no pictures. |
 | `bandDensity` | `full`, `compact`, `minimal` | `full` | How much the band shows: the rail with step names when there is room, the current step and the count, or the id and the step. |
+| `liveRows` | `agents`, `gates`, `both`, `off` | `both` | Which rows the live table above the prompt shows besides the cache and the limits: running subagents, git gates, both or neither. |
 | `footerIn` | `pane`, `status`, `both` | `pane` | Where the footer goes: the bottom of the `/astrolabe` pane (the status entry keeps the Spec Kit part and the deciding window), the status entry, or both. |
 | `footerLines` | `1`, `3` | `1` | How the pane's footer draws its chips: one row, or three in statusline's order (place and git, then the Spec Kit work and the skill, then the model and the limits). |
 | `footerSeparator` | `solid`, `thin`, `none` | `solid` | The rule above the pane's footer: a solid line, a thin one, or none. |

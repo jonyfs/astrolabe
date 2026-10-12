@@ -7,20 +7,19 @@ import { GOLDEN } from './snapshots.golden'
 
 // 064 SC-001: band, status entry, footer and pane text in five flavors at four widths,
 // each as text plus the flavor's colour. A deliberate change regenerates the golden file with
-// `npx tsx scripts/update-snapshots.ts`; the diff is the review. The live table (spec 069)
-// joins this list when it exists.
+// `npx tsx scripts/update-snapshots.ts`; the diff is the review.
 describe('surface snapshots in every flavor and width (064)', () => {
   const now = allSurfaces()
 
-  test('the golden file covers 5 flavors x 4 widths x 4 surfaces', () => {
-    expect(Object.keys(GOLDEN).length).toBe(FLAVOR_NAMES.length * WIDTHS.length * 4)
+  test('the golden file covers 5 flavors x 4 widths x 5 surfaces', () => {
+    expect(Object.keys(GOLDEN).length).toBe(FLAVOR_NAMES.length * WIDTHS.length * 5)
     expect(Object.keys(now).sort()).toEqual(Object.keys(GOLDEN).sort())
   })
 
   for (const flavor of FLAVOR_NAMES) {
     for (const columns of WIDTHS) {
       test(`${flavor} at ${columns} columns matches`, () => {
-        for (const surface of ['band', 'status', 'footer', 'pane']) {
+        for (const surface of ['band', 'live', 'status', 'footer', 'pane']) {
           const key = `${flavor}/${columns}/${surface}`
           expect({ key, rows: now[key] }).toEqual({ key, rows: GOLDEN[key] })
         }

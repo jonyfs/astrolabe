@@ -14,6 +14,17 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     " |#a6adc8",
     "▸ T010|#fab387"
   ],
+  "mocha/80/live": [
+    "WHO        WHERE   WHAT                         LEVEL         |#9399b2",
+    "opus       Explore Review the spec              ▰▰▰▱▱▱▱▱▱ 33% |#a6e3a1",
+    "sonnet     Plan    Write the tests                            |#cba6f7",
+    "─|#6c7086",
+    "pre-commit *       gates.sh › review.test.sh                  |#fab387",
+    "─|#6c7086",
+    "cache      5m      the next message rewrites it ▱▱▱▱▱▱▱▱▱ 0%  |#f38ba8",
+    "─|#6c7086",
+    "7d                 new subagents wait           ▰▰▰▰▰▰▰▱▱ 81%▴|#f38ba8"
+  ],
   "mocha/80/status": [
     "◆ 002 · implement 45%"
   ],
@@ -60,6 +71,17 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     "│|#6c7086",
     " |#a6adc8",
     "▸ T010|#fab387"
+  ],
+  "mocha/100/live": [
+    "WHO        WHERE   WHAT                         NOW     LEVEL         |#9399b2",
+    "opus       Explore Review the spec              reading ▰▰▰▱▱▱▱▱▱ 33% |#a6e3a1",
+    "sonnet     Plan    Write the tests                                    |#cba6f7",
+    "─|#6c7086",
+    "pre-commit *       gates.sh › review.test.sh    running               |#fab387",
+    "─|#6c7086",
+    "cache      5m      the next message rewrites it cold    ▱▱▱▱▱▱▱▱▱ 0%  |#f38ba8",
+    "─|#6c7086",
+    "7d                 new subagents wait           hold    ▰▰▰▰▰▰▰▱▱ 81%▴|#f38ba8"
   ],
   "mocha/100/status": [
     "◆ 002 · implement 45%"
@@ -122,6 +144,17 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     " |#a6adc8",
     "▸ T010|#fab387",
     " Show an empty-cart message|#a6adc8"
+  ],
+  "mocha/144/live": [
+    "WHO        WHERE   WHAT                         NOW     LEVEL          SIZE      TIME|#9399b2",
+    "opus       Explore Review the spec              reading ▰▰▰▱▱▱▱▱▱ 33%   12k     4m12s|#a6e3a1",
+    "sonnet     Plan    Write the tests                                                40s|#cba6f7",
+    "─|#6c7086",
+    "pre-commit *       gates.sh › review.test.sh    running                           14s|#fab387",
+    "─|#6c7086",
+    "cache      5m      the next message rewrites it cold    ▱▱▱▱▱▱▱▱▱ 0%   182k          |#f38ba8",
+    "─|#6c7086",
+    "7d                 new subagents wait           hold    ▰▰▰▰▰▰▰▱▱ 81%▴      Thu 09:00|#f38ba8"
   ],
   "mocha/144/status": [
     "◆ 002 · implement 45%"
@@ -188,6 +221,17 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     "▸ T010|#fab387",
     " Show an empty-cart message|#a6adc8"
   ],
+  "mocha/200/live": [
+    "WHO        WHERE   WHAT                         NOW     LEVEL          SIZE      TIME|#9399b2",
+    "opus       Explore Review the spec              reading ▰▰▰▱▱▱▱▱▱ 33%   12k     4m12s|#a6e3a1",
+    "sonnet     Plan    Write the tests                                                40s|#cba6f7",
+    "─|#6c7086",
+    "pre-commit *       gates.sh › review.test.sh    running                           14s|#fab387",
+    "─|#6c7086",
+    "cache      5m      the next message rewrites it cold    ▱▱▱▱▱▱▱▱▱ 0%   182k          |#f38ba8",
+    "─|#6c7086",
+    "7d                 new subagents wait           hold    ▰▰▰▰▰▰▰▱▱ 81%▴      Thu 09:00|#f38ba8"
+  ],
   "mocha/200/status": [
     "◆ 002 · implement 45%"
   ],
@@ -231,6 +275,17 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     "│|#9ca0b0",
     " |#5c5f77",
     "▸ T010|#b5470a"
+  ],
+  "latte/80/live": [
+    "WHO        WHERE   WHAT                         LEVEL         |#686b80",
+    "opus       Explore Review the spec              ▰▰▰▱▱▱▱▱▱ 33% |#2a7a1c",
+    "sonnet     Plan    Write the tests                            |#8839ef",
+    "─|#9ca0b0",
+    "pre-commit *       gates.sh › review.test.sh                  |#b5470a",
+    "─|#9ca0b0",
+    "cache      5m      the next message rewrites it ▱▱▱▱▱▱▱▱▱ 0%  |#d20f39",
+    "─|#9ca0b0",
+    "7d                 new subagents wait           ▰▰▰▰▰▰▰▱▱ 81%▴|#d20f39"
   ],
   "latte/80/status": [
     "◆ 002 · implement 45%"
@@ -278,6 +333,17 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     "│|#9ca0b0",
     " |#5c5f77",
     "▸ T010|#b5470a"
+  ],
+  "latte/100/live": [
+    "WHO        WHERE   WHAT                         NOW     LEVEL         |#686b80",
+    "opus       Explore Review the spec              reading ▰▰▰▱▱▱▱▱▱ 33% |#2a7a1c",
+    "sonnet     Plan    Write the tests                                    |#8839ef",
+    "─|#9ca0b0",
+    "pre-commit *       gates.sh › review.test.sh    running               |#b5470a",
+    "─|#9ca0b0",
+    "cache      5m      the next message rewrites it cold    ▱▱▱▱▱▱▱▱▱ 0%  |#d20f39",
+    "─|#9ca0b0",
+    "7d                 new subagents wait           hold    ▰▰▰▰▰▰▰▱▱ 81%▴|#d20f39"
   ],
   "latte/100/status": [
     "◆ 002 · implement 45%"
@@ -340,6 +406,17 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     " |#5c5f77",
     "▸ T010|#b5470a",
     " Show an empty-cart message|#5c5f77"
+  ],
+  "latte/144/live": [
+    "WHO        WHERE   WHAT                         NOW     LEVEL          SIZE      TIME|#686b80",
+    "opus       Explore Review the spec              reading ▰▰▰▱▱▱▱▱▱ 33%   12k     4m12s|#2a7a1c",
+    "sonnet     Plan    Write the tests                                                40s|#8839ef",
+    "─|#9ca0b0",
+    "pre-commit *       gates.sh › review.test.sh    running                           14s|#b5470a",
+    "─|#9ca0b0",
+    "cache      5m      the next message rewrites it cold    ▱▱▱▱▱▱▱▱▱ 0%   182k          |#d20f39",
+    "─|#9ca0b0",
+    "7d                 new subagents wait           hold    ▰▰▰▰▰▰▰▱▱ 81%▴      Thu 09:00|#d20f39"
   ],
   "latte/144/status": [
     "◆ 002 · implement 45%"
@@ -406,6 +483,17 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     "▸ T010|#b5470a",
     " Show an empty-cart message|#5c5f77"
   ],
+  "latte/200/live": [
+    "WHO        WHERE   WHAT                         NOW     LEVEL          SIZE      TIME|#686b80",
+    "opus       Explore Review the spec              reading ▰▰▰▱▱▱▱▱▱ 33%   12k     4m12s|#2a7a1c",
+    "sonnet     Plan    Write the tests                                                40s|#8839ef",
+    "─|#9ca0b0",
+    "pre-commit *       gates.sh › review.test.sh    running                           14s|#b5470a",
+    "─|#9ca0b0",
+    "cache      5m      the next message rewrites it cold    ▱▱▱▱▱▱▱▱▱ 0%   182k          |#d20f39",
+    "─|#9ca0b0",
+    "7d                 new subagents wait           hold    ▰▰▰▰▰▰▰▱▱ 81%▴      Thu 09:00|#d20f39"
+  ],
   "latte/200/status": [
     "◆ 002 · implement 45%"
   ],
@@ -449,6 +537,17 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     "│|#737994",
     " |#a5adce",
     "▸ T010|#ef9f76"
+  ],
+  "frappe/80/live": [
+    "WHO        WHERE   WHAT                         LEVEL         |#949cbb",
+    "opus       Explore Review the spec              ▰▰▰▱▱▱▱▱▱ 33% |#a6d189",
+    "sonnet     Plan    Write the tests                            |#ca9ee6",
+    "─|#737994",
+    "pre-commit *       gates.sh › review.test.sh                  |#ef9f76",
+    "─|#737994",
+    "cache      5m      the next message rewrites it ▱▱▱▱▱▱▱▱▱ 0%  |#e78284",
+    "─|#737994",
+    "7d                 new subagents wait           ▰▰▰▰▰▰▰▱▱ 81%▴|#e78284"
   ],
   "frappe/80/status": [
     "◆ 002 · implement 45%"
@@ -496,6 +595,17 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     "│|#737994",
     " |#a5adce",
     "▸ T010|#ef9f76"
+  ],
+  "frappe/100/live": [
+    "WHO        WHERE   WHAT                         NOW     LEVEL         |#949cbb",
+    "opus       Explore Review the spec              reading ▰▰▰▱▱▱▱▱▱ 33% |#a6d189",
+    "sonnet     Plan    Write the tests                                    |#ca9ee6",
+    "─|#737994",
+    "pre-commit *       gates.sh › review.test.sh    running               |#ef9f76",
+    "─|#737994",
+    "cache      5m      the next message rewrites it cold    ▱▱▱▱▱▱▱▱▱ 0%  |#e78284",
+    "─|#737994",
+    "7d                 new subagents wait           hold    ▰▰▰▰▰▰▰▱▱ 81%▴|#e78284"
   ],
   "frappe/100/status": [
     "◆ 002 · implement 45%"
@@ -558,6 +668,17 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     " |#a5adce",
     "▸ T010|#ef9f76",
     " Show an empty-cart message|#a5adce"
+  ],
+  "frappe/144/live": [
+    "WHO        WHERE   WHAT                         NOW     LEVEL          SIZE      TIME|#949cbb",
+    "opus       Explore Review the spec              reading ▰▰▰▱▱▱▱▱▱ 33%   12k     4m12s|#a6d189",
+    "sonnet     Plan    Write the tests                                                40s|#ca9ee6",
+    "─|#737994",
+    "pre-commit *       gates.sh › review.test.sh    running                           14s|#ef9f76",
+    "─|#737994",
+    "cache      5m      the next message rewrites it cold    ▱▱▱▱▱▱▱▱▱ 0%   182k          |#e78284",
+    "─|#737994",
+    "7d                 new subagents wait           hold    ▰▰▰▰▰▰▰▱▱ 81%▴      Thu 09:00|#e78284"
   ],
   "frappe/144/status": [
     "◆ 002 · implement 45%"
@@ -624,6 +745,17 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     "▸ T010|#ef9f76",
     " Show an empty-cart message|#a5adce"
   ],
+  "frappe/200/live": [
+    "WHO        WHERE   WHAT                         NOW     LEVEL          SIZE      TIME|#949cbb",
+    "opus       Explore Review the spec              reading ▰▰▰▱▱▱▱▱▱ 33%   12k     4m12s|#a6d189",
+    "sonnet     Plan    Write the tests                                                40s|#ca9ee6",
+    "─|#737994",
+    "pre-commit *       gates.sh › review.test.sh    running                           14s|#ef9f76",
+    "─|#737994",
+    "cache      5m      the next message rewrites it cold    ▱▱▱▱▱▱▱▱▱ 0%   182k          |#e78284",
+    "─|#737994",
+    "7d                 new subagents wait           hold    ▰▰▰▰▰▰▰▱▱ 81%▴      Thu 09:00|#e78284"
+  ],
   "frappe/200/status": [
     "◆ 002 · implement 45%"
   ],
@@ -667,6 +799,17 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     "│|#6e738d",
     " |#a5adcb",
     "▸ T010|#f5a97f"
+  ],
+  "macchiato/80/live": [
+    "WHO        WHERE   WHAT                         LEVEL         |#939ab7",
+    "opus       Explore Review the spec              ▰▰▰▱▱▱▱▱▱ 33% |#a6da95",
+    "sonnet     Plan    Write the tests                            |#c6a0f6",
+    "─|#6e738d",
+    "pre-commit *       gates.sh › review.test.sh                  |#f5a97f",
+    "─|#6e738d",
+    "cache      5m      the next message rewrites it ▱▱▱▱▱▱▱▱▱ 0%  |#ed8796",
+    "─|#6e738d",
+    "7d                 new subagents wait           ▰▰▰▰▰▰▰▱▱ 81%▴|#ed8796"
   ],
   "macchiato/80/status": [
     "◆ 002 · implement 45%"
@@ -714,6 +857,17 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     "│|#6e738d",
     " |#a5adcb",
     "▸ T010|#f5a97f"
+  ],
+  "macchiato/100/live": [
+    "WHO        WHERE   WHAT                         NOW     LEVEL         |#939ab7",
+    "opus       Explore Review the spec              reading ▰▰▰▱▱▱▱▱▱ 33% |#a6da95",
+    "sonnet     Plan    Write the tests                                    |#c6a0f6",
+    "─|#6e738d",
+    "pre-commit *       gates.sh › review.test.sh    running               |#f5a97f",
+    "─|#6e738d",
+    "cache      5m      the next message rewrites it cold    ▱▱▱▱▱▱▱▱▱ 0%  |#ed8796",
+    "─|#6e738d",
+    "7d                 new subagents wait           hold    ▰▰▰▰▰▰▰▱▱ 81%▴|#ed8796"
   ],
   "macchiato/100/status": [
     "◆ 002 · implement 45%"
@@ -776,6 +930,17 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     " |#a5adcb",
     "▸ T010|#f5a97f",
     " Show an empty-cart message|#a5adcb"
+  ],
+  "macchiato/144/live": [
+    "WHO        WHERE   WHAT                         NOW     LEVEL          SIZE      TIME|#939ab7",
+    "opus       Explore Review the spec              reading ▰▰▰▱▱▱▱▱▱ 33%   12k     4m12s|#a6da95",
+    "sonnet     Plan    Write the tests                                                40s|#c6a0f6",
+    "─|#6e738d",
+    "pre-commit *       gates.sh › review.test.sh    running                           14s|#f5a97f",
+    "─|#6e738d",
+    "cache      5m      the next message rewrites it cold    ▱▱▱▱▱▱▱▱▱ 0%   182k          |#ed8796",
+    "─|#6e738d",
+    "7d                 new subagents wait           hold    ▰▰▰▰▰▰▰▱▱ 81%▴      Thu 09:00|#ed8796"
   ],
   "macchiato/144/status": [
     "◆ 002 · implement 45%"
@@ -842,6 +1007,17 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     "▸ T010|#f5a97f",
     " Show an empty-cart message|#a5adcb"
   ],
+  "macchiato/200/live": [
+    "WHO        WHERE   WHAT                         NOW     LEVEL          SIZE      TIME|#939ab7",
+    "opus       Explore Review the spec              reading ▰▰▰▱▱▱▱▱▱ 33%   12k     4m12s|#a6da95",
+    "sonnet     Plan    Write the tests                                                40s|#c6a0f6",
+    "─|#6e738d",
+    "pre-commit *       gates.sh › review.test.sh    running                           14s|#f5a97f",
+    "─|#6e738d",
+    "cache      5m      the next message rewrites it cold    ▱▱▱▱▱▱▱▱▱ 0%   182k          |#ed8796",
+    "─|#6e738d",
+    "7d                 new subagents wait           hold    ▰▰▰▰▰▰▰▱▱ 81%▴      Thu 09:00|#ed8796"
+  ],
   "macchiato/200/status": [
     "◆ 002 · implement 45%"
   ],
@@ -885,6 +1061,17 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     "│|#aebdca",
     " |#bdbdbd",
     "▸ T010|#ffd166"
+  ],
+  "colorblind/80/live": [
+    "WHO        WHERE   WHAT                         LEVEL         |#9a9a9a",
+    "opus       Explore Review the spec              ▰▰▰▱▱▱▱▱▱ 33% |#6bd3a8",
+    "sonnet     Plan    Write the tests                            |#d4a6e8",
+    "─|#aebdca",
+    "pre-commit *       gates.sh › review.test.sh                  |#ffd166",
+    "─|#aebdca",
+    "cache      5m      the next message rewrites it ▱▱▱▱▱▱▱▱▱ 0%  |#ff8a75",
+    "─|#aebdca",
+    "7d                 new subagents wait           ▰▰▰▰▰▰▰▱▱ 81%▴|#ff8a75"
   ],
   "colorblind/80/status": [
     "◆ 002 · implement 45%"
@@ -932,6 +1119,17 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     "│|#aebdca",
     " |#bdbdbd",
     "▸ T010|#ffd166"
+  ],
+  "colorblind/100/live": [
+    "WHO        WHERE   WHAT                         NOW     LEVEL         |#9a9a9a",
+    "opus       Explore Review the spec              reading ▰▰▰▱▱▱▱▱▱ 33% |#6bd3a8",
+    "sonnet     Plan    Write the tests                                    |#d4a6e8",
+    "─|#aebdca",
+    "pre-commit *       gates.sh › review.test.sh    running               |#ffd166",
+    "─|#aebdca",
+    "cache      5m      the next message rewrites it cold    ▱▱▱▱▱▱▱▱▱ 0%  |#ff8a75",
+    "─|#aebdca",
+    "7d                 new subagents wait           hold    ▰▰▰▰▰▰▰▱▱ 81%▴|#ff8a75"
   ],
   "colorblind/100/status": [
     "◆ 002 · implement 45%"
@@ -994,6 +1192,17 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     " |#bdbdbd",
     "▸ T010|#ffd166",
     " Show an empty-cart message|#bdbdbd"
+  ],
+  "colorblind/144/live": [
+    "WHO        WHERE   WHAT                         NOW     LEVEL          SIZE      TIME|#9a9a9a",
+    "opus       Explore Review the spec              reading ▰▰▰▱▱▱▱▱▱ 33%   12k     4m12s|#6bd3a8",
+    "sonnet     Plan    Write the tests                                                40s|#d4a6e8",
+    "─|#aebdca",
+    "pre-commit *       gates.sh › review.test.sh    running                           14s|#ffd166",
+    "─|#aebdca",
+    "cache      5m      the next message rewrites it cold    ▱▱▱▱▱▱▱▱▱ 0%   182k          |#ff8a75",
+    "─|#aebdca",
+    "7d                 new subagents wait           hold    ▰▰▰▰▰▰▰▱▱ 81%▴      Thu 09:00|#ff8a75"
   ],
   "colorblind/144/status": [
     "◆ 002 · implement 45%"
@@ -1059,6 +1268,17 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     " |#bdbdbd",
     "▸ T010|#ffd166",
     " Show an empty-cart message|#bdbdbd"
+  ],
+  "colorblind/200/live": [
+    "WHO        WHERE   WHAT                         NOW     LEVEL          SIZE      TIME|#9a9a9a",
+    "opus       Explore Review the spec              reading ▰▰▰▱▱▱▱▱▱ 33%   12k     4m12s|#6bd3a8",
+    "sonnet     Plan    Write the tests                                                40s|#d4a6e8",
+    "─|#aebdca",
+    "pre-commit *       gates.sh › review.test.sh    running                           14s|#ffd166",
+    "─|#aebdca",
+    "cache      5m      the next message rewrites it cold    ▱▱▱▱▱▱▱▱▱ 0%   182k          |#ff8a75",
+    "─|#aebdca",
+    "7d                 new subagents wait           hold    ▰▰▰▰▰▰▰▱▱ 81%▴      Thu 09:00|#ff8a75"
   ],
   "colorblind/200/status": [
     "◆ 002 · implement 45%"

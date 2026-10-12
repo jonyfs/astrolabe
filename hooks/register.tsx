@@ -54,6 +54,8 @@ import { dashboardSections, dashboardTree } from './surfaces/dashboard'
 import { burnRate, dial, kpiChips, kpisMarkdown, phaseBars, sparkline, usageChart, kpiRows, trendRows } from './core/dashboard'
 import { addDay, addWeek, dayKey, lastWeeks, pastReset, slowest, updateFeatureDurations, weekKey, weekdays, type Days, type FeatureDuration, type Weeks } from './core/history'
 import { footerChipLines, footerChips, footerText, linesChanged, type FooterInput } from './core/footer'
+import { detectGates, layoutLive, liveRows, parseProcesses, type LiveColumn, type LiveRowsOption } from './core/live-table'
+import { liveTable } from './surfaces/live-table'
 import { branchWebUrl, parseCiRun, parseGitStatus, parsePullRequest, plainText, remoteWebUrl } from './core/git-status'
 import { iconSet, iconsFor } from './core/icons'
 import { guessLang, langOf, paneLabelWidth, t, type Lang, type TextKey } from './core/i18n'
@@ -268,6 +270,17 @@ async function footerInput(
       thresholds: governThresholds,
   }
 }
+
+// The live table (069): which rows it draws, the widths its columns have needed, the gate scan.
+let liveRowsOption: LiveRowsOption = 'both'
+let liveReservation: Partial<Record<LiveColumn, number>> = {}
+let gateScanTimer: ReturnType<EngineInterface['clock']['after']> | undefined
+const GATE_SCAN_MS = 15_000
+// The last time a gate was seen, for the failed-gate toast (069 #44).
+let gateSeenAt: number | undefined
+let agentCounter = 0
+// Commands that may run a gate, running now.
+let gateCommands = 0
 
 // Where the footer goes (035): the pane (the status entry keeps the lead), the status entry, or both.
 let footerIn: 'pane' | 'status' | 'both' = 'pane'
@@ -1660,6 +1673,18 @@ async function sessionTabRows(
       ...review.text.split('\n').map((line, i) => valueRow(`review-${i}`, '', line)),
     ]),
   ]
+  // Every live row, past the three per kind the table above the prompt keeps (069 #43).
+  const liveList = liveRows({
+    agents: stats?.liveAgents ?? [],
+    gates: stats?.liveGates ?? [],
+    cache: stats?.cache,
+    readings: usage.readings,
+    thresholds: governThresholds,
+    band,
+    now,
+    option: liveRowsOption,
+    lang,
+  }).map((r, i) => valueRow(`live-${i}`, `${r.kind}`, [r.who, r.where, r.what, r.now, r.level === undefined ? '' : `${r.level.percent}%${r.level.mark ?? ''}`, r.size, r.time].filter(part => part !== '').join(' · '), r.nowWarn === true ? 'current' : 'text'))
   // Each with a link to the new version's release notes when there is one (054 #82).
   const updateRows = updates.map(item => ((url => valueRow(`update-${item.id}`, 'update', `${updateLabel(item, confirming === item.id)} (installed ${item.installed})`, 'current', { action: { id: item.id, label: t(lang, 'updates.install'), kind: 'update' as const }, ...(url === undefined ? {} : { href: url }) }))(releaseNotesUrl(item))))
   // Without Spec Kit the project rows say so on their own; no headings then.
@@ -1670,10 +1695,10 @@ async function sessionTabRows(
     thresholds: governThresholds,
     now,
   })
-  if (!state.present) return [...bars, ...project, ...governor, ...activity, ...updateRows]
+  if (!state.present) return [...bars, ...project, ...governor, ...liveList, ...activity, ...updateRows]
   const block = (key: string, rows: Array<{ key: string; text: string; role: ThemeRole; bold?: boolean }>) =>
     rows.length === 0 ? [] : [{ key: `block-${key}`, text: t(lang, `session.block.${key}` as TextKey), role: 'accent' as ThemeRole, bold: true }, ...rows]
-  return [...bars, ...block('project', project), ...block('governor', governor), ...block('activity', activity), ...block('updates', updateRows)]
+  return [...bars, ...block('project', project), ...block('governor', governor), ...block('live', liveList), ...block('activity', activity), ...block('updates', updateRows)]
 }
 
 /** Brings the Spec Kit state up to date mid-turn (053); writes only when something moved. */
@@ -1700,6 +1725,61 @@ async function refreshNow($: EngineInterface): Promise<void> {
   if (pullRequests && root !== undefined && branch !== undefined) await refreshPr($, root, branch, true)
   if (((await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE).tab === 'prs') await refreshPulls($, true)
 }
+
+/**
+ * Reads the process list and `gates.lock` for git hooks and gate scripts (069 #44), and keeps
+ * them in the session state. Runs on the mod clock; the draw path only reads the result.
+ */
+async function scanGates($: EngineInterface): Promise<void> {
+  if (liveRowsOption !== 'gates' && liveRowsOption !== 'both') return
+  const state = (await $.state.get(SPECKIT)).value
+  const root = state?.root ?? (await $.session.cwd())
+  const now = await $.clock.now()
+  const ps = await $.process.run(['ps', '-axo', 'pid=,ppid=,etime=,command='], { timeoutMs: 3000 }).catch(() => undefined)
+  const rows = ps?.exitCode === 0 ? parseProcesses(ps.stdout) : []
+  const fs = fsOf($)
+  const read = async (path: string): Promise<string | undefined> => (await fs.read(path).catch(() => undefined)) ?? undefined
+  let patterns: string[] | undefined
+  const config = await read(`${root}/.statusline.json`)
+  if (config !== undefined) {
+    try {
+      const list = (JSON.parse(config) as { gates?: { patterns?: unknown } }).gates?.patterns
+      if (Array.isArray(list)) patterns = list.filter((p): p is string => typeof p === 'string' && p !== '' && p.length < 80).slice(0, 12)
+    } catch {
+      patterns = undefined
+    }
+  }
+  const lock = (await read(`${root}/gates.lock`)) ?? (await read(`${root}/.git/gates.lock`))
+  const lockPid = lock === undefined ? undefined : Number.parseInt(lock.trim(), 10)
+  const gates = detectGates(rows, {
+    root,
+    now,
+    ...(patterns === undefined ? {} : { patterns }),
+    ...(lockPid === undefined || !Number.isFinite(lockPid) || !rows.some(r => r.pid === lockPid) ? {} : { lockPid }),
+  }).slice(0, 12)
+  if (gates.length > 0) gateSeenAt = now
+  await flushStats($, ({ liveGates: _old, ...rest }) => (gates.length === 0 ? rest : { ...rest, liveGates: gates }))
+  $.ui.invalidate('ui.render')
+}
+
+/**
+ * The gate scan (069 #44): armed while a command that may run a git hook or a gate script is
+ * running, then every 15 seconds for as long as a gate is seen. A session that runs no such
+ * command never reads the process list.
+ */
+function armGateScan($: EngineInterface, delay = GATE_SCAN_MS): void {
+  if (liveRowsOption !== 'gates' && liveRowsOption !== 'both') return
+  if (gateScanTimer !== undefined) return
+  gateScanTimer = $.clock.after(delay, async () => {
+    gateScanTimer = undefined
+    await scanGates($).catch(() => undefined)
+    const seen = ((await $.state.get(SESSION)).value?.liveGates ?? []).length > 0
+    if (gateCommands > 0 || seen) armGateScan($)
+  })
+}
+
+/** A command that may run a git hook or a gate script. */
+const mayRunGate = (command: string): boolean => /\bgit\s+(?:\S+\s+)*(?:commit|push|merge|rebase|cherry-pick|am)\b|\bgates?[-_.\/]/.test(command)
 
 /** Arms the idle poller after a turn: a refresh every ten idle minutes, at most six (058). */
 function armIdlePoll($: EngineInterface, done = 0): void {
@@ -2356,6 +2436,7 @@ export const register: Register = (on, options) => {
   iconsOption = accessible ? 'ascii' : options['icons']
   footerIn = options['footerIn'] === 'status' || options['footerIn'] === 'both' ? options['footerIn'] : 'pane'
   footerLines = options['footerLines'] === '3' ? '3' : '1'
+  liveRowsOption = options['liveRows'] === 'agents' || options['liveRows'] === 'gates' || options['liveRows'] === 'off' ? options['liveRows'] : 'both'
   footerSeparator = options['footerSeparator'] === 'thin' || options['footerSeparator'] === 'none' ? options['footerSeparator'] : 'solid'
   bandDensity = options['bandDensity'] === 'compact' || options['bandDensity'] === 'minimal' ? options['bandDensity'] : 'full'
   autoReload = options['autoReload'] !== false
@@ -2428,6 +2509,10 @@ export const register: Register = (on, options) => {
     resumeAt = undefined
     cacheWarningTimer?.cancel()
     cacheWarningTimer = undefined
+    gateScanTimer?.cancel()
+    gateScanTimer = undefined
+    liveReservation = {}
+    gateSeenAt = undefined
     idlePollTimer?.cancel()
     idlePollTimer = undefined
     implementWaived.clear()
@@ -2724,13 +2809,32 @@ export const register: Register = (on, options) => {
   // Bash and Agent change files the mod cannot see, so drift stays quiet for this window.
   on('tool.call', { tool: 'Bash' }, async ($, e, next) => {
     await guarded($, async previous => (previous === undefined ? undefined : applyShell(previous)))
-    const result = await next(e)
     const command = String((e as { command?: unknown }).command ?? '')
+    const watching = mayRunGate(command)
+    if (watching) {
+      gateCommands += 1
+      armGateScan($, 2000)
+    }
+    let result: Awaited<ReturnType<typeof next>>
+    try {
+      result = await next(e)
+    } finally {
+      if (watching) {
+        gateCommands = Math.max(0, gateCommands - 1)
+        // One last read, so a gate that ended leaves the table at once.
+        $.clock.after(0, () => void scanGates($).catch(() => undefined))
+      }
+    }
     // The command may have made a spec or switched the branch: the tabs follow now (053),
     // only for a command that can do so, so a plain `ls` costs no reads (054 #5).
     if (canTouchSpecs(command)) await syncNow($)
     else await probeNow($)
     const succeeded = (result as { isError?: boolean } | undefined)?.isError !== true
+    // A commit or push that failed within a minute of a gate being seen: one toast (069 #44).
+    if (!succeeded && gateSeenAt !== undefined && /\bgit\s+(?:-\S+\s+)*(?:commit|push)\b/.test(command) && (await $.clock.now()) - gateSeenAt < 60_000) {
+      gateSeenAt = undefined
+      await showToast($, t(currentLang(), 'toast.gateFailed'), { kind: 'warn' })
+    }
     if (succeeded && (mayChangeGit(command) || mayWriteFiles(command))) gitNeedsRefresh = true
     if (succeeded && mayChangeGit(command)) {
       const state = (await $.state.get(SPECKIT)).value
@@ -2751,7 +2855,28 @@ export const register: Register = (on, options) => {
 
   on('tool.call', { tool: 'Agent' }, async ($, e, next) => {
     await guarded($, async previous => (previous === undefined ? undefined : applyShell(previous)))
-    const result = await next(e)
+    // The run is a row of the live table from its start to its end (069 #43).
+    const input = e as unknown as { description?: string; prompt?: string; subagent_type?: string; model?: string }
+    agentCounter += 1
+    const agentId = `agent-${agentCounter}`
+    const startedAt = await $.clock.now()
+    const brief = plainText(input.description ?? input.prompt ?? 'subagent', 60)
+    await flushStats($, s => ({
+      ...s,
+      liveAgents: [
+        ...(s.liveAgents ?? []),
+        { id: agentId, brief, startedAt, ...(typeof input.subagent_type === 'string' ? { type: plainText(input.subagent_type, 24) } : {}), ...(typeof input.model === 'string' ? { model: input.model } : {}) },
+      ].slice(-12),
+    }))
+    let result: Awaited<ReturnType<typeof next>>
+    try {
+      result = await next(e)
+    } finally {
+      await flushStats($, ({ liveAgents, ...s }) => {
+        const left = (liveAgents ?? []).filter(a => a.id !== agentId)
+        return left.length === 0 ? s : { ...s, liveAgents: left }
+      })
+    }
     gitNeedsRefresh = true
     // A subagent may have written specs or tasks: the tabs follow when it returns (053).
     await syncNow($)
@@ -2901,7 +3026,26 @@ export const register: Register = (on, options) => {
       base.length > 0 && series.length >= 3 && e.props.bodyColumns >= 70 && !idle && [...bandText(base)].length + 13 + edgeWidth(edge) <= e.props.bodyColumns
         ? [...base, { key: 'spark', text: ` ${sparkline(series.slice(-12).map(p => p.percent))}`, role: 'muted' as const }]
         : base
-    if (segments.length === 0 && updates.items.length === 0) return next(e)
+    // The live table (069): agents, gates, the cache and limits, from state only.
+    const rowsLeft = Math.max(0, Math.min(10, ((e.viewport as { rows?: number } | undefined)?.rows ?? 40) - 14))
+    const liveLayout = layoutLive({
+      rows: liveRows({
+        agents: sessionStats?.liveAgents ?? [],
+        gates: sessionStats?.liveGates ?? [],
+        cache: sessionStats?.cache,
+        readings: usage.readings,
+        thresholds: governThresholds,
+        band: decision.band,
+        now,
+        option: liveRowsOption,
+        lang: currentLang(),
+      }),
+      columns: e.props.bodyColumns,
+      reservation: liveReservation,
+      maxRows: rowsLeft,
+    })
+    liveReservation = liveLayout.reservation
+    if (segments.length === 0 && updates.items.length === 0 && liveLayout.lines.length === 0) return next(e)
     const elements = $.ui.resolve(e)
     const { Box, Text, Button } = elements
     const bandElements = { Box, Text, Button, ...('Client' in elements ? { Client: elements.Client } : {}), ...('Link' in elements ? { Link: elements.Link } : {}) }
@@ -2917,6 +3061,7 @@ export const register: Register = (on, options) => {
           edge,
           idle,
         )}
+        {liveLayout.lines.length === 0 ? null : liveTable({ Box, Text }, liveLayout, tokens, e.props.bodyColumns)}
         {await next(e)}
       </Box>
     )

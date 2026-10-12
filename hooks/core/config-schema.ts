@@ -17,7 +17,7 @@ type KnownOptions = Record<
   | 'preset' | 'flavor' | 'checkUpdates' | 'governUsage' | 'governThresholds' | 'quietHours'
   | 'observeUsage' | 'icons' | 'language' | 'askOnLimit' | 'claudeContext' | 'featureSummary'
   | 'humanize' | 'terse' | 'skillModels' | 'accessible' | 'footerIn' | 'footerLines'
-  | 'footerSeparator' | 'autoReload' | 'images' | 'pullRequest' | 'bandDensity',
+  | 'footerSeparator' | 'autoReload' | 'images' | 'pullRequest' | 'bandDensity' | 'liveRows',
   ConfigOption
 >;
 
