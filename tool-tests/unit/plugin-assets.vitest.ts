@@ -184,7 +184,7 @@ describe('generateVariants', () => {
       height: 128,
       format: 'png',
     });
-    expect(v!.outputPath).toContain('docs/assets/marketplace/vscode/icon');
+    expect(v!.outputPath.replaceAll('\\', '/')).toContain('docs/assets/marketplace/vscode/icon');
     expect(v!.outputPath).toContain('logo-128x128.png');
   });
 
