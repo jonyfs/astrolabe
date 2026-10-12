@@ -165,3 +165,19 @@ describe('gate detection (069 #44)', () => {
     expect(gates.find(g => g.pid === 200)?.waiting).toBeUndefined()
   })
 })
+
+describe('hostile input (069)', () => {
+  test('escape sequences in a brief or a process name never reach a cell', () => {
+    const rows = agentRows([agent({ brief: 'go\u001b]0;pwn\u0007now', type: 'Ex\u001b[2Jp' })], NOW)
+    const out = layoutLive({ rows, columns: 180, reservation: {} })
+    const text = out.lines.map(l => Object.values(l.cells).join('')).join('')
+    expect(/[\u0000-\u001f\u007f-\u009f]/.test(text)).toBe(false)
+  })
+  test('a pattern with many stars matches in linear time', () => {
+    const rows = parseProcesses('  1 0 1 bash ' + 'a'.repeat(5000) + 'b')
+    const started = Date.now()
+    detectGates(rows, { root: '/r', now: NOW, patterns: ['*a*a*a*a*a*a*a*a*a*a*c'] })
+    expect(Date.now() - started).toBeLessThan(500)
+  })
+})
+

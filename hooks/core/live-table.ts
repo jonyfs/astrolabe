@@ -169,19 +169,23 @@ export const gaugeText = (level: NonNullable<LiveRow['level']>): string => {
   return `${'▰'.repeat(filled)}${'▱'.repeat(GAUGE_CELLS - filled)} ${Math.round(level.percent)}%${level.mark ?? ''}`
 }
 
+const CONTROL = /[\u0000-\u001f\u007f-\u009f]/g
+
 const clip = (text: string, width: number): string => {
-  const chars = [...text]
+  const chars = [...text.replace(CONTROL, '')]
   return chars.length <= width ? text : width <= 1 ? '…'.slice(0, width) : `${chars.slice(0, width - 1).join('')}…`
 }
 
+const plain = (text: string): string => text.replace(CONTROL, '')
+
 const cellsOf = (row: LiveRow): Record<LiveColumn, string> => ({
-  who: row.who,
-  where: row.where,
-  what: row.what,
-  now: row.now,
+  who: plain(row.who),
+  where: plain(row.where),
+  what: plain(row.what),
+  now: plain(row.now),
   level: row.level === undefined ? '' : gaugeText(row.level),
-  size: row.size,
-  time: row.time,
+  size: plain(row.size),
+  time: plain(row.time),
 })
 
 /**
@@ -279,11 +283,23 @@ const programOf = (command: string): string => {
   return words.find(w => !w.startsWith('-') && !INTERPRETERS.has(baseName(w))) ?? words[0] ?? command
 }
 
+/** `*` matches any run of characters; no regular expression, so a pattern cannot backtrack. */
+const globMatches = (pattern: string, text: string): boolean => {
+  const parts = pattern.split('*')
+  if (parts.length === 1) return pattern === text
+  if (!text.startsWith(parts[0]!)) return false
+  let at = parts[0]!.length
+  const last = parts[parts.length - 1]!
+  for (const part of parts.slice(1, -1)) {
+    const found = text.indexOf(part, at)
+    if (found < 0) return false
+    at = found + part.length
+  }
+  return text.length - last.length >= at && text.endsWith(last)
+}
+
 const patternMatches = (file: string, patterns: readonly string[]): boolean =>
-  patterns.some(p => {
-    const re = new RegExp(`^${p.split('*').map(s => s.replace(/[.+?^${}()|[\]\\]/g, '\\$&')).join('.*')}$`)
-    return re.test(baseName(file)) || re.test(file)
-  })
+  patterns.some(p => globMatches(p, baseName(file)) || globMatches(p, file))
 
 /**
  * Git hooks and gate scripts in a process list. A hook folds its descendants into one chain;

@@ -1684,7 +1684,7 @@ async function sessionTabRows(
     now,
     option: liveRowsOption,
     lang,
-  }).map((r, i) => valueRow(`live-${i}`, `${r.kind}`, [r.who, r.where, r.what, r.now, r.level === undefined ? '' : `${r.level.percent}%${r.level.mark ?? ''}`, r.size, r.time].filter(part => part !== '').join(' · '), r.nowWarn === true ? 'current' : 'text'))
+  }).map((r, i) => valueRow(`live-${i}`, `${r.kind}`, [r.who, r.where, r.what, r.now, r.level === undefined ? '' : `${r.level.percent}%${r.level.mark ?? ''}`, r.size, r.time].filter(part => part !== '').join(' · ').replace(/[\u0000-\u001f\u007f-\u009f]/g, ''), r.nowWarn === true ? 'current' : 'text'))
   // Each with a link to the new version's release notes when there is one (054 #82).
   const updateRows = updates.map(item => ((url => valueRow(`update-${item.id}`, 'update', `${updateLabel(item, confirming === item.id)} (installed ${item.installed})`, 'current', { action: { id: item.id, label: t(lang, 'updates.install'), kind: 'update' as const }, ...(url === undefined ? {} : { href: url }) }))(releaseNotesUrl(item))))
   // Without Spec Kit the project rows say so on their own; no headings then.
