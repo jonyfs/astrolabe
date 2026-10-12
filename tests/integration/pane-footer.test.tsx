@@ -2,7 +2,7 @@ import { describe, expect, test } from 'claude-code/testing'
 
 import { scenario as halfDone } from '../fixtures/half-done'
 import { completeTurn, installEngine, installTree, settleStatus, startSession } from '../helpers/fake-fs'
-import { installPaneEngine, installRenderEngine, mountPane } from '../helpers/render'
+import { drawBand, installPaneEngine, installRenderEngine, mountPane } from '../helpers/render'
 
 // Spec 035: the footer moves into the pane, under every tab; the status entry keeps the lead.
 const NOW = Date.UTC(2026, 9, 7, 12, 0)
@@ -32,6 +32,19 @@ describe('the footer in the pane (035)', () => {
   test('default: the status entry keeps the Spec Kit part and the deciding window', { options: { icons: 'ascii' } }, async ($, on) => {
     const session = await setup($ as never, on as never)
     expect(session.last()).toMatch(/^◆ 002 impl 45% │ 5h 42%$/)
+  })
+  test('054 #47: from 140 columns the status entry shows the whole footer on one line, even with the footer in the pane', { options: { icons: 'ascii' } }, async ($, on) => {
+    const session = installTree(on, halfDone.tree, '/proj')
+    installEngine(on)
+    installRenderEngine(on)
+    installPaneEngine(on)
+    await session.clock.set(NOW)
+    await startSession($ as never, '/proj')
+    await drawBand($ as never, 'terminal', 150, {}, { columns: 160, rows: 40, isFullscreen: false })
+    await measure($ as never)
+    await completeTurn($ as never)
+    await settleStatus(session)
+    expect(session.last()).toContain('ctx 61%')
   })
   for (const tab of ['specs', 'tasks', 'session', 'dashboard', 'help', 'config', 'prs']) {
     test(`default: the ${tab} tab ends with the footer`, { options: { icons: 'ascii' } }, async ($, on) => {

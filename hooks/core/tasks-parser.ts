@@ -7,6 +7,12 @@ const ID = /^\**(T\d+)\**[:.]?(?=\s|$)/
 const HEADING = /^#{2,4}\s+(.+?)\s*#*$/
 
 /** The task list without its ticks (054 #59): changes when a task is added, removed or reworded, not when one is ticked. */
+/** How many task boxes an edit ticked: ticked boxes after minus ticked boxes before, never below zero (054 #39). */
+export const ticksIn = (before: string, after: string): number => {
+  const count = (text: string) => (text.match(/^\s*- \[[xX]\]/gm) ?? []).length
+  return Math.max(0, count(after) - count(before))
+}
+
 export const tasksFingerprint = (text: string | undefined): string => {
   let hash = 5381
   for (const t of parseTasks(text ?? '')) for (const ch of `${t.id ?? ''} ${t.text}\n`) hash = ((hash * 33) ^ ch.charCodeAt(0)) >>> 0

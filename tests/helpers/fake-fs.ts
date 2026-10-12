@@ -123,6 +123,8 @@ export type Session = {
   last: () => string | undefined
   /** The last value the plugin wrote to astrolabe.speckit. */
   held: () => Held | undefined
+  /** The last value the plugin wrote to astrolabe.session. */
+  sessionStats: () => Record<string, unknown> | undefined
   /** Lines the plugin sent to $.ui.log (its caught failures). */
   logs: string[]
   clock: MockClock
@@ -277,6 +279,7 @@ export const installTree = (on: On, tree: Tree, cwd: string, seed: Record<string
     return { value: undefined }
   })
   let held: Held | undefined
+  let heldSession: Record<string, unknown> | undefined
   const stateSets: Record<string, number> = {}
   const stateGets: Record<string, number> = {}
   let heldState: Held['state'] | undefined
@@ -294,6 +297,7 @@ export const installTree = (on: On, tree: Tree, cwd: string, seed: Record<string
     if (event !== e) corruptState = undefined
     if (event.plugin === 'astrolabe') stateSets[event.key] = (stateSets[event.key] ?? 0) + 1
     if (event.plugin === 'astrolabe' && event.key === 'speckit') heldState = event.value as Held['state']
+    if (event.plugin === 'astrolabe' && event.key === 'session') heldSession = event.value as Record<string, unknown>
     if (event.plugin === 'astrolabe' && event.key === 'memo') heldMemo = event.value as Held['memo']
     held = heldState === undefined || heldMemo === undefined ? undefined : { state: heldState, memo: heldMemo }
     return next(event)
@@ -315,6 +319,7 @@ export const installTree = (on: On, tree: Tree, cwd: string, seed: Record<string
     forbidden,
     last: () => statuses.at(-1),
     held: () => held,
+    sessionStats: () => heldSession,
     logs,
     clock,
     toasts,
