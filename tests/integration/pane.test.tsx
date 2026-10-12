@@ -97,6 +97,10 @@ describe('the pane tabs (US1, US2)', () => {
     const prLink = await ui.find({ type: 'Link', text: /feat: desktop fallback/ })
     if (prLink === undefined) expect(await ui.body()).toContain('feat: desktop fallback')
     else expect(prLink.props['href']).toBe('https://github.com/o/r/pull/45')
+    // The PRs and Setup tabs draw their own body, not the Specs rows above it (066 review).
+    expect(await ui.body()).not.toContain('Active (')
+    await ui.press('tab-setup')
+    expect(await ui.body()).not.toContain('Active (')
     await ui.unmount()
   })
 
