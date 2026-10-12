@@ -506,6 +506,14 @@ since, the idle poller does the same refresh by itself, so a dimmed band and a s
 up without a keypress. It repeats every ten idle minutes, six times at most, and the next turn
 starts it over.
 
+While a turn runs, the tabs and the band follow the active feature's files within two seconds.
+Every two seconds Astrolabe checks the modification time of its `spec.md`, `plan.md` and
+`tasks.md`: three stats and no read. Only when one moved does it read that feature again, so a box
+ticked by a shell command, a subagent, an MCP tool or another editor shows without waiting for the
+turn to end. The same check runs after any Bash command that is not a spec-making command and after
+any `mcp__` tool. An unchanged file costs the stats and nothing else, and the check stops when the
+turn ends.
+
 The Help tab (and `/astrolabe help`) starts with what this version changed, lists every option
 with its value now (`footerIn=pane`), the footer's parts in their fixed order (Spec Kit, deciding window, other windows, context, model, skill, git, burn, session time; a narrow screen drops session time first, then burn, git, skill, model, the other windows and context), and ends with a legend of every mark Astrolabe draws (`◆`, `●`,
 `◐`, `○`, `?`, `▸`, `⟳`, `~`, `!`, `☐`, `⑂`, `⇉`, `⏱`) and a glossary of the six Spec Kit steps.

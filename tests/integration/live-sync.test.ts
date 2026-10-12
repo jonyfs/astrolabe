@@ -31,6 +31,73 @@ describe('live sync (053)', () => {
   })
 })
 
+describe('progress follows the files mid-turn (investigate: stale progress)', () => {
+  const TASKS = '/proj/specs/002-band-hint/tasks.md'
+  const countOf = (session: Awaited<ReturnType<typeof setup>>) => {
+    const f = session.held()?.state.features.find((x: { id: string }) => x.id === '002')
+    return [f?.done, f?.total]
+  }
+  test('a Bash command that ticks a task shows the new count before the turn ends', async ($, on) => {
+    const session = await setup($ as never, on as never)
+    expect(countOf(session)).toEqual([9, 20])
+    tree[TASKS] = tree[TASKS]!.replace('- [ ] T010', '- [x] T010')
+    await $.tool.call({ tool: 'Bash', tool_use_id: 'b', command: "sed -i 's/\\[ \\] T010/[x] T010/' specs/002-band-hint/tasks.md" } as never)
+    expect(countOf(session)).toEqual([10, 20])
+  })
+  test('a subagent that returns after ticking tasks shows them at once', async ($, on) => {
+    const session = await setup($ as never, on as never)
+    tree[TASKS] = tree[TASKS]!.replace('- [ ] T010', '- [x] T010').replace('- [ ] T011', '- [x] T011')
+    await $.tool.call({ tool: 'Agent', tool_use_id: 'a', description: 'run T010 and T011', prompt: 'go' } as never)
+    expect(countOf(session)).toEqual([11, 20])
+  })
+  test('a tool Astrolabe does not know (an MCP file writer) that changed the file shows it too', async ($, on) => {
+    const session = await setup($ as never, on as never)
+    tree[TASKS] = tree[TASKS]!.replace('- [ ] T010', '- [x] T010')
+    await $.tool.call({ tool: 'mcp__desktop-commander__write_file', tool_use_id: 'm', path: TASKS, content: tree[TASKS] } as never)
+    expect(countOf(session)).toEqual([10, 20])
+  })
+})
+
+describe('the freshness probe is cheap (investigate: stale progress)', () => {
+  const TASKS = '/proj/specs/002-band-hint/tasks.md'
+  const countOf = (session: Awaited<ReturnType<typeof setup>>) => {
+    const f = session.held()?.state.features.find((x: { id: string }) => x.id === '002')
+    return [f?.done, f?.total]
+  }
+  test('an unchanged file costs stats only: no read, no list, no state write', async ($, on) => {
+    const session = await setup($ as never, on as never)
+    // The first shell command marks the drift window (009); the probes after it write nothing.
+    await $.tool.call({ tool: 'Bash', tool_use_id: 'b0', command: 'make build' } as never)
+    const reads = session.counts.read + session.counts.list
+    const writes = session.stateSets.speckit ?? 0
+    for (let i = 1; i < 6; i += 1) await $.tool.call({ tool: 'Bash', tool_use_id: `b${i}`, command: 'make build' } as never)
+    expect(session.counts.read + session.counts.list).toBe(reads)
+    expect(session.stateSets.speckit ?? 0).toBe(writes)
+    expect(session.counts.stat).toBeGreaterThan(0)
+  })
+  test('a plain command that wrote the file is seen by the probe, one read of that feature', async ($, on) => {
+    const session = await setup($ as never, on as never)
+    tree[TASKS] = tree[TASKS]!.replace('- [ ] T010', '- [x] T010')
+    await $.tool.call({ tool: 'Bash', tool_use_id: 'b', command: 'make tick TASK=T010' } as never)
+    expect(countOf(session)).toEqual([10, 20])
+  })
+  test('while a turn runs, a file changed from outside shows within seconds, with no tool call', async ($, on) => {
+    const session = await setup($ as never, on as never)
+    await $.prompt.submit({ text: 'implement', origin: { kind: 'composer' } } as never)
+    tree[TASKS] = tree[TASKS]!.replace('- [ ] T010', '- [x] T010')
+    await session.clock.advance(2500)
+    expect(countOf(session)).toEqual([10, 20])
+  })
+  test('after the turn ends the probe stops: no stats while idle', async ($, on) => {
+    const session = await setup($ as never, on as never)
+    await $.prompt.submit({ text: 'implement', origin: { kind: 'composer' } } as never)
+    await completeTurn($)
+    const stats = session.counts.stat
+    await session.clock.advance(20_000)
+    expect(session.counts.stat).toBe(stats)
+  })
+})
+
 describe('live sync costs nothing for a plain command (054 #5)', () => {
   test('ls reads nothing; git checkout reads again', async ($, on) => {
     const session = await setup($ as never, on as never)

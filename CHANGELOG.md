@@ -6,6 +6,16 @@ tags `vX.Y.Z` equal to `plugin.json`'s `version`.
 
 ## [Unreleased]
 
+## [0.123.0] - 2026-10-12
+
+### Fixed
+
+- Progress was stale during a turn: the mid-turn sync never re-read the active feature's
+  `spec.md`, `plan.md` and `tasks.md`, so a task ticked by a shell command, a subagent or an MCP
+  tool showed only at the turn's end. A stat-only probe (three stats, no read) now runs every two
+  seconds while a turn runs and after Bash and `mcp__` tools, and reads the feature only when a
+  file's modification time moved.
+
 ## [0.122.0] - 2026-10-12
 
 ### Added
