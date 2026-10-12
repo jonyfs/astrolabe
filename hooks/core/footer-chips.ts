@@ -3,6 +3,7 @@
 // the todo list and the projection. Each is a pure function from facts to text. No $.
 import { duration } from './duration'
 import type { Icons } from './icons'
+import { plainText } from './git-status'
 import type { GitState, PullRequest } from './types'
 
 const withIcon = (icon: string, text: string) => (icon === '' ? text : `${icon} ${text}`)
@@ -10,7 +11,7 @@ const withIcon = (icon: string, text: string) => (icon === '' ? text : `${icon} 
 /** `⌂ astrolabe`, or `⌂ src ⇐ astrolabe` when Claude moved to a folder other than the start one (068 #41); ASCII sets go through `asciiFold`. */
 export const dirChip = (dir: string | undefined, startDir: string | undefined): string | undefined => {
   if (dir === undefined || dir === '') return undefined
-  const name = (path: string) => path.replace(/[\\/]+$/, '').split(/[\\/]/).at(-1) ?? path
+  const name = (path: string) => plainText(path.replace(/[\\/]+$/, '').split(/[\\/]/).at(-1) ?? path, 60)
   const now = name(dir)
   const start = startDir === undefined ? undefined : name(startDir)
   return start === undefined || start === now ? `⌂ ${now}` : `⌂ ${now} ⇐ ${start}`
@@ -99,14 +100,14 @@ export const cacheChip = (cache: CacheFact | undefined, now: number, room?: 'ful
 /** Skills in play as one chip (068 #45): five names, then a count. */
 export const skillsChip = (names: readonly string[]): string | undefined => {
   if (names.length === 0) return undefined
-  const shown = names.slice(0, 5)
+  const shown = names.slice(0, 5).map(name => plainText(name, 40))
   const rest = names.length - shown.length
   return `❖ ${shown.join(', ')}${rest > 0 ? ` +${rest}` : ''}`
 }
 
 /** The todo list's progress (068 #46): `▸ Fix authentication (1/3)`. */
 export const todoChip = (todo: { title: string; done: number; total: number } | undefined): string | undefined =>
-  todo === undefined || todo.total === 0 ? undefined : `▸ ${todo.title} (${todo.done}/${todo.total})`
+  todo === undefined || todo.total === 0 ? undefined : `▸ ${plainText(todo.title, 60)} (${todo.done}/${todo.total})`
 
 /**
  * The burn rate and where it lands (068 #48): the rate after five samples over a minute, and

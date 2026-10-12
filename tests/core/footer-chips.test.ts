@@ -97,3 +97,11 @@ describe('skills, todo and the projection (068 #45, #46, #48)', () => {
     expect(burnChips({ ...base, rate: 20, samples: 6, spanMs: 120_000 }, '5h').projection).toBe(`5h limit ~${clock(NOW + 1.4 * 3_600_000)}`)
   })
 })
+
+describe('chips never carry control characters (068)', () => {
+  test('a todo title, a skill name and a folder name lose escape sequences', () => {
+    expect(todoChip({ title: 'Fix\u001b[31m auth\u0007', done: 1, total: 2 })).toBe('▸ Fix[31m auth (1/2)')
+    expect(skillsChip(['ok\u001b]0;x\u0007'])).toBe('❖ ok]0;x')
+    expect(dirChip('/home/me/a\u001bb', undefined)).toBe('⌂ ab')
+  })
+})

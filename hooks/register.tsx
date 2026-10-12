@@ -54,7 +54,7 @@ import { dashboardSections, dashboardTree } from './surfaces/dashboard'
 import { burnRate, dial, kpiChips, kpisMarkdown, phaseBars, sparkline, usageChart, kpiRows, trendRows } from './core/dashboard'
 import { addDay, addWeek, dayKey, lastWeeks, pastReset, slowest, updateFeatureDurations, weekKey, weekdays, type Days, type FeatureDuration, type Weeks } from './core/history'
 import { footerChipLines, footerChips, footerText, linesChanged, type FooterInput } from './core/footer'
-import { branchWebUrl, parseCiRun, parseGitStatus, parsePullRequest, remoteWebUrl } from './core/git-status'
+import { branchWebUrl, parseCiRun, parseGitStatus, parsePullRequest, plainText, remoteWebUrl } from './core/git-status'
 import { iconSet, iconsFor } from './core/icons'
 import { guessLang, langOf, paneLabelWidth, t, type Lang, type TextKey } from './core/i18n'
 import { paneTree } from './surfaces/pane'
@@ -2624,7 +2624,7 @@ export const register: Register = (on, options) => {
     // A subagent's skill may outlive the main turn, so only main-thread calls set a marker.
     if (e.agentId === undefined) {
       skillRunning = e.skill
-      if (!live.skills.includes(e.skill)) live.skills.push(e.skill)
+      if (!live.skills.includes(e.skill) && typeof e.skill === 'string') live.skills.push(plainText(e.skill, 40))
       const now = await $.clock.now()
       await guarded($, async previous => (previous === undefined ? undefined : applySkill(previous, e.skill, now)))
     }
@@ -2764,7 +2764,7 @@ export const register: Register = (on, options) => {
     if (Array.isArray(todos) && todos.length > 0) {
       const done = todos.filter(item => item.status === 'completed').length
       const current = todos.find(item => item.status === 'in_progress') ?? todos.find(item => item.status !== 'completed')
-      live.todo = { title: current?.content ?? '', done, total: todos.length }
+      live.todo = { title: plainText(typeof current?.content === 'string' ? current.content : '', 60), done, total: todos.length }
     }
     return next(e)
   }).catch(($, e, next) => next(e))
