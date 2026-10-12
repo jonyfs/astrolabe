@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import { badgesOf, legacyTab, legendOf, TABS } from '../../hooks/core/pane-tabs'
+import { badgesOf, legacyTab, legendOf, paneTitle, TABS } from '../../hooks/core/pane-tabs'
 
 describe('five tabs (066 #21)', () => {
   test('Specs, Tasks, Session, PRs and Setup, on 1 to 5', () => {
@@ -60,5 +60,22 @@ describe('the legend row holds key-verb pairs (066 #22)', () => {
     expect(legendOf('setup', { wide: true }).map(p => p.verb)).toEqual(['refresh'])
     expect(legendOf('session', { wide: true }).map(p => p.verb)).toEqual(['copy kpis', 'refresh'])
     expect(legendOf('prs', { wide: true }).map(p => p.verb)).toEqual(['refresh'])
+  })
+})
+
+describe('the pane title says why the spec is active (066 #30)', () => {
+  const active = (source: 'feature.json' | 'branch' | 'latest', over: Record<string, unknown> = {}) =>
+    ({ present: true, constitution: 'ratified', features: [], isAnalyzed: false, active: { dir: '002-band-hint', id: '002', name: 'band-hint', source }, ...over }) as never
+
+  test('feature.json, the branch, or the highest open spec', () => {
+    expect(paneTitle(active('feature.json'))).toBe('🧭 Astrolabe · ◆ 002 band-hint · feature.json')
+    expect(paneTitle(active('branch'))).toBe('🧭 Astrolabe · ◆ 002 band-hint · branch')
+    expect(paneTitle(active('latest'))).toBe('🧭 Astrolabe · ◆ 002 band-hint · highest open spec')
+  })
+  test('a guessed feature keeps the ~', () => {
+    expect(paneTitle(active('latest', { activeWarning: 'feature-json-dangling' }))).toBe('🧭 Astrolabe · ◆ ~002 band-hint · highest open spec')
+  })
+  test('without an active feature the title is the name alone', () => {
+    expect(paneTitle({ present: true, constitution: 'ratified', features: [], isAnalyzed: false } as never)).toBe('🧭 Astrolabe')
   })
 })

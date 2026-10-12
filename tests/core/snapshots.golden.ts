@@ -25,7 +25,7 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     "ctx 61%|#f9e2af"
   ],
   "mocha/80/pane": [
-    "In progress (1)|#a6adc8",
+    "Active (1)|#a6adc8",
     "▸ ◐ 002  band-hint                 implement  ████░░░░░░   9/20  45%|#cba6f7",
     "  gates  constitution ✓  clarify ✓  checklist –  tasks ✓  analyze ✓|#a6adc8",
     "Next up (2)|#a6adc8",
@@ -73,7 +73,7 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     "opus 5.5 high|#f38ba8"
   ],
   "mocha/100/pane": [
-    "In progress (1)|#a6adc8",
+    "Active (1)|#a6adc8",
     "▸ ◐ 002  band-hint                 implement  ████░░░░░░   9/20  45%|#cba6f7",
     "  gates  constitution ✓  clarify ✓  checklist –  tasks ✓  analyze ✓|#a6adc8",
     "Next up (2)|#a6adc8",
@@ -137,7 +137,7 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     "t 1h05m|#45475a"
   ],
   "mocha/144/pane": [
-    "In progress (1)|#a6adc8",
+    "Active (1)|#a6adc8",
     "▸ ◐ 002  band-hint                 implement  ████░░░░░░   9/20  45%|#cba6f7",
     "  gates  constitution ✓  clarify ✓  checklist –  tasks ✓  analyze ✓|#a6adc8",
     "Next up (2)|#a6adc8",
@@ -201,7 +201,7 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     "t 1h05m|#45475a"
   ],
   "mocha/200/pane": [
-    "In progress (1)|#a6adc8",
+    "Active (1)|#a6adc8",
     "▸ ◐ 002  band-hint                 implement  ████░░░░░░   9/20  45%|#cba6f7",
     "  gates  constitution ✓  clarify ✓  checklist –  tasks ✓  analyze ✓|#a6adc8",
     "Next up (2)|#a6adc8",
@@ -241,7 +241,7 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     "ctx 61%|#df8e1d"
   ],
   "latte/80/pane": [
-    "In progress (1)|#5c5f77",
+    "Active (1)|#5c5f77",
     "▸ ◐ 002  band-hint                 implement  ████░░░░░░   9/20  45%|#8839ef",
     "  gates  constitution ✓  clarify ✓  checklist –  tasks ✓  analyze ✓|#5c5f77",
     "Next up (2)|#5c5f77",
@@ -289,7 +289,7 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     "opus 5.5 high|#d20f39"
   ],
   "latte/100/pane": [
-    "In progress (1)|#5c5f77",
+    "Active (1)|#5c5f77",
     "▸ ◐ 002  band-hint                 implement  ████░░░░░░   9/20  45%|#8839ef",
     "  gates  constitution ✓  clarify ✓  checklist –  tasks ✓  analyze ✓|#5c5f77",
     "Next up (2)|#5c5f77",
@@ -353,7 +353,7 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     "t 1h05m|#bcc0cc"
   ],
   "latte/144/pane": [
-    "In progress (1)|#5c5f77",
+    "Active (1)|#5c5f77",
     "▸ ◐ 002  band-hint                 implement  ████░░░░░░   9/20  45%|#8839ef",
     "  gates  constitution ✓  clarify ✓  checklist –  tasks ✓  analyze ✓|#5c5f77",
     "Next up (2)|#5c5f77",
@@ -417,7 +417,7 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     "t 1h05m|#bcc0cc"
   ],
   "latte/200/pane": [
-    "In progress (1)|#5c5f77",
+    "Active (1)|#5c5f77",
     "▸ ◐ 002  band-hint                 implement  ████░░░░░░   9/20  45%|#8839ef",
     "  gates  constitution ✓  clarify ✓  checklist –  tasks ✓  analyze ✓|#5c5f77",
     "Next up (2)|#5c5f77",
@@ -457,7 +457,7 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     "ctx 61%|#e5c890"
   ],
   "frappe/80/pane": [
-    "In progress (1)|#a5adce",
+    "Active (1)|#a5adce",
     "▸ ◐ 002  band-hint                 implement  ████░░░░░░   9/20  45%|#ca9ee6",
     "  gates  constitution ✓  clarify ✓  checklist –  tasks ✓  analyze ✓|#a5adce",
     "Next up (2)|#a5adce",
@@ -505,7 +505,7 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     "opus 5.5 high|#e78284"
   ],
   "frappe/100/pane": [
-    "In progress (1)|#a5adce",
+    "Active (1)|#a5adce",
     "▸ ◐ 002  band-hint                 implement  ████░░░░░░   9/20  45%|#ca9ee6",
     "  gates  constitution ✓  clarify ✓  checklist –  tasks ✓  analyze ✓|#a5adce",
     "Next up (2)|#a5adce",
@@ -569,7 +569,7 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     "t 1h05m|#51576d"
   ],
   "frappe/144/pane": [
-    "In progress (1)|#a5adce",
+    "Active (1)|#a5adce",
     "▸ ◐ 002  band-hint                 implement  ████░░░░░░   9/20  45%|#ca9ee6",
     "  gates  constitution ✓  clarify ✓  checklist –  tasks ✓  analyze ✓|#a5adce",
     "Next up (2)|#a5adce",
@@ -633,7 +633,7 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     "t 1h05m|#51576d"
   ],
   "frappe/200/pane": [
-    "In progress (1)|#a5adce",
+    "Active (1)|#a5adce",
     "▸ ◐ 002  band-hint                 implement  ████░░░░░░   9/20  45%|#ca9ee6",
     "  gates  constitution ✓  clarify ✓  checklist –  tasks ✓  analyze ✓|#a5adce",
     "Next up (2)|#a5adce",
@@ -673,7 +673,7 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     "ctx 61%|#eed49f"
   ],
   "macchiato/80/pane": [
-    "In progress (1)|#a5adcb",
+    "Active (1)|#a5adcb",
     "▸ ◐ 002  band-hint                 implement  ████░░░░░░   9/20  45%|#c6a0f6",
     "  gates  constitution ✓  clarify ✓  checklist –  tasks ✓  analyze ✓|#a5adcb",
     "Next up (2)|#a5adcb",
@@ -721,7 +721,7 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     "opus 5.5 high|#ed8796"
   ],
   "macchiato/100/pane": [
-    "In progress (1)|#a5adcb",
+    "Active (1)|#a5adcb",
     "▸ ◐ 002  band-hint                 implement  ████░░░░░░   9/20  45%|#c6a0f6",
     "  gates  constitution ✓  clarify ✓  checklist –  tasks ✓  analyze ✓|#a5adcb",
     "Next up (2)|#a5adcb",
@@ -785,7 +785,7 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     "t 1h05m|#494d64"
   ],
   "macchiato/144/pane": [
-    "In progress (1)|#a5adcb",
+    "Active (1)|#a5adcb",
     "▸ ◐ 002  band-hint                 implement  ████░░░░░░   9/20  45%|#c6a0f6",
     "  gates  constitution ✓  clarify ✓  checklist –  tasks ✓  analyze ✓|#a5adcb",
     "Next up (2)|#a5adcb",
@@ -849,7 +849,7 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     "t 1h05m|#494d64"
   ],
   "macchiato/200/pane": [
-    "In progress (1)|#a5adcb",
+    "Active (1)|#a5adcb",
     "▸ ◐ 002  band-hint                 implement  ████░░░░░░   9/20  45%|#c6a0f6",
     "  gates  constitution ✓  clarify ✓  checklist –  tasks ✓  analyze ✓|#a5adcb",
     "Next up (2)|#a5adcb",
@@ -889,7 +889,7 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     "ctx 61%|#fff0a6"
   ],
   "colorblind/80/pane": [
-    "In progress (1)|#bdbdbd",
+    "Active (1)|#bdbdbd",
     "▸ ◐ 002  band-hint                 implement  ████░░░░░░   9/20  45%|#d4a6e8",
     "  gates  constitution ✓  clarify ✓  checklist –  tasks ✓  analyze ✓|#bdbdbd",
     "Next up (2)|#bdbdbd",
@@ -937,7 +937,7 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     "opus 5.5 high|#ff8a75"
   ],
   "colorblind/100/pane": [
-    "In progress (1)|#bdbdbd",
+    "Active (1)|#bdbdbd",
     "▸ ◐ 002  band-hint                 implement  ████░░░░░░   9/20  45%|#d4a6e8",
     "  gates  constitution ✓  clarify ✓  checklist –  tasks ✓  analyze ✓|#bdbdbd",
     "Next up (2)|#bdbdbd",
@@ -1001,7 +1001,7 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     "t 1h05m|#454545"
   ],
   "colorblind/144/pane": [
-    "In progress (1)|#bdbdbd",
+    "Active (1)|#bdbdbd",
     "▸ ◐ 002  band-hint                 implement  ████░░░░░░   9/20  45%|#d4a6e8",
     "  gates  constitution ✓  clarify ✓  checklist –  tasks ✓  analyze ✓|#bdbdbd",
     "Next up (2)|#bdbdbd",
@@ -1065,7 +1065,7 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     "t 1h05m|#454545"
   ],
   "colorblind/200/pane": [
-    "In progress (1)|#bdbdbd",
+    "Active (1)|#bdbdbd",
     "▸ ◐ 002  band-hint                 implement  ████░░░░░░   9/20  45%|#d4a6e8",
     "  gates  constitution ✓  clarify ✓  checklist –  tasks ✓  analyze ✓|#bdbdbd",
     "Next up (2)|#bdbdbd",

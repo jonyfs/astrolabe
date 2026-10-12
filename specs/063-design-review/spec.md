@@ -58,16 +58,16 @@ Constraints that hold for every task: colours only from `theme.ts` (IX), nothing
 
 ### C. Pane and navigation → 066-pane-five-tabs
 
-- [ ] T021 #21 Five tabs; Help as a `?` overlay (P1) → 066
-- [ ] T022 #22 Tab row holds tabs only; legend row holds keys (P1) → 066
-- [ ] T023 #23 Badges count what needs the person (P1) → 066
-- [ ] T024 #24 The selected spec renders as a block (P1) → 066
-- [ ] T025 #25 Fixed section order (P2) → 066
-- [ ] T026 #26 Empty states that teach (P2) → 066
-- [ ] T027 #27 Setup marks non-default values (P2) → 066
-- [ ] T028 #28 PRs tab as a table (P2) → 066
-- [ ] T029 #29 Help overlay (P3) → 066
-- [ ] T030 #30 The pane title says why a spec is active (P3) → 066
+- [x] T021 #21 Five tabs; Help as a `?` overlay (P1) → 066
+- [x] T022 #22 Tab row holds tabs only; legend row holds keys (P1) → 066
+- [x] T023 #23 Badges count what needs the person (P1) → 066
+- [x] T024 #24 The selected spec renders as a block (P1) → 066
+- [x] T025 #25 Fixed section order (P2) → 066
+- [x] T026 #26 Empty states that teach (P2) → 066
+- [x] T027 #27 Setup marks non-default values (P2) → 066
+- [x] T028 #28 PRs tab as a table (P2) → 066
+- [x] T029 #29 Help overlay (P3) → 066
+- [x] T030 #30 The pane title says why a spec is active (P3) → 066
 
 ### D. Data honesty and scale → 067-specs-at-scale
 

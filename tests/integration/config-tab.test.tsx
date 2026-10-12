@@ -68,8 +68,10 @@ describe('the Config tab (028)', () => {
     const body = () => ui.find({ key: 'astrolabe-pane-body' }).then(f => f?.text ?? '')
     expect(await body()).toContain('Preset')
     expect(await body()).not.toContain('Theme')
-    // 054 #64: under a heading per group, Display before Integrations.
-    expect(await body()).toMatch(/Display[\s\S]*Preset[\s\S]*Integrations[\s\S]*Check for updates/)
+    // 054 #64, 066 #27: under a heading per group, Look before Integrations; the footnote says where changes go.
+    expect(await body()).toMatch(/Look[\s\S]*Preset[\s\S]*Integrations[\s\S]*Check for updates/)
+    expect(await body()).toContain('Changes save to the mod store; nothing writes settings.json.')
+    expect(await body()).toContain('Model per skill')
     await ui.select({ key: 'config-astrolabe.preset', value: 'full' })
     await ui.press({ key: 'config-astrolabe.checkUpdates' })
     expect(await body()).toContain('Save 2 changes')

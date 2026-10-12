@@ -23,8 +23,10 @@ import { parallelTasks } from './core/extensions'
 import { VERSION } from './core/version'
 import { QUEUE_HOTKEYS } from './core/keys'
 import { duration } from './core/duration'
+import { STATE_GLYPHS } from './core/glyphs'
 import { statusLead } from './core/status-lead'
-import { badgesOf, legacyTab } from './core/pane-tabs'
+import { usageBarRows } from './core/usage-bars'
+import { badgesOf, legacyTab, paneTitle } from './core/pane-tabs'
 import { usageRamp } from './core/usage-ramp'
 import { ASK_MS, clockOf, decide, dropped, EXTEND_MS, HOLD_LIFT_MS, holdQuestion, nextHeld, isPaused, isReadOnlyTool, parseAllow, pauseQuestion, RAISE_MS, refusal, resumePrompt, runPrompt, usageSegment, type Decision, type Question, usageRows } from './core/governor'
 import { chipForeground, CHIPS, FLAVORS, flavorOf, isThemeKeys, lighten, STATUS_ROLE, themeOf, type ThemeRole } from './core/theme'
@@ -154,6 +156,9 @@ let iconsOption: unknown = 'auto'
 let languageOption: unknown = 'auto'
 let guessedLang: Lang | undefined
 const currentLang = (): Lang => langOf(languageOption, guessedLang)
+
+/** A reading whose window has already reset: the bars skip it (it reads `renewed` elsewhere). */
+const isRenewedReading = (r: UsageReading, now: number): boolean => r.resetsAt !== undefined && Date.parse(r.resetsAt) <= now
 
 const decisionOf = (usage: UsageState, now: number): Decision =>
   decide(usage.readings, usage.history, usage.override, now, usage.holdLift, usage.held, governThresholds)
@@ -537,13 +542,18 @@ function pullsRows(
       })().catch(error => $.ui.log(`astrolabe: ${error instanceof Error ? error.message : String(error)}`, { to: 'debug' })))
     }
   }
-  const mark = (c: string) => (c === 'pass' ? '✓' : c === 'fail' ? '✗' : c === 'pending' ? '…' : '·')
+  // Checks as cells: ✓ passed, ✖ failed, ◷ pending (066 #28).
+  const mark = (c: string) => (c === 'pass' ? '✓' : c === 'fail' ? '✖' : c === 'pending' ? STATE_GLYPHS.elapsed : '·')
   const colour = (c: string) => (c === 'pass' ? tokens0[STATUS_ROLE.success] : c === 'fail' ? tokens0[STATUS_ROLE.error] : c === 'pending' ? tokens0[STATUS_ROLE.warning] : tokens0.muted)
-  return rows.flatMap(pr => {
-    const title = `${mark(pr.checks)} #${pr.number} ${pr.isDraft ? `[${t(lang, 'prs.draft')}] ` : ''}${pr.title}`
+  const header = { rows: 1, node: <Text key="prs-header" color={tokens0.faint} wrap="truncate-end">{t(lang, 'prs.header')}</Text> }
+  return [header, ...rows.flatMap(pr => {
+    const title = `#${pr.number} ${pr.title}`
+    const cells = [pr.isDraft ? t(lang, 'prs.draft') : '', pr.labels.join(','), t(lang, `prs.review.${pr.review}`), (pr.runs === undefined || pr.runs.length === 0 ? mark(pr.checks) : pr.runs.slice(0, 6).map(run => mark(run.result)).join(''))]
+      .filter(c => c !== '')
+      .join('  ')
     // Who opened it and how long ago, as of the last read (052 #40).
     const opened = [pr.author === undefined ? '' : `@${pr.author}`, pr.createdAt === undefined || stats?.pulls === undefined ? '' : ageOf(pr.createdAt, stats.pulls.at)].filter(s => s !== '').join(' ')
-    const facts = [t(lang, `prs.review.${pr.review}`), opened, ...pr.labels.map(l => `#${l}`), pr.branch].filter(s => s !== '').join('  ')
+    const facts = [opened, pr.branch].filter(s => s !== '').join('  ')
     const buttons: RenderNode[] = []
     const add = (action: 'approve' | 'update' | 'merge') => {
       const key = `pr-${action}-${pr.number}`
@@ -555,7 +565,12 @@ function pullsRows(
     return [
       {
         rows: 1,
-        node: Link !== undefined && pr.url !== '' ? <Link href={pr.url} label={title} /> : <Text color={colour(pr.checks)}>{title}</Text>,
+        node: (
+          <Box flexDirection="row">
+            {Link !== undefined && pr.url !== '' ? <Link href={pr.url} label={title} /> : <Text color={colour(pr.checks)}>{title}</Text>}
+            <Text color={colour(pr.checks)} wrap="truncate-end">{`  ${cells}`}</Text>
+          </Box>
+        ),
       },
       {
         rows: 1,
@@ -583,7 +598,7 @@ function pullsRows(
             },
           ]),
     ]
-  })
+  })]
 }
 
 // Astrolabe's own /config rows (028), read at session start and after a save.
@@ -974,7 +989,7 @@ let accessible = false
 async function openPane($: EngineInterface): Promise<void> {
   // The title names the active feature (052 #4) the way the band and the footer do (054 #30).
   const state = (await $.state.get(SPECKIT)).value
-  const title = state?.active === undefined ? PANE_TITLE : `${PANE_TITLE} · ${activeMark(state)} ${state.active.name}`
+  const title = paneTitle(state)
   await $.ui.open({ id: PANE_ID, title, focus: true, closeOnEscape: true })
 }
 
@@ -1582,10 +1597,17 @@ async function sessionTabRows(
   // Each with a link to the new version's release notes when there is one (054 #82).
   const updateRows = updates.map(item => ((url => valueRow(`update-${item.id}`, 'update', `${updateLabel(item, confirming === item.id)} (installed ${item.installed})`, 'current', { action: { id: item.id, label: t(lang, 'updates.install'), kind: 'update' as const }, ...(url === undefined ? {} : { href: url }) }))(releaseNotesUrl(item))))
   // Without Spec Kit the project rows say so on their own; no headings then.
-  if (!state.present) return [...project, ...governor, ...activity, ...updateRows]
+  // The usage bars with governor ticks lead the tab (066, board 4).
+  const bars = usageBarRows({
+    readings: usage.readings.filter(r => !isRenewedReading(r, now)),
+    ...(stats?.context === undefined ? {} : { context: stats.context }),
+    thresholds: governThresholds,
+    now,
+  })
+  if (!state.present) return [...bars, ...project, ...governor, ...activity, ...updateRows]
   const block = (key: string, rows: Array<{ key: string; text: string; role: ThemeRole; bold?: boolean }>) =>
     rows.length === 0 ? [] : [{ key: `block-${key}`, text: t(lang, `session.block.${key}` as TextKey), role: 'accent' as ThemeRole, bold: true }, ...rows]
-  return [...block('project', project), ...block('governor', governor), ...block('activity', activity), ...block('updates', updateRows)]
+  return [...bars, ...block('project', project), ...block('governor', governor), ...block('activity', activity), ...block('updates', updateRows)]
 }
 
 /** Brings the Spec Kit state up to date mid-turn (053); writes only when something moved. */
@@ -3290,7 +3312,14 @@ export const register: Register = (on, options) => {
     }
     if (view === 'setup') {
       // Setup (066 #21): the options, then the model per skill.
-      const units = [...configBody($, e, pane), ...modelSkillTabBody($, e, pane)]
+      const { Text: SetupText } = $.ui.resolve(e)
+      const setupUnits = [
+        ...configBody($, e, pane),
+        { rows: 1, node: <SetupText key="setup-footnote" color={tokens.faint} wrap="truncate-end">{t(currentLang(), 'config.footnote')}</SetupText> },
+        { rows: 1, node: <SetupText key="setup-models" color={tokens.accent} bold>{t(currentLang(), 'setup.models')}</SetupText> },
+        ...modelSkillTabBody($, e, pane),
+      ]
+      const units = setupUnits
       const { win, pad, nav } = navFor(units.map(u => u.rows), bodyRows - 1 - footerReserve)
       const body = (
         <Box key="astrolabe-setup" flexDirection="column">

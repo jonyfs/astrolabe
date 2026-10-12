@@ -64,6 +64,8 @@ export const buildHelp = (lang: Lang, optionsSeen: Readonly<Record<string, unkno
     `  4 ${t(lang, 'tab.prs').padEnd(labelWidth)} ${t(lang, 'help.prsTab')}`,
     `  5 ${t(lang, 'tab.setup').padEnd(labelWidth)} ${t(lang, 'help.configTab')} · ${t(lang, 'help.modelsTab')}`,
     `  ? ${t(lang, 'tab.help').padEnd(labelWidth)} ${t(lang, 'help.helpTab')}`,
+    // The keys grouped by tab, and one example per filter of the Specs filter language (066 #29).
+    ...(['pane', 'specs', 'tasks', 'session', 'prs', 'setup', 'examples'] as const).map(group => `  ${t(lang, `help.keys.${group}` as TextKey)}`),
     `  ${t(lang, 'help.keys')}`,
     t(lang, 'help.block.models'),
     `  ${t(lang, 'help.models')}`,

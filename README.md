@@ -519,23 +519,54 @@ The current values, from a shell:
 The first session after you install Astrolabe shows one toast: `/astrolabe opens the pane,
 /astrolabe help lists the commands`.
 
-Type `/astrolabe` to open a pane with seven tabs (`/astrolabe help` lists every command and key). In a fullscreen terminal it docks at the
-right; otherwise it sits above the prompt. It opens with the keyboard on it, so `1` to `7`
-switch tabs right away, and Esc closes it. Later, focus it again with a click or
-`ctrl+x tab`. The tab you pick stays for the session, and the next session of the same project opens on it.
-On Specs, Tasks and Help, `/` (pressed as `f`) puts the cursor in one filter that keeps the rows holding what you
-type (a filter that keeps nothing says so); on Specs, `s` cycles a status filter (all, in progress, next up, done, abandoned), and `is:done` in the filter does the same; in a narrow pane the legend keeps only the keys; from 80 columns it ends with `updated 14:32`, when Astrolabe last wrote what the tabs show; `✕` at the end of the tab row closes the pane.
+Type `/astrolabe` to open a pane with five tabs (`/astrolabe help` lists every command and key):
 
-`?` opens the Help tab from any tab; the button is pressed with `h`, because a button hotkey is one digit or letter. The tab shown starts with `▸`, and the pane's title names the active feature the way the band and the footer do (`🧭 Astrolabe · ◆ 026 claude-context`, with `~` before the id when the active feature is a guess). Below 80 columns a tab shows only its number and count (`2·11`). Below 60 the pane is compact: the Specs rows drop their progress bars and keep the count. A tab label carries a count when there is one: `Specs 3` features in progress, `Tasks 11` open
-tasks of the active feature, `PRs 2` open pull requests. Above the footer, a dim row says what the
-tab is for and lists its keys, such as
-`every feature, its phase and progress · 1-7 tabs · ? help (h) · / filter (f) · s status · j/k scroll · r ↻ · Esc closes`. A tab with
-nothing to show says what would fill it and the command that does, for example
+```text
+🧭 Astrolabe · ◆ 002 shopping-cart · feature.json                       [ ✕ ]
+ 1 Specs 2   2 Tasks 11   3 Session ▲   4 PRs 1   5 Setup
+ h: help  f: filter  s: in progress  o: by progress  p: priority  r: refresh
+────────────────────────────────────────────────────────────────────────
+```
+
+| Tab | What it holds |
+|---|---|
+| 1 Specs | Every feature in sections: Active, In progress, Early, Ready to close, Next up, Done and Abandoned (the last two fold). The selected spec is a block: its row, what it needs (`11 left · ? 1 question · checklist 2 open`), the next command, copy, advisor, and gstack's skills for its phase. |
+| 2 Tasks | The active feature's open tasks: a header with what is left (`002 shopping-cart · implement · 9/20 · ≈1h20m left`), a warning when open tasks pass the 5h reset, the current task bold with `◷ 4m12s` at the right edge and its files under it, each user story with its count (`US3 Cart page 0/5`), `[P]` runs as a `┐ ┤ ┘` bracket, done tasks folded. |
+| 3 Session | Usage as 20-cell bars with `┊` ticks at the governor levels, the governor (state, queue with run buttons, `l` allow, `v` revoke), the project and activity rows, the updates with an install button each, then the Dashboard: dial, phases, the usage chart and the numbers. |
+| 4 PRs | The open pull requests as a table: number and title (a link), draft, labels, review state and checks as `✓ ✖ ◷` cells, with approve, update and merge buttons that ask for a second press. |
+| 5 Setup | Every Astrolabe option under Look, Usage governor, Claude and Integrations, then the model per skill. A value that differs from its default carries `•`, and its default shows on hover. Changes save to the mod store; nothing writes `settings.json`. |
+
+Help is not a tab. `?` (pressed as `h`) opens it over the tab you are on, and a tab key or `h`
+again closes it. A tab stored by an earlier version maps to its new tab: `dashboard` opens
+Session, `config` and `models` open Setup.
+
+In a fullscreen terminal the pane docks at the right; otherwise it sits above the prompt. It
+opens with the keyboard on it, so `1` to `5` switch tabs right away, and Esc closes it. Later,
+focus it again with a click or `ctrl+x tab`. The tab you pick stays for the session, and the next
+session of the same project opens on it.
+
+The second row of the pane is the tabs and nothing else. The third row holds the keys of the tab
+shown, each drawn by its own button as `key: verb`: `/` (pressed as `f`) puts the cursor in one
+filter that keeps the rows holding what you type (a filter that keeps nothing says so), `s` cycles
+the status filter (all, in progress, next up, done, abandoned), `o` the order, `p` the priority of
+the active spec, `c` clears the filter, `r` refreshes, `m` copies the Dashboard's numbers. From 80
+columns the row below the body ends with `updated 14:32`, when Astrolabe last wrote what the tabs
+show; `✕` closes the pane.
+
+The pane's title names the active feature the way the band and the footer do, and why it is the
+active one: `🧭 Astrolabe · ◆ 026 claude-context · feature.json` (or `branch`, or `highest open
+spec`; a `~` before the id means the feature is a guess). A tab label carries a count only when
+something waits on you: `Specs 3` features in progress, `Tasks 11` open tasks of the active
+feature, `PRs 2` open pull requests, and `Session ▲` while the governor holds or pauses. Below 80
+columns a tab shows only its number and count (`2·11`), and below 60 the Specs rows drop their
+progress bars. Above the footer, a dim row says what the tab is for and lists its keys, such as
+`every feature, its phase and progress · 1-5 tabs · h help · f filters · s status · j/k scroll · r ↻ · Esc closes`.
+A tab with nothing to show says what would fill it and the command that does, for example
 `No active feature. Run /speckit-specify to start one.`
 
 Times in the governor rows read clock first, then the distance (`until 14:00, in 2h13m`). The footer's Spec Kit chip, when a narrow pane cuts it, shows its whole text above the row while the pointer is over it. During your first three sessions the footer also ends with a `/astrolabe help` chip, the first one a narrow footer drops. The PRs tab adds who opened each pull request and how long ago (`@jonyfs 3d`).
 
-`r` (or the `↻ r` button) refreshes the pane now: it re-reads the specs, git, the worktrees, this
+`r` refreshes the pane now: it re-reads the specs, git, the worktrees, this
 branch's pull request and, on the PRs tab, the open pull requests. Ctrl+R is not a key a pane
 button can take, so the key is `r`. When a turn ended ten minutes ago and nothing has happened
 since, the idle poller does the same refresh by itself, so a dimmed band and a stale pane catch

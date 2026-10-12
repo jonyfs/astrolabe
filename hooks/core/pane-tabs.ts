@@ -1,6 +1,7 @@
 // The pane's five tabs, what each counts and which keys it offers (066). Pure: no $.
 import type { TextKey } from './i18n'
-import type { PaneTab } from './types'
+import { activeMark } from './status-text'
+import type { PaneTab, SpeckitState } from './types'
 
 export const TABS: ReadonlyArray<{ tab: PaneTab; label: TextKey; hotkey: string }> = [
   { tab: 'specs', label: 'tab.specs', hotkey: '1' },
@@ -78,3 +79,12 @@ const BY_TAB: Readonly<Record<PaneTab, readonly LegendKey[]>> = {
 
 export const legendOf = (tab: PaneTab, opts: { wide: boolean }): LegendPair[] =>
   BY_TAB[tab].map(id => ({ id, hotkey: HOTKEY[id], verb: (opts.wide ? FULL : SHORT)[id] }))
+
+const WHY = { 'feature.json': 'feature.json', branch: 'branch', latest: 'highest open spec' } as const
+
+/** The pane's title: the active feature the way the band names it, and why it is active (066 #30). */
+export const paneTitle = (state: Pick<SpeckitState, 'active' | 'activeWarning'> | undefined): string => {
+  const base = '🧭 Astrolabe'
+  if (state?.active === undefined) return base
+  return `${base} · ${activeMark(state)} ${state.active.name} · ${WHY[state.active.source]}`
+}

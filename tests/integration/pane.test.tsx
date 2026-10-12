@@ -25,7 +25,7 @@ describe('the /astrolabe command (US1)', () => {
     const ran = await $.command.run({ command: 'astrolabe', args: '' } as never)
     expect((ran as { text?: string }).text).toBe('Astrolabe pane opened.')
     // Typed by the person: focused, so 1, 2 and 3 work at once, and Esc closes it.
-    expect(pane.opened).toEqual([{ id: 'astrolabe', title: '🧭 Astrolabe · ◆ 002 band-hint', focus: true, closeOnEscape: true }])
+    expect(pane.opened).toEqual([{ id: 'astrolabe', title: '🧭 Astrolabe · ◆ 002 band-hint · feature.json', focus: true, closeOnEscape: true }])
   })
 })
 
@@ -253,7 +253,7 @@ describe('extensions and parallel tasks (020c)', () => {
     await startSession($ as never, '/proj')
     const ui = await mountPane($ as never, 'terminal')
     await ui.press('tab-tasks')
-    expect(await ui.body()).toContain('┌ T002 b')
+    expect(await ui.body()).toContain('┘ P')
     await ui.press('tab-session')
     expect(await ui.body()).toContain(`hooks after${' '.repeat(paneLabelWidth('en') - 'hooks after'.length)}/speckit-git-commit (optional)`)
     await ui.unmount()
@@ -299,6 +299,28 @@ describe('pane navigation (043)', () => {
   })
 })
 
+
+describe('every tab at 60, 80 and 100 pane columns (066 #21)', () => {
+  for (const surface of SURFACES) {
+    test(`${surface}: the five tabs draw, and the tab row shrinks to numbers and badges below 80 columns`, async ($, on) => {
+      await setup($ as never, on as never)
+      for (const columns of [60, 80, 100]) {
+        const ui = await mountPane($ as never, surface, columns)
+        const tabs = await ui.tabs()
+        if (columns >= 100) expect(tabs).toContain('Specs')
+        if (columns < 80) expect(tabs).not.toContain('Specs')
+        for (const tab of ['specs', 'tasks', 'session', 'prs', 'setup']) {
+          await ui.press(`tab-${tab}`)
+          expect(await ui.body()).not.toBe('')
+        }
+        // The keys are a row of their own, not part of the tab row.
+        expect(await ui.find({ key: 'astrolabe-pane-keys' })).toBeDefined()
+        expect(tabs).not.toContain('filter')
+        await ui.unmount()
+      }
+    })
+  }
+})
 
 describe('pane navigation, part two (043)', () => {
   test('#22: the last tab of this project opens next session', async ($, on) => {

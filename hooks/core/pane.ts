@@ -89,6 +89,25 @@ const featureRow = (f: Feature, isActive: boolean, columns: number, ctx: RowCont
   return { key: `feature-${f.id}`, text, role }
 }
 
+/** The sections in the order the Specs tab draws them (066 #25). */
+export const SECTIONS = ['active', 'progress', 'early', 'close', 'next', 'done', 'abandoned'] as const
+export type Section = (typeof SECTIONS)[number]
+
+/**
+ * The section a feature is drawn in (066 #25): the active one; in progress (ticks or implementing);
+ * early (specify, clarify); ready to close (every task ticked, still active); next up (planned);
+ * done; abandoned.
+ */
+export const displaySectionOf = (f: Pick<Feature, 'phase' | 'dir' | 'done' | 'total'>, activeDir: string | undefined): Section => {
+  if (f.phase === 'done') return 'done'
+  if (f.phase === 'abandoned') return 'abandoned'
+  if (f.dir === activeDir) return 'active'
+  if (f.phase === 'implement' && f.total > 0 && f.done >= f.total) return 'close'
+  if (f.done > 0 || f.phase === 'implement') return 'progress'
+  if (f.phase === 'specify' || f.phase === 'clarify') return 'early'
+  return 'next'
+}
+
 /** Which section a feature belongs to (044): working on it, next up, done, abandoned. */
 export const sectionOf = (f: Pick<Feature, 'phase' | 'dir' | 'done'>, activeDir: string | undefined): 'progress' | 'next' | 'done' | 'abandoned' =>
   f.phase === 'done' ? 'done' : f.phase === 'abandoned' ? 'abandoned' : f.dir === activeDir || f.done > 0 || f.phase === 'implement' ? 'progress' : 'next'
@@ -159,9 +178,9 @@ const buildSpecsRows = (
   const rows: PaneRow[] = []
   const shown = new Set<string>()
   // Sections by status (044), each only when it has features.
-  for (const section of ['progress', 'next', 'done', 'abandoned'] as const) {
+  for (const section of SECTIONS) {
     // Within a section, high priority first and low last (051).
-    const inSection = byPriority(sortFeatures(state.features.filter(f => sectionOf(f, activeDir) === section), sort), priorities)
+    const inSection = byPriority(sortFeatures(state.features.filter(f => displaySectionOf(f, activeDir) === section), sort), priorities)
     if (inSection.length === 0) continue
     const folded = fold && (section === 'done' || section === 'abandoned') && inSection.length > 3 && !inSection.some(f => f.dir === activeDir)
     rows.push({ key: `section-${section}`, text: `${tr(lang, `pane.section.${section}`)} (${inSection.length})${folded ? ` · ${tr(lang, 'pane.folded.section', { status: section })}` : ''}`, role: 'muted', bold: true })
@@ -279,6 +298,13 @@ export const moveSpecSelection = (
   return to === from && found >= 0 ? undefined : rows[to]?.key
 }
 
+/** A section heading as the story it names: `Phase 3: User Story 3 - Cart page (P1)` reads `US3 Cart page`. */
+export const storyLabel = (heading: string): string => {
+  const m = /User Story\s+(\d+)(?:\s*[-–—:]\s*(.+?))?(?:\s*\([^)]*\))?\s*$/i.exec(heading)
+  if (m === null) return heading
+  return m[2] === undefined ? `US${m[1]}` : `US${m[1]} ${m[2]}`
+}
+
 export const taskRows = (
   state: SpeckitState,
   memo: SessionMemo,
@@ -297,7 +323,10 @@ export const taskRows = (
   // Which feature these are, its phase and its count (052 #17).
   const phase = state.features.find(f => f.dir === active.dir)?.phase
   const count = tr(lang, 'pane.count', { done: tasks.length - open.length, total: tasks.length })
-  const out: PaneRow[] = [{ key: 'count', text: cut([`${active.id} ${active.name}`, phase, count].filter(x => x !== undefined).join(' · '), columns), role: 'muted' }]
+  // What is left at the pace of the tasks done so far this session (066 #9 of the board): two samples at least.
+  const samples = times.filter(x => x.dir === active.dir && x.ms > 0)
+  const estimate = samples.length >= 2 && open.length > 0 ? tr(lang, 'pane.estimate', { time: duration(Math.round(samples.reduce((n, x) => n + x.ms, 0) / samples.length) * open.length) }) : undefined
+  const out: PaneRow[] = [{ key: 'count', text: cut([`${active.id} ${active.name}`, phase, count, estimate].filter(x => x !== undefined).join(' · '), columns), role: 'muted' }]
   if (tasks.length === 0) {
     let requirementsShown = false
     // Quick specs show their Requirements as a checklist (045 #49).
@@ -340,11 +369,12 @@ export const taskRows = (
   if (parallel.length > 0 && !bracketed) out.push({ key: 'parallel', text: tr(lang, 'pane.parallel', { ids: parallel.join(', ') }), role: 'accent' })
   // [P] tasks (045 #43): a run of them is bracketed, a lone one is marked ⇉.
   const isP = (i: number) => shown[i]?.text.includes('[P]') === true
-  const groupOf = (i: number): string => {
+  // A run draws a bracket at the right edge (┐ ┤ ┘ with P); a lone one is a P (066, board 3).
+  const bracketOf = (i: number): string => {
     if (!isP(i)) return ''
     const before = isP(i - 1)
     const after = isP(i + 1)
-    return before && after ? '│ ' : before ? '└ ' : after ? '┌ ' : '⇉ '
+    return before && after ? '┤ P' : before ? '┘ P' : after ? '┐ P' : 'P'
   }
   // Ids padded to the widest shown, so the text column lines up (052 #22).
   const taskIdWidth = idWidth(shown.flatMap(t => (t.id === undefined ? [] : [t.id])), 0)
@@ -367,14 +397,14 @@ export const taskRows = (
       story = t.story
       // Each story carries its own count (052 #18).
       const inStory = tasks.filter(x => x.story === t.story)
-      out.push({ key: `story-${t.line ?? index}`, text: cut(`${t.story} · ${inStory.filter(x => x.isDone).length}/${inStory.length}`, columns), role: 'muted' })
+      out.push({ key: `story-${t.line ?? index}`, text: cut(`${storyLabel(t.story)} ${inStory.filter(x => x.isDone).length}/${inStory.length}`, columns), role: 'muted' })
     }
     // The task being worked on (045 #42): marked, with how long it has run.
     const current = state.currentTask
     const isCurrent = current !== undefined && t.id !== undefined && current.id === t.id
     const ran = isCurrent && now !== undefined && current.startedAt !== undefined ? duration(now - current.startedAt) : ''
-    const clock = ran === '' ? '' : `${STATE_GLYPHS.elapsed} ${ran}`
-    const head = `${isCurrent ? '▸ ' : ''}${groupOf(index)}${t.id === undefined ? '' : `${padId(t.id, taskIdWidth)} `}`
+    const clock = ran === '' ? bracketOf(index) : `${STATE_GLYPHS.elapsed} ${ran}`
+    const head = `${isCurrent ? '▸ ' : ''}${t.id === undefined ? '' : `${padId(t.id, taskIdWidth)} `}`
     // The ◷ sits at the right edge, the current row in bold (052 #20).
     const body = `${head}${cut(cleanTaskText(t.text), columns - width(head) - width(clock) - (clock === '' ? 0 : 2))}`.trimEnd()
     const line = clock === '' ? body : `${body}${' '.repeat(Math.max(2, columns - width(body) - width(clock)))}${clock}`

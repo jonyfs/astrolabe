@@ -205,7 +205,7 @@ export const paneTree = (
           if (tab !== 'specs' || row.selected !== true || extras.rowButtons === undefined || extras.rowButtons.length === 0) return [node]
           return [
             node,
-            ...(extras.rowDetail === undefined ? [] : [<Text key={`${row.key}-detail`} color={tokens.muted} wrap="truncate-end">{`    ${m(extras.rowDetail)}`}</Text>]),
+            ...(extras.rowDetail === undefined ? [] : [<Text key={`${row.key}-detail`} color={tokens.text} backgroundColor={tokens.barEmpty} wrap="truncate-end">{`    ${m(extras.rowDetail)}`}</Text>]),
             <Box key={`${row.key}-buttons`} flexDirection="row">
               <Text>{'  '}</Text>
               {extras.rowButtons.map(button => (
