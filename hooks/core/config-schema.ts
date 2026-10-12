@@ -11,8 +11,18 @@ export interface ConfigOption {
   max?: number;
 }
 
+// The known userConfig keys, so `schema.options.preset` & friends stay defined under
+// noUncheckedIndexedAccess.
+type KnownOptions = Record<
+  | 'preset' | 'flavor' | 'checkUpdates' | 'governUsage' | 'governThresholds' | 'quietHours'
+  | 'observeUsage' | 'icons' | 'language' | 'askOnLimit' | 'claudeContext' | 'featureSummary'
+  | 'humanize' | 'terse' | 'skillModels' | 'accessible' | 'footerIn' | 'footerLines'
+  | 'footerSeparator' | 'autoReload' | 'images' | 'pullRequest' | 'bandDensity',
+  ConfigOption
+>;
+
 export interface ConfigSchema {
-  options: Record<string, ConfigOption>;
+  options: Record<string, ConfigOption> & KnownOptions;
   version: string;
 }
 
@@ -23,7 +33,7 @@ function inferType(option: any): 'string' | 'number' | 'boolean' | 'enum' {
   return 'string';
 }
 
-function parseUserConfig(userConfig: any): ConfigSchema {
+function parseUserConfig(userConfig: Record<string, unknown>): ConfigSchema {
   const options: Record<string, ConfigOption> = {};
 
   for (const [key, value] of Object.entries(userConfig)) {
@@ -50,7 +60,7 @@ function parseUserConfig(userConfig: any): ConfigSchema {
   }
 
   return {
-    options,
+    options: options as ConfigSchema['options'],
     version: pluginJson.version,
   };
 }

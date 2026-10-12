@@ -101,6 +101,7 @@ export const ABOUT: Readonly<Record<PaneTab, TextKey>> = {
   help: 'help.helpTab',
   config: 'help.configTab',
   prs: 'help.prsTab',
+  models: 'help.modelsTab',
 }
 
 // The help text built once per language and option set, not on every render (054 #2).

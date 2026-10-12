@@ -27,6 +27,7 @@ import { capDiff, DIFF_FOLD_MS, foldedDiff, recapLine, recapOf, tasksDiff } from
 import { styleSections } from './core/style'
 import { ageOf, parsePullList, prOpened, pullAction, PR_LIST_FIELDS } from './core/pulls'
 import { skillModelFor } from './core/skill-models'
+import { getAllSkills } from './core/skill-model-map'
 import { featureDirFor, mergedBranches, parseWorktrees, uncommittedCount, withWorktreeProgress, worktreeName, worktreeState } from './core/worktrees'
 import { readFeature } from './io/snapshot'
 import { deriveSpeckitState, snapshotFromMemo } from './core/speckit'
@@ -154,7 +155,19 @@ let statusTimer: ReturnType<EngineInterface['clock']['after']> | undefined
 let pendingStatus: Held['state'] | undefined
 
 /** The window an override is given for: the one binding now (016); none known, every window. */
-const kindOf = (usage: UsageState, now: number, governThresholds?: Record<string, { hold?: number; stop?: number }): { kind?: string } => {
+type GovernThresholdsMap = Record<string, { hold?: number; stop?: number }>
+// The parsed options, set in register (047 #66, #67).
+let governThresholds: GovernThresholdsMap = {}
+let quietHours: { start: number; end: number } | null = null
+const isQuietHours = (): boolean => {
+  if (quietHours === null) return false
+  const now = new Date()
+  const minutes = now.getHours() * 60 + now.getMinutes()
+  return quietHours.start <= quietHours.end
+    ? minutes >= quietHours.start && minutes < quietHours.end  // e.g., 09:00-17:00
+    : minutes >= quietHours.start || minutes < quietHours.end // e.g., overnight 22:00-06:00
+}
+const kindOf = (usage: UsageState, now: number, governThresholds?: GovernThresholdsMap): { kind?: string } => {
   const kind = decide(usage.readings, usage.history, usage.override, now, usage.holdLift, usage.held, governThresholds).highest?.kind
   return kind === undefined ? {} : { kind }
 }
@@ -646,6 +659,30 @@ function configBody(
   return rows
 }
 
+/** The Models tab's rows (030), [ Skill · category · tier · model · effort ], auto mode's ▸ on the skill running now. */
+function modelSkillTabBody(
+  $: Parameters<Hook<'ui.render'>>[0],
+  e: Parameters<Hook<'ui.render'>>[1],
+  _pane: PaneState,
+): Array<{ node: RenderNode; rows: number }> {
+  const { Text } = $.ui.resolve(e)
+  const lang = currentLang()
+  const auto = skillModels === 'auto'
+  const active = getSkillRunning()
+  const tierColour: Record<string, ThemeRole> = { 'deep-reasoning': 'pending', 'balanced-coding': 'accent', 'fast-lightweight': 'done' }
+  const rows: Array<{ node: RenderNode; rows: number }> = []
+  for (const category of ['speckit', 'gstack'] as const) {
+    rows.push({ rows: 1, node: <Text key={`models-${category}`} color={tokens0.accent} bold>{t(lang, `models.category.${category}`)}</Text> })
+    for (const skill of getAllSkills().filter(s => s.category === category)) {
+      const running = auto && active === skill.skill
+      const text = `${running ? '▸' : ' '} ${skill.skill}  ${skill.tier}  ${skill.model}  ${skill.effort}`
+      rows.push({ rows: 1, node: <Text key={`skill-${skill.skill}`} color={running ? tokens0.current : tokens0[tierColour[skill.tier] ?? 'text']}>{text}</Text> })
+    }
+  }
+  rows.push({ rows: 1, node: <Text color={tokens0.muted}>{auto ? t(lang, 'models.autoModeActive', { active: active ?? t(lang, 'models.idle') }) : t(lang, 'models.autoModeOff')}</Text> })
+  return rows
+}
+
 /** Applies the Config tab's changes through $.config.set (028); options reload the mod. */
 /** The options' defaults from our own plugin.json (054 #63). */
 async function defaults($: EngineInterface): Promise<Record<string, string | number | boolean>> {
@@ -916,7 +953,7 @@ async function openPane($: EngineInterface): Promise<void> {
   const title = state?.active === undefined ? PANE_TITLE : `${PANE_TITLE} · ${activeMark(state)} ${state.active.name}`
   
   // When preset.pane is 'command', the pane is not available; show command palette toast instead (048 #76).
-  if (preset.pane === 'command') {
+  if (presetOf(optionsSeen).pane === 'command') {
     const palette = commandPaletteText(currentLang())
     await showToast($, palette)
     return
@@ -1020,7 +1057,7 @@ function paneHeader(
     // Breadcrumb row (043 #24): Specs › 026 claude-context
     if (pane.tab === 'specs' && active !== undefined && state.root !== undefined && elements.Text !== undefined) {
       out.push(
-        <elements.Text key="astrolabe-breadcrumb" color={tokens0.muted} size="small">{`Specs › ${active.id} ${active.name}`}</elements.Text>
+        <elements.Text key="astrolabe-breadcrumb" color={tokens0.muted}>{`Specs › ${active.id} ${active.name}`}</elements.Text>
       )
     }
     if (pane.tab === 'specs' && Markdown !== undefined && active !== undefined && state.activeSummary !== undefined && state.root !== undefined) {
@@ -1357,6 +1394,8 @@ function fsOf($: EngineInterface): Fs {
     read: path => $.fs.read(path) as Promise<string>,
     list: path => $.fs.list(path),
     exists: path => $.fs.exists(path),
+    stat: path => $.fs.stat(path),
+    write: (path, text) => $.fs.write(path, text),
   }
 }
 
@@ -2044,9 +2083,9 @@ export const register: Register = (on, options) => {
   observes = options['observeUsage'] === true || options['governUsage'] === 'observe'
   governs = !observes && options['governUsage'] !== false && options['governUsage'] !== 'off'
   asks = governs && options['askOnLimit'] !== false
-  const governThresholds = typeof options['governThresholds'] === 'string' ? (() => { try { return JSON.parse(options['governThresholds'] as string) } catch { return {} } })() : {}
+  governThresholds = typeof options['governThresholds'] === 'string' ? (() => { try { return JSON.parse(options['governThresholds'] as string) as GovernThresholdsMap } catch { return {} } })() : {}
   // Quiet hours (047 #67): a local-time window never to ask, always apply the default.
-  const quietHours = (() => {
+  quietHours = (() => {
     if (typeof options['quietHours'] !== 'string' || options['quietHours'].trim() === '') return null
     const [start, end] = options['quietHours'].split('-').map(s => s.trim())
     if (start === undefined || end === undefined) return null
@@ -2060,14 +2099,6 @@ export const register: Register = (on, options) => {
     if (startM === null || endM === null) return null
     return { start: startM, end: endM }
   })()
-  const isQuietHours = (): boolean => {
-    if (quietHours === null) return false
-    const now = new Date()
-    const minutes = now.getHours() * 60 + now.getMinutes()
-    return quietHours.start <= quietHours.end
-      ? minutes >= quietHours.start && minutes < quietHours.end  // e.g., 09:00-17:00
-      : minutes >= quietHours.start || minutes < quietHours.end // e.g., overnight 22:00-06:00
-  }
   pullRequests = options['pullRequest'] === true
   accessible = options['accessible'] === true
   claudeContext = options['claudeContext'] !== false
@@ -2757,8 +2788,11 @@ export const register: Register = (on, options) => {
 
   // Two-step Enter confirmation for spec selection (044 #38): first Enter selects, second Enter confirms and writes feature.json.
   on('ui.input', { component: 'Pane', requestId: PANE_ID }, async ($, e) => {
-    if (e.key !== 'Enter' || pane.tab !== 'specs' || specSelectionRows.length === 0) return {}
-    const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
+    const pane = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
+    if (e.kind !== 'submit' || pane.tab !== 'specs' || specSelectionRows.length === 0) return e
+    const held = pane
+    const state = (await $.state.get(SPECKIT)).value
+    if (state === undefined) return e
     const activeSpecFeature = state.features.find(feature => feature.dir === state.active?.dir)
     const preferredSelection = pane.selectedFeature === undefined
       ? activeSpecFeature === undefined ? undefined : `feature-${activeSpecFeature.id}`
@@ -2766,12 +2800,12 @@ export const register: Register = (on, options) => {
     const currentSelected = specSelectionRows.some(row => row.key === preferredSelection)
       ? preferredSelection
       : specSelectionRows[0]?.key
-    if (currentSelected === undefined) return {}
+    if (currentSelected === undefined) return e
     // First Enter: select the spec (show confirm prompt)
     if (held.confirmSelecting !== currentSelected) {
       await $.state.set(PANE_STATE, { ...held, confirmSelecting: currentSelected })
       await showToast($, t(currentLang(), 'specs.confirmSelect', { id: currentSelected.slice('feature-'.length) }))
-      return {}
+      return e
     }
     // Second Enter: confirm and write feature.json
     await $.state.set(PANE_STATE, { ...held, confirmSelecting: undefined })
@@ -2781,25 +2815,28 @@ export const register: Register = (on, options) => {
       await $.store.set(`feature:${state.root}`, dir).catch(() => undefined)
       await showToast($, t(currentLang(), 'specs.selected', { id: dir, name: feature.name }))
     }
-    return {}
+    return e
   })
 
   // Two-step Enter confirmation for task tick (045 #46): first Enter selects task, second confirms tick.
   on('ui.input', { component: 'Pane', requestId: PANE_ID }, async ($, e) => {
-    if (e.key !== 'Enter' || pane.tab !== 'tasks' || state.active === undefined) return {}
-    const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
+    const pane = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
+    if (e.kind !== 'submit' || pane.tab !== 'tasks') return e
+    const state = (await $.state.get(SPECKIT)).value
+    if (state?.active === undefined) return e
+    const held = pane
     const tasks = state.activeTasks ?? []
     const openTasks = tasks.filter(t => !t.isDone && t.id !== undefined)
-    if (openTasks.length === 0) return {}
+    if (openTasks.length === 0) return e
     // Find the currently selected task row (highlighted)
     const currentTask = state.currentTask
     const currentTaskId = currentTask?.id
-    if (currentTaskId === undefined) return {}
+    if (currentTaskId === undefined) return e
     // First Enter: select the task (show confirm prompt)
     if (held.confirmSelecting !== `task-${currentTaskId}`) {
       await $.state.set(PANE_STATE, { ...held, confirmSelecting: `task-${currentTaskId}` })
       await showToast($, t(currentLang(), 'tasks.confirmTick', { id: currentTaskId }))
-      return {}
+      return e
     }
     // Second Enter: confirm and tick the task
     await $.state.set(PANE_STATE, { ...held, confirmSelecting: undefined })
@@ -2812,14 +2849,14 @@ export const register: Register = (on, options) => {
       const lines = content.split('\n')
       if (task.line > 0 && task.line <= lines.length) {
         const line = lines[task.line - 1]
-        if (line.includes('[ ]')) {
+        if (line !== undefined && line.includes('[ ]')) {
           lines[task.line - 1] = line.replace('[ ]', '[x]')
-          await fs.write(taskFile, lines.join('\n'))
+          await fs.write?.(taskFile, lines.join('\n'))
           await showToast($, t(currentLang(), 'tasks.ticked', { id: currentTaskId }))
         }
       }
     }
-    return {}
+    return e
   })
 
   on('ui.render', { component: 'Pane', requestId: PANE_ID }, async ($, e) => {
@@ -2847,7 +2884,7 @@ export const register: Register = (on, options) => {
         : pane.tab === 'session'
           ? await sessionTabRows($, state, usage, stats, updates)
           : [
-              ...(await specsRows(
+              ...specsRows(
                 { ...filtered(state, pane.filter, pane.status, specFilterContext(stats)), features: withWorktreeProgress(filtered(state, pane.filter, pane.status, specFilterContext(stats)).features, stats?.worktrees) },
                 columns,
                 currentLang(),
@@ -2857,7 +2894,9 @@ export const register: Register = (on, options) => {
                 stats?.worktrees?.map(w => ({ name: w.name, id: w.id, featureName: w.featureName, phase: w.phase, done: w.done, total: w.total, status: worktreeState(w) })) ?? [],
                 e.surface === 'desktop',
                 pane.sort ?? 'status',
-              )),
+                // Roadmap view (044 #40): read here, the core stays pure.
+                state.root === undefined ? undefined : await $.fs.read(`${state.root}/docs/roadmap.md`).catch(() => undefined),
+              ),
             ]
     // A filter that keeps nothing says so (052 #7).
     const matchesNone =

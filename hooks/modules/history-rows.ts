@@ -6,7 +6,7 @@ import { t, type Lang } from '../core/i18n'
 /** The Dashboard's rows from 021: task history, feature durations, this week. */
 export function historyRows(
   stats: SessionStats,
-  feature: { dir: string; done: number; total: number } | undefined,
+  feature: { dir: string; id: string; done: number; total: number } | undefined,
   featureDurations: readonly FeatureDuration[] = [],
   lang: Lang = 'en',
 ): Array<[string, string]> {

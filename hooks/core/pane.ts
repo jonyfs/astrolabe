@@ -2,6 +2,7 @@
 import { t as tr, type Lang, type TextKey } from './i18n'
 import { formatElapsed, cleanTaskText } from './spinner'
 import { parallelTasks } from './extensions'
+import { ageOf } from './pulls'
 import { fileUrl } from './paths'
 import { byPriority, priorityMark, taskFiles, type Priorities, type Priority } from './spec-actions'
 import { parseTasks } from './tasks-parser'
@@ -205,7 +206,7 @@ const buildSpecsRows = (
 let specsRowsCache: { key: string; rows: PaneRow[] } | undefined
 
 /** Reuse the Specs rows until the memo version or any drawing input changes (054 #3). */
-export const specsRows = async (
+export const specsRows = (
   state: SpeckitState,
   columns: number,
   lang: Lang = 'en',
@@ -215,7 +216,9 @@ export const specsRows = async (
   worktreeRows: ReadonlyArray<{ name: string; id: string; featureName: string; phase: string; done: number; total: number; status: string }> = [],
   wrapLongNames = false,
   sort: SpecSort = 'status',
-): Promise<PaneRow[]> => {
+  /** docs/roadmap.md's text, read by the caller (io is not pure); absent when none. */
+  roadmap?: string,
+): PaneRow[] => {
   if (state.memoVersion === undefined) return buildSpecsRows(state, columns, lang, priorities, worktrees, fold, worktreeRows, wrapLongNames, sort)
   const key = JSON.stringify([
     state.root,
@@ -242,20 +245,14 @@ export const specsRows = async (
     worktreeRows,
     wrapLongNames,
     sort,
+    roadmap,
   ])
   if (specsRowsCache?.key === key) return specsRowsCache.rows
   const rows = buildSpecsRows(state, columns, lang, priorities, worktrees, fold, worktreeRows, wrapLongNames, sort)
   // Roadmap view (044 #40): show items from docs/roadmap.md not yet specs.
-  if (state.root !== undefined) {
-    try {
-      const fs = await import('fs/promises')
-      const roadmapPath = `${state.root}/docs/roadmap.md`
-      const roadmap = await fs.readFile(roadmapPath, 'utf-8')
-      const roadmapRows = parseRoadmap(roadmap, state.features, columns, lang)
-      if (roadmapRows.length > 0) rows.push(...roadmapRows)
-    } catch {
-      // No roadmap or unreadable
-    }
+  if (roadmap !== undefined) {
+    const roadmapRows = parseRoadmap(roadmap, state.features, columns, lang)
+    if (roadmapRows.length > 0) rows.push(...roadmapRows)
   }
   specsRowsCache = { key, rows }
   return rows
@@ -294,6 +291,11 @@ export const taskRows = (
   if (!state.present) return [noSpeckit(lang)]
   if (active === undefined) return [{ key: 'none', text: tr(lang, 'pane.noActive'), role: 'muted' }]
   const tasks = state.activeTasks ?? parseTasks(memo.files[active.dir]?.tasks ?? '')
+  const open = tasks.filter(t => !t.isDone)
+  // Which feature these are, its phase and its count (052 #17).
+  const phase = state.features.find(f => f.dir === active.dir)?.phase
+  const count = tr(lang, 'pane.count', { done: tasks.length - open.length, total: tasks.length })
+  const out: PaneRow[] = [{ key: 'count', text: cut([`${active.id} ${active.name}`, phase, count].filter(x => x !== undefined).join(' · '), columns), role: 'muted' }]
   if (tasks.length === 0) {
     // Quick specs show their Requirements as a checklist (045 #49).
     const feature = state.features.find(f => f.dir === active.dir)
@@ -311,16 +313,11 @@ export const taskRows = (
           // Show Requirements as a checklist
           const requirementsText = reqTasks.map((t, i) => `${t.isDone ? '☑' : '☐'} ${t.text}`).join('\n')
           out.push({ key: 'requirements', text: cut(`${tr(lang, 'pane.requirements')}:`, columns), role: 'muted' })
-          out.push({ key: 'requirements-list', text: requirementsText })
+          out.push({ key: 'requirements-list', text: requirementsText, role: 'text' })
         }
       }
     }
   }
-  const open = tasks.filter(t => !t.isDone)
-  // Which feature these are, its phase and its count (052 #17).
-  const phase = state.features.find(f => f.dir === active.dir)?.phase
-  const count = tr(lang, 'pane.count', { done: tasks.length - open.length, total: tasks.length })
-  const out: PaneRow[] = [{ key: 'count', text: cut([`${active.id} ${active.name}`, phase, count].filter(x => x !== undefined).join(' · '), columns), role: 'muted' }]
   if (open.length === 0) return [...out, { key: 'all-done', text: tr(lang, 'pane.allTicked'), role: 'done' }]
   // Done tasks folded under one row (045 #41).
   const done = tasks.filter(t => t.isDone && t.id !== undefined).map(t => t.id!)
@@ -606,6 +603,7 @@ export const parseRoadmap = (roadmap: string, features: readonly Feature[], colu
       const parts = line.split('|').map(p => p.trim()).filter(p => p !== '')
       if (parts.length >= 3) {
         const specNum = parts[0]
+        if (specNum === undefined) continue
         const theme = parts[1]
         const what = parts[2]
         // Check if this spec already exists as a feature

@@ -64,7 +64,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
       - name: Run benchmark
-        run: npm run benchmark -- --output results/benchmark.json
+        run: npm run benchmark -- --baseline .benchmark-baseline.json --output results/benchmark.json
       - name: Upload benchmark results
         uses: actions/upload-artifact@v4
         with:
