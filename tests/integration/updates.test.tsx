@@ -65,6 +65,20 @@ describe('update checks (US1)', () => {
     expect(session.fetches.length).toBe(1)
   })
 
+  test('a project without Spec Kit still draws the update button (065 review)', async ($, on) => {
+    const session = installTree(on as never, { '/proj/README.md': 'x\n', [GSTACK]: '#!/bin/sh\n' }, '/proj', { welcomed: 'seeded' })
+    installEngine(on as never)
+    installRenderEngine(on as never)
+    await session.clock.set(NOON)
+    session.script.env.HOME = HOME
+    session.script.processes[GSTACK] = { stdout: 'UPGRADE_AVAILABLE 1.91.32.0 1.91.33.0\n' }
+    await startSession($ as never, '/proj')
+    await session.clock.advance(1000)
+    await session.clock.settle()
+    const band = await drawBand($ as never, 'terminal', 160)
+    expect(JSON.stringify(band.tree)).toContain('⬆')
+  })
+
   test('all current: no row', async ($, on) => {
     const { session, go } = await start($ as never, on as never)
     allCurrent(session)

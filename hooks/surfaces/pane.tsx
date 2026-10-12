@@ -90,8 +90,8 @@ export const paneTree = (
           <Box key="astrolabe-pane-keys-row" flexDirection="row">
             {extras.onHelp !== undefined && <Button key="help-key" label={extras.help === true ? 'close' : 'help'} hotkey={hotkeyOf('?')} plain onPress={() => extras.onHelp!()} />}
             {extras.onHelp !== undefined && <Text> </Text>}
-            {extras.onFind !== undefined && verb('filter') !== undefined && <Button key="find" label={m(verb('filter')!)} hotkey={hotkeyOf('/')} plain onPress={() => extras.onFind!()} />}
-            {extras.onFind !== undefined && verb('filter') !== undefined && <Text> </Text>}
+            {extras.onFind !== undefined && <Button key="find" label={m(verb('filter') ?? 'filter')} hotkey={hotkeyOf('/')} plain onPress={() => extras.onFind!()} />}
+            {extras.onFind !== undefined && <Text> </Text>}
             {extras.status !== undefined && <Button key="status-filter" label={extras.status.label} hotkey="s" plain onPress={() => extras.status!.onPress()} />}
             {extras.status !== undefined && <Text> </Text>}
             {extras.sort !== undefined && <Button key="sort" label={extras.sort.label} hotkey="o" plain onPress={() => extras.sort!.onPress()} />}

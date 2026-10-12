@@ -982,7 +982,7 @@ async function askFork($: EngineInterface, question: string, about: string): Pro
   try {
     const reply = await $.model.fork({ prompt: `About the Spec Kit feature ${about}, answer in at most three sentences, plain text: ${question}` })
     const text = reply.isAnswered ? reply.text.trim() : t(currentLang(), 'ask.failed', { reason: reply.reason })
-    await showToast($, text, { timeoutMs: 15_000 })
+    await showToast($, text, reply.isAnswered ? { timeoutMs: 15_000 } : { timeoutMs: 15_000, kind: 'warn' })
   } catch (error) {
     $.ui.log(`astrolabe: ${error instanceof Error ? error.message : String(error)}`, { to: 'debug' })
   }
@@ -2796,7 +2796,7 @@ export const register: Register = (on, options) => {
       ...(updateText === undefined
         ? {}
         : {
-            update: { label: updateText, onPress: async () => (only === undefined ? openPane($) : runUpdate($, only.id)) },
+            update: { label: updateText, onPress: async () => (only === undefined || only.id === 'speckit-skills' ? openPane($) : runUpdate($, only.id)) },
             hide: { label: t(currentLang(), 'updates.hide'), onPress: () => hideUpdates($) },
           }),
       onLift: () => liftBand($),
@@ -2832,7 +2832,7 @@ export const register: Register = (on, options) => {
     const bandElements = { Box, Text, Button, ...('Client' in elements ? { Client: elements.Client } : {}), ...('Link' in elements ? { Link: elements.Link } : {}) }
     return (
       <Box flexDirection="column">
-        {segments.length > 0 && bandRow(
+        {(segments.length > 0 || edge.update !== undefined) && bandRow(
           bandElements,
           segments,
           tokens,
@@ -3213,7 +3213,13 @@ export const register: Register = (on, options) => {
       onClose: () => $.ui.close({ id: PANE_ID }).then(() => undefined),
       columns,
       ...(view === 'session' && e.surface === 'terminal'
-        ? { onRunQueued: async (id: string) => showToast($, await runQueued($, id)) }
+        ? {
+            onRunQueued: async (id: string) => {
+              const text = await runQueued($, id)
+              // A stale button names an id that is no longer queued: a warning, not a success.
+              await showToast($, text, /nothing queued as/.test(text) ? { kind: 'warn' } : undefined)
+            },
+          }
         : {}),
       ...(view === 'session' ? { onUpdate: async (id: string) => runUpdate($, id as UpdateId) } : {}),
       ...(view === 'session'
@@ -3356,7 +3362,7 @@ export const register: Register = (on, options) => {
           {units.slice(win.start, win.end).map(u => u.node)}
         </Box>
       )
-      return paneTree({ Box, Text, Button }, pane.tab, rows, tokens, select, body, currentLang(), [], await footerFor(pad), nav, extras)
+      return paneTree({ Box, Text, Button }, pane.tab, [], tokens, select, body, currentLang(), [], await footerFor(pad), nav, extras)
     }
     if (view === 'setup') {
       // Setup (066 #21): the options, then the model per skill.
@@ -3374,7 +3380,7 @@ export const register: Register = (on, options) => {
           {units.slice(win.start, win.end).map(u => u.node)}
         </Box>
       )
-      return paneTree({ Box, Text, Button }, pane.tab, rows, tokens, select, body, currentLang(), [], await footerFor(pad), nav, extras)
+      return paneTree({ Box, Text, Button }, pane.tab, [], tokens, select, body, currentLang(), [], await footerFor(pad), nav, extras)
     }
     if (view !== 'session') {
       const allTaskRows = view === 'tasks'

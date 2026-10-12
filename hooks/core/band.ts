@@ -28,7 +28,8 @@ export type Segment = {
 const STEPS: readonly Step[] = ['constitution', 'specify', 'clarify', 'plan', 'tasks', 'implement']
 const FEATURE_STEPS: readonly Phase[] = ['specify', 'clarify', 'plan', 'tasks', 'implement']
 
-const width = (segments: readonly Segment[]): number => segments.reduce((n, s) => n + [...s.text].length, 0)
+// A segment that is a button draws as `[ text ]`: four cells beyond its text.
+const width = (segments: readonly Segment[]): number => segments.reduce((n, s) => n + [...s.text].length + (s.action === undefined ? 0 : 4), 0)
 
 export const bandText = (segments: readonly Segment[]): string => segments.map(s => s.text).join('')
 
