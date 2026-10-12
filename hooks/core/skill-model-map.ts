@@ -1,5 +1,3 @@
-import { SkillModelConfig, SkillModelMap } from '../types/quality-distribution.js';
-
 // Model capability tiers per AI-JEDI section 12
 export type SkillTier = 'deep-reasoning' | 'balanced-coding' | 'fast-lightweight';
 export type SkillCategory = 'speckit' | 'gstack';
@@ -352,6 +350,12 @@ export function getSkillsByTier(tier: SkillTier): SkillModelConfig[] {
 
 export function getAllSkills(): SkillModelConfig[] {
   return Object.values(SKILL_MODEL_MAP);
+}
+
+export interface SkillModelMap {
+  skills: Record<string, SkillModelConfig>;
+  version: string;
+  updatedAt: string;
 }
 
 export const skillModelMap: SkillModelMap = {

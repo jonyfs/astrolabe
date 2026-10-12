@@ -62,6 +62,13 @@ export interface CaptureMetadata {
   url?: string;
 }
 
+export interface CaptureView {
+  name: string;
+  url: string;
+  actions?: Array<{ type: string; duration?: number; selector?: string }>;
+  capture: { type: 'screenshot' | 'video'; viewport: Viewport };
+}
+
 export interface CaptureArtifact {
   id: string;
   type: 'screenshot' | 'video';

@@ -66,7 +66,7 @@ export const readFeature = async (fs: Fs, root: string, dir: string, previous?: 
     ...(largeTasks ? { tasksLarge: true as const } : {}),
     ...(unreadable.length === 0 ? {} : { unreadable }),
     ...(checklists === undefined ? {} : { checklist: checklists }),
-    ...(listed === undefined || !names?.has('spec.md') ? {} : { updatedAt: (await fs.stat(joinPath(base, 'spec.md')).catch(() => undefined))?.mtime.toISOString() }),
+    ...(listed === undefined || !names?.has('spec.md') || fs.stat === undefined ? {} : { updatedAt: (await fs.stat(joinPath(base, 'spec.md')).then(s => new Date(s.mtimeMs).toISOString()).catch(() => undefined)) }),
   }
 }
 

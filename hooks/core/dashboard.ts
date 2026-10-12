@@ -39,6 +39,7 @@ export const dial = (active: Phase | undefined, tokens: Tokens): Grid => {
     tasks: tokens.accent,
     implement: tokens.current,
     done: tokens.done,
+    abandoned: tokens.pending,
   }
   for (const [i, step] of CYCLE.entries()) {
     const spot = SPOTS[step]!
@@ -197,7 +198,6 @@ export const kpiRows = (
   // A row per subagent run with its duration (046 #58).
   if (stats.subagentRuns !== undefined && stats.subagentRuns.length > 0) {
     for (const run of stats.subagentRuns.slice(-10)) {
-      const feature = stats.series.find(s => s.dir === run.dir)
       rows.push([tr(lang, 'kpi.subagentRun'), `${run.dir} ${duration(run.ms)} at ${clockOf(new Date(run.at).toISOString()) ?? ''}`])
     }
   }
