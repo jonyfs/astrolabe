@@ -1,25 +1,25 @@
 {
-  "generatedAt": "2026-10-12T21:44:46.363Z",
+  "generatedAt": "2026-10-12T21:51:58.493Z",
   "imageCount": 2,
   "changed": true,
   "images": [
     {
-      "id": "img-1791841485826-jcakjn",
+      "id": "img-1791841917727-4zuobd",
       "sourcePath": "docs/diagrams/architecture.mmd",
       "outputPath": "docs/images/architecture.png",
       "format": "png",
       "generator": "mermaid",
       "checksum": "ded1735fe6c64e21aa33e184a225a0a5e4cb1cd3a348ac98234d63c36baab34e",
-      "generatedAt": "2026-10-12T21:44:45.826Z"
+      "generatedAt": "2026-10-12T21:51:57.727Z"
     },
     {
-      "id": "img-1791841486363-5x5r23",
+      "id": "img-1791841918492-9uce0v",
       "sourcePath": "docs/diagrams/architecture.mmd",
       "outputPath": "docs/images/architecture.svg",
       "format": "svg",
       "generator": "mermaid",
       "checksum": "cd6d23db6b73791135fbe83eddbdb818696268273d4dbdf033e0050cb56d2a1f",
-      "generatedAt": "2026-10-12T21:44:46.363Z"
+      "generatedAt": "2026-10-12T21:51:58.492Z"
     }
   ]
 }
