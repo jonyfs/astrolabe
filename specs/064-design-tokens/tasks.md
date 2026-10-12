@@ -134,9 +134,9 @@ Each block below touches different new files; the apply tasks share `pane.ts` an
 
 **Independent Test**: `npm run generate-images` then check the README's image paths exist.
 
-- [ ] T035 [US6] #10 Extend `scripts/generate-images.ts` with the flavor matrix (band, status, footer, pane, dashboard in mocha and latte; one surface each in frappe, macchiato and colorblind) and add `tests/core/capture-matrix.test.ts` that lists the expected file names
-- [ ] T036 [P] [US6] #10 Add an assertion to `tests/core/theme.test.ts` that latte's `current` and `warn` reach 4.5:1 on its base (peach stays darkened for text)
-- [ ] T037 [US6] #10 Update `README.md` (the sections that show the band, status entry, footer and pane) to name the new glyphs, ramp, durations, prefix and key verbs, with a working example for each; then run `npm run generate-images` and commit the regenerated `docs/images`
+- [x] T035 [US6] #10 Add `scripts/capture/flavors.sh`: the overview and the Specs tab in mocha and latte, the overview in frappe, macchiato and colorblind, through `scene.sh` and `ansi-to-svg.mjs`, setting the `flavor` option while it runs and restoring it after (the README images are real captures of the running mod, so the matrix is a capture script, not `scripts/generate-images.ts`)
+- [x] T036 [P] [US6] #10 Latte's `current` and `warn` are in `TEXT_ROLES`, so the contrast loop in `tests/core/theme.test.ts` holds them at 4.5:1 on latte's base (peach is darkened for text: `#b5470a`, 4.80)
+- [ ] T037 [US6] #10 Update `README.md` with a working example for each shared rule (done: the "One vocabulary on every surface" section and the glyph, ramp, duration, prefix, key and separator edits across the file); then run `scripts/capture/flavors.sh` and the existing scenes on a machine with an authenticated `claude` and `tmux`, and commit the regenerated `docs/images` (not done in this branch: the tool needs a live session and changes the plugin's options while it runs)
 
 ---
 
