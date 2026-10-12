@@ -13,7 +13,7 @@ const cellOf = (percent: number): number => Math.min(CELLS - 1, Math.max(0, Math
 
 const bar = (percent: number, ticks: readonly number[]): string => {
   const filled = Math.round((Math.min(100, Math.max(0, percent)) / 100) * CELLS)
-  const cells = Array.from({ length: CELLS }, (_, i) => (i < filled ? '▰' : '▱'))
+  const cells: string[] = Array.from({ length: CELLS }, (_, i) => (i < filled ? '▰' : '▱'))
   for (const level of ticks) cells[cellOf(level)] = '┊'
   return cells.join('')
 }
