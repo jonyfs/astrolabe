@@ -170,6 +170,16 @@
         "off"
       ]
     },
+    "footerSource": {
+      "type": "string",
+      "title": "Footer source",
+      "description": "Who draws the pane footer: statusline (the bundled jonyfs/statusline renders it under Astrolabe's own lead; needs Node 18 or newer, otherwise the native footer shows) or native (Astrolabe's own chips)",
+      "default": "statusline",
+      "options": [
+        "statusline",
+        "native"
+      ]
+    },
     "footerLines": {
       "type": "string",
       "title": "Footer lines",

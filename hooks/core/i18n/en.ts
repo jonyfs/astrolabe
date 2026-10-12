@@ -453,6 +453,19 @@ export const EN = {
   'live.rule.stop': 'work paused',
   'live.rule.ceiling': 'ceiling reached',
   'toast.gateFailed': '🧭 A git gate failed: the commit or push did not go through',
+  'footer.fallback.node-missing': "statusline needs Node 18 or newer, which was not found · showing the Astrolabe footer",
+  'footer.fallback.node-old': "statusline needs Node 18 or newer · showing the Astrolabe footer",
+  'footer.fallback.no-copy': "the bundled statusline is missing · showing the Astrolabe footer",
+  'footer.fallback.colorblind': "statusline has no colorblind flavor · showing the Astrolabe footer",
+  'footer.fallback.renderer-failed': "statusline did not answer · showing the Astrolabe footer",
+  'footer.setup.title': "Footer",
+  'footer.setup.source': "source",
+  'footer.setup.bundled': "bundled statusline {version} ({commit})",
+  'footer.setup.native': "Astrolabe footer",
+  'footer.setup.because': "why not statusline",
+  'footer.setup.use': "/astrolabe statusline prints the command to use it as Claude Code's statusLine",
+  'statusline.command': "statusline {version} ({commit}) is bundled with Astrolabe.\nCommand: node \"{cli}\"\nTo use it as Claude Code's statusLine, put this in your settings (Astrolabe never writes it):\n{settings}",
+  'statusline.none': "The bundled statusline is missing, so there is no command to print.",
 } as const
 
 export type TextKey = keyof typeof EN

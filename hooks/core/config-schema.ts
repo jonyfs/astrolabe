@@ -16,7 +16,7 @@ export interface ConfigOption {
 type KnownOptions = Record<
   | 'preset' | 'flavor' | 'checkUpdates' | 'governUsage' | 'governThresholds' | 'quietHours'
   | 'observeUsage' | 'icons' | 'language' | 'askOnLimit' | 'claudeContext' | 'featureSummary'
-  | 'humanize' | 'terse' | 'skillModels' | 'accessible' | 'footerIn' | 'footerLines'
+  | 'humanize' | 'terse' | 'skillModels' | 'accessible' | 'footerIn' | 'footerLines' | 'footerSource'
   | 'footerSeparator' | 'autoReload' | 'images' | 'pullRequest' | 'bandDensity' | 'liveRows',
   ConfigOption
 >;

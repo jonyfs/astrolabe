@@ -149,3 +149,9 @@ export const flavorOf = (options: Readonly<Record<string, unknown>>, isLight: bo
   if (name === 'theme') return isLight ? 'latte' : 'mocha'
   return typeof name === 'string' && name in FLAVORS ? (name as FlavorName) : 'mocha'
 }
+
+/** The 16 named terminal colours of a renderer's output, as Catppuccin values (070). */
+export const ANSI_16: readonly string[] = [
+  '#45475a', '#f38ba8', '#a6e3a1', '#f9e2af', '#89b4fa', '#f5c2e7', '#94e2d5', '#bac2de',
+  '#585b70', '#f38ba8', '#a6e3a1', '#f9e2af', '#89b4fa', '#f5c2e7', '#94e2d5', '#a6adc8',
+]

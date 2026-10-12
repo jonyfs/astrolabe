@@ -33,7 +33,7 @@ import { usageBarRows } from './core/usage-bars'
 import { badgesOf, legacyTab, paneTitle } from './core/pane-tabs'
 import { usageRamp } from './core/usage-ramp'
 import { ASK_MS, clockOf, decide, dropped, EXTEND_MS, HOLD_LIFT_MS, holdQuestion, nextHeld, isPaused, isReadOnlyTool, parseAllow, pauseQuestion, RAISE_MS, refusal, resumePrompt, runPrompt, usageSegment, type Decision, type Question, usageRows } from './core/governor'
-import { chipForeground, CHIPS, FLAVORS, flavorOf, isThemeKeys, lighten, STATUS_ROLE, themeOf, type ThemeRole } from './core/theme'
+import { ANSI_16, chipForeground, CHIPS, FLAVORS, flavorOf, isThemeKeys, lighten, STATUS_ROLE, themeOf, type ThemeRole } from './core/theme'
 import { capDiff, DIFF_FOLD_MS, foldedDiff, recapLine, recapOf, tasksDiff } from './core/summary'
 import { styleSections } from './core/style'
 import { ageOf, parsePullList, prOpened, pullAction, PR_LIST_FIELDS } from './core/pulls'
@@ -44,10 +44,12 @@ import { readFeature } from './io/snapshot'
 import { deriveSpeckitState, snapshotFromMemo } from './core/speckit'
 import { deriveFeature } from './core/phase'
 import { chartImage, dialFrames, imagesFor } from './core/pixels'
-import { emptyMemo, type PaneState, type PaneTab, type PaneView, type UpdateId, type UpdateItem, type UpdatesState, type UsageState, type UsageReading, type QueuedAgent, type SessionStats, type SpeckitState } from './core/types'
+import { emptyMemo, type PaneState, type PaneTab, type PaneView, type UpdateId, type UpdateItem, type UpdatesState, type UsageState, type UsageReading, type QueuedAgent, type SessionStats, type SpeckitState, type FooterState } from './core/types'
 import type { Preset } from './core/presets'
 import type { Fs } from './io/fs-port'
 import { findRoot } from './io/root'
+import { nodeStatus, renderFooter, type RunProc } from './io/statusline-run'
+import { buildPayload, chooseSource, cutRuns, statuslineEnv, type Run, type SourceReason } from './core/statusline-dep'
 import { activeFilesChanged, applyFileTouch, applyRead, applyShell, applySkill, type Held, reconcileDeferred, reconcileNow, reconcileStart, reconcileTurn } from './io/reconcile'
 import { bandRow, edgeWidth, type BandEdge } from './surfaces/band'
 import { askTree } from './surfaces/ask'
@@ -137,6 +139,7 @@ const QUEUE_MAX = 20
 const DEFAULT_USAGE: UsageState = { readings: [], history: [], inFlight: 0, queue: [], paused: false }
 const HISTORY_POINTS = 10
 const SESSION = { plugin: 'astrolabe', key: 'session' } as const
+const FOOTER = { plugin: 'astrolabe', key: 'footer' } as const
 const SERIES_POINTS = 60
 const HISTORY = 'history'
 const DAYS = 'days'
@@ -1043,6 +1046,7 @@ async function openPane($: EngineInterface): Promise<void> {
   const state = (await $.state.get(SPECKIT)).value
   const title = paneTitle(state)
   await $.ui.open({ id: PANE_ID, title, focus: true, closeOnEscape: true })
+  if (footerSource === 'statusline') $.clock.after(0, () => void refreshStatusline($))
 }
 
 // Whether the plugins reload by themselves when a new version lands on disk (034).
@@ -1856,6 +1860,154 @@ function armGateScan($: EngineInterface, delay = GATE_SCAN_MS): void {
 /** A command that may run a git hook or a gate script. */
 const mayRunGate = (command: string): boolean => /\bgit\s+(?:\S+\s+)*(?:commit|push|merge|rebase|cherry-pick|am)\b|\bgates?[-_.\/]/.test(command)
 
+// The footer statusline draws (070): the choice, Node's state, the one in-flight render and its pacing.
+let footerSource: 'statusline' | 'native' = 'statusline'
+let nodeState: 'ok' | 'missing' | 'old' | undefined
+let nodeCheckedAt = Number.NEGATIVE_INFINITY
+let footerRefreshing = false
+let footerRetryArmed = false
+let footerLastRefresh = Number.NEGATIVE_INFINITY
+let footerFailures = 0
+let footerBackoffUntil = 0
+let footerGoodAt: number | undefined
+let lastPaneDrawAt = Number.NEGATIVE_INFINITY
+let footerTimer: ReturnType<EngineInterface['clock']['after']> | undefined
+const FOOTER_FLOOR_MS = 5000
+const FOOTER_STALE_MS = 90_000
+const FOOTER_REUSE_MS = 60_000
+const FOOTER_TICK_MS = 30_000
+const FOOTER_BACKOFF_MS = [5000, 15_000, 60_000]
+
+/** The process runner of this module, built where `$` lives: no `$` crosses an import. */
+function procOf($: EngineInterface): RunProc {
+  return async (argv, init) => {
+    const r = await $.process.run(argv, init)
+    return { exitCode: r.exitCode, stdout: r.stdout, stderr: r.stderr }
+  }
+}
+
+/** The bundled statusline: its CLI path and `VERSION`, or undefined when it is not there. */
+async function bundledStatusline($: EngineInterface): Promise<{ cli: string; version: string; commit: string } | undefined> {
+  const dir = `${$.plugin.root}/vendor/statusline`
+  const fs = fsOf($)
+  try {
+    const meta = JSON.parse(await fs.read(`${dir}/VERSION`)) as { version?: unknown; commit?: unknown }
+    if (typeof meta.version !== 'string' || typeof meta.commit !== 'string') return undefined
+    if (!(await fs.exists(`${dir}/bin/cli.js`))) return undefined
+    return { cli: `${dir}/bin/cli.js`, version: meta.version, commit: meta.commit.slice(0, 7) }
+  } catch {
+    return undefined
+  }
+}
+
+/** Runs the bundled statusline for the pane footer and keeps the answer in its own state key (070). */
+async function refreshStatusline($: EngineInterface, onlyWhileShown = false): Promise<void> {
+  if (footerRefreshing) return
+  const now = await $.clock.now()
+  // A trigger from an event does nothing while the pane has not been on screen lately: no process runs for a footer nobody sees.
+  if (footerSource !== 'statusline' || footerIn === 'status' || (onlyWhileShown && now - lastPaneDrawAt > 2 * FOOTER_TICK_MS)) return
+  const waitMs = Math.max(FOOTER_FLOOR_MS - (now - footerLastRefresh), footerBackoffUntil - now)
+  if (waitMs > 0) {
+    // A trigger inside the floor or the backoff is not lost: one retry when it ends.
+    if (!footerRetryArmed) {
+      footerRetryArmed = true
+      $.clock.after(waitMs + 50, () => {
+        footerRetryArmed = false
+        void refreshStatusline($)
+      })
+    }
+    return
+  }
+  footerRefreshing = true
+  footerLastRefresh = now
+  try {
+    const flavor = flavorOf(optionsSeen, isLightTheme)
+    const bundled = await bundledStatusline($)
+    // Node is asked again a minute after a "not ok" answer, so installing it needs no reload.
+    if (nodeState === undefined || (nodeState !== 'ok' && now - nodeCheckedAt > 60_000)) {
+      nodeState = await nodeStatus(procOf($))
+      nodeCheckedAt = now
+    }
+    const choice = chooseSource({ choice: footerSource, flavor, node: nodeState, copy: bundled !== undefined, failing: false })
+    if (choice.source === 'native' || bundled === undefined) {
+      await setFooterState($, undefined, { source: 'native', ...(choice.reason === undefined ? {} : { reason: choice.reason }), ...(bundled === undefined ? {} : { version: bundled.version, commit: bundled.commit }) })
+      return
+    }
+    const usage = await $.session.usage().catch(() => undefined)
+    const stats = (await $.state.get(SESSION)).value
+    const sessionId = await $.session.id().catch(() => undefined)
+    const cwd = await $.session.cwd().catch(() => undefined)
+    const modelId = stats?.model
+    const payload = buildPayload({
+      rateLimits: (usage?.rateLimits ?? []).map(r => ({ kind: r.kind, percentUsed: r.percentUsed, ...(r.resetsAt === undefined ? {} : { resetsAt: r.resetsAt }) })),
+      ...(usage?.context === undefined ? {} : { context: { ...(usage.context.percent === undefined ? {} : { percent: usage.context.percent }), ...(usage.context.window === undefined ? {} : { window: usage.context.window }) } }),
+      ...(sessionId === undefined ? {} : { sessionId }),
+      ...(cwd === undefined ? {} : { cwd }),
+      ...(modelId === undefined ? {} : { model: { id: modelId } }),
+      ...(stats?.effort === undefined ? {} : { effort: stats.effort }),
+    })
+    const surface = surfaceSeen
+    const ascii = iconsFor(iconsOption, surface as never) === 'ascii' || accessible || surface !== 'terminal'
+    const width = Math.max(20, columnsSeen - 4)
+    const env = statuslineEnv({ columns: width, lines: 3, flavor, ascii })
+    const result = await renderFooter({ run: procOf($), cli: bundled.cli, payload, env, now: () => Date.now(), cwd: cwd ?? '.' })
+    if (result.ok) {
+      footerFailures = 0
+      footerBackoffUntil = 0
+      footerGoodAt = now
+      await setFooterState($, { at: now, columns: width, lines: result.lines.map(l => l.map(run => ({ ...run }))) }, { source: 'statusline', version: bundled.version, commit: bundled.commit })
+      return
+    }
+    footerFailures += 1
+    footerBackoffUntil = now + (FOOTER_BACKOFF_MS[Math.min(footerFailures - 1, FOOTER_BACKOFF_MS.length - 1)] ?? 60_000)
+    const reusable = footerGoodAt !== undefined && now - footerGoodAt < FOOTER_REUSE_MS
+    // The last good lines stay for a minute; after that the native footer shows with the reason.
+    if (!reusable) await setFooterState($, undefined, { source: 'native', reason: 'renderer-failed', version: bundled.version, commit: bundled.commit })
+  } catch (error) {
+    $.ui.log(`astrolabe: ${error instanceof Error ? error.message : String(error)}`, { to: 'debug' })
+  } finally {
+    footerRefreshing = false
+  }
+}
+
+/** Writes the footer state only when it changed, so an identical render redraws nothing. */
+async function setFooterState($: EngineInterface, render: FooterState['render'] | undefined, health: NonNullable<FooterState['health']>): Promise<void> {
+  const before = (await $.state.get(FOOTER)).value
+  const next: FooterState = { ...(render === undefined ? {} : { render }), health }
+  const same = (a?: FooterState['render']) => JSON.stringify(a === undefined ? undefined : { columns: a.columns, lines: a.lines })
+  if (JSON.stringify(before?.health) === JSON.stringify(health) && same(before?.render) === same(render)) {
+    // The time is not state a reader needs: keep the stored render as it is.
+    return
+  }
+  await $.state.set(FOOTER, next)
+}
+
+/** The Setup tab's lines about the footer source (070 FR-010). */
+function footerSetupRows(state: FooterState | undefined, lang: Lang): string[] {
+  const health = state?.health
+  const rows: string[] = []
+  const bundled = health?.version === undefined ? undefined : t(lang, 'footer.setup.bundled', { version: health.version, commit: health.commit ?? '?' })
+  rows.push(`${t(lang, 'footer.setup.source')}: ${health?.source === 'statusline' ? (bundled ?? 'statusline') : t(lang, 'footer.setup.native')}`)
+  if (health?.source === 'native' && health.reason !== undefined && health.reason !== 'native-chosen') {
+    rows.push(`${t(lang, 'footer.setup.because')}: ${t(lang, `footer.fallback.${health.reason}` as TextKey)}`)
+  }
+  rows.push(t(lang, 'footer.setup.use'))
+  return rows
+}
+
+/** Arms the 30 s refresh while the pane is on screen. */
+function armFooterTick($: EngineInterface): void {
+  footerTimer?.cancel()
+  footerTimer = undefined
+  if (footerSource !== 'statusline') return
+  footerTimer = $.clock.after(FOOTER_TICK_MS, async () => {
+    footerTimer = undefined
+    const now = await $.clock.now()
+    if (now - lastPaneDrawAt < 2 * FOOTER_TICK_MS) await refreshStatusline($)
+    armFooterTick($)
+  })
+}
+
 /** Arms the idle poller after a turn: a refresh every ten idle minutes, at most six (058). */
 function armIdlePoll($: EngineInterface, done = 0): void {
   idlePollTimer?.cancel()
@@ -2511,6 +2663,7 @@ export const register: Register = (on, options) => {
   iconsOption = accessible ? 'ascii' : options['icons']
   footerIn = options['footerIn'] === 'status' || options['footerIn'] === 'both' ? options['footerIn'] : 'pane'
   footerLines = options['footerLines'] === '3' ? '3' : '1'
+  footerSource = options['footerSource'] === 'native' ? 'native' : 'statusline'
   liveRowsOption = options['liveRows'] === 'agents' || options['liveRows'] === 'gates' || options['liveRows'] === 'off' ? options['liveRows'] : 'both'
   footerSeparator = options['footerSeparator'] === 'thin' || options['footerSeparator'] === 'none' ? options['footerSeparator'] : 'solid'
   bandDensity = options['bandDensity'] === 'compact' || options['bandDensity'] === 'minimal' ? options['bandDensity'] : 'full'
@@ -2584,6 +2737,8 @@ export const register: Register = (on, options) => {
     resumeAt = undefined
     cacheWarningTimer?.cancel()
     cacheWarningTimer = undefined
+    footerTimer?.cancel()
+    footerTimer = undefined
     gateScanTimer?.cancel()
     gateScanTimer = undefined
     liveReservation = {}
@@ -2705,6 +2860,13 @@ export const register: Register = (on, options) => {
     if (preset.band) await suggestNext($, started)
     // Started on a timer so the session never waits for a process or the network.
     if (checksUpdates) $.clock.after(0, () => void checkUpdates($))
+    // The footer statusline draws (070): nothing from an earlier session is shown as current.
+    footerLastRefresh = Number.NEGATIVE_INFINITY
+    footerFailures = 0
+    footerBackoffUntil = 0
+    footerGoodAt = undefined
+    footerRetryArmed = false
+    nodeState = undefined
     // This week's counts from earlier sessions (021), copied into the state the Dashboard reads.
     const stored = await $.store.get(HISTORY).catch(() => undefined)
     const week = typeof stored === 'object' && stored !== null ? (stored as Weeks)[weekKey(now)] : undefined
@@ -2779,6 +2941,7 @@ export const register: Register = (on, options) => {
       if (((await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE).tab === 'prs') $.clock.after(0, () => void refreshPulls($))
       if (checksUpdates) $.clock.after(0, () => void checkUpdates($))
       armIdlePoll($)
+      $.clock.after(0, () => void refreshStatusline($, true))
       cacheWarningTimer?.cancel()
       cacheWarningTimer = $.clock.after(CACHE_WARN_MS, async () => {
         cacheWarningTimer = undefined
@@ -2822,6 +2985,7 @@ export const register: Register = (on, options) => {
   // Usage governance (spec 008): readings arrive after each turn and when a window moves.
   on('session.measure', async ($, e, next) => {
     const result = await next(e)
+    $.clock.after(0, () => void refreshStatusline($, true))
     try {
       const now = await $.clock.now()
       const readings: UsageReading[] = e.rateLimits.map(r => ({
@@ -3253,6 +3417,13 @@ export const register: Register = (on, options) => {
     }
     // The Dashboard's numbers as Markdown, to paste in a PR body (054 #99).
     if (args === 'kpis') return { text: (await kpisText($)) ?? t(currentLang(), 'kpis.none') }
+    // The bundled statusline as Claude Code's own statusLine (070): the command, never written for the person.
+    if (args === 'statusline') {
+      const bundled = await bundledStatusline($)
+      if (bundled === undefined) return { text: t(currentLang(), 'statusline.none') }
+      const settings = JSON.stringify({ statusLine: { type: 'command', command: `node "${bundled.cli}"` } }, null, 2)
+      return { text: t(currentLang(), 'statusline.command', { version: bundled.version, commit: bundled.commit, cli: bundled.cli, settings }) }
+    }
     if (args === 'advisor' || args.startsWith('advisor ')) {
       // A whole turn with the advisor: only the person starts it (055).
       if (e.origin?.kind !== 'composer') return { text: t(currentLang(), 'advisor.onlyYou') }
@@ -3442,15 +3613,30 @@ export const register: Register = (on, options) => {
   })
 
   on('ui.render', { component: 'Pane', requestId: PANE_ID }, async ($, e) => {
-    const [speckitRead, sessionRead, usageRead, paneRead, updatesRead] = await Promise.all([
+    const [speckitRead, sessionRead, usageRead, paneRead, updatesRead, footerRead] = await Promise.all([
       $.state.get(SPECKIT),
       $.state.get(SESSION),
       $.state.get(USAGE),
       $.state.get(PANE_STATE),
       $.state.get(UPDATES),
+      $.state.get(FOOTER),
     ])
     const state = speckitRead.value ?? { present: false, constitution: 'missing' as const, features: [], isAnalyzed: false }
     const stats = sessionRead.value
+    // The footer statusline drew (070): shown while it is current; the pane being drawn keeps its refresh going.
+    const paneNow = await $.clock.now()
+    lastPaneDrawAt = paneNow
+    const footerNow = footerRead.value
+    if (footerSource === 'statusline' && footerIn !== 'status') {
+      if (footerNow?.render === undefined || paneNow - footerNow.render.at > FOOTER_TICK_MS) $.clock.after(0, () => void refreshStatusline($))
+      if (footerTimer === undefined) armFooterTick($)
+    }
+    const statuslineRuns: FooterState['render'] | undefined =
+      footerSource === 'statusline' && footerNow?.health?.source === 'statusline' && footerNow.render !== undefined && paneNow - footerNow.render.at <= FOOTER_STALE_MS ? footerNow.render : undefined
+    const footerNotice: SourceReason | undefined =
+      footerSource === 'statusline' && statuslineRuns === undefined && footerNow?.health?.source === 'native' && footerNow.health.reason !== undefined && footerNow.health.reason !== 'native-chosen'
+        ? (footerNow.health.reason as SourceReason)
+        : undefined
     const usage = usageRead.value ?? DEFAULT_USAGE
     const updates = updatesRead.value?.items ?? []
     const pane = paneRead.value ?? DEFAULT_PANE
@@ -3706,18 +3892,43 @@ export const register: Register = (on, options) => {
         }),
       )
       if (anyFresh) scheduleFresh($, input.now)
+      // With statusline drawing, the native part is its lead: the Spec Kit chip, the deciding window, the advisor, help (070 R8).
+      const LEAD = new Set<string>(['deciding', 'advisor', 'help', 'astrolabe'])
+      const leadChips =
+        statuslineRuns === undefined || chips === undefined
+          ? undefined
+          : [chips.flat().filter(chip => chip.key === 'speckit' || chip.key.startsWith('first-') || LEAD.has(chip.key))]
+      const plainFooter = accessible || noColor
+      const toHex = (c: string | undefined): string | undefined => (c === undefined ? undefined : c.startsWith('ansi:') ? ANSI_16[Number(c.slice(5))] : c)
+      const runLines =
+        statuslineRuns === undefined
+          ? undefined
+          : statuslineRuns.lines.slice(0, 3).map(line =>
+              cutRuns(line, Math.max(1, columns - 4)).map(run => ({
+                text: run.text,
+                ...(plainFooter || toHex(run.fg) === undefined ? {} : { fg: toHex(run.fg)! }),
+                ...(plainFooter || toHex(run.bg) === undefined ? {} : { bg: toHex(run.bg)! }),
+                ...(run.bold === undefined ? {} : { bold: true as const }),
+                ...(run.dim === undefined ? {} : { dim: true as const }),
+                ...(run.underline === undefined ? {} : { underline: true as const }),
+                ...(run.href === undefined ? {} : { href: run.href }),
+              })),
+            )
       return {
         text: footerText(input),
         columns,
         pad: Math.max(0, pad),
-        ...(chips === undefined ? {} : { chips, separator: shortPaneRule ? 'none' : footerSeparator, arrow: set === 'nerd' ? '\ue0b0' : '' }),
+        ...(chips === undefined ? {} : { chips: leadChips ?? chips, separator: shortPaneRule ? 'none' : footerSeparator, arrow: set === 'nerd' ? '\ue0b0' : '' }),
+        ...(runLines === undefined ? {} : { lines: runLines }),
+        ...(footerNotice === undefined ? {} : { notice: t(currentLang(), `footer.fallback.${footerNotice}` as TextKey) }),
       }
     }
     // The rows the footer holds below the body: its rule, its chip rows, and one of slack (038, 041).
     // Under 12 rows the footer drops its rule (054 #46).
     const shortPane = (e.props.scroll?.bodyRows ?? 24) < 12
     const ruleRows = footerSeparator === 'none' || shortPane ? 0 : 1
-    const footerReserve = footerIn === 'status' ? 1 : ruleRows + (footerLines === '3' ? 3 : 1) + 1
+    const statuslineRows = statuslineRuns === undefined ? 0 : Math.min(3, statuslineRuns.lines.length)
+    const footerReserve = footerIn === 'status' ? 1 : ruleRows + (statuslineRows > 0 ? 1 + statuslineRows : footerLines === '3' ? 3 : 1) + (footerNotice === undefined ? 0 : 1) + 1
     // The body scrolls inside the pane and the footer stays on the last rows (038).
     const bodyRows = e.props.scroll?.bodyRows ?? 24
     const offset = pane.scroll?.tab === view ? pane.scroll.offset : 0
@@ -3759,6 +3970,11 @@ export const register: Register = (on, options) => {
       const { Text: SetupText } = $.ui.resolve(e)
       const setupUnits = [
         ...configBody($, e, pane),
+        { rows: 1, node: <SetupText key="setup-footer-title" color={tokens.accent} bold>{t(currentLang(), 'footer.setup.title')}</SetupText> },
+        ...footerSetupRows(footerNow, currentLang()).map((text, i) => ({
+          rows: 1,
+          node: <SetupText key={`setup-footer-${i}`} color={tokens.text} wrap="truncate-end">{text}</SetupText>,
+        })),
         { rows: 1, node: <SetupText key="setup-footnote" color={tokens.faint} wrap="truncate-end">{t(currentLang(), 'config.footnote')}</SetupText> },
         { rows: 1, node: <SetupText key="setup-models" color={tokens.accent} bold>{t(currentLang(), 'setup.models')}</SetupText> },
         ...modelSkillTabBody($, e, pane),

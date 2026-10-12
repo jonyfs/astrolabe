@@ -34,6 +34,10 @@ export const paneTree = (
     /** The chips in rows: one row, or statusline's three lines (041 #1). */
     chips?: ReadonlyArray<ReadonlyArray<{ key: string; text: string; bg: string; fg: string; full?: string; /** One sentence for the hover row under the chips (068 #50). */ explain?: string; links?: ReadonlyArray<{ text: string; href: string }> }>>
     arrow?: string
+    /** The lines statusline drew under the native lead, as styled runs (070). */
+    lines?: ReadonlyArray<ReadonlyArray<{ text: string; fg?: string; bg?: string; bold?: true; dim?: true; underline?: true; href?: string }>>
+    /** Why the footer is not statusline's, one dim row (070). */
+    notice?: string
   },
   /** What is above and below the rows shown, with the presses that scroll (038). */
   nav?: { above: number; below: number; up: () => Promise<void>; down: () => Promise<void>; labels: { more: string } },
@@ -284,6 +288,31 @@ export const paneTree = (
                 })}
               </Box>
             ))
+          )}
+          {footer.lines === undefined
+            ? null
+            : footer.lines.map((line, lineIndex) => (
+                <Box key={`footer-statusline-${lineIndex}`} flexDirection="row">
+                  {line.map((run, i) =>
+                    run.href !== undefined && Link !== undefined ? (
+                      <Link key={`sl-${lineIndex}-${i}`} href={run.href} label={run.text} />
+                    ) : (
+                      <Text
+                        key={`sl-${lineIndex}-${i}`}
+                        {...(run.fg === undefined ? {} : { color: run.fg })}
+                        {...(run.bg === undefined ? {} : { backgroundColor: run.bg })}
+                        {...(run.bold === undefined ? {} : { bold: true })}
+                        {...(run.dim === undefined ? {} : { dimColor: true })}
+                        {...(run.underline === undefined ? {} : { underline: true })}
+                      >
+                        {run.text}
+                      </Text>
+                    ),
+                  )}
+                </Box>
+              ))}
+          {footer.notice === undefined ? null : (
+            <Text color={tokens.faint} wrap="truncate-end">{`↳ ${footer.notice}`}</Text>
           )}
           {/* One sentence for the chip under the pointer (068 #50), hidden until a chip is hovered. */}
           {(footer.chips ?? []).flatMap(row => row).filter(chip => chip.explain !== undefined).map(chip => (

@@ -34,6 +34,8 @@ export type {
   AskState,
   GitState,
   SessionStats,
+  FooterState,
+  FooterRun,
   ExtensionHook,
   QueuedAgent,
   PaneState,

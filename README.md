@@ -161,6 +161,60 @@ marks, formats and keys, so a value reads the same wherever it appears.
 | Messages | Toasts start with `astrolabe ✓` for a state or success and `astrolabe ▲` for a warning. | `astrolabe ✓ 002 band-hint moved to tasks · next: /speckit-tasks` |
 | Separators | `│` between zones, `·` inside one, never both in one zone. In the footer each chip is a zone. | `◆ 002 · implement 45% │ 5h 92%▴ ceiling · paused until 14:00` |
 
+### The footer is statusline itself
+
+Astrolabe bundles the [statusline](https://github.com/jonyfs/statusline) project under
+`vendor/statusline/` and, by default, lets it draw the pane footer. Astrolabe keeps its own lead
+on the first row (the Spec Kit part, the window that decides, the advisor, the help hint) and
+statusline's lines go below it, with its segments, ranks, colours, shedding and links:
+
+```text
+◆ 002 · implement 45% │ astrolabe 0.135.0 │ /astrolabe help
+ ⌂ astrolabe  jonyfs/astrolabe  ⎇ 070-statusline-dependency  ●3 +7  PR #160 draft  ✓ CI
+ ◆ 059 specify  ❖ humanizer, dataviz  ▸ Fix authentication (1/3)  ● working
+ opus 5.5 · high  ctx 41%  5h 72%▵ · 2h09m  7d 84%▴ · Thu 18:00  cache warm · 1m  1h12m
+```
+
+It needs Node 18 or newer. Without it, with a missing copy, with the `colorblind` flavor (statusline
+has none) or when the renderer fails, the footer is Astrolabe's own and the Setup tab says why.
+`footerSource` picks the source:
+
+| Value | The pane footer is |
+|---|---|
+| `statusline` (default) | Astrolabe's lead and the bundled statusline's lines |
+| `native` | Astrolabe's own chips (specs 041, 064, 068) |
+
+What you give up with `statusline`: the hover explanation rows, the brighten-on-change rule, the
+`full` text of a cut chip and the governor's colour levels (statusline's own are 60 and 85
+percent; the governor still acts at 60, 80 and 88). Its links (branch, pull request, repository,
+CI) stay. The status entry under the prompt is always Astrolabe's own one line.
+
+**Updates.** There is no download at run time. A workflow refreshes `vendor/statusline/` weekly
+through a pull request, runs a contract test against it, and the copy ships with the next
+release; the Setup tab shows the version and commit in use.
+
+**What it does on your machine.** statusline writes its caches under `~/.claude/statusline/` and
+starts `git`, `gh` and `rtk` probes in detached processes to fill its pull request, CI and
+savings segments, as it does when it is Claude Code's `statusLine`. Astrolabe turns its own
+update check off and sends it only the session figures it has (model, context, usage windows,
+folder), so segments that read the transcript (skills, todo, working) appear only where the
+engine hands that path over.
+
+**Use it as Claude Code's own statusLine.** `/astrolabe statusline` prints the command for the
+bundled copy and the line to put in `settings.json`; Astrolabe never writes it:
+
+```text
+> /astrolabe statusline
+statusline 1.46.0 (b703d7b) is bundled with Astrolabe.
+Command: node "/home/you/.claude/plugins/astrolabe/vendor/statusline/bin/cli.js"
+{
+  "statusLine": {
+    "type": "command",
+    "command": "node \"/home/you/.claude/plugins/astrolabe/vendor/statusline/bin/cli.js\""
+  }
+}
+```
+
 ### The footer in place of a statusline
 
 The footer carries what a statusline under the prompt usually shows, so you can remove a
@@ -582,6 +636,7 @@ one reloads the mod right away.
 | `liveRows` | `agents`, `gates`, `both`, `off` | `both` | Which rows the live table above the prompt shows besides the cache and the limits: running subagents, git gates, both or neither. |
 | `footerIn` | `pane`, `status`, `both` | `pane` | Where the footer goes: the bottom of the `/astrolabe` pane (the status entry keeps the Spec Kit part and the deciding window), the status entry, or both. |
 | `footerLines` | `1`, `3` | `1` | How the pane's footer draws its chips: one row, or three in statusline's order (place and git, then the Spec Kit work and the skill, then the model and the limits). |
+| `footerSource` | `statusline`, `native` | `statusline` | Who draws the pane footer: the bundled statusline under Astrolabe's lead (needs Node 18 or newer, else the native footer shows), or Astrolabe's own chips. |
 | `footerSeparator` | `solid`, `thin`, `none` | `solid` | The rule above the pane's footer: a solid line, a thin one, or none. |
 | `autoReload` | `true`, `false` | `true` | After a turn, when the Astrolabe on disk is newer than the one running (an install from a local clone, an update), run `/reload-plugins` once so the new version loads. Off, a toast says to run it. |
 | `images` | `auto`, `on`, `off` | `auto` | Draw the Dashboard's usage chart as a picture. `auto` does on kitty and Ghostty outside tmux. |
