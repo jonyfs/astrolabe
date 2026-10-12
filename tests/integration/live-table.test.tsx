@@ -69,11 +69,10 @@ describe('the live table (069)', () => {
     const session = installTree(on as never, halfDone.tree, '/proj')
     const engine = installEngine(on as never)
     installRenderEngine(on as never)
-    void session
     await startSession($ as never, '/proj')
     engine.holdAgents()
     const call = $.tool.call({ tool: 'Agent', tool_use_id: 'a1', description: 'Review the spec', subagent_type: 'Explore', model: 'claude-opus-5-5' } as never)
-    await new Promise(resolve => setTimeout(resolve, 50))
+    await session.clock.settle()
     const during = await tableOf($ as never)
     engine.releaseAgents()
     await call

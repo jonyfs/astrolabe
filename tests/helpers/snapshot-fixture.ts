@@ -4,7 +4,8 @@
 // literal one, changes the snapshot.
 // Reset times print as a weekday and a clock in the machine's time zone, so the snapshots are
 // taken in UTC: the golden file is the same on every machine.
-if (typeof process !== 'undefined') process.env['TZ'] = 'UTC'
+const nodeProcess = (globalThis as { process?: { env: Record<string, string | undefined> } }).process
+if (nodeProcess !== undefined) nodeProcess.env['TZ'] = 'UTC'
 import { layoutLive, liveRows } from '../../hooks/core/live-table'
 import { bandSegments, type Segment } from '../../hooks/core/band'
 import { footerChips, footerText } from '../../hooks/core/footer'

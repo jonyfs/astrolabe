@@ -87,7 +87,7 @@ export const paneTree = (
         const pairs = legendOf(tab, { wide: extras.columns === undefined || extras.columns >= 80 })
         const verb = (id: string) => pairs.find(p => p.id === id)?.verb
         return (
-          <>
+          <Box key="astrolabe-pane-keys-row" flexDirection="row">
             {extras.onHelp !== undefined && <Button key="help-key" label={extras.help === true ? 'close' : 'help'} hotkey={hotkeyOf('?')} plain onPress={() => extras.onHelp!()} />}
             {extras.onHelp !== undefined && <Text> </Text>}
             {extras.onFind !== undefined && verb('filter') !== undefined && <Button key="find" label={m(verb('filter')!)} hotkey={hotkeyOf('/')} plain onPress={() => extras.onFind!()} />}
@@ -107,7 +107,7 @@ export const paneTree = (
             {extras.onRefresh !== undefined && verb('refresh') !== undefined && <Button key="refresh" label={verb('refresh')!} hotkey="r" plain onPress={() => extras.onRefresh!()} />}
             {extras.onCopyKpis !== undefined && verb('copy') !== undefined && <Text> </Text>}
             {extras.onCopyKpis !== undefined && verb('copy') !== undefined && <Button key="copy-kpis" label={verb('copy')!} hotkey="m" plain onPress={() => extras.onCopyKpis!()} />}
-          </>
+          </Box>
         )
       })()}
     </Box>
