@@ -2583,6 +2583,8 @@ export const register: Register = (on, options) => {
     gateScanTimer = undefined
     liveReservation = {}
     gateSeenAt = undefined
+    // Rows of a run that ended with the old module (a reload, a crash) are not live any more.
+    await flushStats($, ({ liveGates: _gates, liveAgents: _agents, ...rest }) => rest)
     idlePollTimer?.cancel()
     idlePollTimer = undefined
     implementWaived.clear()
@@ -2950,8 +2952,8 @@ export const register: Register = (on, options) => {
     // The run is a row of the live table from its start to its end (069 #43).
     const input = e as unknown as { description?: string; prompt?: string; subagent_type?: string; model?: string }
     agentCounter += 1
-    const agentId = `agent-${agentCounter}`
     const startedAt = await $.clock.now()
+    const agentId = `agent-${startedAt}-${agentCounter}`
     const brief = plainText(input.description ?? input.prompt ?? 'subagent', 60)
     await flushStats($, s => ({
       ...s,

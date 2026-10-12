@@ -316,7 +316,17 @@ export const detectGates = (
   const descendants = (pid: number): ProcessRow[] => (byParent.get(pid) ?? []).flatMap(c => [c, ...descendants(c.pid)])
   const claimed = new Set<number>()
   const out: LiveGate[] = []
-  const where = (file: string): string => (file.startsWith(options.root) ? '*' : (file.split('/').at(-3) ?? '*'))
+  // Git runs a hook of the main repository by a relative path (`.git/hooks/pre-commit`) from the
+  // folder it works in; an absolute path inside the root is yours too. Another path names the
+  // repository folder it belongs to.
+  const root = options.root.replace(/\/+$/, '')
+  const where = (file: string): string => {
+    if (!file.startsWith('/')) return '*'
+    if (file === root || file.startsWith(`${root}/`)) return '*'
+    const parts = file.split('/').filter(part => part !== '')
+    const git = parts.indexOf('.git')
+    return (git > 0 ? parts[git - 1] : parts.at(-3)) ?? '*'
+  }
   for (const r of rows) {
     const file = programOf(r.command)
     const hook = HOOK_FILE.exec(file)?.[1]

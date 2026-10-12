@@ -154,6 +154,15 @@ describe('gate detection (069 #44)', () => {
     ])
     expect(gates[0]).toMatchObject({ pid: 200, where: '*', startedAt: NOW - 14_000 })
   })
+  test('WHERE: a relative hook path and a sibling folder of the root are told apart (069 review)', () => {
+    const list = [
+      '  10  1  05 /bin/sh .git/hooks/pre-commit',
+      '  20  1  05 /bin/sh /Users/me/astrolabe-069/.git/hooks/pre-push',
+      '  30  1  05 /bin/sh /Users/me/astrolabe/.git/hooks/commit-msg',
+    ].join('\n')
+    const gates = detectGates(parseProcesses(list), { root: '/Users/me/astrolabe', now: NOW })
+    expect(gates.map(g => [g.hook, g.where])).toEqual([['pre-commit', '*'], ['pre-push', 'astrolabe-069'], ['commit-msg', '*']])
+  })
   test('project patterns add gates; a process that is no gate is left out', () => {
     const gates = detectGates(parseProcesses(ps), { root: '/repo', now: NOW, patterns: ['server.js'] })
     expect(gates.map(g => g.chain[0])).toContain('server.js')
