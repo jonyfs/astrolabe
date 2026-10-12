@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import { skillModelFor } from '../../hooks/core/skill-models'
+import { modelForTask, skillModelFor } from '../../hooks/core/skill-models'
 import { scenario as halfDone } from '../fixtures/half-done'
 import { completeTurn, installEngine, installTree, startSession } from '../helpers/fake-fs'
 
@@ -44,5 +44,14 @@ describe('model per skill (030)', () => {
     await completeTurn($)
     await step($ as never)
     expect(seen.at(-1)).toEqual({ model: 'claude-opus-5-5', effort: 'high' })
+  })
+})
+
+describe('modelForTask (054 #94)', () => {
+  test('tests and mechanical work on Sonnet, design on Opus, anything else no pick', () => {
+    expect(modelForTask('T012 Write tests for the parser')?.model).toBe('claude-sonnet-5-5')
+    expect(modelForTask('T020 Design the data model for queues')?.model).toBe('claude-opus-5-5')
+    expect(modelForTask('T021 Wire the button')).toBeUndefined()
+    expect(modelForTask(undefined)).toBeUndefined()
   })
 })

@@ -19,6 +19,7 @@ export const ES: Dictionary = {
   'pane.folded.section': 'plegadas; s o is:{status} las muestra',
   'pane.diffMore': '… +{n} líneas',
   'pane.stale': '! .specify/feature.json aún nombra {done}, que terminó; la rama está en {branch}: apúntalo a specs/{dir}',
+  'help.modelsByTask': 'Una tarea de tipo propio elige el modelo mientras corre speckit-implement: pruebas y ediciones mecánicas en Sonnet, diseño en Opus.',
   'help.models': 'Modelo y esfuerzo por skill (la opción skillModels, auto, los usa mientras corre la skill):',
   'tab.prs': 'PRs',
   'tab.models': 'Modelos',

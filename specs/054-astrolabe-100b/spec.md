@@ -140,7 +140,7 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 - [x] T091 #91 The prompt hint warns when the prompt names a feature other than the active one (P2)
 - [x] T092 #92 A summary of the last 5 turns of the feature available as `/astrolabe recap` (P2)
 - [x] T093 #93 A guard that tells Claude, through the context line, when tasks.md and the code drift apart (P2)
-- [ ] T094 #94 Model choice per task kind: tests on Sonnet, design on Opus, through skillModels (P3) — blocked: skillModels picks a model per skill, not per task text; a per-task-kind choice needs a classifier the mod does not have
+- [x] T094 #94 Model choice per task kind: tests on Sonnet, design on Opus, through skillModels (P3) — `modelForTask` reads the current task's words (tests and mechanical work on Sonnet, design on Opus) while speckit-implement runs; no match keeps the skill's entry
 - [x] T095 #95 A cache-warm reminder only when the next step is likely within 5 minutes (P3)
 
 ### Ecosystem

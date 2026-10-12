@@ -68,6 +68,7 @@ export const buildHelp = (lang: Lang, optionsSeen: Readonly<Record<string, unkno
     `  ${t(lang, 'help.keys')}`,
     t(lang, 'help.block.models'),
     `  ${t(lang, 'help.models')}`,
+    `  ${t(lang, 'help.modelsByTask')}`,
     ...Object.entries(SKILL_MODELS).map(([skill, m]) => `  ${skill.padEnd(22)} ${m.model.replace(/^claude-/, '').padEnd(12)} ${m.effort.padEnd(7)} ${m.why}`),
     t(lang, 'help.marks'),
     `  ${t(lang, 'help.footer')}`,
