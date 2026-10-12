@@ -43,13 +43,15 @@ export const badgesOf = (input: {
   ...(input.pulls === undefined || input.pulls <= 0 ? {} : { prs: String(input.pulls) }),
 })
 
-export type LegendKey = 'filter' | 'status' | 'order' | 'priority' | 'advisor' | 'refresh' | 'copy' | 'clear'
+export type LegendKey = 'filter' | 'status' | 'order' | 'view' | 'group' | 'priority' | 'advisor' | 'refresh' | 'copy' | 'clear'
 export type LegendPair = { id: LegendKey; hotkey: string; verb: string }
 
 const FULL: Readonly<Record<LegendKey, string>> = {
   filter: 'filter',
   status: 'status',
   order: 'order',
+  view: 'view',
+  group: 'group',
   priority: 'priority',
   advisor: 'advisor',
   refresh: 'refresh',
@@ -61,16 +63,18 @@ const SHORT: Readonly<Record<LegendKey, string>> = {
   filter: 'find',
   status: 'stat',
   order: 'sort',
+  view: 'view',
+  group: 'grp',
   priority: 'prio',
   advisor: 'adv',
   refresh: 'ref',
   copy: 'copy',
   clear: 'clr',
 }
-const HOTKEY: Readonly<Record<LegendKey, string>> = { filter: 'f', status: 's', order: 'o', priority: 'p', advisor: 'a', refresh: 'r', copy: 'm', clear: 'c' }
+const HOTKEY: Readonly<Record<LegendKey, string>> = { filter: 'f', status: 's', order: 'o', view: 'v', group: 'g', priority: 'p', advisor: 'a', refresh: 'r', copy: 'm', clear: 'c' }
 
 const BY_TAB: Readonly<Record<PaneTab, readonly LegendKey[]>> = {
-  specs: ['filter', 'status', 'order', 'priority', 'advisor', 'refresh'],
+  specs: ['filter', 'status', 'order', 'view', 'group', 'priority', 'advisor', 'refresh'],
   tasks: ['filter', 'refresh'],
   session: ['copy', 'refresh'],
   prs: ['refresh'],

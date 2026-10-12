@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import { byPriority, configMark, nextPriority, optionGroup, parsePriority, priorityMark, reviewPrompt, withPriority } from '../../hooks/core/spec-actions'
+import { byPriority, configMark, nextPriority, optionGroup, parsePriority, priorityMark, reviewPrompt, withPriority, closeSuggestion, planFiles } from '../../hooks/core/spec-actions'
 
 describe('spec priorities (051)', () => {
   test('parse, cycle and store only what is not normal', () => {
@@ -43,5 +43,16 @@ describe('option groups (054 #64)', () => {
     expect(optionGroup('astrolabe.terse')).toBe('claude')
     expect(optionGroup('astrolabe.pullRequest')).toBe('integrations')
     expect(optionGroup('astrolabe.someday')).toBe('integrations')
+  })
+})
+
+describe('closing a spec and the files a plan names (067 #32, #33)', () => {
+  test('the suggestion names the front-matter edit and the folder', () => {
+    expect(closeSuggestion({ dir: '044-pane', id: '044' })).toBe('Set `status: done` in the front matter of specs/044-pane/spec.md (every task of 044 is ticked).')
+  })
+  test('planFiles takes paths with a folder and an extension, once each', () => {
+    const plan = 'Create `src/orders/api.ts` and `src/orders/api.ts` again, run `npm test`, see `docs/design/x.md`, not `ls` or `https://a.b/c.md`.'
+    expect(planFiles(plan)).toEqual(['src/orders/api.ts', 'docs/design/x.md'])
+    expect(planFiles('nothing here')).toEqual([])
   })
 })

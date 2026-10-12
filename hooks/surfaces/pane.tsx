@@ -38,7 +38,7 @@ export const paneTree = (
   /** What is above and below the rows shown, with the presses that scroll (038). */
   nav?: { above: number; below: number; up: () => Promise<void>; down: () => Promise<void>; labels: { more: string } },
   /** Counts beside the tab labels (043 #21) and the keys of the tab shown (043 #25). */
-  extras: { help?: boolean; onHelp?: () => Promise<void>; onUpdate?: (id: string) => Promise<void>; badges?: Partial<Record<PaneTab, string>>; legend?: string; onClose?: () => Promise<void>; onFind?: () => Promise<void>; onCopy?: (text: string) => Promise<void>; onRefresh?: () => Promise<void>; onCopyKpis?: () => Promise<void>; showKeys?: boolean; sort?: { label: string; onPress: () => Promise<void> }; onClear?: () => Promise<void>; onPriority?: () => Promise<void>; onRunQueued?: (id: string) => Promise<void>; rowButtons?: ReadonlyArray<{ key: string; label: string; hotkey?: string; onPress: () => void }>; rowDetail?: string; onAllowUsage?: () => Promise<void>; onRevokeUsage?: () => Promise<void>; status?: { label: string; onPress: () => Promise<void> }; columns?: number; marks?: 'unicode' | 'ascii' | 'words'; colorblind?: boolean; wrapLongNames?: boolean; Link?: ElementTable<'terminal'>['Link'] } = {},
+  extras: { view?: { label: string; onPress: () => Promise<void> }; group?: { label: string; onPress: () => Promise<void> }; onToggleBlock?: (key: string) => Promise<void>; help?: boolean; onHelp?: () => Promise<void>; onUpdate?: (id: string) => Promise<void>; badges?: Partial<Record<PaneTab, string>>; legend?: string; onClose?: () => Promise<void>; onFind?: () => Promise<void>; onCopy?: (text: string) => Promise<void>; onRefresh?: () => Promise<void>; onCopyKpis?: () => Promise<void>; showKeys?: boolean; sort?: { label: string; onPress: () => Promise<void> }; onClear?: () => Promise<void>; onPriority?: () => Promise<void>; onRunQueued?: (id: string) => Promise<void>; rowButtons?: ReadonlyArray<{ key: string; label: string; hotkey?: string; onPress: () => void }>; rowDetail?: string; onAllowUsage?: () => Promise<void>; onRevokeUsage?: () => Promise<void>; status?: { label: string; onPress: () => Promise<void> }; columns?: number; marks?: 'unicode' | 'ascii' | 'words'; colorblind?: boolean; wrapLongNames?: boolean; Link?: ElementTable<'terminal'>['Link'] } = {},
 ) => {
   const Link = extras.Link
   // The pane's own marks in the set the icons option and the accessible mode pick (052 #49, #47).
@@ -96,6 +96,10 @@ export const paneTree = (
             {extras.status !== undefined && <Text> </Text>}
             {extras.sort !== undefined && <Button key="sort" label={extras.sort.label} hotkey="o" plain onPress={() => extras.sort!.onPress()} />}
             {extras.sort !== undefined && <Text> </Text>}
+            {extras.view !== undefined && <Button key="view" label={extras.view.label} hotkey="v" plain onPress={() => extras.view!.onPress()} />}
+            {extras.view !== undefined && <Text> </Text>}
+            {extras.group !== undefined && <Button key="group" label={extras.group.label} hotkey="g" plain onPress={() => extras.group!.onPress()} />}
+            {extras.group !== undefined && <Text> </Text>}
             {extras.onPriority !== undefined && verb('priority') !== undefined && <Button key="priority" label={verb('priority')!} hotkey="p" plain onPress={() => extras.onPriority!()} />}
             {extras.onPriority !== undefined && <Text> </Text>}
             {extras.onClear !== undefined && <Button key="clear-filter" label={verb('clear') ?? 'clear'} hotkey="c" plain onPress={() => extras.onClear!()} />}
@@ -113,7 +117,9 @@ export const paneTree = (
       {nav !== undefined && nav.above > 0 && <Button key="page-back" label="⇞ b" hotkey="b" plain onPress={() => nav.up()} />}
       {rows.flatMap(row => {
           const node = (
-          row.copy !== undefined && extras.onCopy !== undefined ? (
+          row.key.startsWith('block-') && extras.onToggleBlock !== undefined ? (
+            <Button key={row.key} label={m(row.text)} plain onPress={() => extras.onToggleBlock!(row.key.slice('block-'.length))} />
+          ) : row.copy !== undefined && extras.onCopy !== undefined ? (
             <Box key={row.key} flexDirection="row">
               <Text color={tokens[row.role]} wrap="truncate-end">{m(row.text)}</Text>
               <Button key={`${row.key}-copy`} label={m('⧉')} plain onPress={() => extras.onCopy!(row.copy!)} />

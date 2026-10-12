@@ -71,16 +71,16 @@ Constraints that hold for every task: colours only from `theme.ts` (IX), nothing
 
 ### D. Data honesty and scale → 067-specs-at-scale
 
-- [ ] T031 #31 Focus view, blocks of 50, `#` jump (P1) → 067
-- [ ] T032 #32 Ready to close (P1) → 067
-- [ ] T033 #33 A checks row (P1) → 067
-- [ ] T034 #34 Duplicate ids kept and marked (P1) → 067
-- [ ] T035 #35 Scroll thumb and `rows a–b of n` (P2) → 067
-- [ ] T036 #36 Placeholder rows for deferred specs (P2) → 067
-- [ ] T037 #37 Unknown prints `?` (P2) → 067
-- [ ] T038 #38 `full` at 100% (P2) → 067
-- [ ] T039 #39 Group key `g` (P3) → 067
-- [ ] T040 #40 "Touched this session" section (P3) → 067
+- [x] T031 #31 Focus view, blocks of 50, `#` jump (P1) → 067
+- [x] T032 #32 Ready to close (P1) → 067
+- [x] T033 #33 A checks row (P1) → 067
+- [x] T034 #34 Duplicate ids kept and marked (P1) → 067
+- [x] T035 #35 Scroll thumb and `rows a–b of n` (P2) → 067
+- [x] T036 #36 Placeholder rows for deferred specs (P2) → 067
+- [x] T037 #37 Unknown prints `?` (P2) → 067
+- [x] T038 #38 `full` at 100% (P2) → 067
+- [x] T039 #39 Group key `g` (P3) → 067
+- [x] T040 #40 "Touched this session" section (P3) → 067
 
 ### E. statusline parity and live table → 068-footer-statusline-parity, 069-live-table
 

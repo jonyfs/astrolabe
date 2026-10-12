@@ -607,16 +607,47 @@ A toast about a failure names the command that fixes it, for example
 
 ![The pane, Specs tab](docs/images/pane-specs.svg)
 
-Features sit under section headers: `In progress (N)`, `Next up (N)`, `Done (N)` and
-`Abandoned (N)`. Every row has the same columns: id and name, phase, a progress bar, the task
-count and the percent.
+Features sit under section headers, in a fixed order: `Active`, `In progress`, `Early`
+(specify and clarify), `Ready to close` (every task ticked while the front matter says
+`active`), `Next up` (planned), `Done` and `Abandoned`. Every row has the same columns: id and
+name, phase, a progress bar, the task count and the percent. A figure the files do not give
+reads `?%` and `?`, never `0%`.
 
 ```text
-In progress (1)
+Active (1)
 ▸ ◐ 002 band-hint   implement  ████░░░░░░   9/20  45%  ⟳ speckit-implement
 Done (1)
   ● 001 core-state  done       ██████████  49/49 100%
 ```
+
+#### A project of a hundred specs or more
+
+With more than 12 specs the tab opens in **Focus**: a summary row (`64 specs`, a stacked bar and
+`▶6 · 3 early · 6 to close · ✓49`), a checks row, then only the specs that need you (Active, In
+progress, Early, Ready to close) and Done counted per block of 50 ids:
+
+```text
+64 specs ████████████████▓▓▒░░ ▶6 · 3 early · 6 to close · ✓49
+▲ 3 checks · 028 done with 1/30 ticked · ids 029 and 030 used twice
+Ready to close (6)
+  ◐ 044 pane-navigation  implement  ██████████  12/12 100%
+Done 49 ▸ 001–050 42 · 051–100 7
+```
+
+The height is the same at 64, 200 or 1000 specs. `v` shows **All**: every spec in blocks of
+50 by id, each header `▾ 001–050 ✓42 ▶6 ·2 ▲3` (done, in progress, early, checks), opened and
+folded with a press; the block that holds the active spec starts open. `g` (in All) cycles the
+grouping: status, phase, track, priority. Typing `#05` in the filter jumps by id: a row shows
+`# 05 → 050 051 … 059`, and Enter opens the block of the first one and selects it.
+
+The checks row covers a spec marked `done` with open tasks, an id used twice (both folders stay,
+each marked `▲ id×2`), a `feature.json` that is dangling or malformed, and files the plan names
+that are not there. Each check also sits under its own spec. A spec Claude read or edited this
+session shows under `Touched this session`. Specs not read yet (a large project reads the others
+in batches) show as one row per run, `· 040–049 not read yet · reading in the background`. When
+a list is longer than the pane, the filter row says `rows 12–40 of 140` and a `┃` thumb marks the
+place on the right edge. The `✓ close` button on a ready spec offers the front-matter edit in the
+prompt box; Astrolabe writes nothing to the project.
 
 `▸` marks the active feature. `●` is done, `◐` in progress, and `○` abandoned (drawn dim). `?2` and `☐3` count a spec's open questions and open checklist items, and `↗` at the end of a row opens its `spec.md`; `plan↗` and `tasks↗` follow once those files exist (terminal only: the Desktop app does not open `file:` links). While a
 Spec Kit skill runs, `⟳` and the skill's name follow the active feature. A narrow pane drops the
@@ -651,7 +682,7 @@ after each turn from the branch name (`026-...`) and that worktree's files:
 
 ![The pane, Tasks tab](docs/images/pane-tasks.svg)
 
-The task being worked on is marked `▸` and shows how long it has run (`▸ T010 Write x.ts                    ◷ 12m`): the row is bold and the clock sits at the right edge. The last turn's diff of `tasks.md` shows at most 6 lines and a `… +N lines` line. The first row names the feature, its phase and its count (`026 claude-context · implement · 9/20 done`). Ticked tasks fold into one dim row (`✓ 9 done · T001…T009`). Headings of `tasks.md`, such as `Phase 3: User Story 1 · 2/5`, head their tasks with their own count, and a run of `[P]` tasks is bracketed with `┌`, `│` and `└` (a lone one gets `⇉`); the `⇉ … can run in parallel` line shows only when no bracket does. When the open tasks, at the time the ticked ones took, would end after the 5-hour window resets, a `⚠` line says so. When more tasks are open than the pane has rows, the last line says `+N more`. A feature with
+The task being worked on is marked `▸` and shows how long it has run (`▸ T010 Write x.ts                    ◷ 12m`): the row is bold and the clock sits at the right edge. The last turn's diff of `tasks.md` shows at most 6 lines and a `… +N lines` line. The first row names the feature, its phase and its count (`026 claude-context · implement · 9/20 done`). Ticked tasks fold into one dim row (`✓ 9 done · T001…T009`). Headings of `tasks.md`, such as `Phase 3: User Story 1 - Cart page`, head their tasks with their own count (`US1 Cart page 2/5`), and a run of `[P]` tasks is bracketed at the right edge with `┐ P`, `┤ P` and `┘ P` (a lone one gets `P`); the `can run in parallel` line shows only when no bracket does. After two done tasks the first row adds what is left at their pace (`≈1h20m left`). When the open tasks, at the time the ticked ones took, would end after the 5-hour window resets, a `▲` line says so. When more tasks are open than the pane has rows, the last line says `+N more`. A feature with
 no `tasks.md` yet says so; a quick spec (`track: quick`) uses the `## Tasks` section of its
 `spec.md` instead. When two or more `[P]` tasks come first among the open ones, a `⇉` line names
 them: they can go to subagents at once. The `▶ send T002, T003 to subagents at once` button above
@@ -879,7 +910,7 @@ be read also keeps its last text, without a pane row.
 
 Past 150 features, a session start reads the active feature (from `feature.json` or the branch) and
 the twenty newest at once, so the band draws right away, and reads the others in batches of 100
-right after. Until its batch lands, a feature shows as `… 042 name` in the Specs tab.
+right after. Until its batch lands, the Specs tab shows one row for the run (`· 040–049 not read yet`).
 
 ### Which feature is active
 

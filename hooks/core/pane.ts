@@ -11,6 +11,7 @@ import { STATE_GLYPHS } from './glyphs'
 import { phaseShort } from './phase'
 import { duration } from './duration'
 import { idWidth, padId } from './ids'
+import { blockLabel, blocksOf, checksLine, checksOf, countsOf, countsText, groupKeyOf, loadingRuns, runLabel, type SpecGroup, type SpecView } from './specs-scale'
 import { STATUS_ROLE, type ThemeRole } from './theme'
 import type { Feature, SessionMemo, SpeckitState } from './types'
 
@@ -41,8 +42,10 @@ const featureRow = (f: Feature, isActive: boolean, columns: number, ctx: RowCont
   // `↑` high, `↓` low in the space before the id (051).
   // Ids padded to the widest, so every name starts in one column (054 #25).
   const head = `${isActive ? '▸' : ' '} ${markOf(f)}${priorityMark(ctx.priority)}${padId(f.id, ctx.idWidth ?? 0)} `
-  const percent = f.total > 0 ? `${Math.floor((f.done * 100) / f.total)}%`.padStart(4) : ''
-  const count = f.total > 0 ? `${f.done}/${f.total}`.padStart(ctx.countWidth) : ''
+  // A figure the files do not give prints ?, never 0% or a blank (067 #37): from the tasks phase on, a spec has tasks.
+  const unknown = f.total === 0 && (f.phase === 'tasks' || f.phase === 'implement' || f.phase === 'done')
+  const percent = f.total > 0 ? `${Math.floor((f.done * 100) / f.total)}%`.padStart(4) : unknown ? '?%'.padStart(4) : ''
+  const count = f.total > 0 ? `${f.done}/${f.total}`.padStart(ctx.countWidth) : unknown ? '?'.padStart(ctx.countWidth) : ''
   const filled = f.total > 0 ? Math.floor((f.done * BAR_CELLS) / f.total) : 0
   const bar = f.total > 0 ? `${'█'.repeat(filled)}${'░'.repeat(BAR_CELLS - filled)}` : ''
   // Abandoned rows read in the faint text role (064 #2), not a dimmed one: a colour that is checked.
@@ -89,24 +92,8 @@ const featureRow = (f: Feature, isActive: boolean, columns: number, ctx: RowCont
   return { key: `feature-${f.id}`, text, role }
 }
 
-/** The sections in the order the Specs tab draws them (066 #25). */
-export const SECTIONS = ['active', 'progress', 'early', 'close', 'next', 'done', 'abandoned'] as const
-export type Section = (typeof SECTIONS)[number]
-
-/**
- * The section a feature is drawn in (066 #25): the active one; in progress (ticks or implementing);
- * early (specify, clarify); ready to close (every task ticked, still active); next up (planned);
- * done; abandoned.
- */
-export const displaySectionOf = (f: Pick<Feature, 'phase' | 'dir' | 'done' | 'total'>, activeDir: string | undefined): Section => {
-  if (f.phase === 'done') return 'done'
-  if (f.phase === 'abandoned') return 'abandoned'
-  if (f.dir === activeDir) return 'active'
-  if (f.phase === 'implement' && f.total > 0 && f.done >= f.total) return 'close'
-  if (f.done > 0 || f.phase === 'implement') return 'progress'
-  if (f.phase === 'specify' || f.phase === 'clarify') return 'early'
-  return 'next'
-}
+export { SECTIONS, displaySectionOf, type Section } from './sections'
+import { SECTIONS, displaySectionOf } from './sections'
 
 /** Which section a feature belongs to (044): working on it, next up, done, abandoned. */
 export const sectionOf = (f: Pick<Feature, 'phase' | 'dir' | 'done'>, activeDir: string | undefined): 'progress' | 'next' | 'done' | 'abandoned' =>
@@ -165,6 +152,7 @@ const buildSpecsRows = (
   worktreeRows: ReadonlyArray<{ name: string; id: string; featureName: string; phase: string; done: number; total: number; status: string }> = [],
   wrapLongNames = false,
   sort: SpecSort = 'status',
+  scale?: ScaleOptions,
 ): PaneRow[] => {
   if (!state.present) return [noSpeckit(lang)]
   if (state.features.length === 0) return [{ key: 'empty', text: tr(lang, 'pane.noFeatures'), role: 'muted' }]
@@ -177,30 +165,152 @@ const buildSpecsRows = (
   const running = state.runningSkill?.name
   const rows: PaneRow[] = []
   const shown = new Set<string>()
-  // Sections by status (044), each only when it has features.
-  for (const section of SECTIONS) {
-    // Within a section, high priority first and low last (051).
-    const inSection = byPriority(sortFeatures(state.features.filter(f => displaySectionOf(f, activeDir) === section), sort), priorities)
-    if (inSection.length === 0) continue
-    const folded = fold && (section === 'done' || section === 'abandoned') && inSection.length > 3 && !inSection.some(f => f.dir === activeDir)
-    rows.push({ key: `section-${section}`, text: `${tr(lang, `pane.section.${section}`)} (${inSection.length})${folded ? ` · ${tr(lang, 'pane.folded.section', { status: section })}` : ''}`, role: 'muted', bold: true })
-    if (folded) continue
-    for (const f of inSection) {
-      const now = Date.now()
-      const row = featureRow(f, activeDir === f.dir, columns - 2, { ...ctx, wrapLongNames, ...(running !== undefined && f.dir === activeDir ? { running } : {}), ...(priorities[f.id] === undefined ? {} : { priority: priorities[f.id] }), ...(worktrees[f.id] === undefined ? {} : { worktrees: worktrees[f.id] }), lang, now })
-      // A link to the feature's spec.md (044 #35).
-      const root = state.root
-      // Its plan.md and tasks.md too, once they exist (054 #77); a quick spec keeps its tasks in spec.md.
-      const hasPlan = f.phase === 'tasks' || f.phase === 'implement' || f.phase === 'done'
-      const hasTasks = f.total > 0 && f.track !== 'quick'
-      const links = root === undefined ? [] : [...(hasPlan ? [{ label: 'plan', href: fileUrl(`${root}/specs/${f.dir}/plan.md`) }] : []), ...(hasTasks ? [{ label: 'tasks', href: fileUrl(`${root}/specs/${f.dir}/tasks.md`) }] : [])]
-      rows.push(root === undefined || f.warnings.includes('loading') ? row : { ...row, href: fileUrl(`${root}/specs/${f.dir}/spec.md`), ...(links.length === 0 ? {} : { links }) })
-      // The active feature's gates under its row (054 #56): each ✓, ✗ with a count, or – not yet.
-      if (activeDir === f.dir && f.phase !== 'done' && f.phase !== 'abandoned' && !f.warnings.includes('loading')) {
-        rows.push({ key: 'gates', text: cut(gatesText(state, f, lang), columns), role: 'muted' })
+  const checks = checksOf(state, scale?.planMissing)
+  const checkDirs = new Set(checks.flatMap(c => (c.dir === undefined ? [] : [c.dir])))
+  const idCount = new Map<string, number>()
+  for (const f of state.features) idCount.set(f.id, (idCount.get(f.id) ?? 0) + 1)
+  const seenIds = new Map<string, number>()
+  /** One feature's rows: the row with its links, the gates of the active one, its warnings and checks. */
+  const featureBlock = (f: Feature): PaneRow[] => {
+    const out: PaneRow[] = []
+    const now = Date.now()
+    const row = featureRow(f, activeDir === f.dir, columns - 2, { ...ctx, wrapLongNames, ...(running !== undefined && f.dir === activeDir ? { running } : {}), ...(priorities[f.id] === undefined ? {} : { priority: priorities[f.id]! }), ...(worktrees[f.id] === undefined ? {} : { worktrees: worktrees[f.id]! }), lang, now })
+    // A link to the feature's spec.md (044 #35).
+    const root = state.root
+    // Its plan.md and tasks.md too, once they exist (054 #77); a quick spec keeps its tasks in spec.md.
+    const hasPlan = f.phase === 'tasks' || f.phase === 'implement' || f.phase === 'done'
+    const hasTasks = f.total > 0 && f.track !== 'quick'
+    const links = root === undefined ? [] : [...(hasPlan ? [{ label: 'plan', href: fileUrl(`${root}/specs/${f.dir}/plan.md`) }] : []), ...(hasTasks ? [{ label: 'tasks', href: fileUrl(`${root}/specs/${f.dir}/tasks.md`) }] : [])]
+    let placed: PaneRow = root === undefined || f.warnings.includes('loading') ? row : { ...row, href: fileUrl(`${root}/specs/${f.dir}/spec.md`), ...(links.length === 0 ? {} : { links }) }
+    // Two folders with one id stay two rows (067 #34): the second takes a key of its own, both are marked.
+    if ((idCount.get(f.id) ?? 1) > 1) {
+      const nth = seenIds.get(f.id) ?? 0
+      seenIds.set(f.id, nth + 1)
+      const mark = `  ▲ id×${idCount.get(f.id)}`
+      placed = {
+        ...placed,
+        key: nth === 0 ? placed.key : `${placed.key}~${nth}`,
+        text: `${placed.text}${mark}`,
+        ...(placed.segments === undefined ? {} : { segments: [...placed.segments, { text: mark, role: 'current' as const }] }),
       }
-      rows.push(...featureWarnings(f, lang))
-      shown.add(f.dir)
+    }
+    out.push(placed)
+    // The active feature's gates under its row (054 #56): each ✓, ✗ with a count, or – not yet.
+    if (activeDir === f.dir && f.phase !== 'done' && f.phase !== 'abandoned' && !f.warnings.includes('loading')) {
+      out.push({ key: 'gates', text: cut(gatesText(state, f, lang), columns), role: 'muted' })
+    }
+    out.push(...featureWarnings(f, lang))
+    // Each check also sits under its own spec's row (067 #33).
+    for (const c of checks) {
+      if (c.dir === f.dir && c.kind !== 'duplicate-id') out.push({ key: `check-${c.kind}-${f.id}`, text: cut(`▲ ${c.text}`, columns), role: 'current' })
+    }
+    shown.add(f.dir)
+    return out
+  }
+  // Specs not read yet show as one row per run (067 #36), never a blank.
+  const placeholder = (run: { from: string; to: string }): PaneRow => ({
+    key: `loading-${run.from}`,
+    text: cut(`· ${runLabel(run)} ${tr(lang, 'pane.notRead')}`, columns),
+    role: 'faint',
+  })
+  const effective: SpecView | undefined = scale?.view ?? (state.features.length > 12 ? 'focus' : undefined)
+  if (effective !== undefined) {
+    const group: SpecGroup = scale?.group ?? 'status'
+    const open = new Set(scale?.open ?? [])
+    const sorted = (list: readonly Feature[]) => byPriority(sortFeatures([...list], sort), priorities)
+    const loaded = state.features.filter(f => !f.warnings.includes('loading'))
+    const counts = countsOf(state.features, activeDir, checkDirs)
+    // The summary: how many specs and where they stand, as one stacked bar (067 #31).
+    const bySection = (s: string) => state.features.filter(f => displaySectionOf(f, activeDir) === s).length
+    const closeN = bySection('close')
+    const early = bySection('early') + bySection('next')
+    const progressN = bySection('progress') + bySection('active')
+    const cells = 20
+    const total = Math.max(1, state.features.length)
+    const take = (n: number) => Math.round((n / total) * cells)
+    const doneCells = take(counts.done)
+    const closeCells = take(closeN)
+    const progressCells = take(progressN)
+    const earlyCells = Math.max(0, Math.min(cells - doneCells - closeCells - progressCells, take(early)))
+    rows.push({
+      key: 'scale-summary',
+      text: `${state.features.length} specs ${'█'.repeat(doneCells)}${'▓'.repeat(closeCells)}${'▒'.repeat(progressCells)}${'░'.repeat(earlyCells)} ▶${progressN} · ${early} early · ${closeN} to close · ✓${counts.done}`,
+      role: 'muted',
+      segments: [
+        { text: `${state.features.length} specs `, role: 'muted' },
+        { text: '█'.repeat(doneCells), role: 'done' },
+        { text: '▓'.repeat(closeCells), role: 'current' },
+        { text: '▒'.repeat(progressCells), role: 'barFill' },
+        { text: '░'.repeat(earlyCells), role: 'barEmpty' },
+        { text: ` ▶${progressN} · ${early} early · ${closeN} to close · ✓${counts.done}`, role: 'muted' },
+      ],
+    })
+    const line = checksLine(checks)
+    if (line !== undefined) rows.push({ key: 'scale-checks', text: cut(line, columns), role: 'current' })
+    // What Claude touched this session (067 #40).
+    const touched = (scale?.touched ?? []).flatMap(dir => state.features.filter(f => f.dir === dir))
+    if (touched.length > 0) {
+      rows.push({ key: 'section-touched', text: `${tr(lang, 'pane.section.touched')} (${touched.length})`, role: 'muted', bold: true })
+      for (const f of touched) rows.push(...featureBlock(f))
+    }
+    const runs = loadingRuns(state.features)
+    if (effective === 'focus') {
+      for (const section of ['active', 'progress', 'early', 'close'] as const) {
+        const inSection = sorted(loaded.filter(f => displaySectionOf(f, activeDir) === section && !touched.includes(f)))
+        if (inSection.length === 0) continue
+        rows.push({ key: `section-${section}`, text: `${tr(lang, `pane.section.${section}`)} (${inSection.length})`, role: 'muted', bold: true })
+        for (const f of inSection) rows.push(...featureBlock(f))
+      }
+      for (const run of runs) rows.push(placeholder(run))
+      const doneBlocks = blocksOf(state.features.filter(f => displaySectionOf(f, activeDir) === 'done'), ctx.idWidth)
+      if (doneBlocks.length > 0) {
+        rows.push({ key: 'scale-done', text: cut(`${tr(lang, 'pane.section.done')} ${counts.done} ▸ ${doneBlocks.map(b => `${b.label} ${b.features.length}`).join(' · ')}`, columns), role: 'done' })
+      }
+      const nextN = bySection('next')
+      if (nextN > 0) rows.push({ key: 'scale-next', text: `${tr(lang, 'pane.section.next')} ${nextN}`, role: 'muted' })
+      const abandoned = bySection('abandoned')
+      if (abandoned > 0) rows.push({ key: 'scale-abandoned', text: `${tr(lang, 'pane.section.abandoned')} ${abandoned}`, role: 'faint' })
+    } else {
+      // Every spec, in blocks of 50 by id (or by the grouping), opened and folded (067 #31).
+      const headings = group === 'status'
+        ? blocksOf(loaded, ctx.idWidth).map(b => ({ key: b.label, label: b.label, features: b.features }))
+        : [...new Set(loaded.map(f => groupKeyOf(group, f, activeDir, priorities[f.id])))].map(k => ({ key: k, label: k, features: loaded.filter(f => groupKeyOf(group, f, activeDir, priorities[f.id]) === k) }))
+      for (const h of headings) {
+        const isOpen = open.has(h.key) || h.features.some(f => f.dir === activeDir)
+        const c = countsOf(h.features, activeDir, checkDirs)
+        rows.push({ key: `block-${h.key}`, text: cut(`${isOpen ? '▾' : '▸'} ${h.label} ${countsText(c)}`.trimEnd(), columns), role: 'muted', bold: true })
+        if (!isOpen) continue
+        for (const f of sorted(h.features)) rows.push(...featureBlock(f))
+      }
+      for (const run of runs) rows.push(placeholder(run))
+    }
+  } else {
+    // A small project keeps the plain sections (044), in a fixed order (066 #25).
+    const runsDone = new Set<string>()
+    const runs = loadingRuns(state.features)
+    for (const section of SECTIONS) {
+      // Within a section, high priority first and low last (051).
+      const inSection = byPriority(sortFeatures(state.features.filter(f => displaySectionOf(f, activeDir) === section), sort), priorities)
+      if (inSection.length === 0) continue
+      const folded = fold && (section === 'done' || section === 'abandoned') && inSection.length > 3 && !inSection.some(f => f.dir === activeDir)
+      rows.push({ key: `section-${section}`, text: `${tr(lang, `pane.section.${section}`)} (${inSection.length})${folded ? ` · ${tr(lang, 'pane.folded.section', { status: section })}` : ''}`, role: 'muted', bold: true })
+      if (folded) continue
+      for (const f of inSection) {
+        if (f.warnings.includes('loading')) {
+          const run = runs.find(r => r.dirs.includes(f.dir))
+          if (run !== undefined && !runsDone.has(run.from)) {
+            runsDone.add(run.from)
+            rows.push(placeholder(run))
+          }
+          shown.add(f.dir)
+          continue
+        }
+        rows.push(...featureBlock(f))
+      }
+    }
+    if (checks.length > 0 && scale !== undefined) {
+      const line = checksLine(checks)
+      if (line !== undefined) rows.unshift({ key: 'scale-checks', text: cut(line, columns), role: 'current' })
     }
   }
   // One feature in two worktrees: their work will collide (054 #52).
@@ -244,8 +354,9 @@ export const specsRows = (
   sort: SpecSort = 'status',
   /** docs/roadmap.md's text, read by the caller (io is not pure); absent when none. */
   roadmap?: string,
+  scale?: ScaleOptions,
 ): PaneRow[] => {
-  if (state.memoVersion === undefined) return buildSpecsRows(state, columns, lang, priorities, worktrees, fold, worktreeRows, wrapLongNames, sort)
+  if (state.memoVersion === undefined) return buildSpecsRows(state, columns, lang, priorities, worktrees, fold, worktreeRows, wrapLongNames, sort, scale)
   const key = JSON.stringify([
     state.root,
     state.memoVersion,
@@ -272,9 +383,10 @@ export const specsRows = (
     wrapLongNames,
     sort,
     roadmap,
+    scale,
   ])
   if (specsRowsCache?.key === key) return specsRowsCache.rows
-  const rows = buildSpecsRows(state, columns, lang, priorities, worktrees, fold, worktreeRows, wrapLongNames, sort)
+  const rows = buildSpecsRows(state, columns, lang, priorities, worktrees, fold, worktreeRows, wrapLongNames, sort, scale)
   // Roadmap view (044 #40): show items from docs/roadmap.md not yet specs.
   if (roadmap !== undefined) {
     const roadmapRows = parseRoadmap(roadmap, state.features, columns, lang)
@@ -482,6 +594,16 @@ export const windowUnits = (heights: readonly number[], offset: number, room: nu
 }
 
 /** How features order within a section (061): the files' order, most done first, or by name. */
+/** How the Specs tab is laid out at scale (067): the view, the open blocks, the grouping, what Claude touched. */
+export type ScaleOptions = {
+  view?: SpecView
+  open?: readonly string[]
+  group?: SpecGroup
+  touched?: readonly string[]
+  /** Files plan.md names that are not there, by feature dir, from the reconcile's own reads. */
+  planMissing?: Readonly<Record<string, readonly string[]>>
+}
+
 export type SpecSort = 'status' | 'progress' | 'name'
 const SORT_CYCLE: Readonly<Record<SpecSort, SpecSort>> = { status: 'progress', progress: 'name', name: 'status' }
 export const nextSort = (sort: SpecSort | undefined): SpecSort => SORT_CYCLE[sort ?? 'status']

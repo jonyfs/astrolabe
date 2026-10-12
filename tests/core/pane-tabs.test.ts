@@ -39,10 +39,10 @@ describe('badges count what needs the person (066 #23)', () => {
 })
 
 describe('the legend row holds key-verb pairs (066 #22)', () => {
-  test('Specs: filter, status, order, priority, advisor, refresh', () => {
+  test('Specs: filter, status, order, view, group, priority, advisor, refresh', () => {
     const pairs = legendOf('specs', { wide: true })
-    expect(pairs.map(p => p.verb)).toEqual(['filter', 'status', 'order', 'priority', 'advisor', 'refresh'])
-    expect(pairs.map(p => p.hotkey)).toEqual(['f', 's', 'o', 'p', 'a', 'r'])
+    expect(pairs.map(p => p.verb)).toEqual(['filter', 'status', 'order', 'view', 'group', 'priority', 'advisor', 'refresh'])
+    expect(pairs.map(p => p.hotkey)).toEqual(['f', 's', 'o', 'v', 'g', 'p', 'a', 'r'])
   })
   test('no verb carries a hotkey prefix', () => {
     for (const tab of ['specs', 'tasks', 'session', 'prs', 'setup'] as const) {

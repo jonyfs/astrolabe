@@ -488,3 +488,97 @@ describe('the help overlay groups keys by tab (066 #29)', () => {
     for (const example of ['phase:plan', 'has:questions', 'has:checklist', 'track:quick', 'prio:high', 'is:active', 'is:done']) expect(text).toContain(example)
   })
 })
+
+describe('the Specs tab at scale (067)', () => {
+  const mk = (n: number, over: (i: number) => Partial<Feature> = () => ({})): Feature[] =>
+    Array.from({ length: n }, (_, k) => {
+      const i = k + 1
+      const id = String(i).padStart(3, '0')
+      const phase: Feature['phase'] = i % 10 === 0 ? 'implement' : i % 17 === 0 ? 'specify' : 'done'
+      return { id, name: `n${id}`, dir: `${id}-n${id}`, phase, done: phase === 'implement' ? 2 : phase === 'done' ? 5 : 0, total: phase === 'implement' ? 8 : phase === 'done' ? 5 : 0, warnings: [], ...over(i) } as Feature
+    })
+  const st = (features: Feature[], extra: Partial<SpeckitState> = {}): SpeckitState =>
+    ({ present: true, root: '/p', constitution: 'ratified', features, isAnalyzed: false, ...extra }) as SpeckitState
+  const scaleOf = (view: 'focus' | 'all', extra: Record<string, unknown> = {}) => ({ view, ...extra })
+  const rowsOf = (state: SpeckitState, view: 'focus' | 'all' = 'focus', extra: Record<string, unknown> = {}) =>
+    specsRows(state, 100, 'en', {}, {}, false, [], false, 'status', undefined, scaleOf(view, extra) as never)
+
+  test('Focus keeps its height at 64, 200 and 1000 specs, with Done counted per block (067 #31)', () => {
+    const heights = [64, 200, 1000].map(n => {
+      // The same number of specs that need attention, whatever the total.
+      const features = mk(n, i => ({ phase: i <= 6 ? 'implement' : 'done', done: i <= 6 ? 1 : 5, total: i <= 6 ? 4 : 5 }))
+      return rowsOf(st(features)).length
+    })
+    // The same height at 64, 200 and 1000 specs.
+    expect(new Set(heights).size).toBe(1)
+    const rows = rowsOf(st(mk(140, i => ({ phase: 'done', done: 5, total: 5 }))))
+    expect(rows.find(r => r.key === 'scale-done')?.text).toBe('Done 140 ▸ 001–050 50 · 051–100 50 · 101–150 40')
+  })
+
+  test('All lists every spec in blocks of 50, folded and opened (067 #31)', () => {
+    const state = st(mk(120))
+    const folded = rowsOf(state, 'all')
+    const headers = folded.filter(r => r.key.startsWith('block-'))
+    expect(headers.map(r => r.key)).toEqual(['block-001–050', 'block-051–100', 'block-101–150'])
+    expect(headers[0]?.text).toMatch(/^▸ 001–050 ✓\d+ ▶\d+/)
+    expect(folded.some(r => r.key === 'feature-001')).toBe(false)
+    const opened = rowsOf(state, 'all', { open: ['001–050'] })
+    expect(opened.find(r => r.key === 'block-001–050')?.text.startsWith('▾')).toBe(true)
+    expect(opened.some(r => r.key === 'feature-001')).toBe(true)
+    expect(opened.some(r => r.key === 'feature-051')).toBe(false)
+  })
+
+  test('the summary names the specs and where they stand (067)', () => {
+    const rows = rowsOf(st(mk(64)))
+    const summary = rows.find(r => r.key === 'scale-summary')!
+    expect(summary.text.startsWith('64 specs ')).toBe(true)
+    expect(summary.text).toMatch(/▶\d+ · \d+ early · \d+ to close · ✓\d+/)
+    expect(summary.segments?.length).toBeGreaterThan(3)
+  })
+
+  test('Ready to close, duplicate ids and the checks row (067 #32, #33, #34)', () => {
+    const features = [
+      ...mk(5),
+      { id: '028', name: 'late', dir: '028-late', phase: 'done', done: 1, total: 30, warnings: [] } as Feature,
+      { id: '029', name: 'a', dir: '029-a', phase: 'done', done: 3, total: 3, warnings: [] } as Feature,
+      { id: '029', name: 'b', dir: '029-b', phase: 'done', done: 3, total: 3, warnings: [] } as Feature,
+      { id: '044', name: 'ready', dir: '044-ready', phase: 'implement', done: 4, total: 4, warnings: [] } as Feature,
+    ]
+    const rows = rowsOf(st(features, { active: { dir: '001-n001', id: '001', name: 'n001', source: 'feature.json' } as never }), 'all', { open: ['001–050'] })
+    const checks = rows.find(r => r.key === 'scale-checks')!
+    expect(checks.text).toBe('▲ 2 checks · 028 done with 1/30 ticked · id 029 used twice')
+    const dup = rows.filter(r => r.key.startsWith('feature-029'))
+    expect(dup.length).toBe(2)
+    expect(new Set(dup.map(r => r.key)).size).toBe(2)
+    expect(dup.every(r => r.text.includes('▲ id×2'))).toBe(true)
+    // The check sits under its own spec's row too.
+    const i = rows.findIndex(r => r.key === 'feature-028')
+    expect(rows[i + 1]?.text).toBe('▲ 028 done with 1/30 ticked')
+    const focus = rowsOf(st(features, { active: { dir: '001-n001', id: '001', name: 'n001', source: 'feature.json' } as never }))
+    expect(focus.some(r => r.key === 'section-close' && r.text === 'Ready to close (1)')).toBe(true)
+  })
+
+  test('specs not read yet are one placeholder row per run (067 #36)', () => {
+    const loading = (id: string): Feature => ({ id, name: `n${id}`, dir: `${id}-n${id}`, phase: 'specify', done: 0, total: 0, warnings: ['loading'] }) as Feature
+    const features = [...mk(3), loading('040'), loading('041'), loading('042')]
+    const rows = rowsOf(st(features), 'focus')
+    const row = rows.find(r => r.key === 'loading-040')!
+    expect(row.text).toBe('· 040–042 not read yet · reading in the background')
+    expect(rows.some(r => r.key === 'feature-040')).toBe(false)
+  })
+
+  test('Touched this session leads, and a grouping other than status groups by it (067 #39, #40)', () => {
+    const state = st(mk(20))
+    const rows = rowsOf(state, 'focus', { touched: ['003-n003'] })
+    const at = rows.findIndex(r => r.key === 'section-touched')
+    expect(rows[at]?.text).toBe('Touched this session (1)')
+    expect(rows[at + 1]?.key).toBe('feature-003')
+    const byPhase = rowsOf(state, 'all', { group: 'phase' })
+    expect(byPhase.filter(r => r.key.startsWith('block-')).map(r => r.key).sort()).toEqual(['block-done', 'block-implement', 'block-specify'])
+  })
+
+  test('a spec with no task figures prints ?%, never 0% (067 #37)', () => {
+    const rows = specsRows(st([{ id: '001', name: 'a', dir: '001-a', phase: 'tasks', done: 0, total: 0, warnings: [] } as Feature]), 100, 'en')
+    expect(rows.find(r => r.key === 'feature-001')?.text).toContain('?%')
+  })
+})

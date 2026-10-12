@@ -18,13 +18,16 @@ import { presetOf } from './core/presets'
 import { spinnerSuffix } from './core/spinner'
 import { bandUpdateLabel, astrolabeUpdate, firstLine, isDue, isStoredUpdates, localDay, parseCliVersion, parseGstackCheck, parseSelfCheck, skillsVersusCli, releaseNotesUrl, skillsUpdate, updateLabel } from './core/updates'
 import { fileUrl, joinPath } from './core/paths'
-import { configMark, nextFor, nextPriority, skillsForPhase, specDetail, OPTION_GROUPS, optionDefaults, optionGroup, parallelPrompt, parsePriority, REVIEW_MODEL, reviewPrompt, withPriority, type OptionGroup, type Priority } from './core/spec-actions'
+import { closeSuggestion, configMark, nextFor, planFiles, nextPriority, skillsForPhase, specDetail, OPTION_GROUPS, optionDefaults, optionGroup, parallelPrompt, parsePriority, REVIEW_MODEL, reviewPrompt, withPriority, type OptionGroup, type Priority } from './core/spec-actions'
 import { parallelTasks } from './core/extensions'
 import { VERSION } from './core/version'
 import { QUEUE_HOTKEYS } from './core/keys'
 import { duration } from './core/duration'
 import { STATE_GLYPHS } from './core/glyphs'
 import { statusLead } from './core/status-lead'
+import { withThumb } from './core/thumb'
+import { displaySectionOf, isReadyToClose } from './core/sections'
+import { blockLabel, jumpLine, jumpMatches, jumpQuery, nextGroup } from './core/specs-scale'
 import { usageBarRows } from './core/usage-bars'
 import { badgesOf, legacyTab, paneTitle } from './core/pane-tabs'
 import { usageRamp } from './core/usage-ramp'
@@ -1042,6 +1045,8 @@ function paneHeader(
   stats: SessionStats | undefined,
   filterCount?: { kept: number; total: number },
   now = 0,
+  /** The rows in view of a list longer than the pane (067 #35): `rows 12–40 of 140`. */
+  range?: { from: number; to: number; total: number },
 ): RenderNode[] {
   const elements = $.ui.resolve(e)
   const Input = 'Input' in elements ? elements.Input : undefined
@@ -1061,10 +1066,15 @@ function paneHeader(
       out.push(
         <Input key="astrolabe-filter" placeholder={t(currentLang(), viewOf(pane) === 'specs' ? 'pane.filter' : 'pane.filterRows')} value={pane.filter ?? ''} onInput={setFilter} onSubmit={setFilter} />,
       )
+      // A `#` jump (067 #31): the ids the query completes to, live.
+      const jump = viewOf(pane) === 'specs' ? jumpQuery(pane.filter) : undefined
+      if (jump !== undefined) out.push(<elements.Text key="astrolabe-jump" color={tokens0.accent}>{jumpLine(state.features, jump)}</elements.Text>)
       if (filterCount !== undefined) {
         // The filter's tokens as one muted row with the count (061): `phase:plan · has:questions · 3/12 rows`.
         const chips = viewOf(pane) === 'specs' ? filterChips(pane.filter, pane.status) : []
-        const count = t(currentLang(), 'pane.filterCount', filterCount)
+        const count = range !== undefined && range.total > range.to - range.from + 1
+          ? t(currentLang(), 'pane.range', range)
+          : t(currentLang(), 'pane.filterCount', filterCount)
         out.push(<elements.Text key="astrolabe-filter-count" color={tokens0.muted}>{chips.length === 0 ? count : `${chips.join(' · ')} ${count}`}</elements.Text>)
       }
     }
@@ -1709,6 +1719,9 @@ function disarmLiveProbe(): void {
   liveProbe = undefined
 }
 
+/** Spec folders seen this session, so the stats are written once per folder. */
+const touchedSpecsSeen = new Set<string>()
+
 async function touchFile(
   $: EngineInterface,
   preset: Preset,
@@ -1718,6 +1731,13 @@ async function touchFile(
 ): Promise<void> {
   const fs = fsOf($)
   const now = await $.clock.now()
+  // The specs Claude read or edited this session (067 #40), for the Touched section.
+  const touchedDir = /\/specs\/([^/]+)\//.exec(path)?.[1]
+  if (touchedDir !== undefined && !touchedSpecsSeen.has(touchedDir)) {
+    touchedSpecsSeen.add(touchedDir)
+    const dir = touchedDir
+    await flushStats($, stats => ({ ...stats, touchedSpecs: [...(stats.touchedSpecs ?? []).filter(d => d !== dir), dir].slice(-20) }))
+  }
   let drift: string | undefined
   const held = await guarded($, async previous => {
     if (previous === undefined) return undefined
@@ -1739,7 +1759,38 @@ async function touchFile(
  * toast moves forward (005). The baseline lives in the session memo (013), so two sessions
  * on one project never hide each other's toasts. Writes the memo only when it changed.
  */
+/** The reconcile whose plan files were last checked, so a repeat draw reads nothing (067 #33). */
+let planCheckedAt: string | undefined
+
+/**
+ * Files plan.md names that are not there (067 #33), for the active spec and the ones ready to
+ * close, at most ten, read after a reconcile and never while drawing (Principle XII).
+ */
+async function checkPlanFiles($: EngineInterface, held: Held | undefined): Promise<void> {
+  const state = held?.state
+  if (state === undefined || state.root === undefined) return
+  const key = `${state.root}|${state.memoVersion ?? ''}`
+  if (planCheckedAt === key) return
+  planCheckedAt = key
+  const fs = fsOf($)
+  const targets = state.features
+    .filter(f => f.phase !== 'abandoned' && (f.dir === state.active?.dir || displaySectionOf(f, state.active?.dir) === 'close'))
+    .slice(0, 10)
+  const missing: Record<string, string[]> = {}
+  for (const f of targets) {
+    const plan = await fs.read(`${state.root}/specs/${f.dir}/plan.md`).catch(() => undefined)
+    if (plan === undefined) continue
+    const gone: string[] = []
+    for (const path of planFiles(plan).slice(0, 12)) {
+      if (!(await fs.exists(`${state.root}/${path}`).catch(() => true))) gone.push(path)
+    }
+    if (gone.length > 0) missing[f.dir] = gone
+  }
+  await flushStats($, stats => (JSON.stringify(stats.planMissing ?? {}) === JSON.stringify(missing) ? stats : { ...stats, planMissing: missing }))
+}
+
 async function afterReconcile($: EngineInterface, preset: Preset, held: Held | undefined): Promise<void> {
+  await checkPlanFiles($, held).catch(() => undefined)
   // Under the compact preset a finished phase brightens its chip for 30 seconds instead of a toast (065 #18).
   const brightens = preset.toasts !== 'all' && preset.band
   if ((preset.toasts !== 'all' && !brightens) || held === undefined || held.state.root === undefined) return
@@ -2969,6 +3020,26 @@ export const register: Register = (on, options) => {
     return {}
   })
 
+  // Enter in a `#` jump field goes to the first id it completes to (067 #31): its block opens, the row is selected.
+  on('ui.input', { component: 'Pane', requestId: PANE_ID }, async ($, e, next) => {
+    const pane = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
+    if (e.element !== 'astrolabe-filter' || e.kind !== 'submit' || pane.tab !== 'specs' || pane.help === true) return next(e)
+    const query = jumpQuery(pane.filter)
+    if (query === undefined) return next(e)
+    const state = (await $.state.get(SPECKIT)).value
+    const hit = state === undefined ? undefined : jumpMatches(state.features, query, 1)[0]
+    const { filter: _gone, ...rest } = pane
+    if (hit === undefined) {
+      await $.state.set(PANE_STATE, rest)
+      return e
+    }
+    const width = Math.max(3, ...state!.features.map(f => f.id.length))
+    const open = new Set(pane.open ?? [])
+    open.add(blockLabel(hit.id, width))
+    await $.state.set(PANE_STATE, { ...rest, view: 'all', open: [...open], selectedFeature: hit.id })
+    return e
+  })
+
   // Two-step Enter confirmation for spec selection (044 #38): first Enter selects, second Enter confirms and writes feature.json.
   on('ui.input', { component: 'Pane', requestId: PANE_ID }, async ($, e, next) => {
     const pane = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
@@ -3058,7 +3129,10 @@ export const register: Register = (on, options) => {
     // The help overlay above the tab, or the tab itself (066 #21).
     const view = viewOf(pane)
     const columns = e.props.bodyColumns
-    const needle = (pane.filter ?? '').trim().toLowerCase()
+    // `#05` is a jump to an id, not a filter of rows (067 #31).
+    const jump = jumpQuery(pane.filter)
+    const specFilter = jump === undefined ? pane.filter : undefined
+    const needle = (specFilter ?? '').trim().toLowerCase()
     const keep = <R extends { key: string; text: string }>(list: R[]): R[] =>
       needle === '' ? list : list.filter(r => r.key === 'count' || r.text.toLowerCase().includes(needle))
     const rows =
@@ -3070,23 +3144,25 @@ export const register: Register = (on, options) => {
           ? await sessionTabRows($, state, usage, stats, updates, updatesRead.value?.confirming)
           : [
               ...specsRows(
-                { ...filtered(state, pane.filter, pane.status, specFilterContext(stats)), features: withWorktreeProgress(filtered(state, pane.filter, pane.status, specFilterContext(stats)).features, stats?.worktrees) },
+                { ...filtered(state, specFilter, pane.status, specFilterContext(stats)), features: withWorktreeProgress(filtered(state, specFilter, pane.status, specFilterContext(stats)).features, stats?.worktrees) },
                 columns,
                 currentLang(),
                 stats?.priorities ?? {},
                 worktreesById(stats?.worktrees),
-                (pane.filter ?? '').trim() === '' && (pane.status ?? 'all') === 'all',
+                (specFilter ?? '').trim() === '' && (pane.status ?? 'all') === 'all',
                 stats?.worktrees?.map(w => ({ name: w.name, id: w.id, featureName: w.featureName, phase: w.phase, done: w.done, total: w.total, status: worktreeState(w) })) ?? [],
                 e.surface === 'desktop',
                 pane.sort ?? 'status',
                 // Roadmap view (044 #40): read here, the core stays pure.
                 state.root === undefined ? undefined : roadmapCache.has(state.root) ? roadmapCache.get(state.root) : await $.fs.read(`${state.root}/docs/roadmap.md`).then(text => { roadmapCache.set(state.root!, text); return text }).catch(() => { roadmapCache.set(state.root!, undefined); return undefined }),
+                // Specs at scale (067): the view, the open blocks, the grouping and what Claude touched.
+                { ...(pane.view === undefined ? {} : { view: pane.view }), open: pane.open ?? [], group: pane.group ?? 'status', touched: stats?.touchedSpecs ?? [], planMissing: stats?.planMissing ?? {} },
               ),
             ]
     // A filter that keeps nothing says so (052 #7).
     const matchesNone =
       (needle !== '' || (view === 'specs' && (pane.status ?? 'all') !== 'all')) &&
-      (view === 'specs' ? filtered(state, pane.filter, pane.status, specFilterContext(stats)).features.length === 0 && state.features.length > 0 : (view === 'tasks' || view === 'help') && rows.every(r => r.key === 'count'))
+      (view === 'specs' ? filtered(state, specFilter, pane.status, specFilterContext(stats)).features.length === 0 && state.features.length > 0 : (view === 'tasks' || view === 'help') && rows.every(r => r.key === 'count'))
     if (matchesNone && view === 'specs') rows.splice(0, rows.length, ...rows.filter(r => r.key !== 'empty'))
     if (matchesNone) rows.push({ key: 'no-match', text: t(currentLang(), 'pane.noMatch', { filter: pane.filter?.trim() ?? '' }), role: 'muted' } as never)
     const { Box, Text, Button } = $.ui.resolve(e)
@@ -3132,6 +3208,10 @@ export const register: Register = (on, options) => {
             ...(reviewedNext === undefined
               ? []
               : [{ key: 'copy-next', label: `⧉ ${reviewedNext}`, onPress: () => void copyNext($, reviewedNext, e.surface) }]),
+            // Ready to close (067 #32): the edit is Claude's, offered in the prompt box.
+            ...(isReadyToClose(reviewed)
+              ? [{ key: 'close-spec', label: t(currentLang(), 'detail.close'), onPress: () => void $.prompt.suggest({ text: closeSuggestion(reviewed) }).catch(() => undefined) }]
+              : []),
           ]
         : []
     // The line above those buttons: what the spec needs, at a glance (061).
@@ -3203,6 +3283,36 @@ export const register: Register = (on, options) => {
         : {}),
       // Number keys show on the tab labels only while the pane has the keyboard (054 #65).
       showKeys: e.props.isFocused === true,
+      // v toggles Focus and All, g cycles the grouping, a block header opens and folds (067 #31, #39).
+      ...(view === 'specs'
+        ? {
+            view: {
+              label: t(currentLang(), pane.view === 'all' ? 'pane.view.all' : state.features.length > 12 || pane.view === 'focus' ? 'pane.view.focus' : 'pane.view.list'),
+              onPress: async () => {
+                const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
+                await $.state.set(PANE_STATE, { ...held, view: held.view === 'all' ? 'focus' : 'all' })
+              },
+            },
+            ...(pane.view === 'all'
+              ? {
+                  group: {
+                    label: t(currentLang(), `pane.group.${pane.group ?? 'status'}` as TextKey),
+                    onPress: async () => {
+                      const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
+                      await $.state.set(PANE_STATE, { ...held, group: nextGroup(held.group), open: [] })
+                    },
+                  },
+                }
+              : {}),
+            onToggleBlock: async (key: string) => {
+              const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
+              const open = new Set(held.open ?? [])
+              if (open.has(key)) open.delete(key)
+              else open.add(key)
+              await $.state.set(PANE_STATE, { ...held, open: [...open] })
+            },
+          }
+        : {}),
       // c clears the filter box and the status filter; o cycles the order (061).
       ...(view === 'specs'
         ? {
@@ -3335,7 +3445,7 @@ export const register: Register = (on, options) => {
       const taskFilterRows = allTaskRows.filter(row => row.key.startsWith('task-') && (needle === '' || row.text.toLowerCase().includes(needle)))
       const filterCount =
         view === 'specs'
-          ? { kept: filtered(state, pane.filter, pane.status, specFilterContext(stats)).features.length, total: state.features.length }
+          ? { kept: filtered(state, specFilter, pane.status, specFilterContext(stats)).features.length, total: state.features.length }
           : view === 'tasks'
             ? {
                 kept: taskFilterRows.length,
@@ -3370,7 +3480,11 @@ export const register: Register = (on, options) => {
       const room = bodyRows - 1 - headerRows - footerReserve
       const { win, pad, nav } = navFor(rows.map(() => 1), room)
       const footer = await footerFor(pad)
-      return paneTree({ Box, Text, Button }, pane.tab, rows.slice(win.start, win.end), tokens, select, undefined, currentLang(), header, footer, nav, extras)
+      // A list longer than the pane says which rows are in view and draws a thumb (067 #35).
+      const windowed = win.start > 0 || win.end < rows.length
+      const shownHeader = windowed ? paneHeader($, e, pane, state, stats, filterCount, nowForHeader, { from: win.start + 1, to: win.end, total: rows.length }) : header
+      const shown = windowed ? withThumb(rows.slice(win.start, win.end), win.start, rows.length, columns) : rows.slice(win.start, win.end)
+      return paneTree({ Box, Text, Button }, pane.tab, shown, tokens, select, undefined, currentLang(), shownHeader, footer, nav, extras)
     }
     // The Dashboard (018): numbers from $.state only, charts sized to the pane.
     const elements = $.ui.resolve(e)

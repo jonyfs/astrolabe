@@ -175,7 +175,7 @@ export type PaneTab = 'specs' | 'tasks' | 'session' | 'prs' | 'setup'
 export type PaneView = PaneTab | 'help'
 
 /** The /astrolabe pane's session state: the tab shown and whether it opened unasked already. */
-export type PaneState = { tab: PaneTab; /** The help overlay is on, above the tab. */ help?: true; autoOpened: boolean; filter?: string; status?: 'all' | 'progress' | 'next' | 'done' | 'abandoned'; sort?: 'status' | 'progress' | 'name'; scroll?: { tab: PaneView; offset: number }; selectedFeature?: string; summary?: { dir: string; expanded: boolean }; draft?: Record<string, string | number | boolean>; confirm?: string; confirmSelecting?: string }
+export type PaneState = { tab: PaneTab; /** The help overlay is on, above the tab. */ help?: true; /** Specs at scale (067): the view, the open blocks and the grouping. */ view?: 'focus' | 'all'; open?: string[]; group?: 'status' | 'phase' | 'track' | 'priority'; autoOpened: boolean; filter?: string; status?: 'all' | 'progress' | 'next' | 'done' | 'abandoned'; sort?: 'status' | 'progress' | 'name'; scroll?: { tab: PaneView; offset: number }; selectedFeature?: string; summary?: { dir: string; expanded: boolean }; draft?: Record<string, string | number | boolean>; confirm?: string; confirmSelecting?: string }
 
 export type UpdateId = 'gstack' | 'specify' | 'speckit-skills' | 'astrolabe'
 
@@ -320,6 +320,10 @@ export type SessionStats = {
   health?: { at: number; lines: string[] }
   /** The full text of the last toast shortened to fit the notification limit (052 #44). */
   toastDetails?: string
+  /** Spec folders Claude read or edited this session, oldest first (067 #40). */
+  touchedSpecs?: string[]
+  /** Files each spec's plan.md names that are not there, from the reconcile's own reads (067 #33). */
+  planMissing?: Record<string, string[]>
   /** Until when the step chip of the band shows brighter: a phase finished under the compact preset (065 #18). */
   phaseBrightUntil?: number
   /** gstack's skills are installed under the home directory (051). */
