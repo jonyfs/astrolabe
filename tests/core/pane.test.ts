@@ -131,7 +131,7 @@ describe('taskRows', () => {
   test('the current task is marked, with how long it has run (045 #42)', () => {
     const now = 10 * 60_000
     const rows = taskRows(state({ currentTask: { id: 'T003', text: 'c', startedAt: 0 } }), memo(TASKS), 10, 80, 'en', now)
-    expect(texts(rows)).toEqual(['002 band-hint · implement · 1/4 done', '✓ 1 done · T001', 'next', '⇉ T002 Write x.ts', 'current', `${'▸ T003 c'.padEnd(80 - '⏱ 10m'.length)}⏱ 10m`, 'later', 'T004 d'])
+    expect(texts(rows)).toEqual(['002 band-hint · implement · 1/4 done', '✓ 1 done · T001', 'next', '⇉ T002 Write x.ts', 'current', `${'▸ T003 c'.padEnd(80 - '◷ 10m'.length)}◷ 10m`, 'later', 'T004 d'])
     expect(rows[5]?.role).toBe('current')
     // The current row is bold and its clock sits at the right edge (052 #20).
     expect(rows[5]?.bold).toBe(true)

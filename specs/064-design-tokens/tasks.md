@@ -69,10 +69,10 @@ description: "Task list for 064-design-tokens"
 
 **Independent Test**: `npx vitest run tests/core/glyphs.test.ts tests/core/icons.test.ts`
 
-- [ ] T013 [P] [US3] #3 Write `tests/core/glyphs.test.ts`: `textWidth` of each `STATE_GLYPHS` value is 1; every entry of the nerd set is width 1; every entry of the ascii set is printable ASCII; emoji entries wider than 1 are all in `EMOJI_WIDE`; and a grep-style check that `⏸`, `⏱`, `⚠` appear in `hooks/core` only inside `icons.ts` and `glyphs.ts`
-- [ ] T014 [US3] #3 Create `hooks/core/glyphs.ts` with `STATE_GLYPHS` and `EMOJI_WIDE`; remove the `⏳`, `⏱` and `⚠` special cases from `textWidth` in `hooks/core/footer.ts`
-- [ ] T015 [US3] #3 Replace `⏸` with `‖`, `⏱` with `◷` and `⚠` with `▲` in `hooks/core/pane.ts`, `hooks/core/footer.ts`, the `MARKS` table in `hooks/core/icons.ts` and `hooks/register.tsx`; update expected strings in `tests/core/pane.test.ts`
-- [ ] T016 [P] [US3] #3 Replace the same glyphs in `hooks/core/i18n/en.ts`, `pt-br.ts`, `es.ts` and `fr.ts`, keeping each string's width equal across the four files (`tests/core/i18n.test.ts` passes)
+- [x] T013 [P] [US3] #3 Write `tests/core/glyphs.test.ts`: `textWidth` of each `STATE_GLYPHS` value is 1; every entry of the nerd set is width 1; every entry of the ascii set is printable ASCII; emoji entries wider than 1 are all in `EMOJI_WIDE`; and add `tool-tests/unit/state-glyphs.vitest.ts`, a Node scan that `⏸`, `⏱`, `⚠` appear under `hooks/` only in `icons.ts` and `glyphs.ts`
+- [x] T014 [US3] #3 Create `hooks/core/glyphs.ts` with `STATE_GLYPHS` and `EMOJI_WIDE`; make `textWidth` in `hooks/core/footer.ts` read the wide entries from `EMOJI_WIDE` instead of hard-coding `⏳`, `⏱` and `⚠`
+- [x] T015 [US3] #3 Use `◷` for the running clock in `hooks/core/pane.ts`, map `◷`, `‖` and `▲` in the `MARKS` table of `hooks/core/icons.ts`, and drop the glyph from the `hooks/register.tsx` comment (`‖` itself is first drawn by the band in spec 065); update expected strings in `tests/core/pane.test.ts`
+- [x] T016 [P] [US3] #3 Replace the same glyphs in `hooks/core/i18n/en.ts`, `pt-br.ts`, `es.ts` and `fr.ts`, keeping each string's width equal across the four files (`tests/core/i18n.test.ts` passes)
 
 ---
 

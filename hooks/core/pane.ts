@@ -7,6 +7,7 @@ import { fileUrl } from './paths'
 import { byPriority, priorityMark, taskFiles, type Priorities, type Priority } from './spec-actions'
 import { parseTasks } from './tasks-parser'
 import { groupOpenTasks } from './task-groups'
+import { STATE_GLYPHS } from './glyphs'
 import { STATUS_ROLE, type ThemeRole } from './theme'
 import type { Feature, SessionMemo, SpeckitState } from './types'
 
@@ -372,9 +373,9 @@ export const taskRows = (
     const current = state.currentTask
     const isCurrent = current !== undefined && t.id !== undefined && current.id === t.id
     const ran = isCurrent && now !== undefined && current.startedAt !== undefined ? elapsed(now - current.startedAt) : ''
-    const clock = ran === '' ? '' : `⏱ ${ran}`
+    const clock = ran === '' ? '' : `${STATE_GLYPHS.elapsed} ${ran}`
     const head = `${isCurrent ? '▸ ' : ''}${groupOf(index)}${t.id === undefined ? '' : `${t.id.padEnd(idWidth)} `}`
-    // The ⏱ sits at the right edge, the current row in bold (052 #20).
+    // The ◷ sits at the right edge, the current row in bold (052 #20).
     const body = `${head}${cut(cleanTaskText(t.text), columns - width(head) - width(clock) - (clock === '' ? 0 : 2))}`.trimEnd()
     const line = clock === '' ? body : `${body}${' '.repeat(Math.max(2, columns - width(body) - width(clock)))}${clock}`
     const named = isCurrent ? taskFiles(t.text) : []

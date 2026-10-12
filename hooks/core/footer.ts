@@ -3,6 +3,7 @@
 import { clockOf, decide, isPaused, labelOf, usageSegment, type Decision } from './governor'
 import { branchWebUrl } from './git-status'
 import { usageRamp } from './usage-ramp'
+import { EMOJI_WIDE } from './glyphs'
 import type { Icons } from './icons'
 import { t, type Lang } from './i18n'
 import type { GitState, PullRequest, UsageReading } from './types'
@@ -43,9 +44,9 @@ export type FooterInput = {
 
 const SEP = ' · '
 
-/** Columns a text takes: emoji and other wide pictographs count two. */
+/** Columns a text takes: pictographs and the declared wide emoji-set entries count two (064 #3). */
 export const textWidth = (text: string): number =>
-  [...text].reduce((n, ch) => n + ((ch.codePointAt(0) ?? 0) >= 0x1f000 || ch === '⏳' || ch === '⏱' || ch === '⚠' ? 2 : 1), 0)
+  [...text].reduce((n, ch) => n + ((ch.codePointAt(0) ?? 0) >= 0x1f000 || EMOJI_WIDE.includes(ch) ? 2 : 1), 0)
 
 /** `claude-opus-5-5` reads `opus 5.5`; anything else is kept. */
 export const shortModel = (model: string): string => {
