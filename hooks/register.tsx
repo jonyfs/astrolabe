@@ -2769,7 +2769,7 @@ export const register: Register = (on, options) => {
       ...(updateText === undefined
         ? {}
         : {
-            update: { label: updateText, onPress: async () => (only === undefined ? openPane($) : runUpdate($, only.id)) },
+            update: { label: updateText, onPress: async () => (only === undefined || only.id === 'speckit-skills' ? openPane($) : runUpdate($, only.id)) },
             hide: { label: t(currentLang(), 'updates.hide'), onPress: () => hideUpdates($) },
           }),
       onLift: () => liftBand($),
@@ -2805,7 +2805,7 @@ export const register: Register = (on, options) => {
     const bandElements = { Box, Text, Button, ...('Client' in elements ? { Client: elements.Client } : {}), ...('Link' in elements ? { Link: elements.Link } : {}) }
     return (
       <Box flexDirection="column">
-        {segments.length > 0 && bandRow(
+        {(segments.length > 0 || edge.update !== undefined) && bandRow(
           bandElements,
           segments,
           tokens,
