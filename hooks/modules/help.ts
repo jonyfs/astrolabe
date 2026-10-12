@@ -42,6 +42,7 @@ export const buildHelp = (lang: Lang, optionsSeen: Readonly<Record<string, unkno
     `  /astrolabe allow <90-99> <30m-12h>   ${t(lang, 'help.allow')}`,
     `  /astrolabe revoke           ${t(lang, 'help.revoke')}`,
     `  /astrolabe run <id>         ${t(lang, 'help.run')}`,
+    `  /astrolabe footer <owner>   ${t(lang, 'help.footerOwner')}`,
     `  /astrolabe doctor           ${t(lang, 'help.doctor')}`,
     `  /astrolabe priority <id> <high|normal|low>   ${t(lang, 'help.priority')}`,
     `  /astrolabe review [id]      ${t(lang, 'help.review')}`,
