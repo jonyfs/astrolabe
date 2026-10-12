@@ -66,7 +66,7 @@ export const PT_BR: Dictionary = {
   'pane.scrollMore': 'mais',
   'legend.updated': 'atualizado às {at}',
   'legend.default': '1-7 abas · h ajuda · j/k rola · r ↻ · Esc fecha',
-  'legend.specs': '1-7 abas · h ajuda · f filtra · s status · j/k rola · Enter seleciona · r ↻ · Esc fecha',
+  'legend.specs': '1-7 abas · h ajuda · f filtra · s status · j/k rola · r ↻ · Esc fecha',
   'legend.filter': '1-7 abas · h ajuda · f filtra · j/k rola · r ↻ · Esc fecha',
   'legend.config': '1-7 abas · h ajuda · Enter muda um valor · r ↻ · Esc fecha',
   'summary.ready': '🧭 {feature} terminou: o resumo está na aba Sessão do /astrolabe',

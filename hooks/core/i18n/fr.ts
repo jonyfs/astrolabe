@@ -66,7 +66,7 @@ export const FR: Dictionary = {
   'pane.scrollMore': 'de plus',
   'legend.updated': 'mis à jour à {at}',
   'legend.default': '1-7 onglets · h aide · j/k défile · r ↻ · Échap ferme',
-  'legend.specs': '1-7 onglets · h aide · f filtre · s statut · j/k défile · Entrée sélectionne · r ↻ · Échap ferme',
+  'legend.specs': '1-7 onglets · h aide · f filtre · s statut · j/k défile · r ↻ · Échap ferme',
   'legend.filter': '1-7 onglets · h aide · f filtre · j/k défile · r ↻ · Échap ferme',
   'legend.config': '1-7 onglets · h aide · Entrée change une valeur · r ↻ · Échap ferme',
   'summary.ready': '🧭 {feature} est terminée : le résumé est dans l’onglet Session de /astrolabe',

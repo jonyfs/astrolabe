@@ -430,7 +430,7 @@ the tasks left. It disappears as soon as you type.
 
 ## Options
 
-Twenty-one options appear in Claude Code's config menu (`/config`, then Astrolabe). Changing
+Twenty-three options appear in Claude Code's config menu (`/config`, then Astrolabe). Changing
 one reloads the mod right away.
 
 | Option | Values | Default | What it changes |
@@ -439,6 +439,8 @@ one reloads the mod right away.
 | `flavor` | `mocha`, `frappe`, `macchiato`, `latte`, `colorblind`, `theme` | `mocha` | The band palette. `colorblind` uses distinct blue, teal, amber and vermilion colors with shape marks for statuses. `theme` takes Claude Code's own theme colors, so the band and the pane follow your light or dark theme; the Dashboard charts then use `latte` on a light theme and `mocha` on a dark one. |
 | `checkUpdates` | `true`, `false` | `true` | The daily update check and its buttons (see [Update notices](#update-notices)). |
 | `governUsage` | `true`, `false` | `true` | Enforce usage limits (see [Usage governance](#usage-governance)); off, the windows still show. |
+| `governThresholds` | JSON object | `{}` | Per-window hold/stop thresholds, overriding the defaults of the [governance bands](#usage-governance), for example `{"five_hour":{"hold":80,"stop":88},"seven_day_opus":{"hold":85,"stop":90}}`. An empty object keeps the defaults. |
+| `quietHours` | `HH:MM-HH:MM` | (empty) | During quiet hours, for example `22:00-06:00`, the governor never asks: it applies the cautious answer itself (holds and pauses without asking). Empty or invalid means it always asks. |
 | `observeUsage` | `true`, `false` | `false` | Log what the Governor would hold or pause without blocking tools; takes precedence over enforcement. |
 | `icons` | `auto`, `nerd`, `emoji`, `ascii` | `auto` | Icons in the footer and the Dashboard. `auto` is Nerd Font glyphs in the terminal and emoji elsewhere. |
 | `language` | `auto`, `en`, `pt-BR`, `es`, `fr` | `auto` | The language of the pane, the Dashboard, the governor's questions, the toasts and `/astrolabe help`. `auto` follows the language you type in, English until a prompt says enough. What Claude reads (refusals, resume prompts) stays in English. |

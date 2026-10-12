@@ -32,6 +32,8 @@ jobs:
       - name: Fetch the engine declarations for the type check
         shell: bash
         run: sh scripts/fetch-engine-types.sh 2.1.292
+      - name: Install tooling dependencies
+        run: npm ci
       - name: Type check
         run: npx -y -p typescript@5 tsc -p .
       - name: Test the release version and README sync checks
@@ -39,6 +41,8 @@ jobs:
         run: |
           sh scripts/test-check-release-version.sh
           sh scripts/test-check-readme-sync.sh
+      - name: Run the tooling tests
+        run: npm test
       - name: version.ts equals plugin.json
         if: runner.os != 'Windows'
         run: sh scripts/check-release-version.sh "v$(sed -n 's/^[[:space:]]*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' .claude-plugin/plugin.json | head -n 1)"
@@ -64,7 +68,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
       - name: Run benchmark
-        run: npm run benchmark -- --baseline .benchmark-baseline.json --output results/benchmark.json
+        run: npm run benchmark -- --threshold 30 --baseline .benchmark-baseline.json --output results/benchmark.json
       - name: Upload benchmark results
         uses: actions/upload-artifact@v4
         with:
@@ -91,6 +95,7 @@ jobs:
 
   generate-images:
     name: Generate README Images
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:

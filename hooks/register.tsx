@@ -1,6 +1,6 @@
 // Wires engine events to the io layer, the core and the status surface. No business logic.
 // The engine follows $ only into functions declared in this file, so every $ call lives here.
-import { ABOUT, commandPaletteText, helpText } from './modules/help'
+import { ABOUT, helpText } from './modules/help'
 import { otherFeatureNamed, implementRefusal, canTouchSpecs, mayChangeGit, mayWriteFiles, isUnderSpecify } from './modules/guards'
 import { advisorFindings, advisorPrompt } from './modules/advisor'
 import { featureContext, principlesOf, tickedBy, statusText } from './modules/context'
@@ -13,7 +13,7 @@ import { bandSegments, nextReason, otherFeaturesCard, stepCards, type BandDensit
 import { hintTail } from './core/hint'
 import { phaseToasts } from './core/phase-toast'
 import { justFinished } from './core/next-command'
-import { filterChips, helpRows, moveSpecSelection, nextSort, nextStatus, taskRows, windowUnits, wrappedRows, type PaneRow, sessionRows, specsRows } from './core/pane'
+import { filterChips, filterFeatures, helpRows, moveSpecSelection, nextSort, nextStatus, taskRows, windowUnits, wrappedRows, type PaneRow, sessionRows, specsRows } from './core/pane'
 import { presetOf } from './core/presets'
 import { spinnerSuffix } from './core/spinner'
 import { astrolabeUpdate, firstLine, isDue, isStoredUpdates, localDay, parseCliVersion, parseGstackCheck, parseSelfCheck, skillsVersusCli, releaseNotesUrl, skillsUpdate, updateLabel } from './core/updates'
@@ -741,6 +741,9 @@ let specSelectionRows: Array<{ key: string; index: number }> = []
 let selectedSpecRow: string | undefined
 let specSelectionWindow = { start: 0, end: 0 }
 let specLinksEnabled = false
+// The roadmap read once per session and root (044 #40); a turn's work may redraw the Specs tab
+// many times, and each redraw must not read the file again (054 #1).
+const roadmapCache = new Map<string, string | undefined>()
 
 // Whether a finished feature gets a summary from a small model (026 #53), off by default.
 let featureSummary = false
@@ -944,21 +947,12 @@ let accessible = false
 
 /**
  * Opened on request: it takes the keys (1 to 4 at once) and Esc closes it. An unasked open never
- * takes focus (Principle VII). If the pane cannot open (preset.pane === 'command'), shows
- * a command palette toast instead (048 #76).
+ * takes focus (Principle VII).
  */
 async function openPane($: EngineInterface): Promise<void> {
   // The title names the active feature (052 #4) the way the band and the footer do (054 #30).
   const state = (await $.state.get(SPECKIT)).value
   const title = state?.active === undefined ? PANE_TITLE : `${PANE_TITLE} · ${activeMark(state)} ${state.active.name}`
-  
-  // When preset.pane is 'command', the pane is not available; show command palette toast instead (048 #76).
-  if (presetOf(optionsSeen).pane === 'command') {
-    const palette = commandPaletteText(currentLang())
-    await showToast($, palette)
-    return
-  }
-  
   await $.ui.open({ id: PANE_ID, title, focus: true, closeOnEscape: true })
 }
 
@@ -1054,13 +1048,18 @@ function paneHeader(
         )
       }
     }
+    // The breadcrumb and summary name the active feature only while the filter keeps it (024 #49).
+    const activeShown =
+      pane.tab === 'specs' && active !== undefined
+        ? filterFeatures(state.features, pane.filter, active.dir, pane.status, specFilterContext(stats)).some(feature => feature.dir === active.dir)
+        : false
     // Breadcrumb row (043 #24): Specs › 026 claude-context
-    if (pane.tab === 'specs' && active !== undefined && state.root !== undefined && elements.Text !== undefined) {
+    if (activeShown && active !== undefined && state.root !== undefined && elements.Text !== undefined) {
       out.push(
-        <elements.Text key="astrolabe-breadcrumb" color={tokens0.muted}>{`Specs › ${active.id} ${active.name}`}</elements.Text>
+        <elements.Text key="astrolabe-breadcrumb" color={tokens0.muted} wrap={e.surface === 'desktop' ? 'wrap' : 'truncate-end'}>{`Specs › ${active.id} ${active.name}`}</elements.Text>
       )
     }
-    if (pane.tab === 'specs' && Markdown !== undefined && active !== undefined && state.activeSummary !== undefined && state.root !== undefined) {
+    if (activeShown && active !== undefined && Markdown !== undefined && state.activeSummary !== undefined && state.root !== undefined) {
       const summaryBlocks = state.activeSummary.split(/\n{2,}/)
       const expanded = pane.summary?.dir === active.dir && pane.summary.expanded
       const shownSummary = expanded ? state.activeSummary : summaryBlocks.slice(0, 2).join('\n\n')
@@ -2076,7 +2075,7 @@ export const register: Register = (on, options) => {
   const tokens = themeOf(options)
   optionsSeen = options
   tokens0 = tokens
-// Whether the last band draw saw a fullscreen terminal of 160 columns or more. The pane
+// Whether the last band draw saw a fullscreen terminal of 144 columns or more. The pane
 // never opens unasked below that (Principle VII); session.start reports no width.
   let isWide = false
   const checksUpdates = options['checkUpdates'] !== false
@@ -2167,6 +2166,7 @@ export const register: Register = (on, options) => {
     isInteractive = e.isInteractive !== false
     surfaceSeen = e.surface
     gitNeedsRefresh = true
+    roadmapCache.clear()
     statusTimer?.cancel()
     statusTimer = undefined
     pendingStatus = undefined
@@ -2572,7 +2572,7 @@ export const register: Register = (on, options) => {
   // Drawing reads only $.state (Principle XII); a reconcile's write redraws these sites.
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     columnsSeen = e.viewport?.columns ?? columnsSeen
-    isWide = e.viewport?.isFullscreen === true && e.viewport.columns >= 160
+    isWide = e.viewport?.isFullscreen === true && e.viewport.columns >= 144
     if (!preset.band || e.props.hasSurvey) return next(e)
     const { value } = await $.state.get(SPECKIT)
     const sessionStats = (await $.state.get(SESSION)).value
@@ -2787,12 +2787,12 @@ export const register: Register = (on, options) => {
   })
 
   // Two-step Enter confirmation for spec selection (044 #38): first Enter selects, second Enter confirms and writes feature.json.
-  on('ui.input', { component: 'Pane', requestId: PANE_ID }, async ($, e) => {
+  on('ui.input', { component: 'Pane', requestId: PANE_ID }, async ($, e, next) => {
     const pane = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
-    if (e.kind !== 'submit' || pane.tab !== 'specs' || specSelectionRows.length === 0) return e
+    if (e.element === 'astrolabe-filter' || e.kind !== 'submit' || pane.tab !== 'specs' || specSelectionRows.length === 0) return next(e)
     const held = pane
     const state = (await $.state.get(SPECKIT)).value
-    if (state === undefined) return e
+    if (state === undefined) return next(e)
     const activeSpecFeature = state.features.find(feature => feature.dir === state.active?.dir)
     const preferredSelection = pane.selectedFeature === undefined
       ? activeSpecFeature === undefined ? undefined : `feature-${activeSpecFeature.id}`
@@ -2800,7 +2800,7 @@ export const register: Register = (on, options) => {
     const currentSelected = specSelectionRows.some(row => row.key === preferredSelection)
       ? preferredSelection
       : specSelectionRows[0]?.key
-    if (currentSelected === undefined) return e
+    if (currentSelected === undefined) return next(e)
     // First Enter: select the spec (show confirm prompt)
     if (held.confirmSelecting !== currentSelected) {
       await $.state.set(PANE_STATE, { ...held, confirmSelecting: currentSelected })
@@ -2819,19 +2819,19 @@ export const register: Register = (on, options) => {
   })
 
   // Two-step Enter confirmation for task tick (045 #46): first Enter selects task, second confirms tick.
-  on('ui.input', { component: 'Pane', requestId: PANE_ID }, async ($, e) => {
+  on('ui.input', { component: 'Pane', requestId: PANE_ID }, async ($, e, next) => {
     const pane = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
-    if (e.kind !== 'submit' || pane.tab !== 'tasks') return e
+    if (e.element === 'astrolabe-filter' || e.kind !== 'submit' || pane.tab !== 'tasks') return next(e)
     const state = (await $.state.get(SPECKIT)).value
-    if (state?.active === undefined) return e
+    if (state?.active === undefined) return next(e)
     const held = pane
     const tasks = state.activeTasks ?? []
     const openTasks = tasks.filter(t => !t.isDone && t.id !== undefined)
-    if (openTasks.length === 0) return e
+    if (openTasks.length === 0) return next(e)
     // Find the currently selected task row (highlighted)
     const currentTask = state.currentTask
     const currentTaskId = currentTask?.id
-    if (currentTaskId === undefined) return e
+    if (currentTaskId === undefined) return next(e)
     // First Enter: select the task (show confirm prompt)
     if (held.confirmSelecting !== `task-${currentTaskId}`) {
       await $.state.set(PANE_STATE, { ...held, confirmSelecting: `task-${currentTaskId}` })
@@ -2895,7 +2895,7 @@ export const register: Register = (on, options) => {
                 e.surface === 'desktop',
                 pane.sort ?? 'status',
                 // Roadmap view (044 #40): read here, the core stays pure.
-                state.root === undefined ? undefined : await $.fs.read(`${state.root}/docs/roadmap.md`).catch(() => undefined),
+                state.root === undefined ? undefined : roadmapCache.has(state.root) ? roadmapCache.get(state.root) : await $.fs.read(`${state.root}/docs/roadmap.md`).then(text => { roadmapCache.set(state.root!, text); return text }).catch(() => { roadmapCache.set(state.root!, undefined); return undefined }),
               ),
             ]
     // A filter that keeps nothing says so (052 #7).

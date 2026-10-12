@@ -70,7 +70,7 @@ export const EN = {
   'pane.scrollMore': 'more',
   'legend.updated': 'updated {at}',
   'legend.default': '1-7 tabs · h help · j/k scroll · r ↻ · Esc closes',
-  'legend.specs': '1-7 tabs · h help · f filters · s status · j/k scroll · Enter select · r ↻ · Esc closes',
+  'legend.specs': '1-7 tabs · h help · f filters · s status · j/k scroll · r ↻ · Esc closes',
   'legend.filter': '1-7 tabs · h help · f filters · j/k scroll · r ↻ · Esc closes',
   'legend.config': '1-7 tabs · h help · Enter changes a value · r ↻ · Esc closes',
   'summary.ready': '🧭 {feature} is done: its summary is in the Session tab of /astrolabe',
