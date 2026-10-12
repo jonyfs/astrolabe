@@ -6,6 +6,42 @@ tags `vX.Y.Z` equal to `plugin.json`'s `version`.
 
 ## [Unreleased]
 
+## [0.135.0] - 2026-10-12
+
+The design review (umbrella spec 063) lands as specs 064 to 069.
+
+### Added
+
+- Spec 064: one visual vocabulary on every surface. A usage ramp for context, 5h, 7d and the spend
+  limit (`7d 81%▴ hold`), a `faint` role for muted text, narrow state glyphs (`‖ ◷ ▲`), task and
+  feature ids that are never cut, one duration format, one phase abbreviation table, one verb per
+  key, one message prefix (`astrolabe ✓`, `astrolabe ▲`) and one zone separator rule. Snapshot
+  tests cover band, status, footer and pane in five flavors at four widths.
+- Spec 065: a one-row band with one update button and a hide button at its right edge, a status
+  entry that keeps the lead (feature, phase, percentage and the deciding window), and the prompt
+  hint only while drafting.
+- Spec 066: the pane has five tabs (Specs, Tasks, Session, PRs, Setup), usage bars with governor
+  ticks, a legend row and a help overlay on `?`. The Dashboard folds into Session and Config and
+  Models into Setup; a saved tab maps across.
+- Spec 067: Focus and All views of the Specs tab with blocks of 50, a checks row, a `#` jump, a
+  scroll thumb, groupings and a Touched this session section, so a project of 1,000 specs keeps
+  one height.
+- Spec 068: the three-line footer carries what a statusline shows: conflicts, upstream-aware ahead
+  and behind, detached HEAD, worktree origin, start directory, repository, PR draft state and
+  labels, last CI run, skills, todo progress, `fast`, the prompt cache and a burn projection that
+  shows only when it lands before the reset. Branch, PR, skills and model chips brighten for 30
+  seconds after a change, and a hover row explains each chip.
+- Spec 069: one live table above the prompt for subagents, git gates (from the process list, read
+  on the clock around commands that may run a hook), the prompt cache and usage limits, with
+  stable columns and a fixed drop order. New option `liveRows`.
+
+### Fixed
+
+- Snapshots no longer depend on the machine's time zone.
+- The update button draws in a project without Spec Kit; a stale queue button warns instead of
+  claiming success; the PRs and Setup tabs no longer draw the Specs rows above their body.
+- In the All view a touched spec is drawn once; a filter lists the rows it asked for.
+
 ## [0.134.0] - 2026-10-12
 
 The release line continues above the tag v0.133.0 already on the remote, so this release is
