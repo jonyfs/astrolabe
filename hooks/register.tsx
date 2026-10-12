@@ -154,7 +154,8 @@ let statusTimer: ReturnType<EngineInterface['clock']['after']> | undefined
 let pendingStatus: Held['state'] | undefined
 
 /** The window an override is given for: the one binding now (016); none known, every window. */
-const kindOf = (usage: UsageState, now: number, governThresholds?: Record<string, { hold?: number; stop?: number }): { kind?: string } => {
+type GovernThresholdsMap = Record<string, { hold?: number; stop?: number }>
+const kindOf = (usage: UsageState, now: number, governThresholds?: GovernThresholdsMap): { kind?: string } => {
   const kind = decide(usage.readings, usage.history, usage.override, now, usage.holdLift, usage.held, governThresholds).highest?.kind
   return kind === undefined ? {} : { kind }
 }
