@@ -189,3 +189,11 @@ describe('kpiLines (052 #32)', () => {
     expect(lines[1]).toBe('drifts    0')
   })
 })
+
+describe('subagents per feature (054 #37)', () => {
+  test('a row names the features the subagents ran for, most first', () => {
+    const base = { startedAt: 0, turns: 1, toolCalls: 0, drifts: 0, agentsRun: 4, agentsQueued: 0, series: [], agentsByFeature: { '001': 1, '002': 3 } }
+    expect(Object.fromEntries(kpiRows(base, undefined, 1))['by feature']).toBe('002: 3, 001: 1')
+    expect(Object.fromEntries(kpiRows({ ...base, agentsByFeature: {} }, undefined, 1))['by feature']).toBeUndefined()
+  })
+})
