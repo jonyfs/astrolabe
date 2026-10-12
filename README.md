@@ -1016,6 +1016,97 @@ plugin and are not committed: `scripts/fetch-engine-types.sh` downloads them int
 same. After a Claude Code update, `scripts/sync-engine-types.sh` copies the new declarations
 from your machine and prints the `gh release create` line that publishes them.
 
+### Benchmarks
+
+`npm run benchmark` measures the mod's performance and compares it against a baseline:
+
+```sh
+npm run benchmark -- --output results/benchmark.json            # run and save the raw result
+npm run benchmark -- --baseline baseline.json --threshold 10    # fail on a regression past 10%
+npm run benchmark -- --save-baseline --baseline baseline.json   # adopt this run as the baseline
+```
+
+The report covers duration, peak memory, CPU and any custom metrics, with a per-metric
+comparison (`regression`, `improvement` or within the threshold). The command exits nonzero
+when a regression passes the threshold, so CI can gate on it. On every pull request the
+benchmark job in [.github/workflows/ci.yml](.github/workflows/ci.yml) runs the suite and
+comments a table on the PR with each metric's current value, baseline and delta.
+
+### Generating README images
+
+`npm run generate-images` renders the source diagrams under `docs/diagrams/` into
+`docs/images/` (PNG and SVG; WebP where the renderer supports it), for both Mermaid diagrams
+and anything that needs a browser capture, through
+[mermaid-cli](https://github.com/mermaid-js/mermaid-cli) and Playwright:
+
+```sh
+npm run generate-images                     # only changed sources
+npm run generate-images -- --no-only-changed
+```
+
+A `manifest.json` in `docs/images/` records source, output and format for each image, so a
+second run regenerates only what changed. The generate-images job in the CI workflow runs it
+on every push and commits the results with `[skip ci]`, so committed images always match their
+sources.
+
+### Desktop app captures
+
+`npm run capture` drives the packaged desktop app with Playwright and captures the views
+listed in [config/capture-views.json](config/capture-views.json), one artifact per view:
+
+```sh
+npm run capture -- --app dist/app --output-dir docs/assets/captures
+```
+
+Each view names a URL, optional actions (`click`, `type`, `wait`, `scroll`) and a capture:
+a `screenshot` with a viewport (and an optional element selector) or a `video` with a
+duration. The capture workflow
+([.github/workflows/capture.yml](.github/workflows/capture.yml)) runs weekly and on demand
+and uploads `docs/assets/captures/` as a build artifact.
+
+### Privacy policy
+
+[docs/privacy.md](docs/privacy.md) is generated, never hand-edited:
+
+```sh
+npm run generate-privacy -- --config config/privacy.config.json --output docs/privacy.md
+```
+
+The configuration in [config/privacy.config.json](config/privacy.config.json) declares what
+the mod reads, stores and sends; validation fails the build when a section required by the
+declared jurisdictions (GDPR and CCPA by default) is missing.
+
+### Marketplace plugin assets
+
+`npm run build-assets` turns the source files in `docs/assets/source/` (`logo.png`,
+`banner.png` and screenshots) into every size each marketplace asks for, under
+`docs/assets/marketplace/<marketplace>/`:
+
+```sh
+npm run build-assets                                   # vscode, jetbrains and chrome specs
+npm run build-assets -- --marketplaces vscode
+```
+
+The per-marketplace sizes and formats live in `src/plugin-assets/specs.ts`. Missing or
+mis-sized sources fail validation, and the built tree is git-ignored: it is regenerated on
+demand, so `docs/assets/source/` is the only copy to keep.
+
+### Load tests
+
+`npm run load-test` measures how the mod holds up against a project with hundreds of
+synthetic Spec Kit features:
+
+```sh
+npm run load-test                                     # 500 features, 30% simple / 50% medium / 20% complex
+npm run load-test 1000 -- -d 0.5,0.4,0.1 --parallel   # custom count and distribution
+npm run load-test -- --memory-limit 512 --output-dir results
+```
+
+The distribution shares must sum to 1. Each feature has a per-feature timeout and the run a
+memory limit; a failure of either fails the run with a nonzero exit. The report (also saved
+as `results/load-test-*.json`) gives throughput and the slowest features. The load-test job
+runs weekly and on demand and keeps the report for 90 days.
+
 ### Releasing
 
 A release comes only from a tag `vX.Y.Z` equal to `plugin.json`'s `version`. Bump the version

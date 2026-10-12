@@ -27,11 +27,14 @@ export async function validatePluginAsset(asset: PluginAsset): Promise<AssetVali
     return { asset, valid: false, errors, warnings };
   }
 
+  const maxSizeKB = 'maxSizeKB' in typeSpecs ? typeSpecs.maxSizeKB : undefined;
+  if (maxSizeKB === undefined) return { asset, valid: true, errors, warnings };
+
   for (const outputPath of asset.outputPaths) {
     try {
-      const sizeCheck = await validateAssetSize(outputPath, typeSpecs.maxSizeKB);
+      const sizeCheck = await validateAssetSize(outputPath, maxSizeKB);
       if (!sizeCheck.valid) {
-        errors.push(`${outputPath}: ${sizeCheck.sizeKB.toFixed(1)}KB exceeds max ${typeSpecs.maxSizeKB}KB`);
+        errors.push(`${outputPath}: ${sizeCheck.sizeKB.toFixed(1)}KB exceeds max ${maxSizeKB}KB`);
       }
     } catch {
       errors.push(`${outputPath}: File not found or inaccessible`);

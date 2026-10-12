@@ -26,7 +26,7 @@ description: "Task list for Quality and Distribution implementation"
 - [x] T001 Create directory structure per implementation plan (scripts/, docs/assets/, tests/)
 - [x] T002 [P] Add benchmark, capture, load-test, privacy, image-gen, assets scripts to package.json
 - [x] T003 [P] Install required dependencies: @mermaid-js/mermaid-cli, playwright, vitest
-- [ ] T004 [P] Configure GitHub Actions workflow permissions for artifact upload/commit
+- [x] T004 [P] Configure GitHub Actions workflow permissions for artifact upload/commit
 
 ---
 
@@ -72,7 +72,7 @@ description: "Task list for Quality and Distribution implementation"
 - [x] T022 [US1] Add GitHub Actions job in .github/workflows/ci.yml (benchmark job, posts PR comment)
 - [x] T023 [US1] Add baseline storage/retrieval (GitHub Actions cache or artifact)
 - [x] T024 [US1] Add benchmark npm script to package.json
-- [ ] T024a [US1] Update README.md with benchmark usage, CI integration, and example PR comment
+- [x] T024a [US1] Update README.md with benchmark usage, CI integration, and example PR comment
 
 **Checkpoint**: User Story 1 fully functional - benchmark runs in CI, posts PR comment, detects 10% regressions
 
@@ -99,7 +99,7 @@ description: "Task list for Quality and Distribution implementation"
 - [x] T032 [US2] Add GitHub Actions job in .github/workflows/ci.yml (generate-images job, commits changes)
 - [x] T033 [US2] Add image-gen npm script to package.json
 - [x] T034 [US2] Configure .gitignore for generated images (or commit to docs/images/)
-- [ ] T034a [US2] Update README.md with image generation usage, CI integration, and source diagram examples
+- [x] T034a [US2] Update README.md with image generation usage, CI integration, and source diagram examples
 
 **Checkpoint**: User Story 2 fully functional - images auto-regenerate on source change, CI commits updates
 
@@ -129,7 +129,7 @@ description: "Task list for Quality and Distribution implementation"
 - [x] T045 [US3] Create capture views config in config/capture-views.json (view definitions per quickstart.md)
 - [x] T046 [US3] Add GitHub Actions workflow in .github/workflows/capture.yml (scheduled + manual trigger)
 - [x] T047 [US3] Add capture npm script to package.json
-- [ ] T047a [US3] Update README.md with desktop capture usage, view configuration, and artifact examples
+- [x] T047a [US3] Update README.md with desktop capture usage, view configuration, and artifact examples
 
 **Checkpoint**: User Story 3 fully functional - captures all configured views, uploads artifacts
 
@@ -156,7 +156,7 @@ description: "Task list for Quality and Distribution implementation"
 - [x] T055 [US4] Create privacy config in config/privacy.config.json (data controller, data categories, retention, etc.)
 - [x] T056 [US4] Add privacy npm script to package.json
 - [x] T057 [US4] Add docs/privacy.md to documentation build pipeline
-- [ ] T057a [US4] Update README.md with privacy page link, configuration, and compliance details
+- [x] T057a [US4] Update README.md with privacy page link, configuration, and compliance details
 
 **Checkpoint**: User Story 4 fully functional - privacy page generated, compliant, versioned
 
@@ -180,9 +180,9 @@ description: "Task list for Quality and Distribution implementation"
 - [x] T062 [US5] Implement asset validator in src/plugin-assets/validator.ts (size, format, naming per spec)
 - [x] T063 [US5] Implement asset manifest in src/plugin-assets/manifest.ts (tracks all generated files)
 - [x] T064 [US5] Create plugin-assets CLI entry in scripts/build-assets.ts (args: --manifest, --source-dir, --output-dir, --marketplaces)
-- [ ] T065 [US5] Create source assets in docs/assets/source/ (logo, banner, screenshots)
+- [x] T065 [US5] Create source assets in docs/assets/source/ (logo, banner, screenshots)
 - [x] T066 [US5] Add plugin-assets npm script to package.json
-- [ ] T066a [US5] Update README.md with plugin asset generation, marketplace specs, and submission guide
+- [x] T066a [US5] Update README.md with plugin asset generation, marketplace specs, and submission guide
 
 **Checkpoint**: User Story 5 fully functional - all marketplace assets generated and validated
 
@@ -210,7 +210,7 @@ description: "Task list for Quality and Distribution implementation"
 - [x] T075 [US6] Create load-test CLI entry in scripts/load-test.ts (args: --count, --distribution, --timeout, --memory-limit, --parallel, --output-dir)
 - [x] T076 [US6] Add GitHub Actions workflow in .github/workflows/load-test.yml (scheduled weekly + manual)
 - [x] T077 [US6] Add load-test npm script to package.json
-- [ ] T077a [US6] Update README.md with load test usage, configuration, and performance expectations
+- [x] T077a [US6] Update README.md with load test usage, configuration, and performance expectations
 
 **Checkpoint**: User Story 6 fully functional - 500 features processed within success criteria
 
@@ -220,14 +220,14 @@ description: "Task list for Quality and Distribution implementation"
 
 **Purpose**: Improvements affecting multiple user stories
 
-- [ ] T078 [P] Documentation updates in docs/ (README updates, architecture diagrams)
-- [ ] T079 Code cleanup and refactoring (shared utilities, error handling consistency)
-- [ ] T080 Performance optimization across all modules (caching, parallelization)
-- [ ] T081 [P] Additional unit tests in tests/unit/ (edge cases, error paths)
-- [ ] T082 Security hardening (input validation, path traversal prevention)
-- [ ] T083 Run quickstart.md validation (all 6 scenarios)
-- [ ] T084 [P] Add CHANGELOG entries for 027-quality-distribution
-- [ ] T085 Verify all CI workflows pass (benchmark, image-gen, capture, privacy, assets, load-test)
+- [x] T078 [P] Documentation updates in docs/ (README updates, architecture diagrams)
+- [x] T079 Code cleanup and refactoring (shared utilities, error handling consistency)
+- [x] T080 Performance optimization across all modules (caching, parallelization)
+- [x] T081 [P] Additional unit tests in tests/unit/ (edge cases, error paths)
+- [x] T082 Security hardening (input validation, path traversal prevention)
+- [x] T083 Run quickstart.md validation (all 6 scenarios)
+- [x] T084 [P] Add CHANGELOG entries for 027-quality-distribution
+- [x] T085 Verify all CI workflows pass (benchmark, image-gen, capture, privacy, assets, load-test)
 
 ---
 
