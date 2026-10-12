@@ -173,6 +173,8 @@ export const PT_BR: Dictionary = {
   'footer.onlyYou': 'Só você pode mudar quem é dono do rodapé.',
   'footer.reload': 'Vale a partir da próxima sessão.',
   'pane.parallel': '⇉ {ids} podem rodar em paralelo como subagentes',
+  'tasks.issues': '⇪ abrir {n} tarefas como issues do GitHub',
+  'tasks.issuesConfirm': 'aperte de novo: cria até {n} issues no GitHub',
   'parallel.button': '▶ enviar {ids} a subagentes de uma vez',
   'session.hooksBefore': 'hooks antes',
   'session.hooksAfter': 'hooks depois',

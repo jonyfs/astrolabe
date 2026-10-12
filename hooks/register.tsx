@@ -1056,6 +1056,23 @@ function paneHeader(
         )
       }
     }
+    // The open tasks as GitHub issues with one key (050 #96): Spec Kit's own skill does it, after a second press.
+    if (pane.tab === 'tasks' && active !== undefined && Button !== undefined) {
+      const openTasks = (state.activeTasks ?? []).filter(task => !task.isDone)
+      const feature = state.features.find(f => f.dir === active.dir)
+      if (openTasks.length > 0 && feature !== undefined) {
+        const key = `issues-${feature.id}`
+        const n = Math.min(openTasks.length, 20)
+        out.push(
+          <Button
+            key="tasks-to-issues"
+            label={pane.confirm === key ? t(currentLang(), 'tasks.issuesConfirm', { n }) : t(currentLang(), 'tasks.issues', { n })}
+            plain
+            onPress={() => void confirmPress($, key, () => void $.clock.after(0, () => void runSkill($, 'speckit-taskstoissues', `${feature.id} ${feature.name}`)))}
+          />,
+        )
+      }
+    }
     // The breadcrumb and summary name the active feature only while the filter keeps it (024 #49).
     const activeShown =
       pane.tab === 'specs' && active !== undefined

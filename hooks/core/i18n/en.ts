@@ -177,6 +177,8 @@ export const EN = {
   'footer.onlyYou': 'Only you can change who owns the footer.',
   'footer.reload': 'Takes effect at the next session.',
   'pane.parallel': '⇉ {ids} can run in parallel as subagents',
+  'tasks.issues': '⇪ open {n} tasks as GitHub issues',
+  'tasks.issuesConfirm': 'press again: creates up to {n} GitHub issues',
   'parallel.button': '▶ send {ids} to subagents at once',
   'session.hooksBefore': 'hooks before',
   'session.hooksAfter': 'hooks after',
