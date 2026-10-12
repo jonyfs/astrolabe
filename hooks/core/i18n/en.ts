@@ -356,7 +356,7 @@ export const EN = {
   'help.doctor': 'check git, gh, Spec Kit, icons and options, with the fix for each',
   'governor.queueKept': '🧭 {n} subagents still waiting in the governor queue; /astrolabe run <id> runs one now',
   'governor.queueKeptSince': '🧭 {n} subagents still waiting since {at}; /astrolabe run <id> runs one now',
-  'help.footer': 'Footer, always in this order: Spec Kit · deciding window · other windows · context · model · skill · git · burn · session time. A narrow screen drops from the end: time, burn, git, skill, model, other windows, context.',
+  'help.footer': 'Footer, always in this order: Spec Kit · deciding window · other windows · context · model · skill · git · advisor · burn · session time · Astrolabe. A narrow screen drops from the end: time, burn, git, skill, model, other windows, context.',
   'help.marks': 'Marks:',
   'help.marksList': '◆ active feature  ● done  ◐ in progress  ○ ahead or abandoned  ? blocked by clarifications\n▸ active row or current task  ⟳ a skill runs  ~ guessed  ! warning  ☐ open checklist items\n⑂ another worktree  ⇉ tasks that can run in parallel  ⏱ how long the task has run',
   'help.glossary': 'Spec Kit steps:',

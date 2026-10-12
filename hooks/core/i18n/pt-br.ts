@@ -358,7 +358,7 @@ export const PT_BR: Dictionary = {
   'help.doctor': 'confere git, gh, Spec Kit, ícones e opções, com a correção de cada um',
   'governor.queueKept': '🧭 {n} subagentes ainda esperando na fila do governador; /astrolabe run <id> roda um agora',
   'governor.queueKeptSince': '🧭 {n} subagentes esperando desde {at}; /astrolabe run <id> roda um agora',
-  'help.footer': 'Rodapé, sempre nesta ordem: Spec Kit · janela que decide · outras janelas · contexto · modelo · skill · git · consumo · tempo de sessão. Numa tela estreita sai do fim: tempo, consumo, git, skill, modelo, outras janelas, contexto.',
+  'help.footer': 'Rodapé, sempre nesta ordem: Spec Kit · janela que decide · outras janelas · contexto · modelo · skill · git · advisor · consumo · tempo de sessão · Astrolabe. Numa tela estreita sai do fim: tempo, consumo, git, skill, modelo, outras janelas, contexto.',
   'help.marks': 'Marcas:',
   'help.marksList': '◆ feature ativa  ● feita  ◐ em andamento  ○ por vir ou abandonada  ? bloqueada por esclarecimentos\n▸ linha ativa ou tarefa atual  ⟳ uma skill roda  ~ deduzida  ! aviso  ☐ itens de checklist abertos\n⑂ outra worktree  ⇉ tarefas que podem rodar em paralelo  ⏱ há quanto tempo a tarefa roda',
   'help.glossary': 'Passos do Spec Kit:',

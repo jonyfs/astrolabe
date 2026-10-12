@@ -14,6 +14,17 @@ tags `vX.Y.Z` equal to `plugin.json`'s `version`.
   run keys.
 - Spec 043 T010 (#30): each tab keeps its scroll offset per project in the store, across a reload
   and a new session.
+- Spec 054 T027 (#27): the Tasks tab groups open tasks as current, next, blocked by an earlier
+  task and later.
+- Spec 054 T048 (#48): the footer chips read their order and colour from one table, which the Help
+  tab prints.
+- The footer of the mod carries the advisor (`adv N`, the runs this session) and Astrolabe's own
+  version (`astrolabe 0.124.0`, the first chip a narrow footer drops), so a separate statusline is
+  not needed for them.
+
+### Fixed
+
+- The README images job on `main` renders mermaid with Chromium's sandbox off (PR #151).
 
 ## [0.123.0] - 2026-10-12
 

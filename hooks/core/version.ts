@@ -3,4 +3,4 @@
 export const VERSION = '0.124.0'
 
 /** What this version changed, one line, for the Help tab (048 #80). */
-export const CHANGES = 'b pages the pane back, each tab keeps its scroll across reloads'
+export const CHANGES = 'the footer shows the advisor and the version, tasks group by status, b pages back, tabs keep their scroll'

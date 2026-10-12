@@ -29,6 +29,10 @@ export type FooterInput = {
   lang?: Lang
   /** Only the parts never dropped: the Spec Kit part and the deciding window (035). */
   lead?: boolean
+  /** How many times the advisor ran in the session (the footer of this mod, not a statusline's). */
+  advisor?: { runs: number }
+  /** Astrolabe's own version, the last chip. */
+  astrolabe?: { version: string }
   /** The first three sessions end with a `/astrolabe help` chip (052 #46). */
   helpHint?: boolean
   /** Per-window hold/stop thresholds (047 #66). */
@@ -70,9 +74,11 @@ export const CHIP_TABLE = [
   { name: 'skill', rank: 3.5, colour: 'peach' },
   { name: 'git', rank: 4, colour: 'lavender' },
   { name: 'lines', rank: 4.5, colour: 'teal' },
+  { name: 'advisor', rank: 5, colour: 'mauve' },
   { name: 'burn', rank: 5.5, colour: 'peach' },
   { name: 'time', rank: 6, colour: 'surface1' },
   { name: 'help', rank: 7, colour: 'surface1' },
+  { name: 'astrolabe', rank: 8, colour: 'surface1' },
 ] as const satisfies ReadonlyArray<{ name: string; rank: number; colour: string }>
 
 type ChipName = (typeof CHIP_TABLE)[number]['name']
@@ -171,6 +177,9 @@ const parts = (input: FooterInput): Part[] => {
   if (input.lines !== undefined && input.lines.added + input.lines.removed > 0)
     out.push({ text: `±${input.lines.added + input.lines.removed}`, ...chipOf('lines') })
   if (input.startedAt !== undefined && now - input.startedAt >= 60_000) out.push({ text: withIcon(icons.clock, duration(now - input.startedAt)), ...chipOf('time') })
+  // The advisor consulted this session, and Astrolabe's own version (the mod's footer, not a statusline's).
+  if (input.advisor !== undefined && input.advisor.runs > 0) out.push({ text: `adv ${input.advisor.runs}`, ...chipOf('advisor') })
+  if (input.astrolabe !== undefined) out.push({ text: `astrolabe ${input.astrolabe.version}`, ...chipOf('astrolabe') })
   // A newcomer's last chip says where the commands are; it is the first to go on a narrow footer (052 #46).
   if (input.helpHint === true) out.push({ text: '/astrolabe help', ...chipOf('help') })
   return out

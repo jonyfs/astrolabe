@@ -522,6 +522,10 @@ turn to end. The same check runs after any Bash command that is not a spec-makin
 any `mcp__` tool. An unchanged file costs the stats and nothing else, and the check stops when the
 turn ends.
 
+The footer carries the advisor and Astrolabe's own details, so a separate statusline does not have to.
+An `adv N` chip counts the times the advisor ran this session and shows once it has run. The last chip,
+`astrolabe 0.124.0`, names the running version; it is the first one a narrow footer drops.
+
 The footer's chips take their order and colour from one table in `hooks/core/footer.ts`, and the Help tab prints it: each chip's rank (a narrow footer drops the highest rank first) and its colour.
 
 The Help tab (and `/astrolabe help`) starts with what this version changed, lists every option

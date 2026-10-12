@@ -358,7 +358,7 @@ export const ES: Dictionary = {
   'help.doctor': 'revisa git, gh, Spec Kit, iconos y opciones, con el arreglo de cada uno',
   'governor.queueKept': '🧭 {n} subagentes siguen esperando en la cola del gobernador; /astrolabe run <id> ejecuta uno ahora',
   'governor.queueKeptSince': '🧭 {n} subagentes esperando desde las {at}; /astrolabe run <id> ejecuta uno ahora',
-  'help.footer': 'Pie, siempre en este orden: Spec Kit · ventana que decide · otras ventanas · contexto · modelo · skill · git · consumo · tiempo de sesión. Una pantalla estrecha quita desde el final: tiempo, consumo, git, skill, modelo, otras ventanas, contexto.',
+  'help.footer': 'Pie, siempre en este orden: Spec Kit · ventana que decide · otras ventanas · contexto · modelo · skill · git · advisor · consumo · tiempo de sesión · Astrolabe. Una pantalla estrecha quita desde el final: tiempo, consumo, git, skill, modelo, otras ventanas, contexto.',
   'help.marks': 'Marcas:',
   'help.marksList': '◆ feature activa  ● hecha  ◐ en curso  ○ por venir o abandonada  ? bloqueada por aclaraciones\n▸ fila activa o tarea actual  ⟳ corre una skill  ~ deducida  ! aviso  ☐ ítems de checklist abiertos\n⑂ otro worktree  ⇉ tareas que pueden correr en paralelo  ⏱ cuánto lleva la tarea',
   'help.glossary': 'Pasos de Spec Kit:',

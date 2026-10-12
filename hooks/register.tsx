@@ -225,6 +225,8 @@ async function footerInput(
       ...(stats?.effort === undefined ? {} : { effort: stats.effort }),
       ...(stats?.git === undefined ? {} : { git: stats.git }),
       ...(stats?.lines === undefined ? {} : { lines: stats.lines }),
+      ...(stats?.advisor === undefined || stats.advisor.runs === 0 ? {} : { advisor: { runs: stats.advisor.runs } }),
+      astrolabe: { version: VERSION },
       ...(stats === undefined ? {} : { startedAt: stats.startedAt }),
       ...(sessionNumber <= 3 ? { helpHint: true } : {}),
       ...((rate => (rate === undefined ? {} : { burn: rate }))(stats === undefined ? undefined : burnRate(stats.series))),
