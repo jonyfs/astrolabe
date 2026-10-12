@@ -1,7 +1,7 @@
 import { GeneratedImage } from '../types/quality-distribution.js';
 import { fileHash } from '../lib/file-hash.js';
 import { writeFile, mkdir, readFile, readdir } from 'node:fs/promises';
-import { join, extname, basename } from 'node:path';
+import { join, extname, basename, resolve } from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 
@@ -66,7 +66,8 @@ async function renderMermaidFile(
   outputPath: string,
   format: 'png' | 'svg' | 'webp'
 ): Promise<void> {
-  const args = ['-i', inputPath, '-o', outputPath];
+  // CI runners refuse Chromium's sandbox for an unprivileged user; the config turns it off.
+  const args = ['-i', inputPath, '-o', outputPath, '-p', resolve(process.cwd(), 'config', 'puppeteer.json')];
   
   if (format === 'svg') {
     args.push('--outputFormat', 'svg');
