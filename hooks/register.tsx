@@ -3351,7 +3351,7 @@ export const register: Register = (on, options) => {
       const header = paneHeader($, e, pane, state, stats, filterCount, nowForHeader)
       // Rows the header takes: the filter, the summary's lines and links, the diff's lines.
       const headerRows =
-        ('Input' in $.ui.resolve(e) && view !== 'session' ? 1 + (filterCount === undefined ? 0 : 1) : 0) +
+        ('Input' in $.ui.resolve(e) ? 1 + (filterCount === undefined ? 0 : 1) : 0) +
         (rowButtons.length > 0 ? 1 : 0) +
         (rowDetail === undefined ? 0 : 1) +
         (view === 'specs'
