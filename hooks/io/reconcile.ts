@@ -71,7 +71,39 @@ export const reconcileTurn = async (fs: Fs, cwd: string, previous: Held | undefi
     const fresh = await readFeature(fs, root, active, previous.memo.files[active], reuseLargeTasks)
     held = deriveSpeckitState({ ...snapshot, features: snapshot.features.map(f => (f.dir === active ? fresh : f)) }, memo, now)
   }
+  // Everything the active feature has was just read: note its times so the next probe starts clean.
+  await activeFilesChanged(fs, held).catch(() => undefined)
   return held
+}
+
+const ACTIVE_FILES = ['spec.md', 'plan.md', 'tasks.md'] as const
+// The modification time each active-feature file had at the last probe, by path.
+const seenStats = new Map<string, number>()
+
+/**
+ * Whether the active feature's spec.md, plan.md or tasks.md changed on disk since the last
+ * probe: three stats, no read. A path never seen, a missing file or a file system without
+ * `stat` count as changed, so the caller reads it.
+ */
+export const activeFilesChanged = async (fs: Fs, held: Pick<Held, 'state'>): Promise<boolean> => {
+  const root = held.state.root
+  const dir = held.state.active?.dir
+  if (root === undefined || dir === undefined) return false
+  const stat = fs.stat
+  if (stat === undefined) return true
+  const now = await Promise.all(
+    ACTIVE_FILES.map(async file => {
+      const path = joinPath(root, 'specs', dir, file)
+      const mtime = await stat(path).then(s => s.mtimeMs, () => -1)
+      return { path, mtime }
+    }),
+  )
+  let changed = false
+  for (const { path, mtime } of now) {
+    if (seenStats.get(path) !== mtime) changed = true
+    seenStats.set(path, mtime)
+  }
+  return changed
 }
 
 /**
@@ -80,10 +112,15 @@ export const reconcileTurn = async (fs: Fs, cwd: string, previous: Held | undefi
  * listing again, new features and the active one, and keep the turn's memo (touched, window,
  * running skill). Hands back `previous` itself when nothing moved, so nothing is written.
  */
-export const reconcileNow = async (fs: Fs, previous: Held, now: number): Promise<Held> => {
+export const reconcileNow = async (fs: Fs, previous: Held, now: number, activeChanged?: boolean): Promise<Held> => {
   const root = previous.state.root
   if (root === undefined) return previous
-  const snapshot = await readSnapshot(fs, root, { dirs: [] }, previous.memo.files, previous.memo.base)
+  // The active feature's own files too, but only when a stat says one of them moved (investigate):
+  // progress ticked by a shell, a subagent or an MCP tool shows without waiting for the turn's end.
+  const changed = activeChanged ?? (await activeFilesChanged(fs, previous))
+  const activeDir = previous.state.active?.dir
+  const dirs = changed && activeDir !== undefined ? [activeDir] : []
+  const snapshot = await readSnapshot(fs, root, { dirs }, previous.memo.files, previous.memo.base, undefined, !windowOf(previous.memo).sawShell)
   let held = deriveSpeckitState(snapshot, previous.memo, now)
   const active = held.state.active?.dir
   // A newly active feature is read fresh: its cache may be from an earlier turn.

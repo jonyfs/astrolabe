@@ -37,7 +37,7 @@ import { emptyMemo, type PaneState, type PaneTab, type UpdateId, type UpdateItem
 import type { Preset } from './core/presets'
 import type { Fs } from './io/fs-port'
 import { findRoot } from './io/root'
-import { applyFileTouch, applyRead, applyShell, applySkill, type Held, reconcileDeferred, reconcileNow, reconcileStart, reconcileTurn } from './io/reconcile'
+import { activeFilesChanged, applyFileTouch, applyRead, applyShell, applySkill, type Held, reconcileDeferred, reconcileNow, reconcileStart, reconcileTurn } from './io/reconcile'
 import { bandRow, nextRow, updatesRow } from './surfaces/band'
 import { askTree } from './surfaces/ask'
 import { dashboardSections, dashboardTree } from './surfaces/dashboard'
@@ -1596,11 +1596,48 @@ function armIdlePoll($: EngineInterface, done = 0): void {
   })
 }
 
-async function syncNow($: EngineInterface): Promise<void> {
+async function syncNow($: EngineInterface, activeChanged?: boolean): Promise<void> {
   const fs = fsOf($)
   const now = await $.clock.now()
-  const held = await guarded($, async previous => (previous === undefined ? undefined : reconcileNow(fs, previous, now)))
+  const held = await guarded($, async previous => (previous === undefined ? undefined : reconcileNow(fs, previous, now, activeChanged)))
   await captureFeatureDurations($, held, now)
+}
+
+let probing = false
+
+/**
+ * The cheap freshness check (investigate): three stats of the active feature's spec.md, plan.md
+ * and tasks.md. Nothing is read, written or drawn unless one moved, then the same read as
+ * `syncNow`. Runs after tools that may write files without Astrolabe seeing it, and on a timer
+ * while a turn runs, so progress follows subagents, shells, MCP tools and other editors.
+ */
+async function probeNow($: EngineInterface): Promise<void> {
+  if (probing) return
+  probing = true
+  try {
+    const shown = (await $.state.get(SPECKIT)).value
+    if (shown?.root === undefined || shown.active === undefined) return
+    if (await activeFilesChanged(fsOf($), { state: shown })) await syncNow($, true)
+  } catch (error) {
+    logError($, error)
+  } finally {
+    probing = false
+  }
+}
+
+// How often a running turn checks the active feature's files (investigate).
+const LIVE_PROBE_MS = 2000
+let liveProbe: ReturnType<EngineInterface['clock']['every']> | undefined
+
+/** Arms the turn's file probe; replaces one already running. */
+function armLiveProbe($: EngineInterface): void {
+  liveProbe?.cancel()
+  liveProbe = $.clock.every(LIVE_PROBE_MS, () => void probeNow($))
+}
+
+function disarmLiveProbe(): void {
+  liveProbe?.cancel()
+  liveProbe = undefined
 }
 
 async function touchFile(
@@ -1966,6 +2003,8 @@ async function gate($: GateArgs[0], e: GateArgs[1], next: GateArgs[2]): Promise<
   } finally {
     try {
       await flushStats($)
+      // A tool Astrolabe does not know (an MCP file writer) may have written the feature's files.
+      if (typeof e.tool === 'string' && e.tool.startsWith('mcp__')) await probeNow($)
     } catch (error) {
       $.ui.log(`astrolabe: ${error instanceof Error ? error.message : String(error)}`, { to: 'debug' })
     }
@@ -2142,6 +2181,7 @@ export const register: Register = (on, options) => {
     // A turn starts: the idle poller waits for it to end (058).
     idlePollTimer?.cancel()
     idlePollTimer = undefined
+    armLiveProbe($)
     if (e.origin.kind === 'composer') {
       const guess = guessLang(e.text)
       if (guess !== undefined && guess !== guessedLang) {
@@ -2192,6 +2232,7 @@ export const register: Register = (on, options) => {
     surfaceSeen = e.surface
     gitNeedsRefresh = true
     roadmapCache.clear()
+    disarmLiveProbe()
     statusTimer?.cancel()
     statusTimer = undefined
     pendingStatus = undefined
@@ -2249,6 +2290,8 @@ export const register: Register = (on, options) => {
     const fs = fsOf($)
     const now = await $.clock.now()
     const started = await guarded($, previous => reconcileStart(fs, e.cwd, previous, now))
+    // Note the active feature's file times, so the first probe of a turn reads nothing.
+    if (started !== undefined) await activeFilesChanged(fs, started).catch(() => undefined)
     await afterReconcile($, preset, started)
     await captureFeatureDurations($, started, now)
     await settleFooterOwner($)
@@ -2312,6 +2355,8 @@ export const register: Register = (on, options) => {
   on('turn.complete', async ($, e, next) => {
     const result = await next(e)
     if (e.agentId === undefined) {
+      // The turn is over: the end-of-turn read below is the last word, the file probe stops.
+      disarmLiveProbe()
       skillRunning = undefined
       const fs = fsOf($)
       const cwd = await $.session.cwd()
@@ -2490,6 +2535,7 @@ export const register: Register = (on, options) => {
     // The command may have made a spec or switched the branch: the tabs follow now (053),
     // only for a command that can do so, so a plain `ls` costs no reads (054 #5).
     if (canTouchSpecs(command)) await syncNow($)
+    else await probeNow($)
     const succeeded = (result as { isError?: boolean } | undefined)?.isError !== true
     if (succeeded && (mayChangeGit(command) || mayWriteFiles(command))) gitNeedsRefresh = true
     if (succeeded && mayChangeGit(command)) {

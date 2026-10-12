@@ -205,7 +205,11 @@ export const installTree = (on: On, tree: Tree, cwd: string, seed: Record<string
     const index = indexTree(tree)
     const p = normalizePath(toTree(e.path))
     const kind = index.files.has(p) ? 'file' : index.dirs.has(p) ? 'dir' : undefined
-    return kind === undefined ? deny : { value: { kind, size: 0, mtimeMs: 0, isLink: false } }
+    // The time follows the text, so a changed file has a new time (a hash stands in for it).
+    const text = kind === 'file' ? index.files.get(p) ?? '' : ''
+    let mtimeMs = 1
+    for (let i = 0; i < text.length; i += 1) mtimeMs = (mtimeMs * 31 + text.charCodeAt(i)) % 2_147_483_647
+    return kind === undefined ? deny : { value: { kind, size: text.length, mtimeMs, isLink: false } }
   })
   on('fs.write', ($, e) => {
     forbidden.push(`fs.write ${e.path}`)
