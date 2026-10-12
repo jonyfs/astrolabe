@@ -167,6 +167,7 @@ export const ES: Dictionary = {
   'root.none': 'No hay .specify/ en {path} ni más arriba.',
   'help.root': 'cambia a otra raíz de Spec Kit dentro de esta carpeta',
   'help.footerOwner': 'quién dibuja el pie: astrolabe o statusline',
+  'help.chipTable': 'Chips del pie, por rango (un pie estrecho quita primero el de mayor número) y color:',
   'footer.asked': '🧭 statusline también dibuja un pie: ejecuta /astrolabe footer astrolabe o /astrolabe footer statusline',
   'footer.usage': 'Uso: /astrolabe footer <astrolabe|statusline>. Ahora: {owner}.',
   'footer.set': 'El pie es de {owner}. {reload}',

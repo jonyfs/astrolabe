@@ -161,6 +161,7 @@ export const FR: Dictionary = {
   'root.none': 'Aucun .specify/ dans {path} ni au-dessus.',
   'help.root': 'passe à une autre racine Spec Kit sous ce dossier',
   'help.footerOwner': 'qui dessine le pied de page : astrolabe ou statusline',
+  'help.chipTable': 'Pastilles du pied de page, par rang (un pied étroit retire en premier le plus haut) et couleur :',
   'footer.asked': '🧭 statusline dessine aussi un pied de page : lancez /astrolabe footer astrolabe ou /astrolabe footer statusline',
   'footer.usage': 'Usage : /astrolabe footer <astrolabe|statusline>. Actuellement : {owner}.',
   'footer.set': 'Le pied de page appartient à {owner}. {reload}',

@@ -1,7 +1,7 @@
 import { CHANGES, VERSION } from '../core/version'
 import { SKILL_MODELS } from '../core/skill-models'
 import { type PaneTab } from '../core/types'
-import { footerText } from '../core/footer'
+import { CHIP_TABLE, footerText } from '../core/footer'
 import { iconSet } from '../core/icons'
 import { paneLabelWidth, t, type Lang, type TextKey } from '../core/i18n'
 
@@ -72,6 +72,9 @@ export const buildHelp = (lang: Lang, optionsSeen: Readonly<Record<string, unkno
     t(lang, 'help.marks'),
     `  ${t(lang, 'help.footer')}`,
     ...t(lang, 'help.marksList').split('\n').map(line => `  ${line}`),
+    // The chips' order and colours, from the table the footer reads (054 #48).
+    t(lang, 'help.chipTable'),
+    ...CHIP_TABLE.map(chip => `  ${String(chip.rank).padEnd(4)} ${chip.name.padEnd(labelWidth)} ${chip.colour}`),
     t(lang, 'help.block.footer'),
     ...(['nerd', 'emoji', 'ascii'] as const).map(name => helpFooterPreview(name, lang)),
     t(lang, 'help.glossary'),

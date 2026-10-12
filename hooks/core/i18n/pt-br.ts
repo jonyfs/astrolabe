@@ -166,6 +166,7 @@ export const PT_BR: Dictionary = {
   'root.none': 'Nenhum .specify/ em {path} nem acima.',
   'help.root': 'troca para outro root do Spec Kit dentro desta pasta',
   'help.footerOwner': 'quem desenha o rodapé: astrolabe ou statusline',
+  'help.chipTable': 'Chips do rodapé, por posição (um rodapé estreito corta a de maior número primeiro) e cor:',
   'footer.asked': '🧭 o statusline também desenha um rodapé: rode /astrolabe footer astrolabe ou /astrolabe footer statusline',
   'footer.usage': 'Uso: /astrolabe footer <astrolabe|statusline>. Agora: {owner}.',
   'footer.set': 'O rodapé é do {owner}. {reload}',

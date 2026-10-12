@@ -170,6 +170,7 @@ export const EN = {
   'root.none': 'No .specify/ at {path} or above it.',
   'help.root': 'switch to another Spec Kit root under this folder',
   'help.footerOwner': 'who draws the footer: astrolabe or statusline',
+  'help.chipTable': 'Footer chips, by rank (a narrow footer drops the highest rank first) and colour:',
   'footer.asked': '🧭 statusline also draws a footer: run /astrolabe footer astrolabe or /astrolabe footer statusline',
   'footer.usage': 'Usage: /astrolabe footer <astrolabe|statusline>. Now: {owner}.',
   'footer.set': 'The footer belongs to {owner}. {reload}',

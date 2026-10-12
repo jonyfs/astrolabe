@@ -58,6 +58,26 @@ const duration = (ms: number): string => {
 
 /** A palette colour name (statusline's), or a ramp read from a level. */
 export type ChipColour = 'mauve' | 'sapphire' | 'yellow' | 'red' | 'lavender' | 'teal' | 'peach' | 'surface1' | 'green'
+/**
+ * The footer's chips in one table (054 #48): the order a narrow footer drops them in (a higher
+ * rank goes first) and their colour. `parts()` reads it, and the Help tab prints it.
+ */
+export const CHIP_TABLE = [
+  { name: 'deciding', rank: 0, colour: 'sapphire' },
+  { name: 'context', rank: 1, colour: 'yellow' },
+  { name: 'windows', rank: 2, colour: 'sapphire' },
+  { name: 'model', rank: 3, colour: 'red' },
+  { name: 'skill', rank: 3.5, colour: 'peach' },
+  { name: 'git', rank: 4, colour: 'lavender' },
+  { name: 'lines', rank: 4.5, colour: 'teal' },
+  { name: 'burn', rank: 5.5, colour: 'peach' },
+  { name: 'time', rank: 6, colour: 'surface1' },
+  { name: 'help', rank: 7, colour: 'surface1' },
+] as const satisfies ReadonlyArray<{ name: string; rank: number; colour: string }>
+
+type ChipName = (typeof CHIP_TABLE)[number]['name']
+/** A chip's rank and colour from the table. */
+const chipOf = (name: ChipName): { rank: number; colour: ChipColour } => CHIP_TABLE.find(c => c.name === name)!
 type Part = { text: string; rank: number; colour?: ChipColour; level?: number; first?: true; links?: ReadonlyArray<{ text: string; href: string }> }
 
 // An ASCII label ending in ':' is glued to its value (`stash:2`); a glyph takes a space.
@@ -100,25 +120,25 @@ const parts = (input: FooterInput): Part[] => {
       // Paused (047 #65): the first chip, in red, says until when.
       const until = clockOf(binding.resetsAt)
       out.push({ text: `${segment} · ${t(input.lang ?? 'en', 'status.pausedUntil', { at: until ?? t(input.lang ?? 'en', 'ask.theReset') })}`, rank: 0, colour: 'red', first: true })
-    } else out.push({ text: at === undefined ? segment : `${segment} (${at})`, rank: 0, colour: 'sapphire', ...(binding.renewed === true ? {} : { level: binding.percent }) })
+    } else out.push({ text: at === undefined ? segment : `${segment} (${at})`, ...chipOf('deciding'), ...(binding.renewed === true ? {} : { level: binding.percent }) })
   }
   for (const r of input.readings) {
     if (r.kind === binding?.kind) continue
-    out.push({ text: windowText(r, now, input.lang ?? 'en'), rank: 2, colour: 'sapphire', level: r.percentUsed })
+    out.push({ text: windowText(r, now, input.lang ?? 'en'), ...chipOf('windows'), level: r.percentUsed })
   }
   if (input.context !== undefined) {
     // Past 85% the context chip says to compact (054 #43).
     const p = Math.round(input.context.percent)
     const text = p >= 85 ? `${p}% ${t(input.lang ?? 'en', 'status.compactSoon')}` : `${p}%`
-    out.push({ text: withIcon(icons.context, text), rank: 1, colour: 'yellow', level: input.context.percent })
+    out.push({ text: withIcon(icons.context, text), ...chipOf('context'), level: input.context.percent })
   }
   if (input.model !== undefined) {
     const effort = input.effort === undefined ? '' : ` ${input.effort}`
-    out.push({ text: withIcon(icons.model, `${shortModel(input.model)}${effort}`), rank: 3, colour: 'red' })
+    out.push({ text: withIcon(icons.model, `${shortModel(input.model)}${effort}`), ...chipOf('model') })
   }
   if (input.skill !== undefined) {
     const name = input.skill.name.replace(/^[a-z0-9-]+:/, '').replace(/^speckit[-.]/, '')
-    out.push({ text: `⟳ ${name}${input.skill.model === undefined ? '' : ` · ${shortModel(input.skill.model)}`}`, rank: 3.5, colour: 'peach' })
+    out.push({ text: `⟳ ${name}${input.skill.model === undefined ? '' : ` · ${shortModel(input.skill.model)}`}`, ...chipOf('skill') })
   }
   const git = input.git
   if (git?.branch !== undefined) {
@@ -134,8 +154,7 @@ const parts = (input: FooterInput): Part[] => {
     const branch = icons.branch.endsWith(':') ? `${icons.branch}${git.branch}` : withIcon(icons.branch, git.branch)
     out.push({
       text: [branch, ...counts].join(' '),
-      rank: 4,
-      colour: 'lavender',
+      ...chipOf('git'),
       links: [
         ...(git.remote === undefined ? [] : [{ text: git.branch, href: branchWebUrl(git.remote, git.branch) }]),
         ...(git.pr?.url === undefined ? [] : [{ text: `#${git.pr.number}`, href: git.pr.url }]),
@@ -146,14 +165,14 @@ const parts = (input: FooterInput): Part[] => {
   if (input.burn !== undefined && input.burn > 0) {
     const reset = binding?.resetsAt === undefined ? Number.NaN : Date.parse(binding.resetsAt)
     const landing = binding === undefined || binding.renewed === true || Number.isNaN(reset) || reset <= now ? undefined : Math.min(100, Math.round(binding.percent + (input.burn * (reset - now)) / 3_600_000))
-    out.push({ text: `${icons.burn === '' ? '' : `${icons.burn} `}${Math.round(input.burn)}/h${landing === undefined ? '' : ` → ${landing}%`}`, rank: 5.5, colour: 'peach', ...(landing === undefined ? {} : { level: landing }) })
+    out.push({ text: `${icons.burn === '' ? '' : `${icons.burn} `}${Math.round(input.burn)}/h${landing === undefined ? '' : ` → ${landing}%`}`, ...chipOf('burn'), ...(landing === undefined ? {} : { level: landing }) })
   }
   // Lines changed this session (041 #7): what the tools wrote, added and removed.
   if (input.lines !== undefined && input.lines.added + input.lines.removed > 0)
-    out.push({ text: `±${input.lines.added + input.lines.removed}`, rank: 4.5, colour: 'teal' })
-  if (input.startedAt !== undefined && now - input.startedAt >= 60_000) out.push({ text: withIcon(icons.clock, duration(now - input.startedAt)), rank: 6, colour: 'surface1' })
+    out.push({ text: `±${input.lines.added + input.lines.removed}`, ...chipOf('lines') })
+  if (input.startedAt !== undefined && now - input.startedAt >= 60_000) out.push({ text: withIcon(icons.clock, duration(now - input.startedAt)), ...chipOf('time') })
   // A newcomer's last chip says where the commands are; it is the first to go on a narrow footer (052 #46).
-  if (input.helpHint === true) out.push({ text: '/astrolabe help', rank: 7, colour: 'surface1' })
+  if (input.helpHint === true) out.push({ text: '/astrolabe help', ...chipOf('help') })
   return out
 }
 

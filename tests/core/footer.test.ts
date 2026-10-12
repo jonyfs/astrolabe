@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import { footerChipLines, footerChips, footerText, linesChanged, resetOf, shortModel } from '../../hooks/core/footer'
+import { CHIP_TABLE, footerChipLines, footerChips, footerText, linesChanged, resetOf, shortModel } from '../../hooks/core/footer'
 import { iconSet } from '../../hooks/core/icons'
 
 const NOW = Date.UTC(2026, 9, 7, 12, 0)
@@ -133,5 +133,16 @@ describe('lines changed (041 #7)', () => {
   test('a lines part shows ±N in the footer', () => {
     expect(footerText({ ...full, lines: { added: 3, removed: 1 }, icons: iconSet('ascii'), columns: 200 })).toContain('±4')
     expect(footerText({ ...full, icons: iconSet('ascii'), columns: 200 })).not.toContain('±')
+  })
+})
+
+describe('the chip table (054 #48)', () => {
+  test('the footer reads its ranks and colours from the table', () => {
+    const chips = footerChips({ ...full, icons: iconSet('ascii'), columns: 200 })
+    for (const chip of chips) {
+      if (chip.rank === undefined) continue
+      expect(CHIP_TABLE.some(row => row.rank === chip.rank)).toBe(true)
+    }
+    expect(CHIP_TABLE.map(row => row.rank)).toEqual([...CHIP_TABLE.map(row => row.rank)].sort((a, b) => a - b))
   })
 })
