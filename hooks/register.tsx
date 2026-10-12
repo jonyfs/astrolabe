@@ -1022,7 +1022,7 @@ async function askFork($: EngineInterface, question: string, about: string): Pro
   try {
     const reply = await $.model.fork({ prompt: `About the Spec Kit feature ${about}, answer in at most three sentences, plain text: ${question}` })
     const text = reply.isAnswered ? reply.text.trim() : t(currentLang(), 'ask.failed', { reason: reply.reason })
-    await showToast($, text, { timeoutMs: 15_000 })
+    await showToast($, text, reply.isAnswered ? { timeoutMs: 15_000 } : { timeoutMs: 15_000, kind: 'warn' })
   } catch (error) {
     $.ui.log(`astrolabe: ${error instanceof Error ? error.message : String(error)}`, { to: 'debug' })
   }
@@ -1234,9 +1234,8 @@ async function refreshPr($: EngineInterface, root: string, branch: string, force
     const runs = await $.process.run(GH_RUN(branch), { cwd: root, timeoutMs: 5000 }).catch(() => undefined)
     const ci = runs?.exitCode === 0 ? parseCiRun(runs.stdout) : undefined
     await flushStats($, s => {
-      const base = s.git?.branch === branch ? withPr(s.git, pr) : s.git
-      const { ci: _old, ...rest } = base ?? { ahead: 0, behind: 0, changed: 0, conflicts: 0 }
-      const git = base === undefined ? undefined : ci === undefined ? rest : { ...rest, ci }
+      // A turn may have ended on another branch while `gh` ran: only this branch takes its PR and CI.
+      const git = s.git?.branch === branch ? (({ ci: _old, ...rest }) => (ci === undefined ? rest : { ...rest, ci }))(withPr(s.git, pr)) : s.git
       return { ...s, prCache: { branch, at: now, ...(pr === undefined ? {} : { pr }), ...(ci === undefined ? {} : { ci }) }, ...(git === undefined ? {} : { git }) }
     })
     const speckit = (await $.state.get(SPECKIT)).value
@@ -1313,6 +1312,9 @@ async function* noteModel($: Parameters<Hook<'turn.step'>>[0], e: Parameters<Hoo
   if (e.agentId === undefined) {
     live.model = step.model
     live.effort = step.effort === undefined ? undefined : String(step.effort)
+    // Fast mode, when the request says so (068 #47); false resets it.
+    const mode = e as unknown as { speed?: unknown; fastMode?: unknown; fast?: unknown }
+    live.fast = mode.speed === 'fast' || mode.fastMode === true || mode.fast === true
   }
   const result = yield* next(step)
   if (e.agentId === undefined) noteCache(step.model, result, await $.clock.now())
@@ -2625,10 +2627,18 @@ export const register: Register = (on, options) => {
     noColor = ((await $.env.get('NO_COLOR').catch(() => undefined)) ?? '') !== ''
     // A new session starts the chips' ages over (041 #5).
     chipAges.clear()
+    touchedSpecsSeen.clear()
+    planCheckedAt = undefined
     freshDeadline = undefined
     const fs = fsOf($)
     const now = await $.clock.now()
     live.dirs = { start: e.cwd, cwd: e.cwd }
+    // Facts of an earlier session in this process must not reach the new session's footer.
+    live.skills = []
+    live.todo = undefined
+    live.cache = undefined
+    live.fast = undefined
+    lastCacheModel = undefined
     const started = await guarded($, previous => reconcileStart(fs, e.cwd, previous, now))
     // Note the active feature's file times, so the first probe of a turn reads nothing.
     if (started !== undefined) await activeFilesChanged(fs, started).catch(() => undefined)
@@ -2790,7 +2800,8 @@ export const register: Register = (on, options) => {
     // A subagent's skill may outlive the main turn, so only main-thread calls set a marker.
     if (e.agentId === undefined) {
       skillRunning = e.skill
-      if (!live.skills.includes(e.skill) && typeof e.skill === 'string') live.skills.push(plainText(e.skill, 40))
+      const skillName = typeof e.skill === 'string' ? plainText(e.skill, 40) : undefined
+      if (skillName !== undefined && !live.skills.includes(skillName)) live.skills.push(skillName)
       const now = await $.clock.now()
       await guarded($, async previous => (previous === undefined ? undefined : applySkill(previous, e.skill, now)))
     }
@@ -3088,7 +3099,7 @@ export const register: Register = (on, options) => {
       ...(updateText === undefined
         ? {}
         : {
-            update: { label: updateText, onPress: async () => (only === undefined ? openPane($) : runUpdate($, only.id)) },
+            update: { label: updateText, onPress: async () => (only === undefined || only.id === 'speckit-skills' ? openPane($) : runUpdate($, only.id)) },
             hide: { label: t(currentLang(), 'updates.hide'), onPress: () => hideUpdates($) },
           }),
       onLift: () => liftBand($),
@@ -3143,7 +3154,7 @@ export const register: Register = (on, options) => {
     const bandElements = { Box, Text, Button, ...('Client' in elements ? { Client: elements.Client } : {}), ...('Link' in elements ? { Link: elements.Link } : {}) }
     return (
       <Box flexDirection="column">
-        {segments.length > 0 && bandRow(
+        {(segments.length > 0 || edge.update !== undefined) && bandRow(
           bandElements,
           segments,
           tokens,
@@ -3345,7 +3356,8 @@ export const register: Register = (on, options) => {
     const width = Math.max(3, ...state!.features.map(f => f.id.length))
     const open = new Set(pane.open ?? [])
     open.add(blockLabel(hit.id, width))
-    await $.state.set(PANE_STATE, { ...rest, view: 'all', open: [...open], selectedFeature: hit.id })
+    // The jump names a block of the status grouping: other groupings have their own headings.
+    await $.state.set(PANE_STATE, { ...rest, view: 'all', group: 'status', open: [...open], selectedFeature: hit.id })
     return e
   })
 
@@ -3465,7 +3477,7 @@ export const register: Register = (on, options) => {
                 // Roadmap view (044 #40): read here, the core stays pure.
                 state.root === undefined ? undefined : roadmapCache.has(state.root) ? roadmapCache.get(state.root) : await $.fs.read(`${state.root}/docs/roadmap.md`).then(text => { roadmapCache.set(state.root!, text); return text }).catch(() => { roadmapCache.set(state.root!, undefined); return undefined }),
                 // Specs at scale (067): the view, the open blocks, the grouping and what Claude touched.
-                { ...(pane.view === undefined ? {} : { view: pane.view }), open: pane.open ?? [], group: pane.group ?? 'status', touched: stats?.touchedSpecs ?? [], planMissing: stats?.planMissing ?? {} },
+                { ...(pane.view === undefined ? {} : { view: pane.view }), filtered: !((specFilter ?? '').trim() === '' && (pane.status ?? 'all') === 'all'), open: pane.open ?? [], group: pane.group ?? 'status', touched: stats?.touchedSpecs ?? [], planMissing: stats?.planMissing ?? {} },
               ),
             ]
     // A filter that keeps nothing says so (052 #7).
@@ -3554,7 +3566,13 @@ export const register: Register = (on, options) => {
       onClose: () => $.ui.close({ id: PANE_ID }).then(() => undefined),
       columns,
       ...(view === 'session' && e.surface === 'terminal'
-        ? { onRunQueued: async (id: string) => showToast($, await runQueued($, id)) }
+        ? {
+            onRunQueued: async (id: string) => {
+              const text = await runQueued($, id)
+              // A stale button names an id that is no longer queued: a warning, not a success.
+              await showToast($, text, /nothing queued as/.test(text) ? { kind: 'warn' } : undefined)
+            },
+          }
         : {}),
       ...(view === 'session' ? { onUpdate: async (id: string) => runUpdate($, id as UpdateId) } : {}),
       ...(view === 'session'
@@ -3727,7 +3745,7 @@ export const register: Register = (on, options) => {
           {units.slice(win.start, win.end).map(u => u.node)}
         </Box>
       )
-      return paneTree({ Box, Text, Button }, pane.tab, rows, tokens, select, body, currentLang(), [], await footerFor(pad), nav, extras)
+      return paneTree({ Box, Text, Button }, pane.tab, [], tokens, select, body, currentLang(), [], await footerFor(pad), nav, extras)
     }
     if (view === 'setup') {
       // Setup (066 #21): the options, then the model per skill.
@@ -3745,7 +3763,7 @@ export const register: Register = (on, options) => {
           {units.slice(win.start, win.end).map(u => u.node)}
         </Box>
       )
-      return paneTree({ Box, Text, Button }, pane.tab, rows, tokens, select, body, currentLang(), [], await footerFor(pad), nav, extras)
+      return paneTree({ Box, Text, Button }, pane.tab, [], tokens, select, body, currentLang(), [], await footerFor(pad), nav, extras)
     }
     if (view !== 'session') {
       const allTaskRows = view === 'tasks'

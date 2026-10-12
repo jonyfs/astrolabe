@@ -266,7 +266,8 @@ export const footerChips = (input: FooterInput): Chip[] => {
       const ramp = p.level === undefined ? undefined : usageRamp(p.level, p.hold === undefined ? undefined : { hold: p.hold })
       const isContext = p.colour === 'yellow'
       return {
-        key: p.name ?? `part-${i}`,
+        // Per-model windows share the `windows` name: a repeated name gets its position, so keys stay unique.
+        key: p.name === undefined ? `part-${i}` : kept.filter(q => q.name === p.name).length > 1 ? `${p.name}-${i}` : p.name,
         ...(p.name === undefined ? {} : { name: p.name }),
         text: ramp === undefined || isContext || p.inlineMark === true ? p.text : `${p.text}${ramp.mark}`,
         colour: p.name === 'ci' || p.name === 'cache' ? p.colour ?? 'surface1' : ramp?.chip ?? p.colour ?? 'surface1',

@@ -503,6 +503,19 @@ describe('the Specs tab at scale (067)', () => {
   const rowsOf = (state: SpeckitState, view: 'focus' | 'all' = 'focus', extra: Record<string, unknown> = {}) =>
     specsRows(state, 100, 'en', {}, {}, false, [], false, 'status', undefined, scaleOf(view, extra) as never)
 
+  test('a filter keeps the rows it asked for: Focus gives way to All (067 review)', () => {
+    const state = st(mk(60))
+    const withFilter = rowsOf(state, 'focus', { filtered: true })
+    expect(withFilter.some(r => r.key.startsWith('feature-'))).toBe(true)
+    expect(withFilter.some(r => r.key === 'scale-done')).toBe(false)
+  })
+  test('in All a touched spec is drawn once, in the Touched section (067 review)', () => {
+    const state = st(mk(60))
+    const rows = rowsOf(state, 'all', { touched: ['011-n011'], open: ['001–050'] })
+    expect(rows.filter(r => r.key === 'feature-011')).toHaveLength(1)
+    expect(new Set(rows.map(r => r.key)).size).toBe(rows.length)
+  })
+
   test('Focus keeps its height at 64, 200 and 1000 specs, with Done counted per block (067 #31)', () => {
     const heights = [64, 200, 1000].map(n => {
       // The same number of specs that need attention, whatever the total.
