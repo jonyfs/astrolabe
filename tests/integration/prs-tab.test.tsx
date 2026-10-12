@@ -53,7 +53,10 @@ describe('the PRs tab (032)', () => {
     await session.clock.advance(1000)
     const tree = JSON.stringify(await ui.drawn())
     expect(tree).toContain('https://github.com/o/r/pull/45')
-    expect(tree).toContain('✓ #45 feat: style')
+    expect(tree).toContain('#45 feat: style')
+    // The table: a header row and the checks as cells (066 #28).
+    expect(tree).toContain('PR  title  draft  labels  review  checks')
+    expect(tree).toContain('approved')
     expect(tree).toContain('pr-update-46')
     expect(tree).not.toContain('pr-merge-46')
     await ui.press({ key: 'pr-merge-45' })

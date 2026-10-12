@@ -169,10 +169,13 @@ export type SpeckitState = {
   activeDocs?: Array<'spec.md' | 'plan.md' | 'tasks.md'>
 }
 
-export type PaneTab = 'specs' | 'tasks' | 'session' | 'dashboard' | 'help' | 'config' | 'prs' | 'models'
+export type PaneTab = 'specs' | 'tasks' | 'session' | 'prs' | 'setup'
+
+/** What the pane body shows: a tab, or the help overlay above it (066 #21). */
+export type PaneView = PaneTab | 'help'
 
 /** The /astrolabe pane's session state: the tab shown and whether it opened unasked already. */
-export type PaneState = { tab: PaneTab; autoOpened: boolean; filter?: string; status?: 'all' | 'progress' | 'next' | 'done' | 'abandoned'; sort?: 'status' | 'progress' | 'name'; scroll?: { tab: PaneTab; offset: number }; selectedFeature?: string; summary?: { dir: string; expanded: boolean }; draft?: Record<string, string | number | boolean>; confirm?: string; confirmSelecting?: string }
+export type PaneState = { tab: PaneTab; /** The help overlay is on, above the tab. */ help?: true; /** Specs at scale (067): the view, the open blocks and the grouping. */ view?: 'focus' | 'all'; open?: string[]; group?: 'status' | 'phase' | 'track' | 'priority'; autoOpened: boolean; filter?: string; status?: 'all' | 'progress' | 'next' | 'done' | 'abandoned'; sort?: 'status' | 'progress' | 'name'; scroll?: { tab: PaneView; offset: number }; selectedFeature?: string; summary?: { dir: string; expanded: boolean }; draft?: Record<string, string | number | boolean>; confirm?: string; confirmSelecting?: string }
 
 export type UpdateId = 'gstack' | 'specify' | 'speckit-skills' | 'astrolabe'
 
@@ -226,10 +229,18 @@ export type GitState = {
   worktree?: string
   /** The branch's open pull request and its checks (023), from `gh`, opt-in. */
   pr?: PullRequest
+  /** The upstream branch, when there is one: ahead and behind only mean something then (068 #41). */
+  upstream?: string
+  /** The short commit id of a detached HEAD, which has no branch page (068 #41). */
+  detached?: string
+  /** The main worktree's branch, when this checkout is a linked worktree (068 #41). */
+  origin?: string
+  /** The last CI run for the current branch, from `gh run list` (068 #41). */
+  ci?: 'pass' | 'fail' | 'pending'
 }
 
 /** A pull request and the state of its checks: all passed, one failed, some still running, or none. */
-export type PullRequest = { number: number; checks: 'pass' | 'fail' | 'pending' | 'none'; url?: string }
+export type PullRequest = { number: number; checks: 'pass' | 'fail' | 'pending' | 'none'; url?: string; /** Draft, and its labels (068 #41). */ draft?: boolean; labels?: string[] }
 
 /** The session's numbers for the footer and the Dashboard (018); bounded, written per turn. */
 export type SessionStats = {
@@ -272,7 +283,7 @@ export type SessionStats = {
   /** Subagent runs this session (046 #58): each with its feature, duration and when it started. */
   subagentRuns?: Array<{ dir: string; id: string; ms: number; at: number }>
   /** The last `gh pr view` for a branch (023): when it ran and what it found, kept five minutes. */
-  prCache?: { branch: string; at: number; pr?: PullRequest }
+  prCache?: { branch: string; at: number; pr?: PullRequest; ci?: GitState['ci'] }
   /** The repository's open pull requests for the PRs tab (032), and when they were read. */
   pulls?: {
     at: number
@@ -321,6 +332,26 @@ export type SessionStats = {
   health?: { at: number; lines: string[] }
   /** The full text of the last toast shortened to fit the notification limit (052 #44). */
   toastDetails?: string
+  /** Subagents running now, from the Agent tool call to its end (069 #43). */
+  liveAgents?: Array<{ id: string; /** The engine's own id for the run, known from its first request. */ engineId?: string; brief: string; type?: string; model?: string; step?: string; contextPercent?: number; tokens?: number; startedAt: number }>
+  /** Git hooks and gate scripts in the process list, read on the clock (069 #44). */
+  liveGates?: Array<{ pid: number; hook?: string; chain: string[]; where: string; startedAt: number; waiting?: true }>
+  /** Spec folders Claude read or edited this session, oldest first (067 #40). */
+  touchedSpecs?: string[]
+  /** Files each spec's plan.md names that are not there, from the reconcile's own reads (067 #33). */
+  planMissing?: Record<string, string[]>
+  /** Until when the step chip of the band shows brighter: a phase finished under the compact preset (065 #18). */
+  phaseBrightUntil?: number
+  /** The folder the session started in and the one it works in now (068 #41). */
+  dirs?: { start: string; cwd: string }
+  /** Skills invoked in this session, in order of first use (068 #45). */
+  skills?: string[]
+  /** The todo list's title and progress, from the last TodoWrite call (068 #46). */
+  todo?: { title: string; done: number; total: number }
+  /** The prompt cache, from the last main-thread response's usage (068 #42). */
+  cache?: { at: number; tokens: number; ttlMs: number; reason?: string }
+  /** Fast mode is on (068 #47). */
+  fast?: boolean
   /** gstack's skills are installed under the home directory (051). */
   gstack?: boolean
   /** The features the repository's other worktrees work on (037), read after each main turn. */

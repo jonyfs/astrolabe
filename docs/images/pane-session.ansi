@@ -1,40 +1,40 @@
-                                                                                                   [38;5;153m[48;5;235m│[39m                                                                              [38;5;246m✕[39m
-[38;5;174m[49m ▐[48;5;16m▛███▛█[39m[49m   [1mClaude Code[0m [38;5;246mv2.1.292[39m                                                                    [38;5;153m[48;5;235m│[1m[39m[ Specs ][ Tasks ][38;5;153m[ Session ][0m[48;5;235m
-[38;5;174m[49m▝▜[48;5;16m█████[49m█▀[39m  [38;5;246mOpus 5.5 · Claude Max[39m                                                                   [38;5;153m[48;5;235m│[38;5;189mroot          /Users/jony/repositorios/ai/astrolabe/docs/demo[39m
-[38;5;174m[49m ▝▝   ▝▝ [39m  [38;5;246m~/repositorios/ai/astrolabe/docs/demo · [38;5;75m]8;id=153omm4;https://claude.ai/code/session_014dTpbEy6Uig74BXzX5BYmC?from=cli\/rc[39m]8;;\                                             [38;5;153m[48;5;235m│[38;5;189mconstitution  ratified[39m
-[49m                                                                                                   [38;5;153m[48;5;235m│[38;5;189mactive        002 shopping-cart[39m
-[49m                                                                                                   [38;5;153m[48;5;235m│[38;5;189mchosen by     feature.json[39m
-[38;5;246m[48;5;237m❯[39m [38;5;231m/astrolabe[39m [49m                                                                                      [38;5;153m[48;5;235m│[38;5;189mnext          /speckit-implement[39m
-[38;5;246m[49m  ⎿  [39mastrolabe: Astrolabe pane opened.                                                             [38;5;153m[48;5;235m│[38;5;189mrunning       none[39m
-[49m                                                                                                   [38;5;153m[48;5;235m│[38;5;189manalyzed      no[39m
-[49m                                                                                                   [38;5;153m[48;5;235m│[38;5;189mcurrent task  T010 · 10s[39m
-[49m                                                                                                   [38;5;153m[48;5;235m│[38;5;223mupdate        gstack 1.91.33.0 (installed 1.91.32.0)[39m
-[49m                                                                                                   [38;5;153m[48;5;235m│[39m
-[49m                                                                                                   [38;5;153m[48;5;235m│[39m
-[49m                                                                                                   [38;5;153m[48;5;235m│[39m
-[49m                                                                                                   [38;5;153m[48;5;235m│[39m
-[49m                                                                                                   [38;5;153m[48;5;235m│[39m
-[49m                                                                                                   [38;5;153m[48;5;235m│[39m
-[49m                                                                                                   [38;5;153m[48;5;235m│[39m
-[49m                                                                                                   [38;5;153m[48;5;235m│[39m
-[49m                                                                                                   [38;5;153m[48;5;235m│[39m
-[49m                                                                                                   [38;5;153m[48;5;235m│[39m
-[49m                                                                                                   [38;5;153m[48;5;235m│[39m
-[49m                                                                                                   [38;5;153m[48;5;235m│[39m
-[49m                                                                                                   [38;5;153m[48;5;235m│[39m
-[49m                                                                                                   [38;5;153m[48;5;235m│[39m
-[49m                                                                                                   [38;5;153m[48;5;235m│[39m
-[49m                                                                                                   [38;5;153m[48;5;235m│[39m
-[49m                                                                                                   [38;5;153m[48;5;235m│[39m
-[49m                                                                                                   [38;5;153m[48;5;235m│[39m
-[38;5;183m[49m◆ 002[38;5;146m [38;5;189mshopping-cart[38;5;146m  [38;5;151m●[38;5;146m [38;5;151m●[38;5;146m [38;5;151m●[38;5;146m [38;5;151m●[38;5;146m [38;5;151m●[38;5;146m [38;5;223mimplement[38;5;146m [38;5;223m◐[38;5;146m  [38;5;153m████[38;5;60m░░░░░░[38;5;146m [38;5;189m9/20 45%[39m                                [38;5;246m[-][39m [38;5;153m[48;5;235m│[39m
-[38;5;146m[49mupdates: [1m[39m[ gstack 1.91.33.0 ][0m                                                                      [38;5;153m[48;5;235m│[39m
-[49m                  [38;5;220mYou've used 81% of your weekly limit · resets Oct 12 at 7am (America/Sao_Paulo)[39m  [38;5;153m[48;5;235m│[39m
+                                                          [38;5;153m[48;5;235m│[39m                                                                                                                       [38;5;246m✕[39m
+[38;5;174m[49m ▐[48;5;16m▛███▛█[39m[49m   [1mClaude Code[0m [38;5;246mv2.1.296[39m                           [38;5;153m[48;5;235m│[1m[39m[ 1 Specs 2 ][ 2 Tasks 11 ][38;5;153m[ ▸ 3 Session ][39m[ 4 PRs ][ 5 Setup ][0m[48;5;235m✕
+[38;5;174m[49m▝▜[48;5;16m█████[49m█▀[39m  [38;5;246mSonnet 5.5 · Claude Max[39m                        [38;5;153m[48;5;235m│h[39m: help
+[38;5;174m[49m ▝▝   ▝▝ [39m  [38;5;246m~/src/astrolabe/docs/demo[39m      [38;5;153m[48;5;235m│[39m
+[49m                                                          [38;5;153m[48;5;235m│r[39m: refresh
+[49m                                                          [38;5;153m[48;5;235m│[39m
+[38;5;246m[48;5;237m❯[39m [38;5;231m/astrolabe[39m [49m                                             [38;5;153m[48;5;235m│m[39m: copy kpis
+[38;5;246m[49m  ⎿  [39mastrolabe: Astrolabe pane opened.                    [38;5;153m[48;5;235m│[1m[38;5;146mUsage  60 cap · 80 hold · 88 pause[0m[48;5;235m
+[49m                                                          [38;5;153m[48;5;235m│[38;5;151m5h   ▰▰▰▰▰▰▰▰▰▱▱▱┊▱▱▱┊▱┊▱  44%  resets 1h09m[39m
+[49m                                                          [38;5;153m[48;5;235m│[38;5;151m7d   ▰▰▱▱▱▱▱▱▱▱▱▱┊▱▱▱┊▱┊▱  11%  resets Mon 07:00[39m
+[49m                                                          [38;5;153m[48;5;235m│[1m[38;5;183mProject[0m[48;5;235m
+[49m                                                          [38;5;153m[48;5;235m│[38;5;189mroot              ~/src/astrolabe/docs/demo[39m
+[49m                                                          [38;5;153m[48;5;235m│[38;5;189mconstitution      ratified[39m
+[49m                                                          [38;5;153m[48;5;235m│[38;5;145m                  I. Tests first[39m ]8;id=1prjgu3;file://~/src/astrolabe/docs/demo/.specify/memory/constitution.md#L5\↗]8;;\
+[49m                                                          [38;5;153m[48;5;235m│[38;5;145m                  II. Small slices[39m ]8;id=1prjgu6;file://~/src/astrolabe/docs/demo/.specify/memory/constitution.md#L8\↗]8;;\
+[49m                                                          [38;5;153m[48;5;235m│[38;5;189mactive            002 shopping-cart[39m
+[49m                                                          [38;5;153m[48;5;235m│[38;5;189mchosen by         feature.json[39m
+[49m                                                          [38;5;153m[48;5;235m│[38;5;189mnext              /speckit-implement[39m
+[49m                                                          [38;5;153m[48;5;235m│[38;5;189mrunning           none[39m
+[49m                                                          [38;5;153m[48;5;235m│[38;5;189manalyzed          no[39m
+[49m                                                          [38;5;153m[48;5;235m│[38;5;189mcurrent task      T010 · 34s[39m
+[49m                                                          [38;5;153m[48;5;235m│[1m[38;5;183mGovernor[0m[48;5;235m
+[49m                                                          [38;5;153m[48;5;235m│[38;5;151mstate             all clear (5h at 44%): up to 6 subagents at a time[39m
+[49m                                                          [38;5;153m[48;5;235m│[38;5;189musage             5h 44% · 7d 11%: ok[39m
+[49m                                                          [38;5;153m[48;5;235m│[38;5;189msubagents         0 running, cap 6[39m
+[49m                                                          [38;5;153m[48;5;235m│[1m[38;5;183mActivity[0m[48;5;235m
+[49m                                                          [38;5;153m[48;5;235m│[38;5;189mtool calls        0[39m
+[49m                                                          [38;5;153m[48;5;235m│[1m[38;5;183mUpdates[0m[48;5;235m
+[49m                                                          [38;5;153m[48;5;235m│[38;5;223mupdate            gstack 1.91.94.0 (installed 1.91.93.0)[39minstall
+[49m                                                          [38;5;153m[48;5;235m│[38;5;223mupdate            specify 1.1.3 (installed 1.1.2)[39m ]8;id=nnn4nm;https://github.com/github/spec-kit/releases/tag/v1.1.3\↗]8;;\install
+[1m[38;5;17m[48;5;183m]8;id=16b1d0n;file://~/src/astrolabe/docs/demo/specs/002-shopping-cart/spec.md\ 002 [0m[38;5;146m]8;;\ [38;5;151m]8;id=16b1d0n;file://~/src/astrolabe/docs/demo/specs/002-shopping-cart/spec.md\✓✓]8;id=1vcrx89;file://~/src/astrolabe/docs/demo/specs/002-shopping-cart/plan.md\✓]8;id=1phdfkq;file://~/src/astrolabe/docs/demo/specs/002-shopping-cart/tasks.md\✓[38;5;146m]8;;\ [1m[38;5;17m[48;5;223m ▶ implement 9/20 [0m[38;5;146m [38;5;103m│[38;5;146m [38;5;223m▸ T010[39m   [1m[ ⬆2 ][0m [1m[ ✕ ][0m [38;5;246m[-][39m [38;5;153m[48;5;235m│[1m[38;5;183m tasks 9/20 [0m[48;5;235m
+[49m                                                          [38;5;153m[48;5;235m│[39m
 [38;5;244m[49m────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 [39m❯ 
 [38;5;244m────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-[39m  [38;5;220m⚠ astrolabe: ◆ 002 · implement 45%[39m
-  [38;5;189m[48;5;60m]8;id=10oyjz6;file:///Users/jony/repositorios/ai/astrolabe/docs/demo\  demo     [38;5;60m[48;5;102m]8;;\[38;5;189m]8;id=1ylj2fj;https://github.com/jonyfs/astrolabe\ jonyfs/astrolabe [38;5;102m[48;5;189m]8;;\[38;5;17m]8;id=12i40v7;https://github.com/jonyfs/astrolabe/tree/010-readme-visuals\  010-readme-visuals [38;5;189m[48;5;183m]8;;\[38;5;17m  8   5 [38;5;183m[48;5;151m[38;5;17m +0 −0 [38;5;151m[49m[39m
-  [38;5;189m[48;5;102m 󰅶 idle     [38;5;102m[49m[39m
-  [38;5;17m[48;5;217m 󰚩 Opus 5.5 [38;5;217m[48;5;223m[38;5;17m  medium [38;5;223m[38;5;17m 󰍛 Context ?% [38;5;223m[48;5;151m[38;5;17m 󰔛 5h 50% · 0h23m [38;5;151m[48;5;223m[38;5;17m  7d 81%▵ · Mon 07:00 [38;5;223m[48;5;102m[38;5;189m  0m [38;5;102m[48;5;183m[38;5;17m  rtk 66% saved [38;5;183m[49m[39m
-  [38;5;220m⏵⏵ auto mode on[38;5;246m (shift+tab to cycle) · ← 2 agents · next: /speckit-implement · 11 tasks left[39m
+[39m  [38;5;220m⚠ astrolabe: ◆ 002 implement 45% │ 5h 44% · 1h09m[39m
+  [38;5;231m[48;5;59m]8;id=s9s79k;file://~/src/astrolabe/docs/demo\  demo       [38;5;59m]8;;\[38;5;189m]8;id=1ylj2fj;https://github.com/jonyfs/astrolabe\  jonyfs/astrolabe [38;5;59m[48;5;189m]8;;\[38;5;17m]8;id=1l1goyg;https://github.com/jonyfs/astrolabe/tree/069-live-table\  069-live-table [38;5;189m[48;5;59m]8;;\[38;5;231m  astrolabe [38;5;59m[38;5;231m  9 [38;5;59m[38;5;231m [38;5;151m+0[38;5;231m −0 [38;5;59m[48;5;153m[38;5;17m]8;id=3ns9fv;https://github.com/jonyfs/astrolabe/pull/159\  PR #159 draft [38;5;153m[48;5;59m]8;;\[38;5;231m]8;id=1kwlq69;https://github.com/jonyfs/astrolabe/actions?query=branch%3A069-live-table\ [38;5;217m[38;5;231m CI [38;5;59m[49m]8;;\[39m
+  [38;5;231m[48;5;59m 󰅶 idle       [38;5;59m[49m[39m
+  [38;5;17m[48;5;189m 󰚩 Sonnet 5.5 [38;5;189m[48;5;59m[38;5;231m 󰊚 medium [38;5;59m[38;5;231m 󰍛 Context ?% [38;5;59m[38;5;231m [38;5;151m󰔟[38;5;231m 5h 44% · 1h09m [38;5;59m[38;5;231m [38;5;151m[38;5;231m 7d 11% · 19/10 07:00 [38;5;59m[38;5;231m  0m [38;5;59m[48;5;152m[38;5;17m 󱙹 rtk 87% saved [38;5;152m[49m[39m
+  [38;5;220m⏵⏵ auto mode on[38;5;246m (shift+tab to cycle) · PR[39m [4m[38;5;246m]8;id=3ns9fv;https://github.com/jonyfs/astrolabe/pull/159\#159[0m[38;5;246m]8;;\ · ← 2 agents[39m

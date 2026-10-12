@@ -13,7 +13,7 @@ describe('Spec Kit appearing or disappearing mid-session', () => {
     Object.assign(tree, project({ constitution: RATIFIED, featureJson: featureJson('specs/001-a'), features: { '001-a': { spec: spec() } } }))
     await completeTurn($)
     await settleStatus(session)
-    expect(session.last()).toBe('◆ 001 · plan')
+    expect(session.last()).toBe('◆ 001 plan')
   })
 
   test('a project that loses .specify/ says so after the next turn', async ($, on) => {
@@ -21,7 +21,7 @@ describe('Spec Kit appearing or disappearing mid-session', () => {
     const session = installTree(on, tree, '/proj')
     installEngine(on)
     await startSession($, '/proj')
-    expect(session.last()).toBe('◆ 001 · plan')
+    expect(session.last()).toBe('◆ 001 plan')
     for (const key of Object.keys(tree)) if (key.startsWith('/proj/.specify')) delete tree[key]
     await completeTurn($)
     await settleStatus(session)
@@ -49,7 +49,7 @@ describe('several Spec Kit roots (020c #21)', () => {
     expect(ran.text).toContain('/mono/api')
     expect(session.held()?.state.root).toBe('/mono/api')
     await settleStatus(session)
-    expect(session.last()).toContain('001 · tasks')
+    expect(session.last()).toContain('001 tasks')
     const bad = (await $.command.run({ command: 'astrolabe', args: 'root nope', origin: { kind: 'composer' } } as never)) as { text?: string }
     expect(bad.text).toContain('No .specify/')
   })

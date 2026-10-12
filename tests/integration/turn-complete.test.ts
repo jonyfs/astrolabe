@@ -14,10 +14,10 @@ describe('turn.complete reconciles with the disk (US2)', () => {
     installEngine(on)
     await startSession($, '/proj')
     tree['/proj/specs/002-band-hint/tasks.md'] = tasks(10, 10)
-    expect(session.last()).toBe('◆ 002 · implement 45%')
+    expect(session.last()).toBe('◆ 002 impl 45%')
     await completeTurn($)
     await settleStatus(session)
-    expect(session.last()).toBe('◆ 002 · implement 50%')
+    expect(session.last()).toBe('◆ 002 impl 50%')
   })
 
   test('(b) a running skill shows until the next reconcile, which keeps the disk phase', async ($, on) => {
@@ -27,10 +27,10 @@ describe('turn.complete reconciles with the disk (US2)', () => {
     await startSession($, '/proj')
     await $.tool.call({ tool: 'Skill', tool_use_id: 's1', skill: 'speckit-plan' } as never)
     await settleStatus(session)
-    expect(session.last()).toBe('◆ 001 · plan · plan…')
+    expect(session.last()).toBe('◆ 001 plan')
     await completeTurn($)
     await settleStatus(session)
-    expect(session.last()).toBe('◆ 001 · plan')
+    expect(session.last()).toBe('◆ 001 plan')
   })
 
   test('(c) speckit-analyze at 0 done turns the next command into implement', async ($, on) => {
@@ -57,7 +57,7 @@ describe('turn.complete reconciles with the disk (US2)', () => {
     tree['/proj/specs/002-band-hint/tasks.md'] = tasks(20, 0)
     await $.tool.call(edit('/proj/specs/002-band-hint/tasks.md'))
     await settleStatus(session)
-    expect(session.last()).toBe('◆ 002 · done 100%')
+    expect(session.last()).toBe('◆ 002 done 100%')
   })
 
   test('054 #13: a tasks.md over 2 MiB is summarized and reused for checkbox edits', async ($, on) => {
@@ -122,7 +122,7 @@ describe('turn.complete reconciles with the disk (US2)', () => {
     await startSession($, '/proj')
     tree['/proj/specs/002-band-hint/tasks.md'] = tasks(20, 0)
     await $.turn.complete({ answer: '', durationMs: 1, isAborted: false, turnId: 'sub', reason: 'answer', agentId: 'a1' } as never)
-    expect(session.last()).toBe('◆ 002 · implement 45%')
+    expect(session.last()).toBe('◆ 002 impl 45%')
   })
 
   const budget = async (
@@ -182,11 +182,11 @@ describe('a file that cannot be read (013)', () => {
     const session = installTree(on, tree, '/proj')
     installEngine(on)
     await startSession($, '/proj')
-    expect(session.last()).toBe('◆ 002 · implement 45%')
+    expect(session.last()).toBe('◆ 002 impl 45%')
     session.denied.add('/proj/specs/002-band-hint/tasks.md')
     session.denied.add('/proj/specs/002-band-hint/spec.md')
     await completeTurn($)
-    expect(session.last()).toBe('◆ 002 · implement 45%')
+    expect(session.last()).toBe('◆ 002 impl 45%')
     const feature = session.held()?.state.features.find(f => f.dir === '002-band-hint')
     expect(feature?.warnings).toEqual(['unreadable-spec', 'unreadable-tasks'])
     session.denied.clear()

@@ -6,6 +6,7 @@
 // taken in UTC: the golden file is the same on every machine.
 const nodeProcess = (globalThis as { process?: { env: Record<string, string | undefined> } }).process
 if (nodeProcess !== undefined) nodeProcess.env['TZ'] = 'UTC'
+import { layoutLive, liveRows } from '../../hooks/core/live-table'
 import { bandSegments, type Segment } from '../../hooks/core/band'
 import { footerChips, footerText } from '../../hooks/core/footer'
 import { iconSet } from '../../hooks/core/icons'
@@ -69,8 +70,32 @@ export const surfacesOf = (flavor: FlavorName, columns: number): Record<string, 
     icons: iconSet('ascii'),
     columns,
   }
+  // The live table (069): two agents, a gate, a cold cache and a limit at 81%.
+  const live = layoutLive({
+    columns,
+    reservation: {},
+    rows: liveRows({
+      agents: [
+        { id: 'a', brief: 'Review the spec', type: 'Explore', model: 'claude-opus-5-5', step: 'reading', contextPercent: 33, tokens: 12_400, startedAt: NOW - 252_000 },
+        { id: 'b', brief: 'Write the tests', type: 'Plan', model: 'claude-sonnet-5-5', startedAt: NOW - 40_000 },
+      ],
+      gates: [{ pid: 9, hook: 'pre-commit', chain: ['gates.sh', 'review.test.sh'], where: '*', startedAt: NOW - 14_000 }],
+      cache: { at: NOW - 400_000, tokens: 182_000, ttlMs: 300_000 },
+      readings: [{ kind: 'seven_day', percentUsed: 81, resetsAt: sevenDay }],
+      thresholds: {},
+      band: 'hold',
+      now: NOW,
+      option: 'both',
+    }),
+  })
+  const kindRole = { agent: 'accent', gate: 'current', cache: 'muted', limit: 'accent' } as const
+  const liveRowsOut = [
+    `${live.columns.map(c => live.header[c]).join(' ')}|${tokens.faint}`,
+    ...live.lines.map(l => `${l.rule === true ? '─' : live.columns.map(c => l.cells[c]).join(' ')}|${tokens[l.rule === true ? 'pending' : (l.row?.level?.role ?? kindRole[l.kind])]}`),
+  ]
   return {
     band: withRole(band),
+    live: liveRowsOut,
     status: [formatStatus(state, columns)],
     footer: [footerText(footerInput), ...footerChips(footerInput).map(c => `${c.text}|${chips[c.colour] ?? '?'}`)],
     pane: withRole([

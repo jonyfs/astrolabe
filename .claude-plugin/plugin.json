@@ -158,6 +158,18 @@
         "both"
       ]
     },
+    "liveRows": {
+      "type": "string",
+      "title": "Live table rows",
+      "description": "What the table above the prompt shows besides the prompt cache and usage limits: agents (subagents running), gates (git hooks and gate scripts), both, or off",
+      "default": "both",
+      "options": [
+        "agents",
+        "gates",
+        "both",
+        "off"
+      ]
+    },
     "footerLines": {
       "type": "string",
       "title": "Footer lines",

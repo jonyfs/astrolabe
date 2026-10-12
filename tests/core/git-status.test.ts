@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import { branchWebUrl, parseGitStatus, remoteWebUrl } from '../../hooks/core/git-status'
+import { branchWebUrl, parseCiRun, parseGitStatus, parsePullRequest, remoteWebUrl } from '../../hooks/core/git-status'
 
 describe('git status --porcelain=v2 --branch (018)', () => {
   test('branch, upstream ahead and behind, changed and untracked, conflicts', () => {
@@ -16,12 +16,14 @@ describe('git status --porcelain=v2 --branch (018)', () => {
       '! ignored.log',
       '',
     ].join('\n')
-    expect(parseGitStatus(out)).toEqual({ branch: '018-statusline-dashboard', ahead: 2, behind: 1, changed: 3, conflicts: 1 })
+    expect(parseGitStatus(out)).toEqual({ branch: '018-statusline-dashboard', ahead: 2, behind: 1, changed: 3, conflicts: 1, upstream: 'origin/018-statusline-dashboard' })
   })
 
   test('no upstream: no arrows; a detached head shows the short id', () => {
     expect(parseGitStatus('# branch.oid abcdef1234\n# branch.head main\n')).toEqual({ branch: 'main', ahead: 0, behind: 0, changed: 0, conflicts: 0 })
     expect(parseGitStatus('# branch.oid abcdef1234567\n# branch.head (detached)\n').branch).toBe('(abcdef1)')
+    expect(parseGitStatus('# branch.oid abcdef1234567\n# branch.head (detached)\n').detached).toBe('abcdef1')
+    expect(parseGitStatus('# branch.oid abc\n# branch.head main\n').detached).toBeUndefined()
   })
 
   test('anything else is empty, never an error', () => {
@@ -39,5 +41,20 @@ describe('the remote page (054 #79)', () => {
   })
   test('a branch page encodes each segment', () => {
     expect(branchWebUrl('https://github.com/o/r', 'feat/a b#1')).toBe('https://github.com/o/r/tree/feat/a%20b%231')
+  })
+})
+
+describe('the pull request and the CI run (068 #41)', () => {
+  test('draft and labels come with the pull request', () => {
+    const pr = parsePullRequest(JSON.stringify({ number: 41, url: 'https://github.com/o/r/pull/41', statusCheckRollup: [], isDraft: true, labels: [{ name: 'ux' }, { name: 'p1' }] }))
+    expect(pr).toEqual({ number: 41, checks: 'none', url: 'https://github.com/o/r/pull/41', draft: true, labels: ['ux', 'p1'] })
+    expect(parsePullRequest(JSON.stringify({ number: 2, isDraft: false, labels: [] }))).toEqual({ number: 2, checks: 'none' })
+  })
+  test('the last run is pass, fail or pending', () => {
+    expect(parseCiRun('[{"status":"completed","conclusion":"success"}]')).toBe('pass')
+    expect(parseCiRun('[{"status":"completed","conclusion":"failure"}]')).toBe('fail')
+    expect(parseCiRun('[{"status":"in_progress","conclusion":""}]')).toBe('pending')
+    expect(parseCiRun('[]')).toBeUndefined()
+    expect(parseCiRun('nope')).toBeUndefined()
   })
 })

@@ -22,6 +22,7 @@ export type {
   ConstitutionState,
   SpeckitState,
   PaneTab,
+  PaneView,
   DriftWindow,
   UpdateId,
   UpdateItem,

@@ -1,0 +1,40 @@
+
+[38;5;174m ▐[48;5;16m▛███▛█[39m[49m   [1mClaude Code[0m [38;5;246mv2.1.296[39m
+[38;5;174m▝▜[48;5;16m█████[49m█▀[39m  [38;5;246mSonnet 5.5 · Claude Max[39m
+[38;5;174m ▝▝   ▝▝ [39m  [38;5;246m~/src/astrolabe/docs/demo · [38;5;75m]8;id=1krxcbf;https://claude.ai/code?from=cli\/rc[39m]8;;\
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[1m[38;5;17m[48;5;183m]8;id=16b1d0n;file://~/src/astrolabe/docs/demo/specs/002-shopping-cart/spec.md\ 002 [0m[38;5;146m]8;;\ [1m[38;5;189mshopping-cart[0m[38;5;146m +1  [38;5;151m]8;id=16b1d0n;file://~/src/astrolabe/docs/demo/specs/002-shopping-cart/spec.md\✓[38;5;146m]8;;\ specify [38;5;151m]8;id=16b1d0n;file://~/src/astrolabe/docs/demo/specs/002-shopping-cart/spec.md\✓[38;5;146m]8;;\ clarify [38;5;151m]8;id=1vcrx89;file://~/src/astrolabe/docs/demo/specs/002-shopping-cart/plan.md\✓[38;5;146m]8;;\ plan [38;5;151m]8;id=1phdfkq;file://~/src/astrolabe/docs/demo/specs/002-shopping-cart/tasks.md\✓[38;5;146m]8;;\ tasks [1m[38;5;17m[48;5;216m ▶ implement 9/20 [0m[38;5;146m [38;5;216m█████[38;5;102m░░░░░░░░[38;5;146m 45%  [38;5;103m│[38;5;146m [38;5;216m▸ T010[38;5;146m Write failing tests for the empty cart[39m          [1m[ ≡ a ][0m [1m[ ⬆ 2 ][0m [1m[ ✕ ][0m [38;5;246m[-][39m
+                                                                                 [38;5;246mtmux detected · scroll with PgUp/PgDn · or add 'set -g mouse on' to ~/.tmux.conf for wheel scroll[39m
+[38;5;244m────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[39m❯ [2m/speckit-implement 002[0m
+[38;5;244m────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[39m  [38;5;220m⚠ astrolabe: ◆ 002 implement 45%[39m
+  [38;5;231m[48;5;59m]8;id=s9s79k;file://~/src/astrolabe/docs/demo\  demo       [38;5;59m[49m]8;;\[39m
+  [38;5;231m[48;5;59m 󰅶 idle       [38;5;59m[49m[39m
+  [38;5;17m[48;5;189m 󰚩 Sonnet 5.5 [38;5;189m[48;5;59m[38;5;231m 󰊚 medium [38;5;59m[38;5;231m 󰍛 Context ?% [38;5;59m[38;5;231m [38;5;151m󰔟[38;5;231m 5h 45% · 1h06m [38;5;59m[38;5;231m [38;5;151m[38;5;231m 7d 11% · 19/10 07:00 [38;5;59m[38;5;231m  0m [38;5;59m[48;5;152m[38;5;17m 󱙹 rtk 87% saved [38;5;152m[49m[39m
+  [38;5;220m⏵⏵ auto mode on[38;5;246m (shift+tab to cycle) · PR[39m [4m[38;5;246m]8;id=3ns9fv;https://github.com/jonyfs/astrolabe/pull/159\#159[0m[38;5;246m]8;;\ · ← 2 agents[39m

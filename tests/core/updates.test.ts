@@ -53,22 +53,7 @@ describe('labels', () => {
   })
 })
 
-import { fitUpdateButtons } from '../../hooks/core/updates'
-
-describe('fitUpdateButtons (band width)', () => {
-  const labels = ['gstack 1.91.33.0', 'specify 1.2.0', 'Spec Kit skills 1.2.0', 'astrolabe 0.9.0']
-  test('all fit on a wide band', () => {
-    expect(fitUpdateButtons(labels, 200)).toEqual({ shown: 4, more: 0 })
-  })
-  test('a narrow band keeps what fits and counts the rest', () => {
-    // "updates: " (9) + "[ gstack 1.91.33.0 ]" (20) + "[ specify 1.2.0 ]" (17) + " +2" (3) = 49
-    expect(fitUpdateButtons(labels, 49)).toEqual({ shown: 2, more: 2 })
-    expect(fitUpdateButtons(labels, 48)).toEqual({ shown: 1, more: 3 })
-  })
-  test('at least one button shows, so the row stays usable', () => {
-    expect(fitUpdateButtons(labels, 10)).toEqual({ shown: 1, more: 3 })
-  })
-})
+import { bandUpdateLabel } from '../../hooks/core/updates'
 
 describe('release notes links (054 #82)', () => {
   test('Astrolabe and Spec Kit have a page; gstack has none', () => {
@@ -85,5 +70,19 @@ describe('the skills against the CLI (054 #98)', () => {
     expect(skillsVersusCli('{"version":"0.5.0"}', '0.4.2')).toEqual({ skills: '0.5.0', cli: '0.4.2', behind: 'cli' })
     expect(skillsVersusCli('{"version":"0.4.2"}', '0.4.2')?.behind).toBe('none')
     expect(skillsVersusCli(undefined, '0.4.2')).toBeUndefined()
+  })
+})
+
+describe('one update button on the band (065 #19)', () => {
+  test('one update keeps its name from 144 columns', () => {
+    expect(bandUpdateLabel(['gstack 1.91.33'], 200)).toBe('⬆ gstack 1.91.33')
+    expect(bandUpdateLabel(['gstack 1.91.33'], 100)).toBe('⬆1')
+  })
+  test('two or more collapse into one button with a count', () => {
+    expect(bandUpdateLabel(['gstack 1.91.33', 'specify 1.2.0'], 200)).toBe('⬆ 2')
+    expect(bandUpdateLabel(['a', 'b', 'c'], 80)).toBe('⬆3')
+  })
+  test('nothing pending, no button', () => {
+    expect(bandUpdateLabel([], 200)).toBeUndefined()
   })
 })

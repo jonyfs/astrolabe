@@ -88,24 +88,15 @@ export const isStoredUpdates = (value: unknown): value is StoredUpdates =>
 /** The first non-empty line of a process's output, for a failure toast. */
 export const firstLine = (text: string): string => text.split(/\r?\n/).map(l => l.trim()).find(l => l !== '') ?? 'no output'
 
-const ROW_PREFIX = 'updates: '
-
 /**
- * How many update Buttons fit a band `columns` wide. The terminal draws a Button as
- * `[ label ]`; buttons that do not fit are summed up as ` +N`. One always shows.
+ * The one update button at the band's right edge (065 #19): one pending update keeps its name,
+ * two or more collapse into `⬆ N`, which opens the list. From 144 columns the label says
+ * `⬆ gstack 1.91.33`, below it `⬆1`-style short forms keep the room.
  */
-export const fitUpdateButtons = (labels: readonly string[], columns: number): { shown: number; more: number } => {
-  const widthOf = (label: string) => [...label].length + 4
-  let used = [...ROW_PREFIX].length
-  let shown = 0
-  for (const [i, label] of labels.entries()) {
-    const rest = labels.length - i - 1
-    const tail = rest > 0 ? ` +${rest}`.length : 0
-    if (shown > 0 && used + widthOf(label) + tail > columns) break
-    used += widthOf(label)
-    shown += 1
-  }
-  return { shown, more: labels.length - shown }
+export const bandUpdateLabel = (names: readonly string[], columns: number): string | undefined => {
+  if (names.length === 0) return undefined
+  if (names.length === 1) return columns >= 144 ? `⬆ ${names[0]}` : '⬆1'
+  return columns >= 100 ? `⬆ ${names.length}` : `⬆${names.length}`
 }
 
 /** Where a new version's release notes are (054 #82); undefined when there is no known page. */

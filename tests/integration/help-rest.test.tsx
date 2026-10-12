@@ -21,13 +21,14 @@ const setup = async ($: never, on: never) => {
 }
 
 describe('help, part two (025)', () => {
-  test('T004: hotkeys on the band: a opens the pane, n runs the next command, c copies it', async ($, on) => {
+  test('T004: hotkey on the band: a opens the pane; the next command is in the prompt suggestion (065 #14)', async ($, on) => {
     const { pane } = await setup($ as never, on as never)
     const band = JSON.stringify((await drawBand($ as never, 'terminal', 120)).tree)
-    for (const key of ['a', 'n', 'c']) expect(band).toContain(`"hotkey":"${key}"`)
+    expect(band).toContain('"hotkey":"a"')
+    for (const key of ['n', 'c']) expect(band).not.toContain(`"hotkey":"${key}"`)
     const ui = await mount($ as never, 'AbovePrompt', { hasSurvey: false, isWorking: false, maxRows: 10, bodyColumns: 120, scroll: { bodyRows: 9, top: 0 } })
     await ui.press({ key: 'open-pane' })
-    expect(pane.opened.at(-1)).toEqual({ id: 'astrolabe', title: '🧭 Astrolabe · ◆ 002 band-hint', focus: true, closeOnEscape: true })
+    expect(pane.opened.at(-1)).toEqual({ id: 'astrolabe', title: '🧭 Astrolabe · ◆ 002 band-hint · feature.json', focus: true, closeOnEscape: true })
     await ui.unmount()
   })
 
@@ -58,9 +59,11 @@ describe('help, part two (025)', () => {
   test('036: no welcome card; the Help tab lists the commands, keys and options', async ($, on) => {
     await setup($ as never, on as never)
     const ui = await mountPane($ as never, 'terminal', 100, 40)
-    expect(await ui.tabs()).toContain('Help')
+    // Help is an overlay on `?` (pressed as h), not a tab (066 #21).
+    expect(await ui.tabs()).not.toContain('Help')
+    expect(await ui.find({ key: 'help-key' })).toBeDefined()
     expect(await ui.body()).not.toContain('Welcome')
-    await ui.press('tab-help')
+    await ui.press('help-key')
     const first = await ui.body()
     // Help is longer than the pane: the rest is one scroll away.
     await ui.press('scroll-down')
@@ -74,7 +77,7 @@ describe('help, part two (025)', () => {
   test('043 #29: b pages back by a window, as k does', async ($, on) => {
     await setup($ as never, on as never)
     const ui = await mountPane($ as never, 'terminal', 100, 40)
-    await ui.press('tab-help')
+    await ui.press('help-key')
     expect(await ui.find({ key: 'page-back' })).toBeUndefined()
     await ui.press('scroll-down')
     const down = await ui.body()
@@ -87,7 +90,7 @@ describe('help, part two (025)', () => {
   test('043 #30: a tab keeps its scroll across a reload', async ($, on) => {
     await setup($ as never, on as never)
     const ui = await mountPane($ as never, 'terminal', 100, 40)
-    await ui.press('tab-help')
+    await ui.press('help-key')
     await ui.press('scroll-down')
     const scrolled = await ui.body()
     await ui.unmount()
@@ -100,7 +103,7 @@ describe('help, part two (025)', () => {
   test('041 #10: the Help tab previews the footer in all icon sets', async ($, on) => {
     await setup($ as never, on as never)
     const ui = await mountPane($ as never, 'terminal', 120, 60)
-    await ui.press('tab-help')
+    await ui.press('help-key')
     const views = [await ui.body()]
     for (let i = 0; i < 8; i += 1) {
       if (await ui.find({ key: 'scroll-down' }) === undefined) break
@@ -179,7 +182,7 @@ describe('help, part two (025)', () => {
     const band = JSON.stringify((await drawBand($ as never, 'terminal', 120)).tree)
     expect(band).not.toContain('astrolabe-step-')
     const ui = await mountPane($ as never, 'terminal', 100, 60)
-    await ui.press('tab-dashboard')
+    await ui.press('tab-session')
     expect(await ui.body()).toContain('* implement')
     await ui.unmount()
   })

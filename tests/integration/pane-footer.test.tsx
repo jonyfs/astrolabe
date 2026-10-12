@@ -31,7 +31,7 @@ const setup = async ($: never, on: never, env: Record<string, string> = {}) => {
 describe('the footer in the pane (035)', () => {
   test('default: the status entry keeps the Spec Kit part and the deciding window', { options: { icons: 'ascii' } }, async ($, on) => {
     const session = await setup($ as never, on as never)
-    expect(session.last()).toMatch(/^◆ 002 · implement 45% │ 5h 42% \(\d+h\d\dm\)$/)
+    expect(session.last()).toMatch(/^◆ 002 impl 45% │ 5h 42%$/)
   })
   test('054 #47: from 140 columns the status entry shows the whole footer on one line, even with the footer in the pane', { options: { icons: 'ascii' } }, async ($, on) => {
     const session = installTree(on, halfDone.tree, '/proj')
@@ -46,7 +46,7 @@ describe('the footer in the pane (035)', () => {
     await settleStatus(session)
     expect(session.last()).toContain('ctx 61%')
   })
-  for (const tab of ['specs', 'tasks', 'session', 'dashboard', 'help', 'config', 'prs']) {
+  for (const tab of ['specs', 'tasks', 'session', 'prs', 'setup']) {
     test(`default: the ${tab} tab ends with the footer`, { options: { icons: 'ascii' } }, async ($, on) => {
       await setup($ as never, on as never)
       const ui = await mountPane($ as never, 'terminal', 100, 80)
@@ -140,11 +140,11 @@ describe('the footer like statusline (041)', () => {
     await completeTurn($ as never)
     await settleStatus(session)
     const ui = await mountPane($ as never, 'terminal', 100, 80)
-    expect(await ui.footer()).toContain('±3')
+    expect(await ui.footer()).toContain('+2 −1')
     await ui.unmount()
   })
 
-  test('041 #5: a chip that just changed draws a shade lighter, then settles', async ($, on) => {
+  test('068 #49: a usage chip that changed never brightens', async ($, on) => {
     const session = await setup($ as never, on as never)
     const ui = await mountPane($ as never, 'terminal', 100, 80)
     const contextChip = () => ui.find({ type: 'Text', text: /6[15]%/ })
@@ -156,9 +156,6 @@ describe('the footer like statusline (041)', () => {
       rateLimits: [{ kind: 'five_hour', percentUsed: 42, resetsAt: new Date(NOW + 2 * 3600_000 + 1000).toISOString() }],
       changed: ['rateLimits', 'context', 'cost'],
     } as never)
-    await session.clock.settle()
-    expect((await contextChip())?.props['backgroundColor']).toBe('#fbe9c3')
-    await session.clock.advance(6000)
     await session.clock.settle()
     expect((await contextChip())?.props['backgroundColor']).toBe('#f9e2af')
     await ui.unmount()

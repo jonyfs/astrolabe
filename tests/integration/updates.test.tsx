@@ -46,12 +46,18 @@ describe('update checks (US1)', () => {
     await go()
     expect(session.processes.sort()).toEqual([GSTACK, 'specify self check', 'specify version'].sort())
     expect(session.fetches).toEqual([RELEASES])
-    expect((await drawBand($ as never, 'terminal', 160)).text).toContain('◆ 002')
     const band = await drawBand($ as never, 'terminal', 160)
-    expect(JSON.stringify(band.tree)).toContain('gstack 1.91.33.0')
-    expect(JSON.stringify(band.tree)).toContain('specify 1.2.0')
-    expect(JSON.stringify(band.tree)).toContain('Spec Kit skills 1.2.0')
-    expect(JSON.stringify(band.tree)).toContain('astrolabe 1.0.0')
+    expect(band.text).toContain(' 002 ')
+    // Four pending updates collapse into one button that opens the list (065 #19).
+    expect(JSON.stringify(band.tree)).toContain('⬆ 4')
+    const ui = await mountPane($ as never, 'terminal')
+    await ui.press('tab-session')
+    const list = await ui.body()
+    expect(list).toContain('gstack 1.91.33.0')
+    expect(list).toContain('specify 1.2.0')
+    expect(list).toContain('Spec Kit skills 1.2.0')
+    expect(list).toContain('astrolabe 1.0.0')
+    await ui.unmount()
     const stored = session.store.get('updates') as { checkedOn: string; items: unknown[] }
     expect(stored.items.length).toBe(4)
     await startSession($ as never, '/proj')
@@ -59,11 +65,25 @@ describe('update checks (US1)', () => {
     expect(session.fetches.length).toBe(1)
   })
 
+  test('a project without Spec Kit still draws the update button (065 review)', async ($, on) => {
+    const session = installTree(on as never, { '/proj/README.md': 'x\n', [GSTACK]: '#!/bin/sh\n' }, '/proj', { welcomed: 'seeded' })
+    installEngine(on as never)
+    installRenderEngine(on as never)
+    await session.clock.set(NOON)
+    session.script.env.HOME = HOME
+    session.script.processes[GSTACK] = { stdout: 'UPGRADE_AVAILABLE 1.91.32.0 1.91.33.0\n' }
+    await startSession($ as never, '/proj')
+    await session.clock.advance(1000)
+    await session.clock.settle()
+    const band = await drawBand($ as never, 'terminal', 160)
+    expect(JSON.stringify(band.tree)).toContain('⬆')
+  })
+
   test('all current: no row', async ($, on) => {
     const { session, go } = await start($ as never, on as never)
     allCurrent(session)
     await go()
-    expect(JSON.stringify((await drawBand($ as never, 'terminal', 160)).tree)).not.toContain('updates:')
+    expect(JSON.stringify((await drawBand($ as never, 'terminal', 160)).tree)).not.toContain('⬆')
   })
 
   test('without gstack installed, its check never runs a process', async ($, on) => {
@@ -85,9 +105,15 @@ describe('update checks (US1)', () => {
     session.script.processes[GSTACK] = 'missing'
     delete session.script.http[RELEASES]
     await go()
+    // gstack and the release lookup are out: two updates are left, one button with a count.
     const tree = JSON.stringify((await drawBand($ as never, 'terminal', 160)).tree)
-    expect(tree).not.toContain('gstack')
-    expect(tree).toContain('specify 1.2.0')
+    expect(tree).toContain('⬆ 2')
+    const ui = await mountPane($ as never, 'terminal')
+    await ui.press('tab-session')
+    const list = await ui.body()
+    expect(list).not.toContain('gstack')
+    expect(list).toContain('specify 1.2.0')
+    await ui.unmount()
     expect(session.logs).toEqual([])
   })
 
@@ -110,14 +136,11 @@ describe('update checks (US1)', () => {
 })
 
 describe('one click installs (US2)', () => {
+  // The list behind the band's ⬆ N button is the Session tab's update block (065 #19).
   const press = async ($: never, key: string) => {
-    const ui = await ($ as unknown as { ui: { mount: (t: never) => Promise<{ press: (q: { key: string }) => Promise<unknown>; unmount: () => Promise<void> }> } }).ui.mount({
-      plugin: 'astrolabe',
-      surface: 'terminal',
-      component: 'AbovePrompt',
-      props: { hasSurvey: false, isWorking: false, maxRows: 10, bodyColumns: 160, scroll: { bodyRows: 9, top: 0 } },
-    } as never)
-    await ui.press({ key })
+    const ui = await mountPane($, 'terminal', 100)
+    await ui.press('tab-session')
+    await ui.press(key)
     await ui.unmount()
   }
 
@@ -139,7 +162,8 @@ describe('one click installs (US2)', () => {
     session.script.processes['specify self upgrade'] = { stdout: 'ok' }
     await press($ as never, 'update-specify')
     expect(session.toasts[1]).toBe('astrolabe ✓ specify updated to 1.2.0')
-    expect(JSON.stringify((await drawBand($ as never, 'terminal', 160)).tree)).not.toContain('specify 1.2.0')
+    const tree = JSON.stringify((await drawBand($ as never, 'terminal', 160)).tree)
+    expect(tree).toContain('⬆ 3')
   })
 
   test('Spec Kit skills ask for a second click before rewriting', async ($, on) => {
@@ -149,7 +173,10 @@ describe('one click installs (US2)', () => {
     session.script.processes['specify init --here --integration claude --force'] = { stdout: 'done' }
     await press($ as never, 'update-speckit-skills')
     expect(session.processes).not.toContain('specify init --here --integration claude --force')
-    expect(JSON.stringify((await drawBand($ as never, 'terminal', 160)).tree)).toContain('confirm: rewrite .claude/skills/speckit-*')
+    const ui = await mountPane($ as never, 'terminal', 100)
+    await ui.press('tab-session')
+    expect(await ui.body()).toContain('confirm: rewrite .claude/skills/speckit-*')
+    await ui.unmount()
     await press($ as never, 'update-speckit-skills')
     expect(session.processes).toContain('specify init --here --integration claude --force')
     expect(session.toasts).toContain('astrolabe ✓ Spec Kit skills refreshed to 1.2.0')
@@ -178,7 +205,7 @@ describe('hiding update buttons (012)', () => {
     } as never)
     await ui.press({ key: 'updates-hide' })
     await ui.unmount()
-    expect(JSON.stringify((await drawBand($ as never, 'terminal', 200)).tree)).not.toContain('updates:')
+    expect(JSON.stringify((await drawBand($ as never, 'terminal', 200)).tree)).not.toContain('⬆')
     expect(session.store.get('updates:hidden')).toEqual({ gstack: '1.91.33.0', specify: '1.2.0', 'speckit-skills': '1.2.0', astrolabe: '1.0.0' })
     // the next day gstack has a newer release: only that one comes back
     session.script.processes[GSTACK] = { stdout: 'UPGRADE_AVAILABLE 1.91.32.0 1.91.34.0\n' }
@@ -186,8 +213,8 @@ describe('hiding update buttons (012)', () => {
     await startSession($ as never, '/proj')
     await session.clock.advance(1000)
     await session.clock.settle()
+    // Only gstack comes back: one update keeps its name on the button.
     const tree = JSON.stringify((await drawBand($ as never, 'terminal', 200)).tree)
-    expect(tree).toContain('gstack 1.91.34.0')
-    expect(tree).not.toContain('specify 1.2.0')
+    expect(tree).toContain('⬆ gstack 1.91.34.0')
   })
 })

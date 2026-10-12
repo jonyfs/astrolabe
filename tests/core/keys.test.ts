@@ -34,6 +34,6 @@ describe('one verb per key (064 #7)', () => {
     expect(QUEUE_HOTKEYS[0]).toBe('q')
     expect(new Set(QUEUE_HOTKEYS).size).toBe(QUEUE_HOTKEYS.length)
     // The letters the pane's other buttons own are never handed to a queued run.
-    for (const taken of ['h', 'f', 'r', 's', 'p', 'o', 'm', 'k', 'j', 'b']) expect(QUEUE_HOTKEYS).not.toContain(taken)
+    for (const taken of ['h', 'f', 'r', 's', 'p', 'o', 'm', 'k', 'j', 'b', 'v', 'g']) expect(QUEUE_HOTKEYS).not.toContain(taken)
   })
 })

@@ -41,59 +41,59 @@ Constraints that hold for every task: colours only from `theme.ts` (IX), nothing
 - [x] T007 #7 One verb per key: `r` refresh, `q` run queued, `?` help with `h` alias (P2) → 064
 - [x] T008 #8 One message prefix, `astrolabe ✓ …` (P2) → 064
 - [x] T009 #9 Separators by level: `│` between zones, `·` inside one (P2) → 064
-- [ ] T010 #10 Captures in latte, frappe, macchiato and colorblind; latte peach darkened for text (P3) → 064
+- [x] T010 #10 Captures in latte, frappe, macchiato and colorblind; latte peach darkened for text (P3) → 064
 
 ### B. Band, status and prompt → 065-band-and-status
 
-- [ ] T011 #11 Quick-track rail: spec → tasks → impl (P1) → 065
-- [ ] T012 #12 The current step is a chip holding `9/20` (P1) → 065
-- [ ] T013 #13 Paused state takes the band with a lift button (P1) → 065
-- [ ] T014 #14 The next command in one place (P1) → 065
-- [ ] T015 #15 With `footerIn=pane` the status entry is the lead only (P2) → 065
-- [ ] T016 #16 No repeats between spinner, live table and band (P2) → 065
-- [ ] T017 #17 Band chips are links (P2) → 065
-- [ ] T018 #18 Brighten the step chip instead of a second toast in compact (P2) → 065
-- [ ] T019 #19 One `⬆ N` update button (P3) → 065
-- [ ] T020 #20 Idle band keeps the deciding window (P3) → 065
+- [x] T011 #11 Quick-track rail: spec → tasks → impl (P1) → 065
+- [x] T012 #12 The current step is a chip holding `9/20` (P1) → 065
+- [x] T013 #13 Paused state takes the band with a lift button (P1) → 065
+- [x] T014 #14 The next command in one place (P1) → 065
+- [x] T015 #15 With `footerIn=pane` the status entry is the lead only (P2) → 065
+- [x] T016 #16 No repeats between spinner, live table and band (P2) → 065
+- [x] T017 #17 Band chips are links (P2) → 065
+- [x] T018 #18 Brighten the step chip instead of a second toast in compact (P2) → 065
+- [x] T019 #19 One `⬆ N` update button (P3) → 065
+- [x] T020 #20 Idle band keeps the deciding window (P3) → 065
 
 ### C. Pane and navigation → 066-pane-five-tabs
 
-- [ ] T021 #21 Five tabs; Help as a `?` overlay (P1) → 066
-- [ ] T022 #22 Tab row holds tabs only; legend row holds keys (P1) → 066
-- [ ] T023 #23 Badges count what needs the person (P1) → 066
-- [ ] T024 #24 The selected spec renders as a block (P1) → 066
-- [ ] T025 #25 Fixed section order (P2) → 066
-- [ ] T026 #26 Empty states that teach (P2) → 066
-- [ ] T027 #27 Setup marks non-default values (P2) → 066
-- [ ] T028 #28 PRs tab as a table (P2) → 066
-- [ ] T029 #29 Help overlay (P3) → 066
-- [ ] T030 #30 The pane title says why a spec is active (P3) → 066
+- [x] T021 #21 Five tabs; Help as a `?` overlay (P1) → 066
+- [x] T022 #22 Tab row holds tabs only; legend row holds keys (P1) → 066
+- [x] T023 #23 Badges count what needs the person (P1) → 066
+- [x] T024 #24 The selected spec renders as a block (P1) → 066
+- [x] T025 #25 Fixed section order (P2) → 066
+- [x] T026 #26 Empty states that teach (P2) → 066
+- [x] T027 #27 Setup marks non-default values (P2) → 066
+- [x] T028 #28 PRs tab as a table (P2) → 066
+- [x] T029 #29 Help overlay (P3) → 066
+- [x] T030 #30 The pane title says why a spec is active (P3) → 066
 
 ### D. Data honesty and scale → 067-specs-at-scale
 
-- [ ] T031 #31 Focus view, blocks of 50, `#` jump (P1) → 067
-- [ ] T032 #32 Ready to close (P1) → 067
-- [ ] T033 #33 A checks row (P1) → 067
-- [ ] T034 #34 Duplicate ids kept and marked (P1) → 067
-- [ ] T035 #35 Scroll thumb and `rows a–b of n` (P2) → 067
-- [ ] T036 #36 Placeholder rows for deferred specs (P2) → 067
-- [ ] T037 #37 Unknown prints `?` (P2) → 067
-- [ ] T038 #38 `full` at 100% (P2) → 067
-- [ ] T039 #39 Group key `g` (P3) → 067
-- [ ] T040 #40 "Touched this session" section (P3) → 067
+- [x] T031 #31 Focus view, blocks of 50, `#` jump (P1) → 067
+- [x] T032 #32 Ready to close (P1) → 067
+- [x] T033 #33 A checks row (P1) → 067
+- [x] T034 #34 Duplicate ids kept and marked (P1) → 067
+- [x] T035 #35 Scroll thumb and `rows a–b of n` (P2) → 067
+- [x] T036 #36 Placeholder rows for deferred specs (P2) → 067
+- [x] T037 #37 Unknown prints `?` (P2) → 067
+- [x] T038 #38 `full` at 100% (P2) → 067
+- [x] T039 #39 Group key `g` (P3) → 067
+- [x] T040 #40 "Touched this session" section (P3) → 067
 
 ### E. statusline parity and live table → 068-footer-statusline-parity, 069-live-table
 
-- [ ] T041 #41 Footer line 1 git parity (P1) → 068
-- [ ] T042 #42 Prompt cache chip (P1) → 068
-- [ ] T043 #43 One live table for agents, gates, cache and limits (P1) → 069
-- [ ] T044 #44 Git gate rows from the process list on `$.clock` (P2) → 069
-- [ ] T045 #45 Skills as one chip (P2) → 068
-- [ ] T046 #46 Todo progress on line 2 (P2) → 068
-- [ ] T047 #47 Spend limit and `fast` on line 3 (P2) → 068
-- [ ] T048 #48 Projection only when it lands before the reset (P2) → 068
-- [ ] T049 #49 Brighten on change for branch, PR, skills, model (P3) → 068
-- [ ] T050 #50 Hover row that explains a chip (P3) → 068
+- [x] T041 #41 Footer line 1 git parity (P1) → 068
+- [x] T042 #42 Prompt cache chip (P1) → 068
+- [x] T043 #43 One live table for agents, gates, cache and limits (P1) → 069
+- [x] T044 #44 Git gate rows from the process list on `$.clock` (P2) → 069
+- [x] T045 #45 Skills as one chip (P2) → 068
+- [x] T046 #46 Todo progress on line 2 (P2) → 068
+- [x] T047 #47 Spend limit and `fast` on line 3 (P2) → 068
+- [x] T048 #48 Projection only when it lands before the reset (P2) → 068
+- [x] T049 #49 Brighten on change for branch, PR, skills, model (P3) → 068
+- [x] T050 #50 Hover row that explains a chip (P3) → 068
 
 ## Out of scope
 

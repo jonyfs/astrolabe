@@ -17,16 +17,18 @@ const state = (phase: Phase, done: number, total: number, next: string | undefin
 
 describe('hintTail (FR-007)', () => {
   test('implement with open tasks counts what is left', () => {
-    expect(hintTail(state('implement', 14, 31, '/speckit-implement'), false)).toBe('next: /speckit-implement · 17 tasks left')
-    expect(hintTail(state('implement', 30, 31, '/speckit-implement'), false)).toBe('next: /speckit-implement · 1 task left')
+    expect(hintTail(state('implement', 14, 31, '/speckit-implement'), true)).toBe('next: /speckit-implement · 17 tasks left')
+    expect(hintTail(state('implement', 30, 31, '/speckit-implement'), true)).toBe('next: /speckit-implement · 1 task left')
   })
   test('other phases name the command alone', () => {
-    expect(hintTail(state('plan', 0, 0, '/speckit-plan'), false)).toBe('next: /speckit-plan')
-    expect(hintTail(state('implement', 0, 5, '/speckit-analyze'), false)).toBe('next: /speckit-analyze · 5 tasks left')
+    expect(hintTail(state('plan', 0, 0, '/speckit-plan'), true)).toBe('next: /speckit-plan')
+    expect(hintTail(state('implement', 0, 5, '/speckit-analyze'), true)).toBe('next: /speckit-analyze · 5 tasks left')
   })
-  test('quiet while typing, without Spec Kit, or with no next command', () => {
-    expect(hintTail(state('plan', 0, 0, '/speckit-plan'), true)).toBeUndefined()
-    expect(hintTail({ present: false, constitution: 'missing', features: [], isAnalyzed: false }, false)).toBeUndefined()
-    expect(hintTail(state('plan', 0, 0, undefined), false)).toBeUndefined()
+  test('quiet while the prompt is empty (the suggestion carries the command, 065 #14)', () => {
+    expect(hintTail(state('plan', 0, 0, '/speckit-plan'), false)).toBeUndefined()
+  })
+  test('quiet without Spec Kit or with no next command', () => {
+    expect(hintTail({ present: false, constitution: 'missing', features: [], isAnalyzed: false }, true)).toBeUndefined()
+    expect(hintTail(state('plan', 0, 0, undefined), true)).toBeUndefined()
   })
 })

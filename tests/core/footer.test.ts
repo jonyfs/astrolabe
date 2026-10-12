@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'claude-code/testing'
 
 import { CHIP_TABLE, footerChipLines, footerChips, footerText, linesChanged, resetOf, shortModel } from '../../hooks/core/footer'
+import { asciiFold } from '../../hooks/core/footer-chips'
 import { iconSet } from '../../hooks/core/icons'
 
 const NOW = Date.UTC(2026, 9, 7, 12, 0)
@@ -27,7 +28,7 @@ describe('the footer (018 FR-001, FR-002)', () => {
   test('every part in order, ascii icons', () => {
     const text = footerText({ ...full, icons: iconSet('ascii'), columns: 200 })
     expect(text).toBe(
-      `◆ 002 · implement 45% │ 7d 83%▴ hold (${resetOf(full.readings[1]!.resetsAt, full.now)}) │ 5h 42% (${resetOf(reset, full.now)}) │ ctx 61% │ opus 5.5 high │ git:main ^2 v1 ~3 │ t 1h05m`,
+      `◆ 002 · implement 45% │ 7d 83%▴ hold (${resetOf(full.readings[1]!.resetsAt, full.now)}) │ 5h 42% (${resetOf(reset, full.now)}) │ ctx 61% │ opus 5.5 · high │ git:main │ ~3 │ t 1h05m`,
     )
   })
 
@@ -51,11 +52,13 @@ describe('the footer (018 FR-001, FR-002)', () => {
     const text = footerText({ ...full, readings: [{ kind: 'five_hour', percentUsed: 30, resetsAt: reset }, { kind: 'seven_day', percentUsed: 100, resetsAt: new Date(NOW + 5 * 86_400_000).toISOString() }], icons: iconSet('ascii'), columns: 200 })
     expect(text).toContain('7d full▴ ceiling')
   })
-  test('a burn chip: points an hour and where the window lands at the reset (041 #4)', () => {
-    const text = footerText({ ...full, burn: 10, icons: iconSet('ascii'), columns: 200 })
-    // 7d decides at 83% (hold); its reset is 5 days out, so it lands at 100%.
-    expect(text).toContain('burn 10/h → 100%')
-    expect(footerText({ ...full, burn: 0, icons: iconSet('ascii'), columns: 200 })).not.toContain('/h')
+  test('a burn chip: points an hour, after five samples over a minute (068 #48)', () => {
+    // 7d is at 83% and resets in 5 days: at 10 points an hour it fills first, so the limit's time shows.
+    const text = footerText({ ...full, burn: 10, burnSamples: { count: 6, spanMs: 120_000 }, icons: iconSet('ascii'), columns: 200 })
+    expect(text).toContain('^ 10%/h')
+    expect(text).toMatch(/7d limit ~\d\d:\d\d/)
+    expect(footerText({ ...full, burn: 10, burnSamples: { count: 3, spanMs: 120_000 }, icons: iconSet('ascii'), columns: 200 })).not.toContain('/h')
+    expect(footerText({ ...full, burn: 0, burnSamples: { count: 6, spanMs: 120_000 }, icons: iconSet('ascii'), columns: 200 })).not.toContain('/h')
   })
   test('past 85% the context chip says to compact (054 #43)', () => {
     expect(footerText({ ...full, context: { percent: 86 }, icons: iconSet('ascii'), columns: 200 })).toContain('ctx 86% compact soon')
@@ -69,9 +72,9 @@ describe('the footer (018 FR-001, FR-002)', () => {
 
   test('nerd icons sit before their values', () => {
     const text = footerText({ ...full, icons: iconSet('nerd'), columns: 200 })
-    expect(text).toContain(' main ↑2 ↓1  3')
-    expect(text).toContain(' opus 5.5 high')
-    expect(text).toContain(' 61%')
+    expect(text).toMatch(/ main/)
+    expect(text).toMatch(/ opus 5\.5 · high/)
+    expect(text).toContain(' 61%')
   })
 
   test('narrow: duration, then git, then model go first; Spec Kit and the binding window stay', () => {
@@ -109,8 +112,7 @@ describe("statusline's three-line order (041 #1)", () => {
   test('place and git on line 1, the Spec Kit work and the skill on line 2, the model and the limits on line 3', () => {
     const lines = footerChipLines({ ...full, skill: { name: 'speckit-implement', model: 'claude-sonnet-5-5' }, icons: iconSet('nerd'), columns: 200 })
     expect(lines).toHaveLength(3)
-    expect(lines[0]).toHaveLength(1)
-    expect(lines[0]![0]?.text).toContain('main')
+    expect(lines[0]!.some(c => c.text.includes('main'))).toBe(true)
     expect(lines[1]!.map(c => c.text).join('')).toContain('◆ 002')
     expect(lines[1]!.map(c => c.text).join('')).toContain('⟳ implement')
     expect(lines[2]!.map(c => c.text).join('')).toContain('7d 83%▴')
@@ -130,9 +132,9 @@ describe('lines changed (041 #7)', () => {
     expect(linesChanged('a', '')).toEqual({ added: 0, removed: 1 })
   })
 
-  test('a lines part shows ±N in the footer', () => {
-    expect(footerText({ ...full, lines: { added: 3, removed: 1 }, icons: iconSet('ascii'), columns: 200 })).toContain('±4')
-    expect(footerText({ ...full, icons: iconSet('ascii'), columns: 200 })).not.toContain('±')
+  test('a lines part shows +added −removed in the footer', () => {
+    expect(footerText({ ...full, lines: { added: 3, removed: 1 }, icons: iconSet('ascii'), columns: 200 })).toContain('+3 −1')
+    expect(footerText({ ...full, icons: iconSet('ascii'), columns: 200 })).not.toContain('+3')
   })
 })
 
@@ -193,5 +195,72 @@ describe('one usage ramp in the footer (064 #1)', () => {
     const chip = footerChips({ ...base, lead: false, readings: [], context: { percent: 83 } }).find(c => c.text.includes('83%'))
     expect(chip?.text).not.toMatch(/[▵▴]/)
     expect(chip?.colour).toBe('red')
+  })
+})
+
+describe('statusline parity chips in the footer (068)', () => {
+  const base = { ...full, icons: iconSet('ascii'), columns: 400 }
+  const parity = {
+    ...base,
+    dir: { path: '/h/astrolabe/src', start: '/h/astrolabe' },
+    repo: 'https://github.com/jonyfs/astrolabe',
+    git: { branch: 'main', remote: 'https://github.com/jonyfs/astrolabe', ahead: 2, behind: 5, changed: 3, conflicts: 2, upstream: 'origin/main', pr: { number: 41, checks: 'none' as const, draft: true, labels: ['ux'] }, ci: 'pass' as const },
+    skills: ['humanizer', 'dataviz'],
+    todo: { title: 'Fix authentication', done: 1, total: 3 },
+    cache: { at: NOW - 4 * 60_000 - 10_000, tokens: 182_000, ttlMs: 300_000 },
+    fast: true,
+  }
+  test('every statusline chip appears, each as its own zone', () => {
+    const text = footerText(parity)
+    for (const part of ['⌂ src ⇐ astrolabe', 'jonyfs/astrolabe', 'git:main', '~3 ✖2 ⇡2 ⇣5', 'PR #41 draft · ux', '✓ CI', '❖ humanizer, dataviz', '▸ Fix authentication (1/3)', 'cache warm · 1m', 'opus 5.5 · high · fast']) {
+      expect(text).toContain(asciiFold(part))
+    }
+  })
+  test('shedding: the repository name goes first, then the duration, lines, projection, CI, PR, burn', () => {
+    const order = ['jonyfs/astrolabe', 't 1h05m', '+9 −1', 'limit ~', 'ok CI', 'PR #41', '^ 10%/h']
+    const input = { ...parity, lines: { added: 9, removed: 1 }, burn: 10, burnSamples: { count: 6, spanMs: 120_000 } }
+    const widths = [...Array(400).keys()].reverse()
+    const seen: string[] = []
+    let previous = footerText({ ...input, columns: 400 })
+    for (const columns of widths) {
+      const text = footerText({ ...input, columns })
+      for (const item of order) if (previous.includes(item) && !text.includes(item) && !seen.includes(item)) seen.push(item)
+      previous = text
+    }
+    // Items leave in the table's order (a later one never leaves before an earlier one).
+    expect(seen).toEqual(order.filter(item => seen.includes(item)))
+    expect(seen[0]).toBe('jonyfs/astrolabe')
+  })
+  test('never dropped: context, branch, directory, 5h, model, 7d', () => {
+    // Where the optional chips no longer fit, the essential ones are still there.
+    const text = footerText({ ...parity, lines: { added: 9, removed: 1 }, columns: 150 })
+    for (const must of ['⌂ src', 'git:main', '7d 83%', '5h 42%', 'ctx 61%', 'opus 5.5']) expect(text).toContain(asciiFold(must))
+    expect(text).not.toContain('jonyfs/astrolabe')
+  })
+  test('chip keys are unique, also with per-model windows (068 review)', () => {
+    const readings = [
+      { kind: 'five_hour', percentUsed: 42, resetsAt: parity.readings[0]!.resetsAt },
+      { kind: 'seven_day', percentUsed: 50, resetsAt: parity.readings[0]!.resetsAt },
+      { kind: 'seven_day_opus', percentUsed: 30, resetsAt: parity.readings[0]!.resetsAt },
+      { kind: 'seven_day_sonnet', percentUsed: 20, resetsAt: parity.readings[0]!.resetsAt },
+    ]
+    const keys = footerChips({ ...parity, readings, columns: 300 }).map(c => c.key)
+    expect(new Set(keys).size).toBe(keys.length)
+  })
+  test('without an upstream there are no ahead or behind counters', () => {
+    const text = footerText({ ...parity, git: { ...parity.git, upstream: undefined } })
+    expect(text).toContain(asciiFold('~3 ✖2'))
+    expect(text).not.toContain(asciiFold('⇡2'))
+  })
+  test('the lines go on the place line, the work on the second, the limits on the third', () => {
+    const lines = footerChipLines(parity)
+    expect(lines).toHaveLength(3)
+    const texts = lines.map(l => l.map(c => c.text).join(' '))
+    expect(texts[0]).toContain(asciiFold('⌂ src'))
+    expect(texts[0]).toContain(asciiFold('✓ CI'))
+    expect(texts[1]).toContain(asciiFold('❖ humanizer'))
+    expect(texts[1]).toContain(asciiFold('▸ Fix authentication'))
+    expect(texts[2]).toContain('opus 5.5')
+    expect(texts[2]).toContain('cache warm')
   })
 })

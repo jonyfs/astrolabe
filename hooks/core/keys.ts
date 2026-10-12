@@ -32,4 +32,4 @@ export const verbOf = (key: string): KeyVerb | undefined => KEY_VERBS.find(k => 
  * The letters a queued run takes, in order: `q` first. The pane's own buttons (h f r s p o m
  * c k j b l v) are never among them.
  */
-export const QUEUE_HOTKEYS = 'qadegituwxyz'
+export const QUEUE_HOTKEYS = 'qadeituwxyz'

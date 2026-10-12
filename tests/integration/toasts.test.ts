@@ -2,7 +2,8 @@ import { describe, expect, test } from 'claude-code/testing'
 
 import { featureJson, project, RATIFIED, spec, tasks } from '../fixtures/build'
 import { completeTurn, installEngine, installTree, startSession } from '../helpers/fake-fs'
-import { installPaneEngine, installRenderEngine, mountPane } from '../helpers/render'
+import { FLAVORS } from '../../hooks/core/theme'
+import { drawBand, installPaneEngine, installRenderEngine, mountPane } from '../helpers/render'
 
 const planOnly = () =>
   project({ constitution: RATIFIED, featureJson: featureJson('specs/002-b'), features: { '002-b': { spec: spec() } } })
@@ -53,6 +54,45 @@ describe('phase toasts (US1)', () => {
     await $.tool.call({ tool: 'Skill', tool_use_id: 's', skill: 'speckit-tasks' } as never)
     await completeTurn($)
     expect(session.toasts).toEqual([])
+  })
+
+  test('compact: a finished phase brightens the step chip for 30 seconds, with no toast (065 #18)', { options: { preset: 'compact' } }, async ($, on) => {
+    const tree = planOnly()
+    const session = installTree(on, tree, '/proj')
+    installEngine(on)
+    installRenderEngine(on)
+    await startSession($, '/proj')
+    const colourOfChip = async () => {
+      const drawn = await drawBand($ as never, 'terminal', 120)
+      const find = (node: unknown): string | undefined => {
+        if (node === null || typeof node !== 'object') return undefined
+        const n = node as { props?: { backgroundColor?: string }; children?: unknown[] }
+        if (n.props?.backgroundColor !== undefined && n.props.backgroundColor !== FLAVORS.mocha.accent) return n.props.backgroundColor
+        for (const c of n.children ?? []) { const r = find(c); if (r !== undefined) return r }
+        return undefined
+      }
+      return find(drawn.tree)
+    }
+    const before = await colourOfChip()
+    tree['/proj/specs/002-b/plan.md'] = '# Plan\n'
+    await completeTurn($)
+    expect(session.toasts).toEqual([])
+    const during = await colourOfChip()
+    expect(during).toBeDefined()
+    expect(during).not.toBe(before)
+    await session.clock.advance(31_000)
+    expect(await colourOfChip()).not.toBe(during)
+  })
+
+  test('full: the chip does not brighten, the toast says it (065 #18)', { options: { preset: 'full' } }, async ($, on) => {
+    const tree = planOnly()
+    const session = installTree(on, tree, '/proj')
+    installEngine(on)
+    installRenderEngine(on)
+    await startSession($, '/proj')
+    tree['/proj/specs/002-b/plan.md'] = '# Plan\n'
+    await completeTurn($)
+    expect(session.toasts.length).toBe(1)
   })
 
   for (const preset of ['compact', 'minimal'] as const) {
@@ -120,8 +160,8 @@ describe('the drift alarm (US2)', () => {
     tickT014(tree)
     await $.tool.call(tickEdit('e1', 'T014'))
     await completeTurn($)
-    const ui = await mountPane($ as never, 'terminal', 120, 60)
-    await ui.press('tab-dashboard')
+    const ui = await mountPane($ as never, 'terminal', 120, 150, 150)
+    await ui.press('tab-session')
     expect(await ui.body()).toMatch(/drift alarms\s+1 \(002: 1\)/)
     await ui.unmount()
   })

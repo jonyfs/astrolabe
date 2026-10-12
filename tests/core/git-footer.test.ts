@@ -16,7 +16,7 @@ describe('stash count (023 #37)', () => {
   })
   test('the footer shows it after the branch', () => {
     const text = footerText({ ...base, icons: iconSet('ascii'), git: { branch: 'main', ahead: 0, behind: 0, changed: 0, conflicts: 0, stashes: 2 } })
-    expect(text).toContain('git:main stash:2')
+    expect(text).toContain('git:main │ stash:2')
   })
 })
 
@@ -33,7 +33,7 @@ describe('worktree (023 #36)', () => {
   })
   test('the footer marks it', () => {
     const text = footerText({ ...base, icons: iconSet('ascii'), git: { branch: 'x', ahead: 0, behind: 0, changed: 0, conflicts: 0, worktree: 'a' } })
-    expect(text).toContain('git:x wt:a')
+    expect(text).toContain('git:x │ wt:a')
   })
 })
 
@@ -55,7 +55,7 @@ describe('pull request and CI (023 #35)', () => {
   })
   test('the footer shows the number and the checks', () => {
     const git = { branch: 'x', ahead: 0, behind: 0, changed: 0, conflicts: 0 }
-    expect(footerText({ ...base, icons: iconSet('ascii'), git: { ...git, pr: { number: 31, checks: 'pass' } } })).toContain('git:x PR#31 ok')
+    expect(footerText({ ...base, icons: iconSet('ascii'), git: { ...git, pr: { number: 31, checks: 'pass' } } })).toContain('git:x │ PR #31 ok')
     expect(footerText({ ...base, icons: iconSet('emoji'), git: { ...git, pr: { number: 31, checks: 'fail' } } })).toContain('#31 ✗')
     expect(footerText({ ...base, icons: iconSet('emoji'), git: { ...git, pr: { number: 31, checks: 'none' } } })).toMatch(/#31( ·|$)/)
   })

@@ -21,7 +21,7 @@ status: active # active | done | abandoned
 
 The table sits above the prompt, under the band and above `next(e)` (Principle VII). Rows exist only while something is live; with nothing live the table draws nothing.
 
-Eight shared columns (width in cells; header row in the `faint` role, uppercase): WHO 8 · WHERE 16 · WHAT 30 (truncates with `…`, never wraps) · NOW 20 · LEVEL 14 · SIZE 6 right-aligned · TIME 9 right-aligned, plus a one-cell kind glyph before WHO: `◇` agent (lavender), `⛭` gate (peach), `◌` cache (teal), `◔` limit (accent).
+Eight shared columns (width in cells; header row in the `faint` role, uppercase): WHO 10 · WHERE 16 · WHAT 30 (truncates with `…`, never wraps) · NOW 20 · LEVEL 14 · SIZE 6 right-aligned · TIME 9 right-aligned, plus a one-cell kind glyph before WHO: `◇` agent (lavender), `⛭` gate (peach), `◌` cache (teal), `◔` limit (accent).
 
 | Kind | WHO | WHERE | WHAT | NOW | LEVEL | SIZE | TIME |
 |---|---|---|---|---|---|---|---|

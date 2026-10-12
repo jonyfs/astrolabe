@@ -11,7 +11,7 @@ describe('session.start draws the status entry from disk', () => {
     installEngine(on)
     await startSession($, halfDone.cwd)
     expect(session.logs).toEqual([])
-    expect(session.last()).toBe('◆ 002 · implement 45%')
+    expect(session.last()).toBe('◆ 002 impl 45%')
   })
   test('no Spec Kit anywhere up the tree', async ($, on) => {
     const session = installTree(on, noSpeckit.tree, noSpeckit.cwd)
@@ -33,12 +33,12 @@ describe('session.start draws the status entry from disk', () => {
     const session = installTree(on, tree, halfDone.cwd)
     installEngine(on)
     await startSession($, halfDone.cwd)
-    expect(session.last()).toBe('◆ 002 · specify')
+    expect(session.last()).toBe('◆ 002 spec')
   })
   test('a dangling feature.json marks the guessed feature with ~', async ($, on) => {
     const session = installTree(on, dangling.tree, dangling.cwd)
     installEngine(on)
     await startSession($, dangling.cwd)
-    expect(session.last()).toBe('◆ ~003 · implement 25%')
+    expect(session.last()).toBe('◆ ~003 impl 25%')
   })
 })

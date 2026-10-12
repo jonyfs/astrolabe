@@ -48,10 +48,11 @@ describe('a compact band below 80 columns (024 #12)', () => {
   } as SpeckitState
   test('the id, the current step and the count', () => {
     const text = bandSegments(state, 30).map(s => s.text).join('')
-    expect(text).toBe('◆ 002  ◐ implement 9/20 45%')
+    expect(text).toBe(' 002  ✓✓✓✓  ▶ implement 9/20 ')
   })
-  test('narrower still: the id and the step', () => {
-    expect(bandSegments(state, 20).map(s => s.text).join('')).toBe('◆ 002  ◐ implement')
+  test('narrower still: the id, the step and the count; then the id and the step', () => {
+    expect(bandSegments(state, 24).map(s => s.text).join('')).toBe(' 002  ▶ implement 9/20 ')
+    expect(bandSegments(state, 20).map(s => s.text).join('')).toBe(' 002  ▶ implement ')
   })
 })
 

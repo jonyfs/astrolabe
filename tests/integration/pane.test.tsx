@@ -25,7 +25,7 @@ describe('the /astrolabe command (US1)', () => {
     const ran = await $.command.run({ command: 'astrolabe', args: '' } as never)
     expect((ran as { text?: string }).text).toBe('Astrolabe pane opened.')
     // Typed by the person: focused, so 1, 2 and 3 work at once, and Esc closes it.
-    expect(pane.opened).toEqual([{ id: 'astrolabe', title: '🧭 Astrolabe · ◆ 002 band-hint', focus: true, closeOnEscape: true }])
+    expect(pane.opened).toEqual([{ id: 'astrolabe', title: '🧭 Astrolabe · ◆ 002 band-hint · feature.json', focus: true, closeOnEscape: true }])
   })
 })
 
@@ -53,9 +53,10 @@ describe('the pane tabs (US1, US2)', () => {
     await setup($ as never, on as never)
     const ui = await mountPane($ as never, 'terminal', 120)
     expect((await ui.find({ key: 'help-key' }))?.props['hotkey']).toBe('h')
-    expect((await ui.find({ key: 'help-key' }))?.props['label']).toBe('? h')
+    expect((await ui.find({ key: 'help-key' }))?.props['label']).toBe('help')
     expect((await ui.find({ key: 'find' }))?.props['hotkey']).toBe('f')
-    expect((await ui.find({ key: 'find' }))?.props['label']).toBe('/ f')
+    // A plain button draws its own hotkey (`f: filter`), so the label is the verb (066 #22).
+    expect((await ui.find({ key: 'find' }))?.props['label']).toBe('filter')
     expect((await ui.find({ key: 'refresh' }))?.props['hotkey']).toBe('r')
     await ui.unmount()
   })
@@ -81,9 +82,9 @@ describe('the pane tabs (US1, US2)', () => {
       ['tab-specs', '002 band-hint'],
       ['tab-tasks', 'T010 task 10'],
       ['tab-session', 'feature.json'],
-      ['tab-dashboard', 'Spec Kit cycle'],
-      ['tab-help', '/astrolabe status'],
-      ['tab-config', 'No Astrolabe options'],
+      ['tab-session', 'Spec Kit cycle'],
+      ['help-key', '/astrolabe status'],
+      ['tab-setup', 'No Astrolabe options'],
     ] as const
     for (const [tab, expected] of tabs) {
       await ui.press(tab)
@@ -96,6 +97,10 @@ describe('the pane tabs (US1, US2)', () => {
     const prLink = await ui.find({ type: 'Link', text: /feat: desktop fallback/ })
     if (prLink === undefined) expect(await ui.body()).toContain('feat: desktop fallback')
     else expect(prLink.props['href']).toBe('https://github.com/o/r/pull/45')
+    // The PRs and Setup tabs draw their own body, not the Specs rows above it (066 review).
+    expect(await ui.body()).not.toContain('Active (')
+    await ui.press('tab-setup')
+    expect(await ui.body()).not.toContain('Active (')
     await ui.unmount()
   })
 
@@ -173,10 +178,10 @@ describe('the pane tabs (US1, US2)', () => {
   test('054 #5: Session, Dashboard and Help share the longest label column', async ($, on) => {
     await setup($ as never, on as never)
     const labelWidth = paneLabelWidth('en')
-    const ui = await mountPane($ as never, 'terminal', 140, 60)
+    const ui = await mountPane($ as never, 'terminal', 140, 150, 150)
     await ui.press('tab-session')
+    // Session and Dashboard are one tab (066 #21): both labels share the column.
     expect(await ui.body()).toContain(`root${' '.repeat(labelWidth - 4)}/proj`)
-    await ui.press('tab-dashboard')
     expect(await ui.body()).toContain(`turns${' '.repeat(labelWidth - 5)}0`)
     await ui.unmount()
 
@@ -221,7 +226,7 @@ describe('/astrolabe help (025 #39)', () => {
     await setup($ as never, on as never)
     const ran = (await $.command.run({ command: 'astrolabe', args: 'help', origin: { kind: 'composer' } } as never)) as { text?: string }
     const text = ran.text ?? ''
-    for (const part of ['/astrolabe', '/astrolabe allow', '/astrolabe revoke', '/astrolabe help', '1 Specs', '2 Tasks', '3 Session', '4 Dashboard', 'Esc']) {
+    for (const part of ['/astrolabe', '/astrolabe allow', '/astrolabe revoke', '/astrolabe help', '1 Specs', '2 Tasks', '3 Session', '4 PRs', '5 Setup', 'Esc']) {
       expect(text).toContain(part)
     }
   })
@@ -252,7 +257,7 @@ describe('extensions and parallel tasks (020c)', () => {
     await startSession($ as never, '/proj')
     const ui = await mountPane($ as never, 'terminal')
     await ui.press('tab-tasks')
-    expect(await ui.body()).toContain('┌ T002 b')
+    expect(await ui.body()).toContain('┘ P')
     await ui.press('tab-session')
     expect(await ui.body()).toContain(`hooks after${' '.repeat(paneLabelWidth('en') - 'hooks after'.length)}/speckit-git-commit (optional)`)
     await ui.unmount()
@@ -291,13 +296,35 @@ describe('pane navigation (043)', () => {
     const ui = await mountPane($ as never, 'terminal', 130, 30)
     expect(await ui.tabs()).toContain('Tasks 11')
     // 054 #26: the legend ends with when the state was last written.
-    expect(await ui.legend()).toMatch(/^every feature, its phase and progress · 1-7 tabs · h help · f filters · s status · j\/k scroll · r ↻ · Esc closes · updated \d\d:\d\d$/)
+    expect(await ui.legend()).toMatch(/^every feature, its phase and progress · 1-5 tabs · h help · f filters · s status · j\/k scroll · r ↻ · Esc closes · updated \d\d:\d\d$/)
     await ui.press('tab-tasks')
-    expect(await ui.legend()).toMatch(/^the active feature's open tasks · 1-7 tabs · h help · f filters · j\/k scroll · r ↻ · Esc closes · updated \d\d:\d\d$/)
+    expect(await ui.legend()).toMatch(/^the active feature's open tasks · 1-5 tabs · h help · f filters · j\/k scroll · r ↻ · Esc closes · updated \d\d:\d\d$/)
     await ui.unmount()
   })
 })
 
+
+describe('every tab at 60, 80 and 100 pane columns (066 #21)', () => {
+  for (const surface of SURFACES) {
+    test(`${surface}: the five tabs draw, and the tab row shrinks to numbers and badges below 80 columns`, async ($, on) => {
+      await setup($ as never, on as never)
+      for (const columns of [60, 80, 100]) {
+        const ui = await mountPane($ as never, surface, columns)
+        const tabs = await ui.tabs()
+        if (columns >= 100) expect(tabs).toContain('Specs')
+        if (columns < 80) expect(tabs).not.toContain('Specs')
+        for (const tab of ['specs', 'tasks', 'session', 'prs', 'setup']) {
+          await ui.press(`tab-${tab}`)
+          expect(await ui.body()).not.toBe('')
+        }
+        // The keys are a row of their own, not part of the tab row.
+        expect(await ui.find({ key: 'astrolabe-pane-keys' })).toBeDefined()
+        expect(tabs).not.toContain('filter')
+        await ui.unmount()
+      }
+    })
+  }
+})
 
 describe('pane navigation, part two (043)', () => {
   test('#22: the last tab of this project opens next session', async ($, on) => {
@@ -308,8 +335,8 @@ describe('pane navigation, part two (043)', () => {
     await startSession($ as never, halfDone.cwd)
     const ui = await mountPane($ as never, 'terminal', 100, 30)
     expect(await ui.body()).toContain('9/20 done')
-    await ui.press('tab-help')
-    expect(session.store.get('tab:/proj')).toBe('help')
+    await ui.press('tab-session')
+    expect(session.store.get('tab:/proj')).toBe('session')
     await ui.unmount()
   })
   test('#23 #28: one filter keeps matching task rows; ✕ closes the pane', async ($, on) => {
@@ -326,7 +353,7 @@ describe('pane navigation, part two (043)', () => {
   test('052 #36: Help groups content and the filter jumps to matching blocks', async ($, on) => {
     await setup($ as never, on as never)
     const ui = await mountPane($ as never, 'terminal', 120, 60)
-    await ui.press('tab-help')
+    await ui.press('help-key')
     let body = ''
     for (let page = 0; page < 10; page += 1) {
       const visible = await ui.body()
@@ -413,7 +440,7 @@ describe('design and UX (052)', () => {
     await setup($ as never, on as never)
     const st = $ as never
     const ui = await mountPane(st, 'terminal', 60, 30)
-    expect(await ui.legend()).toBe('1-7 tabs · h help · f filters · s status · j/k scroll · r ↻ · Esc closes')
+    expect(await ui.legend()).toBe('1-5 tabs · h help · f filters · s status · j/k scroll · r ↻ · Esc closes')
     await ui.unmount()
   })
 
@@ -620,7 +647,7 @@ describe('keys and copying (046 #59, 054 #65)', () => {
     await setup($ as never, on as never)
     const ui = await mountPane($ as never, 'terminal', 100, 30)
     expect(await ui.find({ key: 'copy-kpis' })).toBeUndefined()
-    await ui.press('tab-dashboard')
+    await ui.press('tab-session')
     expect(await ui.find({ key: 'copy-kpis' })).toBeDefined()
     await ui.unmount()
   })

@@ -118,7 +118,7 @@ export const configMark = (changed: boolean, value: unknown, defaults: Readonly<
 
 /** The Config tab's groups, in order (054 #64); an option not listed goes to the last one. */
 export const OPTION_GROUPS = {
-  display: ['preset', 'flavor', 'icons', 'language', 'accessible', 'footerIn', 'footerLines', 'footerSeparator', 'bandDensity', 'images'],
+  display: ['preset', 'flavor', 'icons', 'language', 'accessible', 'footerIn', 'footerLines', 'footerSeparator', 'bandDensity', 'liveRows', 'images'],
   governor: ['governUsage', 'observeUsage', 'askOnLimit'],
   claude: ['claudeContext', 'skillModels', 'humanize', 'terse', 'featureSummary'],
   integrations: ['checkUpdates', 'autoReload', 'pullRequest'],
@@ -159,3 +159,20 @@ export const focusNote = (task: { id?: string; text: string } | undefined): stri
     : taskFiles(task.text).length === 0
       ? `focus mode is on: change only what task ${task.id ?? ''} needs and no other file`.replace('  ', ' ')
       : `focus mode is on: change only ${taskFiles(task.text).join(', ')}`
+
+/**
+ * The prompt that closes a spec (067 #32): every task is ticked while the front matter still says
+ * `status: active`. Astrolabe writes nothing to the project; Claude makes the edit.
+ */
+export const closeSuggestion = (f: Pick<Feature, 'dir' | 'id'>): string =>
+  `Set \`status: done\` in the front matter of specs/${f.dir}/spec.md (every task of ${f.id} is ticked).`
+
+/** The file paths a plan.md names in backticks, for the drift check (067 #33): `src/orders/api.ts`, not commands or words. */
+export const planFiles = (plan: string): string[] => {
+  const out = new Set<string>()
+  for (const m of plan.matchAll(/`([A-Za-z0-9_.@-]+(?:\/[A-Za-z0-9_.@-]+)+\.[A-Za-z0-9]{1,6})`/g)) {
+    const path = m[1]!
+    if (!/^https?:/.test(path) && !path.startsWith('..')) out.add(path)
+  }
+  return [...out]
+}
