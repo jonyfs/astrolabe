@@ -32,15 +32,15 @@ Constraints that hold for every task: colours only from `theme.ts` (IX), nothing
 
 ### A. Consistency and tokens → 064-design-tokens
 
-- [ ] T001 #1 One usage ramp: governor levels 60/80/88 colour every window; marks `▵` from 60 and `▴` from 80 (P1) → 064
-- [ ] T002 #2 A text-grade muted role (`faint`, overlay2); overlay0 kept for rules and glyphs (P1) → 064
-- [ ] T003 #3 Narrow glyphs only: `‖` `◷` `▲` in place of `⏸` `⏱` `⚠` (P1) → 064
-- [ ] T004 #4 Task ids always four characters (`T011`), feature ids padded to the widest id (P1) → 064
-- [ ] T005 #5 One duration format (`4m12s`, `2h09m`); under a day count down, beyond a day name the weekday (P2) → 064
-- [ ] T006 #6 One phase abbreviation table (spec, clar, plan, tasks, impl) (P2) → 064
-- [ ] T007 #7 One verb per key: `r` refresh, `q` run queued, `?` help with `h` alias (P2) → 064
-- [ ] T008 #8 One message prefix, `astrolabe ✓ …` (P2) → 064
-- [ ] T009 #9 Separators by level: `│` between zones, `·` inside one (P2) → 064
+- [x] T001 #1 One usage ramp: governor levels 60/80/88 colour every window; marks `▵` from 60 and `▴` from 80 (P1) → 064
+- [x] T002 #2 A text-grade muted role (`faint`, overlay2); overlay0 kept for rules and glyphs (P1) → 064
+- [x] T003 #3 Narrow glyphs only: `‖` `◷` `▲` in place of `⏸` `⏱` `⚠` (P1) → 064
+- [x] T004 #4 Task ids always four characters (`T011`), feature ids padded to the widest id (P1) → 064
+- [x] T005 #5 One duration format (`4m12s`, `2h09m`); under a day count down, beyond a day name the weekday (P2) → 064
+- [x] T006 #6 One phase abbreviation table (spec, clar, plan, tasks, impl) (P2) → 064
+- [x] T007 #7 One verb per key: `r` refresh, `q` run queued, `?` help with `h` alias (P2) → 064
+- [x] T008 #8 One message prefix, `astrolabe ✓ …` (P2) → 064
+- [x] T009 #9 Separators by level: `│` between zones, `·` inside one (P2) → 064
 - [ ] T010 #10 Captures in latte, frappe, macchiato and colorblind; latte peach darkened for text (P3) → 064
 
 ### B. Band, status and prompt → 065-band-and-status
