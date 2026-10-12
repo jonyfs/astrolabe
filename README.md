@@ -516,6 +516,10 @@ nothing to show says what would fill it and the command that does, for example
 
 Times in the governor rows read clock first, then the distance (`until 14:00, in 2h13m`). The footer's Spec Kit chip, when a narrow pane cuts it, shows its whole text above the row while the pointer is over it. During your first three sessions the footer also ends with a `/astrolabe help` chip, the first one a narrow footer drops. The PRs tab adds who opened each pull request and how long ago (`@jonyfs 3d`).
 
+The Dashboard also counts subagent runs per feature (`by feature  002: 3, 001: 1`) and the share of task boxes ticked by subagents against the main thread (`ticked by  subagents 3 · main 1 (75% by subagents)`), counted from the session's Edit calls on `tasks.md` and `spec.md`.
+
+At 140 columns and wider the status entry under the prompt shows the whole footer on one line, even when the footer sits in the pane. The prompt-cache reminder (`The prompt cache goes cold in about 30 s`) only fires when the next step is likely soon: a skill is running, or the active feature is implementing with tasks left.
+
 `r` (or the `↻ r` button) refreshes the pane now: it re-reads the specs, git, the worktrees, this
 branch's pull request and, on the PRs tab, the open pull requests. Ctrl+R is not a key a pane
 button can take, so the key is `r`. When a turn ended ten minutes ago and nothing has happened

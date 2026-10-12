@@ -15,6 +15,7 @@ import { phaseToasts } from './core/phase-toast'
 import { justFinished } from './core/next-command'
 import { filterChips, filterFeatures, helpRows, moveSpecSelection, nextSort, nextStatus, taskRows, windowUnits, wrappedRows, type PaneRow, sessionRows, specsRows } from './core/pane'
 import { presetOf } from './core/presets'
+import { ticksIn } from './core/tasks-parser'
 import { spinnerSuffix } from './core/spinner'
 import { astrolabeUpdate, firstLine, isDue, isStoredUpdates, localDay, parseCliVersion, parseGstackCheck, parseSelfCheck, skillsVersusCli, releaseNotesUrl, skillsUpdate, updateLabel } from './core/updates'
 import { fileUrl, joinPath } from './core/paths'
@@ -141,8 +142,8 @@ const PR_TTL_MS = 300_000
 
 // The session's numbers between writes (018): a tool call costs no state write; they are
 // written at the end of each main turn and at each measure. A reload loses one turn's counts.
-const live = { toolCalls: 0, drifts: 0, driftsById: {} as Record<string, number>, agentsRun: 0, agentsQueued: 0, linesAdded: 0, linesRemoved: 0, model: undefined as string | undefined, effort: undefined as string | undefined }
-// The footer's room: the last width a drawing saw, less the warning mark and "astrolabe: " the terminal adds.
+const live = { toolCalls: 0, drifts: 0, driftsById: {} as Record<string, number>, agentsRun: 0, agentsById: {} as Record<string, number>, ticksMain: 0, ticksSub: 0, agentsQueued: 0, linesAdded: 0, linesRemoved: 0, model: undefined as string | undefined, effort: undefined as string | undefined }
+// The footer's room: the last width a drawing saw, less the "⚠ astrolabe: " the terminal adds.
 let columnsSeen = 120
 let surfaceSeen: string | null = 'terminal'
 let iconsOption: unknown = 'auto'
@@ -182,7 +183,7 @@ async function drawStatus($: EngineInterface, state: Held['state']): Promise<voi
   if (footerOwner === 'statusline') return
   // With the footer in the pane (035), the status entry keeps only what is never dropped.
   const [usage, stats] = await Promise.all([$.state.get(USAGE), $.state.get(SESSION)])
-  $.ui.status(footerText({ ...(await footerInput($, state, Math.max(20, columnsSeen - 14), { usage: usage.value ?? DEFAULT_USAGE, stats: stats.value })), lead: footerIn === 'pane' }))
+  $.ui.status(footerText({ ...(await footerInput($, state, Math.max(20, columnsSeen - 14), { usage: usage.value ?? DEFAULT_USAGE, stats: stats.value })), lead: footerIn === 'pane' && columnsSeen < WIDE_STATUS_COLUMNS }))
 }
 
 async function showStatus($: EngineInterface, state: Held['state']): Promise<void> {
@@ -295,7 +296,13 @@ async function flushStats($: EngineInterface, change: (s: SessionStats) => Sessi
         ? {}
         : { driftsByFeature: Object.fromEntries([...new Set([...Object.keys(before.driftsByFeature ?? {}), ...Object.keys(live.driftsById)])].map(id => [id, (before.driftsByFeature?.[id] ?? 0) + (live.driftsById[id] ?? 0)])) }),
       agentsRun: before.agentsRun + live.agentsRun,
+      ...(Object.keys(live.agentsById).length === 0
+        ? {}
+        : { agentsByFeature: Object.fromEntries([...new Set([...Object.keys(before.agentsByFeature ?? {}), ...Object.keys(live.agentsById)])].map(id => [id, (before.agentsByFeature?.[id] ?? 0) + (live.agentsById[id] ?? 0)])) }),
       agentsQueued: before.agentsQueued + live.agentsQueued,
+      ...(live.ticksMain + live.ticksSub === 0
+        ? {}
+        : { ticksBy: { main: (before.ticksBy?.main ?? 0) + live.ticksMain, sub: (before.ticksBy?.sub ?? 0) + live.ticksSub } }),
       ...(live.linesAdded + live.linesRemoved === 0
         ? {}
         : { lines: { added: (before.lines?.added ?? 0) + live.linesAdded, removed: (before.lines?.removed ?? 0) + live.linesRemoved } }),
@@ -309,6 +316,9 @@ async function flushStats($: EngineInterface, change: (s: SessionStats) => Sessi
       live.drifts = 0
       live.driftsById = {}
       live.agentsRun = 0
+      live.agentsById = {}
+      live.ticksMain = 0
+      live.ticksSub = 0
       live.agentsQueued = 0
       live.linesAdded = 0
       live.linesRemoved = 0
@@ -1056,6 +1066,23 @@ function paneHeader(
         )
       }
     }
+    // The open tasks as GitHub issues with one key (050 #96): Spec Kit's own skill does it, after a second press.
+    if (pane.tab === 'tasks' && active !== undefined && Button !== undefined) {
+      const openTasks = (state.activeTasks ?? []).filter(task => !task.isDone)
+      const feature = state.features.find(f => f.dir === active.dir)
+      if (openTasks.length > 0 && feature !== undefined) {
+        const key = `issues-${feature.id}`
+        const n = Math.min(openTasks.length, 20)
+        out.push(
+          <Button
+            key="tasks-to-issues"
+            label={pane.confirm === key ? t(currentLang(), 'tasks.issuesConfirm', { n }) : t(currentLang(), 'tasks.issues', { n })}
+            plain
+            onPress={() => void confirmPress($, key, () => void $.clock.after(0, () => void runSkill($, 'speckit-taskstoissues', `${feature.id} ${feature.name}`)))}
+          />,
+        )
+      }
+    }
     // The breadcrumb and summary name the active feature only while the filter keeps it (024 #49).
     const activeShown =
       pane.tab === 'specs' && active !== undefined
@@ -1094,6 +1121,13 @@ function paneHeader(
 
 /** What a Specs filter token may read besides the feature itself (061): priorities and worktrees. */
 const specFilterContext = (stats: SessionStats | undefined) => ({ priorities: stats?.priorities ?? {}, worktrees: worktreesById(stats?.worktrees) })
+
+/** Counts a subagent run, and against the feature that was active when it started (054 #37). */
+async function noteAgentRun($: EngineInterface): Promise<void> {
+  live.agentsRun += 1
+  const id = (await $.state.get(SPECKIT)).value?.active?.id
+  if (id !== undefined) live.agentsById[id] = (live.agentsById[id] ?? 0) + 1
+}
 
 /** Notes the turn's change to the active tasks as diff hunks for the Tasks tab (024 #8). */
 async function noteTasksDiff($: EngineInterface, state: SpeckitState | undefined): Promise<void> {
@@ -1253,6 +1287,8 @@ let imagesOption: unknown
 let pullRequests = false
 // When the last main turn ended; the prompt cache timer fires only if no turn came after it (022 #34).
 const CACHE_WARN_MS = 270_000
+/** From this width the status entry shows the whole footer on one line, even with the footer in the pane (054 #47). */
+const WIDE_STATUS_COLUMNS = 140
 let cacheWarningTimer: ReturnType<EngineInterface['clock']['after']> | undefined
 
 // The timer is transient; session.start and later usage readings rebuild it from $.state.
@@ -2049,7 +2085,7 @@ async function gateCall($: GateArgs[0], e: GateArgs[1], next: GateArgs[2]): Prom
         const detail = decision.band === 'throttle' ? `throttle, cap ${decision.cap}: ${running} subagents running` : decision.band
         await logGovernor($, `observe: would queue ${input.description ?? 'subagent'} (${detail})`)
       }
-      live.agentsRun += 1
+      await noteAgentRun($)
       try {
         return await next(e)
       } finally {
@@ -2061,7 +2097,7 @@ async function gateCall($: GateArgs[0], e: GateArgs[1], next: GateArgs[2]): Prom
     }
     return next(e)
   }
-  if (e.tool === 'Agent' && !governs) live.agentsRun += 1
+  if (e.tool === 'Agent' && !governs) await noteAgentRun($)
   if (!governs) return next(e)
   const { usage, decision } = await decisionNow($)
   if (decision.highest === undefined) return next(e)
@@ -2070,7 +2106,7 @@ async function gateCall($: GateArgs[0], e: GateArgs[1], next: GateArgs[2]): Prom
   const isSubagentCall = (e as { agentId?: string }).agentId !== undefined
   // Counted before it runs; `isCounted` when the cap check already counted it.
   const runAgent = async (isCounted = false) => {
-    live.agentsRun += 1
+    await noteAgentRun($)
     if (!isCounted) await updateUsage($, u => ({ ...u, inFlight: u.inFlight + 1 }))
     try {
       return await next(e)
@@ -2435,6 +2471,11 @@ export const register: Register = (on, options) => {
       cacheWarningTimer?.cancel()
       cacheWarningTimer = $.clock.after(CACHE_WARN_MS, async () => {
         cacheWarningTimer = undefined
+        // Only when the next step is likely soon (054 #95): a skill running, or open tasks on the active feature.
+        const speckit = (await $.state.get(SPECKIT)).value
+        const activeFeature = speckit?.features.find(f => f.dir === speckit.active?.dir)
+        const soon = speckit?.runningSkill !== undefined || (activeFeature !== undefined && activeFeature.phase === 'implement' && activeFeature.done < activeFeature.total)
+        if (!soon) return
         await showToast($, t(currentLang(), 'toast.cache'), { kind: 'warn' })
       })
     }
@@ -2606,6 +2647,12 @@ export const register: Register = (on, options) => {
         const changed = linesChanged(e.old_string, e.new_string)
         live.linesAdded += changed.added
         live.linesRemoved += changed.removed
+        // Which thread ticked the boxes, the main one or a subagent (054 #39).
+        if (/(^|[\\/])(tasks|spec)\.md$/.test(e.file_path)) {
+          const ticked = ticksIn(e.old_string, e.new_string)
+          if ((e as { agentId?: string }).agentId === undefined) live.ticksMain += ticked
+          else live.ticksSub += ticked
+        }
       }
     }
     await touchFile($, preset, e.file_path, true, output?.isError === true ? undefined : { before: e.old_string, after: e.new_string })

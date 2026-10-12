@@ -231,3 +231,14 @@ describe('the idle poller waits for a running turn (058)', () => {
     expect(statuses()).toBe(before)
   })
 })
+
+describe('ticks by thread (054 #39)', () => {
+  test('a subagent\'s edit that ticks a box counts for subagents, the main thread\'s for main', async ($, on) => {
+    const session = await setup($ as never, on as never)
+    const file = '/proj/specs/002-band-hint/tasks.md'
+    await $.tool.call({ tool: 'Edit', tool_use_id: 'e1', file_path: file, old_string: '- [ ] T002 b', new_string: '- [x] T002 b', agentId: 'sub-1' } as never)
+    await $.tool.call({ tool: 'Edit', tool_use_id: 'e2', file_path: file, old_string: '- [ ] T003 c\n- [ ] T004 d', new_string: '- [x] T003 c\n- [x] T004 d' } as never)
+    await completeTurn($ as never)
+    expect(session.sessionStats()?.['ticksBy']).toEqual({ main: 2, sub: 1 })
+  })
+})
