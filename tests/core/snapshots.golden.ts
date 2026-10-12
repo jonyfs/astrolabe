@@ -154,7 +154,7 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     "─|#6c7086",
     "cache      5m      the next message rewrites it cold    ▱▱▱▱▱▱▱▱▱ 0%   182k          |#f38ba8",
     "─|#6c7086",
-    "7d                 new subagents wait           hold    ▰▰▰▰▰▰▰▱▱ 81%▴      Thu 09:00|#f38ba8"
+    "7d                 new subagents wait           hold    ▰▰▰▰▰▰▰▱▱ 81%▴      Thu 12:00|#f38ba8"
   ],
   "mocha/144/status": [
     "◆ 002 · implement 45%"
@@ -230,7 +230,7 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     "─|#6c7086",
     "cache      5m      the next message rewrites it cold    ▱▱▱▱▱▱▱▱▱ 0%   182k          |#f38ba8",
     "─|#6c7086",
-    "7d                 new subagents wait           hold    ▰▰▰▰▰▰▰▱▱ 81%▴      Thu 09:00|#f38ba8"
+    "7d                 new subagents wait           hold    ▰▰▰▰▰▰▰▱▱ 81%▴      Thu 12:00|#f38ba8"
   ],
   "mocha/200/status": [
     "◆ 002 · implement 45%"
@@ -416,7 +416,7 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     "─|#9ca0b0",
     "cache      5m      the next message rewrites it cold    ▱▱▱▱▱▱▱▱▱ 0%   182k          |#d20f39",
     "─|#9ca0b0",
-    "7d                 new subagents wait           hold    ▰▰▰▰▰▰▰▱▱ 81%▴      Thu 09:00|#d20f39"
+    "7d                 new subagents wait           hold    ▰▰▰▰▰▰▰▱▱ 81%▴      Thu 12:00|#d20f39"
   ],
   "latte/144/status": [
     "◆ 002 · implement 45%"
@@ -492,7 +492,7 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     "─|#9ca0b0",
     "cache      5m      the next message rewrites it cold    ▱▱▱▱▱▱▱▱▱ 0%   182k          |#d20f39",
     "─|#9ca0b0",
-    "7d                 new subagents wait           hold    ▰▰▰▰▰▰▰▱▱ 81%▴      Thu 09:00|#d20f39"
+    "7d                 new subagents wait           hold    ▰▰▰▰▰▰▰▱▱ 81%▴      Thu 12:00|#d20f39"
   ],
   "latte/200/status": [
     "◆ 002 · implement 45%"
@@ -678,7 +678,7 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     "─|#737994",
     "cache      5m      the next message rewrites it cold    ▱▱▱▱▱▱▱▱▱ 0%   182k          |#e78284",
     "─|#737994",
-    "7d                 new subagents wait           hold    ▰▰▰▰▰▰▰▱▱ 81%▴      Thu 09:00|#e78284"
+    "7d                 new subagents wait           hold    ▰▰▰▰▰▰▰▱▱ 81%▴      Thu 12:00|#e78284"
   ],
   "frappe/144/status": [
     "◆ 002 · implement 45%"
@@ -754,7 +754,7 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     "─|#737994",
     "cache      5m      the next message rewrites it cold    ▱▱▱▱▱▱▱▱▱ 0%   182k          |#e78284",
     "─|#737994",
-    "7d                 new subagents wait           hold    ▰▰▰▰▰▰▰▱▱ 81%▴      Thu 09:00|#e78284"
+    "7d                 new subagents wait           hold    ▰▰▰▰▰▰▰▱▱ 81%▴      Thu 12:00|#e78284"
   ],
   "frappe/200/status": [
     "◆ 002 · implement 45%"
@@ -940,7 +940,7 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     "─|#6e738d",
     "cache      5m      the next message rewrites it cold    ▱▱▱▱▱▱▱▱▱ 0%   182k          |#ed8796",
     "─|#6e738d",
-    "7d                 new subagents wait           hold    ▰▰▰▰▰▰▰▱▱ 81%▴      Thu 09:00|#ed8796"
+    "7d                 new subagents wait           hold    ▰▰▰▰▰▰▰▱▱ 81%▴      Thu 12:00|#ed8796"
   ],
   "macchiato/144/status": [
     "◆ 002 · implement 45%"
@@ -1016,7 +1016,7 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     "─|#6e738d",
     "cache      5m      the next message rewrites it cold    ▱▱▱▱▱▱▱▱▱ 0%   182k          |#ed8796",
     "─|#6e738d",
-    "7d                 new subagents wait           hold    ▰▰▰▰▰▰▰▱▱ 81%▴      Thu 09:00|#ed8796"
+    "7d                 new subagents wait           hold    ▰▰▰▰▰▰▰▱▱ 81%▴      Thu 12:00|#ed8796"
   ],
   "macchiato/200/status": [
     "◆ 002 · implement 45%"
@@ -1202,7 +1202,7 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     "─|#aebdca",
     "cache      5m      the next message rewrites it cold    ▱▱▱▱▱▱▱▱▱ 0%   182k          |#ff8a75",
     "─|#aebdca",
-    "7d                 new subagents wait           hold    ▰▰▰▰▰▰▰▱▱ 81%▴      Thu 09:00|#ff8a75"
+    "7d                 new subagents wait           hold    ▰▰▰▰▰▰▰▱▱ 81%▴      Thu 12:00|#ff8a75"
   ],
   "colorblind/144/status": [
     "◆ 002 · implement 45%"
@@ -1278,7 +1278,7 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     "─|#aebdca",
     "cache      5m      the next message rewrites it cold    ▱▱▱▱▱▱▱▱▱ 0%   182k          |#ff8a75",
     "─|#aebdca",
-    "7d                 new subagents wait           hold    ▰▰▰▰▰▰▰▱▱ 81%▴      Thu 09:00|#ff8a75"
+    "7d                 new subagents wait           hold    ▰▰▰▰▰▰▰▱▱ 81%▴      Thu 12:00|#ff8a75"
   ],
   "colorblind/200/status": [
     "◆ 002 · implement 45%"
