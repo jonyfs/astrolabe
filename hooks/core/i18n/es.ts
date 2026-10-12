@@ -243,6 +243,8 @@ export const ES: Dictionary = {
   'kpi.toolCalls': 'herramientas',
   'kpi.drifts': 'alarmas de drift',
   'kpi.agentsByFeature': 'por feature',
+  'kpi.ticksBy': 'marcado por',
+  'kpi.ticksByValue': 'subagentes {sub} · principal {main} ({share}% por subagentes)',
   'kpi.subagents': 'subagentes',
   'kpi.subagentsValue': '{run} ejecutados, {queued} en cola',
   'kpi.subagentRun': 'ejecución de subagente',

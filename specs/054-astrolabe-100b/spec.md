@@ -64,7 +64,7 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 - [x] T036 #36 How long the session sat waiting on the governor (P2)
 - [x] T037 #37 Subagents run per feature and their share of the window (P3) — the Dashboard row `by feature` counts runs against the feature active when each started; the share of the usage window is not measured, since the API reports no usage per subagent
 - [x] T038 #38 Compactions this session, and the context each one freed (P2)
-- [ ] T039 #39 The share of tasks ticked by subagents against the main thread (P3) — blocked: ticks are not attributed to the main thread or a subagent in the state; needs that attribution first
+- [x] T039 #39 The share of tasks ticked by subagents against the main thread (P3) — counted from the Edit calls that tick a box in tasks.md or spec.md, by whether the call carries an agentId; the Dashboard row `ticked by` shows the share
 - [x] T040 #40 A weekly trend line of tasks done over the last 8 weeks (P2)
 
 ### Statusline and footer

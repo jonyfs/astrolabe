@@ -197,3 +197,11 @@ describe('subagents per feature (054 #37)', () => {
     expect(Object.fromEntries(kpiRows({ ...base, agentsByFeature: {} }, undefined, 1))['by feature']).toBeUndefined()
   })
 })
+
+describe('ticks by thread (054 #39)', () => {
+  test('a row gives the subagents\' share of the ticked boxes', () => {
+    const base = { startedAt: 0, turns: 1, toolCalls: 0, drifts: 0, agentsRun: 0, agentsQueued: 0, series: [], ticksBy: { main: 1, sub: 3 } }
+    expect(Object.fromEntries(kpiRows(base, undefined, 1))['ticked by']).toBe('subagents 3 · main 1 (75% by subagents)')
+    expect(Object.fromEntries(kpiRows({ ...base, ticksBy: { main: 0, sub: 0 } }, undefined, 1))['ticked by']).toBeUndefined()
+  })
+})

@@ -195,6 +195,11 @@ export const kpiRows = (
     ])
   }
   if (stats.agentsRun + stats.agentsQueued > 0) rows.push([tr(lang, 'kpi.subagents'), tr(lang, 'kpi.subagentsValue', { run: stats.agentsRun, queued: stats.agentsQueued })])
+  // The share of the boxes ticked by subagents against the main thread (054 #39).
+  if (stats.ticksBy !== undefined && stats.ticksBy.main + stats.ticksBy.sub > 0) {
+    const total = stats.ticksBy.main + stats.ticksBy.sub
+    rows.push([tr(lang, 'kpi.ticksBy'), tr(lang, 'kpi.ticksByValue', { sub: stats.ticksBy.sub, main: stats.ticksBy.main, share: Math.round((stats.ticksBy.sub * 100) / total) })])
+  }
   // Which features the subagents ran for, most first (054 #37).
   if (Object.keys(stats.agentsByFeature ?? {}).length > 0) {
     rows.push([

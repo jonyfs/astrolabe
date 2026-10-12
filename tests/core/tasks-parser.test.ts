@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import { currentTaskOf, parseTasks } from '../../hooks/core/tasks-parser'
+import { currentTaskOf, parseTasks, ticksIn } from '../../hooks/core/tasks-parser'
 
 describe('parseTasks', () => {
   test('counts unticked, lowercase and uppercase ticks', () => {
@@ -72,5 +72,13 @@ describe('parseTasks: hand-edited files', () => {
   test('a fence closes only with its own marker', () => {
     const tasks = parseTasks('- [ ] T001 a\n```md\n~~~\n- [ ] T998 still inside\n```\n- [ ] T002 b\n')
     expect(tasks.map(t => t.id)).toEqual(['T001', 'T002'])
+  })
+})
+
+describe('ticksIn (054 #39)', () => {
+  test('counts the boxes an edit ticked, never below zero', () => {
+    expect(ticksIn('- [ ] T001 a\n- [ ] T002 b\n', '- [x] T001 a\n- [X] T002 b\n')).toBe(2)
+    expect(ticksIn('- [x] T001 a\n', '- [ ] T001 a\n')).toBe(0)
+    expect(ticksIn('- [ ] T001 a\n', '- [ ] T001 a changed\n')).toBe(0)
   })
 })
