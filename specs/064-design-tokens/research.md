@@ -66,7 +66,7 @@ Measured on 2026-10-12 with the same relative-luminance formula `hooks/core/them
 
 ## R7 Ids
 
-**Decision**: task ids are passed through unchanged from `tasks-parser.ts`'s `ID` match; feature ids are left-padded with zeros to the widest id of the project's features (`ids.ts`), minimum 3. Surfaces that cut text call a helper that never cuts the id.
+**Decision**: task ids are passed through unchanged from `tasks-parser.ts`'s `ID` match; feature ids are padded on the right with spaces to the widest id of the project's features (`ids.ts`), minimum 3. Zero-padding would change the id a person searches for. Surfaces that cut text call a helper that never cuts the id.
 
 **Rationale**: `pane.ts:624` already pads spec numbers to 3 in one place only; there is no project-wide width. The helper makes the rule one function.
 

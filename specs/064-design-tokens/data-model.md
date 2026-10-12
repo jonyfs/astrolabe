@@ -56,7 +56,7 @@ Rules: `blockAt = thresholds.hold ?? 80`; `warnAt = min(60, blockAt)`. An undefi
 
 ## Ids
 
-`idWidth(ids: string[]) -> number` is the widest id, at least 3. `padId(id, width) -> string` zero-pads on the left and never cuts. Task ids are returned unchanged.
+`idWidth(ids: string[], min = 3) -> number` is the widest id, at least `min`. `padId(id, width) -> string` pads on the right with spaces so names start in one column, and never cuts. Ids are not zero-padded: `064` stays the folder's own prefix. Task ids are returned unchanged.
 
 ## Glyphs
 

@@ -82,9 +82,9 @@ description: "Task list for 064-design-tokens"
 
 **Independent Test**: `npx vitest run tests/core/ids.test.ts tests/core/tasks-parser.test.ts tests/core/pane.test.ts`
 
-- [ ] T017 [P] [US4] #4 Write `tests/core/ids.test.ts` (`idWidth` of `['001','064']` is 3, of `['001','1000']` is 4, minimum 3; `padId('64', 4)` is `0064`; `padId` never shortens) and add a case to `tests/core/tasks-parser.test.ts` that `T011` is kept and `T11` is never produced
-- [ ] T018 [US4] #4 Create `hooks/core/ids.ts` with `idWidth` and `padId`
-- [ ] T019 [US4] #4 Use `padId` and `idWidth` for feature ids in `hooks/core/pane.ts`, `hooks/core/status-text.ts` and `hooks/core/summary.ts`; make the pane's width fitting cut other text before an id; add a pane test at 80 columns with a 4-digit id that asserts the id is complete
+- [x] T017 [P] [US4] #4 Write `tests/core/ids.test.ts` (`idWidth` of `['001','064']` is 3, of `['001','1000']` is 4, minimum 3; `padId('064', 4)` is `064 `; `padId` never shortens) and add a case to `tests/core/tasks-parser.test.ts` that `T011` is kept and `T11` is never produced
+- [x] T018 [US4] #4 Create `hooks/core/ids.ts` with `idWidth` and `padId`
+- [x] T019 [US4] #4 Use `padId` and `idWidth` for feature ids in `hooks/core/pane.ts`, `hooks/core/status-text.ts` and `hooks/core/summary.ts`; make the pane's width fitting cut other text before an id; add a pane test at 80 columns with a 4-digit id that asserts the id is complete
 
 ---
 

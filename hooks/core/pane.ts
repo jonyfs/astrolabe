@@ -8,6 +8,7 @@ import { byPriority, priorityMark, taskFiles, type Priorities, type Priority } f
 import { parseTasks } from './tasks-parser'
 import { groupOpenTasks } from './task-groups'
 import { STATE_GLYPHS } from './glyphs'
+import { idWidth, padId } from './ids'
 import { STATUS_ROLE, type ThemeRole } from './theme'
 import type { Feature, SessionMemo, SpeckitState } from './types'
 
@@ -34,10 +35,10 @@ export const COMPACT_COLUMNS = 60
 
 const featureRow = (f: Feature, isActive: boolean, columns: number, ctx: RowContext): PaneRow => {
   // Not read yet in a large project (040): a mark and no phase until its batch lands.
-  if (f.warnings.includes('loading')) return { key: `feature-${f.id}`, text: `${isActive ? '▸' : ' '} … ${f.id.padEnd(ctx.idWidth ?? 0)} ${f.name}`, role: 'faint' }
+  if (f.warnings.includes('loading')) return { key: `feature-${f.id}`, text: `${isActive ? '▸' : ' '} … ${padId(f.id, ctx.idWidth ?? 0)} ${f.name}`, role: 'faint' }
   // `↑` high, `↓` low in the space before the id (051).
   // Ids padded to the widest, so every name starts in one column (054 #25).
-  const head = `${isActive ? '▸' : ' '} ${markOf(f)}${priorityMark(ctx.priority)}${f.id.padEnd(ctx.idWidth ?? 0)} `
+  const head = `${isActive ? '▸' : ' '} ${markOf(f)}${priorityMark(ctx.priority)}${padId(f.id, ctx.idWidth ?? 0)} `
   const percent = f.total > 0 ? `${Math.floor((f.done * 100) / f.total)}%`.padStart(4) : ''
   const count = f.total > 0 ? `${f.done}/${f.total}`.padStart(ctx.countWidth) : ''
   const filled = f.total > 0 ? Math.floor((f.done * BAR_CELLS) / f.total) : 0
@@ -146,7 +147,7 @@ const buildSpecsRows = (
   if (state.features.length === 0) return [{ key: 'empty', text: tr(lang, 'pane.noFeatures'), role: 'muted' }]
   const activeDir = state.active?.dir
   const ctx = {
-    idWidth: Math.max(0, ...state.features.map(f => width(f.id)), ...worktreeRows.map(w => width(w.id))),
+    idWidth: idWidth([...state.features.map(f => f.id), ...worktreeRows.map(w => w.id)]),
     nameWidth: wrapLongNames ? Math.max(...state.features.map(f => width(f.name)), ...worktreeRows.map(w => width(w.featureName))) : Math.min(24, Math.max(...state.features.map(f => width(f.name)), ...worktreeRows.map(w => width(w.featureName)))),
     countWidth: Math.max(0, ...state.features.filter(f => f.total > 0).map(f => width(`${f.done}/${f.total}`)), ...worktreeRows.filter(w => w.total > 0).map(w => width(`${w.done}/${w.total}`))),
   }
@@ -184,7 +185,7 @@ const buildSpecsRows = (
     if (trees.length > 1) rows.push({ key: `warning-worktrees-${id}`, text: tr(lang, 'pane.worktreeClash', { id, list: trees.join(', ') }), role: 'current' })
   }
   for (const tree of worktreeRows) {
-    const head = `  ⑂${tree.id.padEnd(ctx.idWidth ?? 0)} `
+    const head = `  ⑂${padId(tree.id, ctx.idWidth ?? 0)} `
     const name = (wrapLongNames ? tree.featureName : cut(tree.featureName, ctx.nameWidth)).padEnd(ctx.nameWidth)
     const phase = tree.phase.padEnd(9)
     const count = tree.total > 0 ? `${tree.done}/${tree.total}`.padStart(ctx.countWidth) : ''
@@ -347,7 +348,7 @@ export const taskRows = (
     return before && after ? '│ ' : before ? '└ ' : after ? '┌ ' : '⇉ '
   }
   // Ids padded to the widest shown, so the text column lines up (052 #22).
-  const idWidth = Math.max(0, ...shown.map(t => t.id?.length ?? 0))
+  const taskIdWidth = idWidth(shown.flatMap(t => (t.id === undefined ? [] : [t.id])), 0)
   let story: string | undefined
   // The tasks by where they stand: current, next, blocked by an earlier open one, later (054 #27).
   // Headers show only when the shown tasks fall in more than one group.
@@ -374,7 +375,7 @@ export const taskRows = (
     const isCurrent = current !== undefined && t.id !== undefined && current.id === t.id
     const ran = isCurrent && now !== undefined && current.startedAt !== undefined ? elapsed(now - current.startedAt) : ''
     const clock = ran === '' ? '' : `${STATE_GLYPHS.elapsed} ${ran}`
-    const head = `${isCurrent ? '▸ ' : ''}${groupOf(index)}${t.id === undefined ? '' : `${t.id.padEnd(idWidth)} `}`
+    const head = `${isCurrent ? '▸ ' : ''}${groupOf(index)}${t.id === undefined ? '' : `${padId(t.id, taskIdWidth)} `}`
     // The ◷ sits at the right edge, the current row in bold (052 #20).
     const body = `${head}${cut(cleanTaskText(t.text), columns - width(head) - width(clock) - (clock === '' ? 0 : 2))}`.trimEnd()
     const line = clock === '' ? body : `${body}${' '.repeat(Math.max(2, columns - width(body) - width(clock)))}${clock}`

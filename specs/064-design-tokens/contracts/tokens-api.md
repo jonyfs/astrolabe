@@ -42,7 +42,7 @@ export const joinZones: (zones: readonly (readonly string[])[]) => string   // '
 ## `hooks/core/ids.ts`
 
 ```ts
-export const idWidth: (ids: readonly string[]) => number
+export const idWidth: (ids: readonly string[], min?: number) => number
 export const padId: (id: string, width: number) => string
 ```
 
