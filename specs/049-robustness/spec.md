@@ -20,4 +20,4 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 - [x] T007 #88 Windows path tests for worktrees, roots and links (P2)
 - [x] T008 #89 Fault injection: every read and process fails, nothing throws (P2)
 - [x] T009 #83 Footer redraws coalesced within 200 ms (P3)
-- [ ] T010 #90 register.tsx split into feature modules (P3)
+- [x] T010 #90 register.tsx split into feature modules (P3) — done by spec 057: the pure helpers moved to `hooks/modules/`; `$` calls stay in register.tsx (engine rule)

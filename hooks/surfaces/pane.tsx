@@ -104,6 +104,7 @@ export const paneTree = (
     <Box key="astrolabe-pane-body" flexDirection="column">
       {header}
       {nav !== undefined && nav.above > 0 && <Button key="scroll-up" label={`▲ ${nav.above} ${nav.labels.more} (k)`} hotkey="k" plain onPress={() => nav.up()} />}
+      {nav !== undefined && nav.above > 0 && <Button key="page-back" label="⇞ b" hotkey="b" plain onPress={() => nav.up()} />}
       {body ??
         rows.flatMap(row => {
           const node = (

@@ -7,7 +7,7 @@ updates, and a status entry with your fullest usage window.
 
 ![Astrolabe in a 180-column terminal](docs/images/overview-180.svg)
 
-> **Version 0.123.0.** Every image in this README is a capture of the real mod running in Claude
+> **Version 0.124.0.** Every image in this README is a capture of the real mod running in Claude
 > Code 2.1.292, made with `scripts/capture/scene.sh` in the demo project
 > [docs/demo/](docs/demo/) (see [How the images are made](#how-the-images-are-made)).
 
@@ -505,6 +505,10 @@ button can take, so the key is `r`. When a turn ended ten minutes ago and nothin
 since, the idle poller does the same refresh by itself, so a dimmed band and a stale pane catch
 up without a keypress. It repeats every ten idle minutes, six times at most, and the next turn
 starts it over.
+
+`k` and `j` scroll the pane by a window, up and down, and `b` also pages back by a window. Space is not
+a key a pane button can take, so forward stays `j`. Each tab keeps its scroll offset per project,
+across a `/reload-plugins` and a new session.
 
 While a turn runs, the tabs and the band follow the active feature's files within two seconds.
 Every two seconds Astrolabe checks the modification time of its `spec.md`, `plan.md` and

@@ -6,6 +6,15 @@ tags `vX.Y.Z` equal to `plugin.json`'s `version`.
 
 ## [Unreleased]
 
+## [0.124.0] - 2026-10-12
+
+### Added
+
+- Spec 043 T009 (#29): `b` pages the pane back by a window, as `k` does. `b` left the queue's
+  run keys.
+- Spec 043 T010 (#30): each tab keeps its scroll offset per project in the store, across a reload
+  and a new session.
+
 ## [0.123.0] - 2026-10-12
 
 ### Fixed
