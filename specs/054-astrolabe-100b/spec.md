@@ -49,7 +49,7 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 - [x] T024 #24 The footer's parts in a fixed order the Help tab lists, so nothing moves between turns (P2)
 - [x] T025 #25 Feature ids padded to the widest, names aligned in every tab that lists features (P2)
 - [x] T026 #26 Each tab says when it was last brought up to date (`updated 14:32`: a clock time, since the pane redraws only on a change and an age would go stale) (P2)
-- [ ] T027 #27 The Tasks tab groups by status: current, next, blocked by an earlier one, later (P3)
+- [x] T027 #27 The Tasks tab groups by status: current, next, blocked by an earlier one, later (P3)
 - [ ] T028 #28 The Help tab's commands sorted by how often they are used, with the common ones first (P3)
 - [x] T029 #29 Warnings ordered by severity: blocking, then stale, then advisory (P2)
 - [x] T030 #30 One place for the active feature: the pane title, the band and the footer all name it the same way (P2)
@@ -76,7 +76,7 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 - [x] T045 #45 A chip for the running skill with its model (`⟳ implement · sonnet`) (P2)
 - [x] T046 #46 The footer drops its separator row when the pane is under 12 rows (P3)
 - [ ] T047 #47 The status entry under the prompt can show the full footer on one line at 140 columns and wider (P3)
-- [ ] T048 #48 The footer chips' order and colours read from one table the Help tab prints (P3)
+- [x] T048 #48 The footer chips' order and colours read from one table the Help tab prints (P3)
 
 ### Worktrees
 

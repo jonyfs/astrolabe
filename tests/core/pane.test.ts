@@ -125,25 +125,27 @@ describe('taskRows', () => {
   const memo = (tasks: string): SessionMemo => ({ ...emptyMemo(), files: { '002-band-hint': { dir: '002-band-hint', plan: true, tasks } } })
   const TASKS = '- [X] T001 a\n- [ ] T002 [P] [US1] Write `x.ts`\n- [ ] T003 c\n- [ ] T004 d\n'
   test('open tasks in file order after a count', () => {
-    expect(texts(taskRows(state(), memo(TASKS), 10, 80))).toEqual(['002 band-hint · implement · 1/4 done', '✓ 1 done · T001', '⇉ T002 Write x.ts', 'T003 c', 'T004 d'])
+    expect(texts(taskRows(state(), memo(TASKS), 10, 80))).toEqual(['002 band-hint · implement · 1/4 done', '✓ 1 done · T001', 'next', '⇉ T002 Write x.ts', 'later', 'T003 c', 'T004 d'])
   })
   test('the current task is marked, with how long it has run (045 #42)', () => {
     const now = 10 * 60_000
     const rows = taskRows(state({ currentTask: { id: 'T003', text: 'c', startedAt: 0 } }), memo(TASKS), 10, 80, 'en', now)
-    expect(texts(rows)).toEqual(['002 band-hint · implement · 1/4 done', '✓ 1 done · T001', '⇉ T002 Write x.ts', `${'▸ T003 c'.padEnd(80 - '⏱ 10m'.length)}⏱ 10m`, 'T004 d'])
-    expect(rows[3]?.role).toBe('current')
+    expect(texts(rows)).toEqual(['002 band-hint · implement · 1/4 done', '✓ 1 done · T001', 'next', '⇉ T002 Write x.ts', 'current', `${'▸ T003 c'.padEnd(80 - '⏱ 10m'.length)}⏱ 10m`, 'later', 'T004 d'])
+    expect(rows[5]?.role).toBe('current')
     // The current row is bold and its clock sits at the right edge (052 #20).
-    expect(rows[3]?.bold).toBe(true)
-    expect(rows[4]?.bold).toBeUndefined()
+    expect(rows[5]?.bold).toBe(true)
+    expect(rows[7]?.bold).toBeUndefined()
   })
   test('[P] runs are bracketed and stories head their tasks (045 #43, #44)', () => {
     const text = '## Phase 3: User Story 1\n- [ ] T001 [P] a\n- [ ] T002 [P] b\n- [ ] T003 [P] c\n## Phase 4: User Story 2\n- [ ] T004 d\n'
     expect(texts(taskRows(state(), memo(text), 20, 80))).toEqual([
       '002 band-hint · implement · 0/4 done',
+      'next',
       'Phase 3: User Story 1 · 0/3',
       '┌ T001 a',
       '│ T002 b',
       '└ T003 c',
+      'later',
       'Phase 4: User Story 2 · 0/1',
       'T004 d',
     ])

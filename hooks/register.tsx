@@ -59,7 +59,8 @@ const PANE_STATE = { plugin: 'astrolabe', key: 'pane' } as const
 const PANE_ID = 'astrolabe'
 const PANE_TITLE = '🧭 Astrolabe'
 const ASK_ID = 'astrolabe-usage'
-const QUEUE_HOTKEYS = 'abcdegilmnoqtuvwxyz'
+// No `b`: it pages the pane back by a window (043 #29).
+const QUEUE_HOTKEYS = 'acdegilmnoqtuvwxyz'
 /** `/astrolabe doctor` (048 #79): what Astrolabe needs, each line with the fix when it is missing. */
 /** The doctor's checks, one line each; `doctor` and the Help tab's Health block share them (052 #42). */
 async function doctorLines($: EngineInterface): Promise<string[]> {
@@ -224,6 +225,8 @@ async function footerInput(
       ...(stats?.effort === undefined ? {} : { effort: stats.effort }),
       ...(stats?.git === undefined ? {} : { git: stats.git }),
       ...(stats?.lines === undefined ? {} : { lines: stats.lines }),
+      ...(stats?.advisor === undefined || stats.advisor.runs === 0 ? {} : { advisor: { runs: stats.advisor.runs } }),
+      astrolabe: { version: VERSION },
       ...(stats === undefined ? {} : { startedAt: stats.startedAt }),
       ...(sessionNumber <= 3 ? { helpHint: true } : {}),
       ...((rate => (rate === undefined ? {} : { burn: rate }))(stats === undefined ? undefined : burnRate(stats.series))),
@@ -1605,6 +1608,26 @@ async function syncNow($: EngineInterface, activeChanged?: boolean): Promise<voi
 
 let probing = false
 
+/** Each tab's scroll offset for this project, kept in the store so a reload keeps it (043 #30). */
+async function savedScrolls($: EngineInterface, root: string | undefined): Promise<Record<string, number>> {
+  if (root === undefined) return {}
+  const saved = await $.store.get(`scroll:${root}`).catch(() => undefined)
+  if (typeof saved !== 'object' || saved === null || Array.isArray(saved)) return {}
+  return Object.fromEntries(Object.entries(saved as Record<string, unknown>).filter((entry): entry is [string, number] => typeof entry[1] === 'number' && entry[1] >= 0))
+}
+
+async function rememberScroll($: EngineInterface, tab: string, offset: number): Promise<void> {
+  try {
+    const root = ((await $.state.get(SPECKIT)).value)?.root
+    if (root === undefined) return
+    const saved = await savedScrolls($, root)
+    if ((saved[tab] ?? 0) === offset) return
+    await $.store.set(`scroll:${root}`, { ...saved, [tab]: offset })
+  } catch {
+    // A store that fails only forgets the offset.
+  }
+}
+
 /**
  * The cheap freshness check (investigate): three stats of the active feature's spec.md, plan.md
  * and tasks.md. Nothing is read, written or drawn unless one moved, then the same read as
@@ -2311,7 +2334,8 @@ export const register: Register = (on, options) => {
       const saved = root === undefined ? undefined : await $.store.get(`tab:${root}`)
       if (typeof saved === 'string' && ['specs', 'tasks', 'session', 'dashboard', 'help', 'config', 'prs'].includes(saved)) {
         const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
-        if (held.tab !== saved) await $.state.set(PANE_STATE, { ...held, tab: saved as PaneTab })
+        const offset = (await savedScrolls($, root))[saved] ?? 0
+        if (held.tab !== saved || offset > 0) await $.state.set(PANE_STATE, { ...held, tab: saved as PaneTab, ...(offset > 0 ? { scroll: { tab: saved as PaneTab, offset } } : {}) })
       }
     } catch {
       // No saved tab: Specs.
@@ -2861,7 +2885,10 @@ export const register: Register = (on, options) => {
     const from = held.scroll?.tab === held.tab ? held.scroll.offset : 0
     const by = e.by === 0 ? 0 : Math.sign(e.by) * Math.max(1, Math.round(Math.abs(e.by)))
     const to = Math.max(0, Math.min(Math.max(0, (unitsShown[held.tab] ?? 1) - 1), from + by))
-    if (to !== from) await $.state.set(PANE_STATE, { ...held, scroll: { tab: held.tab, offset: to } })
+    if (to !== from) {
+      await $.state.set(PANE_STATE, { ...held, scroll: { tab: held.tab, offset: to } })
+      await rememberScroll($, held.tab, to)
+    }
     return {}
   })
 
@@ -3118,7 +3145,9 @@ export const register: Register = (on, options) => {
     }
     const select = async (tab: PaneTab) => {
       const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
-      await $.state.set(PANE_STATE, { ...held, tab })
+      // The offset this tab had last, kept across reloads (043 #30).
+      const offset = (await savedScrolls($, state.root))[tab] ?? 0
+      await $.state.set(PANE_STATE, { ...held, tab, ...(offset > 0 ? { scroll: { tab, offset } } : {}) })
       // The last tab, per project, for the next session (043 #22).
       if (state.root !== undefined) await $.store.set(`tab:${state.root}`, tab).catch(() => undefined)
       if (tab === 'prs') $.clock.after(0, () => void refreshPulls($))
@@ -3162,7 +3191,10 @@ export const register: Register = (on, options) => {
       const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
       const from = held.scroll?.tab === held.tab ? held.scroll.offset : 0
       const to = Math.max(0, Math.min(Math.max(0, (unitsShown[held.tab] ?? 1) - 1), from + by))
-      if (to !== from) await $.state.set(PANE_STATE, { ...held, scroll: { tab: held.tab, offset: to } })
+      if (to !== from) {
+        await $.state.set(PANE_STATE, { ...held, scroll: { tab: held.tab, offset: to } })
+        await rememberScroll($, held.tab, to)
+      }
     }
     const navFor = (heights: readonly number[], room: number) => {
       const win = windowUnits(heights, offset, room)

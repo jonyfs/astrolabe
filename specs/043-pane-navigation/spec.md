@@ -19,5 +19,5 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 - [x] T006 #28 An explicit close button in the tab row (P2)
 - [x] T007 #24 A breadcrumb row (P3)
 - [x] T008 #26 A wider dock from 160 columns (P3)
-- [ ] T009 #29 Space and b page by a window (P3)
-- [ ] T010 #30 Scroll kept per tab across reloads (per session done in 038) (P3)
+- [x] T009 #29 Space and b page by a window (P3) — `b` pages back; Space is not a key a pane Button can take (a hotkey is one digit or lowercase letter), so `j` stays the key for forward
+- [x] T010 #30 Scroll kept per tab across reloads (per session done in 038) (P3)

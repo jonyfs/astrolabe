@@ -7,7 +7,7 @@ updates, and a status entry with your fullest usage window.
 
 ![Astrolabe in a 180-column terminal](docs/images/overview-180.svg)
 
-> **Version 0.123.0.** Every image in this README is a capture of the real mod running in Claude
+> **Version 0.124.0.** Every image in this README is a capture of the real mod running in Claude
 > Code 2.1.292, made with `scripts/capture/scene.sh` in the demo project
 > [docs/demo/](docs/demo/) (see [How the images are made](#how-the-images-are-made)).
 
@@ -506,6 +506,14 @@ since, the idle poller does the same refresh by itself, so a dimmed band and a s
 up without a keypress. It repeats every ten idle minutes, six times at most, and the next turn
 starts it over.
 
+The Tasks tab groups the open tasks under `current`, `next`, `blocked by an earlier task` and `later`,
+in file order. A task is blocked when its text says `depends on`, `after`, `blocked by` or `requires`
+and names an open task above it; the headers show only when the tasks shown fall in two groups or more.
+
+`k` and `j` scroll the pane by a window, up and down, and `b` also pages back by a window. Space is not
+a key a pane button can take, so forward stays `j`. Each tab keeps its scroll offset per project,
+across a `/reload-plugins` and a new session.
+
 While a turn runs, the tabs and the band follow the active feature's files within two seconds.
 Every two seconds Astrolabe checks the modification time of its `spec.md`, `plan.md` and
 `tasks.md`: three stats and no read. Only when one moved does it read that feature again, so a box
@@ -513,6 +521,12 @@ ticked by a shell command, a subagent, an MCP tool or another editor shows witho
 turn to end. The same check runs after any Bash command that is not a spec-making command and after
 any `mcp__` tool. An unchanged file costs the stats and nothing else, and the check stops when the
 turn ends.
+
+The footer carries the advisor and Astrolabe's own details, so a separate statusline does not have to.
+An `adv N` chip counts the times the advisor ran this session and shows once it has run. The last chip,
+`astrolabe 0.124.0`, names the running version; it is the first one a narrow footer drops.
+
+The footer's chips take their order and colour from one table in `hooks/core/footer.ts`, and the Help tab prints it: each chip's rank (a narrow footer drops the highest rank first) and its colour.
 
 The Help tab (and `/astrolabe help`) starts with what this version changed, lists every option
 with its value now (`footerIn=pane`), the footer's parts in their fixed order (Spec Kit, deciding window, other windows, context, model, skill, git, burn, session time; a narrow screen drops session time first, then burn, git, skill, model, the other windows and context), and ends with a legend of every mark Astrolabe draws (`◆`, `●`,

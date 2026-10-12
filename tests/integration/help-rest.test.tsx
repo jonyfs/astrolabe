@@ -71,6 +71,32 @@ describe('help, part two (025)', () => {
     await ui.unmount()
   })
 
+  test('043 #29: b pages back by a window, as k does', async ($, on) => {
+    await setup($ as never, on as never)
+    const ui = await mountPane($ as never, 'terminal', 100, 40)
+    await ui.press('tab-help')
+    expect(await ui.find({ key: 'page-back' })).toBeUndefined()
+    await ui.press('scroll-down')
+    const down = await ui.body()
+    expect(await ui.find({ key: 'page-back' })).toBeDefined()
+    await ui.press('page-back')
+    expect(await ui.body()).not.toBe(down)
+    await ui.unmount()
+  })
+
+  test('043 #30: a tab keeps its scroll across a reload', async ($, on) => {
+    await setup($ as never, on as never)
+    const ui = await mountPane($ as never, 'terminal', 100, 40)
+    await ui.press('tab-help')
+    await ui.press('scroll-down')
+    const scrolled = await ui.body()
+    await ui.unmount()
+    await startSession($ as never, '/proj')
+    const again = await mountPane($ as never, 'terminal', 100, 40)
+    expect(await again.body()).toBe(scrolled)
+    await again.unmount()
+  })
+
   test('041 #10: the Help tab previews the footer in all icon sets', async ($, on) => {
     await setup($ as never, on as never)
     const ui = await mountPane($ as never, 'terminal', 120, 60)
