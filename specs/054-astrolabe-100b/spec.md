@@ -39,7 +39,7 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 - [x] T017 #17 A reload keeps the pane's scroll, filter and tab (state survives; module values rebuilt) (P2)
 - [x] T018 #18 The governor's queue survives a reload and says so (`3 waiting since 14:02`) (P2)
 - [x] T019 #19 A feature folder without spec.md shows as `?` with the reason, never as `specify` silently (P1)
-- [ ] T020 #20 Two sessions on one project never toast the same phase move twice (P3)
+- [ ] T020 #20 Two sessions on one project never toast the same phase move twice (P3) — blocked: two sessions cannot share a toast baseline without a `$.store` key, which the no-writes test forbids (constitution III)
 
 ### Information organized
 
@@ -50,7 +50,7 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 - [x] T025 #25 Feature ids padded to the widest, names aligned in every tab that lists features (P2)
 - [x] T026 #26 Each tab says when it was last brought up to date (`updated 14:32`: a clock time, since the pane redraws only on a change and an age would go stale) (P2)
 - [x] T027 #27 The Tasks tab groups by status: current, next, blocked by an earlier one, later (P3)
-- [ ] T028 #28 The Help tab's commands sorted by how often they are used, with the common ones first (P3)
+- [ ] T028 #28 The Help tab's commands sorted by how often they are used, with the common ones first (P3) — blocked: needs a count of command uses kept across sessions in `$.store`, which the no-writes test forbids (constitution III)
 - [x] T029 #29 Warnings ordered by severity: blocking, then stale, then advisory (P2)
 - [x] T030 #30 One place for the active feature: the pane title, the band and the footer all name it the same way (P2)
 
@@ -62,9 +62,9 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 - [x] T034 #34 Context used per ticked task (P2)
 - [x] T035 #35 Drift alarms per feature (P3)
 - [x] T036 #36 How long the session sat waiting on the governor (P2)
-- [ ] T037 #37 Subagents run per feature and their share of the window (P3)
+- [ ] T037 #37 Subagents run per feature and their share of the window (P3) — blocked: the session state holds only a count of subagent runs, not which feature each ran on; needs a per-feature record first
 - [x] T038 #38 Compactions this session, and the context each one freed (P2)
-- [ ] T039 #39 The share of tasks ticked by subagents against the main thread (P3)
+- [ ] T039 #39 The share of tasks ticked by subagents against the main thread (P3) — blocked: ticks are not attributed to the main thread or a subagent in the state; needs that attribution first
 - [x] T040 #40 A weekly trend line of tasks done over the last 8 weeks (P2)
 
 ### Statusline and footer
@@ -105,7 +105,7 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 - [x] T065 #65 Number keys show on the tab labels (`1 Specs`) only while the pane has the keyboard (P3)
 - [x] T066 #66 A row selected with the arrows on Specs, with Enter opening its spec.md link (P2)
 - [x] T067 #67 Long names wrap on Desktop and cut with `…` in the terminal, consistently (P2)
-- [ ] T068 #68 Toggling the pane with the same key that opened it (P3)
+- [ ] T068 #68 Toggling the pane with the same key that opened it (P3) — blocked: a pane opened by a key cannot be toggled by the same key: the engine gives a Button hotkey one digit or lowercase letter, and the opening key is the engine's
 - [x] T069 #69 A compact pane mode under 60 columns: one column, no bars (P2)
 - [x] T070 #70 Empty Dashboard sections hidden instead of drawn with zeros (P1)
 
@@ -140,7 +140,7 @@ Tasks run P1 first. Each becomes failing tests, then code, then a release.
 - [x] T091 #91 The prompt hint warns when the prompt names a feature other than the active one (P2)
 - [x] T092 #92 A summary of the last 5 turns of the feature available as `/astrolabe recap` (P2)
 - [x] T093 #93 A guard that tells Claude, through the context line, when tasks.md and the code drift apart (P2)
-- [ ] T094 #94 Model choice per task kind: tests on Sonnet, design on Opus, through skillModels (P3)
+- [ ] T094 #94 Model choice per task kind: tests on Sonnet, design on Opus, through skillModels (P3) — blocked: skillModels picks a model per skill, not per task text; a per-task-kind choice needs a classifier the mod does not have
 - [x] T095 #95 A cache-warm reminder only when the next step is likely within 5 minutes (P3)
 
 ### Ecosystem
