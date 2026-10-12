@@ -147,7 +147,7 @@ describe('the pane tabs (US1, US2)', () => {
     await desktop.unmount()
     const terminal = await mountPane($ as never, 'terminal', 40)
     expect(await terminal.body()).toContain('…')
-    expect((await terminal.find({ type: 'Text', text: /feature-name-th…/ }))?.props['wrap']).toBe('truncate-end')
+    expect((await terminal.find({ type: 'Text', text: /feature-name-th\S*…/ }))?.props['wrap']).toBe('truncate-end')
     await terminal.unmount()
   })
 

@@ -95,8 +95,8 @@ describe('specsRows', () => {
   test('narrow panes drop the bar, then the count, then cut the name, never the id', () => {
     const row = (columns: number) => texts(specsRows(state(), columns).filter(r => r.key === 'feature-002'))[0]
     expect(row(48)).toBe('▸ ◐ 002 band-hint   implement   9/20  45%')
-    expect(row(34)).toBe('▸ ◐ 002 band-hint  implement 45%')
-    expect(row(27)).toBe('▸ ◐ 002 b…  implement 45%')
+    expect(row(34)).toBe('▸ ◐ 002 band-hint   impl  45%')
+    expect(row(27)).toBe('▸ ◐ 002 band-h…  impl 45%')
     for (let columns = 12; columns <= 120; columns += 1) {
       for (const row of specsRows(state(), columns).filter(r => r.key.startsWith('feature-'))) {
         expect(width(row.text) <= columns || /^. . \d{3}/.test(row.text)).toBe(true)
@@ -404,5 +404,16 @@ describe('wrappedRows: the footer keeps its rows (investigation of the Specs foo
     expect(wrappedRows(paragraph, 100)).toBe(3)
     expect(wrappedRows(`${paragraph}\n\nshort`, 100)).toBe(5)
     expect(wrappedRows('', 100)).toBe(1)
+  })
+})
+
+describe('the phase shortens before the name is cut (064 #6)', () => {
+  test('a narrow row keeps the id and uses impl for implement', () => {
+    const feature: Feature = { id: '002', name: 'band', dir: 'specs/002-band', phase: 'implement', done: 2, total: 8, warnings: [] } as unknown as Feature
+    const st = { present: true, constitution: 'ratified', features: [feature], active: { dir: feature.dir, id: '002', name: 'band' }, worktrees: [] } as unknown as SpeckitState
+    const rows = specsRows(st, 28).filter(r => r.key.startsWith('feature-'))
+    expect(rows[0]?.text).toContain('002')
+    expect(rows[0]?.text).toContain('impl')
+    expect(rows[0]?.text).not.toContain('implement')
   })
 })

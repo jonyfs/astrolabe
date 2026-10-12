@@ -104,9 +104,9 @@ Each block below touches different new files; the apply tasks share `pane.ts` an
 
 ### #6 phases
 
-- [ ] T023 [P] [US5] #6 Add to `tests/core/phase.test.ts`: `phaseShort('specify')` is `spec`, `clarify` is `clar`, `plan` `plan`, `tasks` `tasks`, `implement` `impl`
-- [ ] T024 [US5] #6 Add `PHASE_SHORT` and `phaseShort` to `hooks/core/phase.ts`
-- [ ] T025 [US5] #6 Use `phaseShort` wherever a surface shortens a phase: `hooks/core/status-text.ts`, `hooks/core/band.ts`, `hooks/core/pane.ts`, `hooks/core/footer.ts`; add a status-text test at a width that forces the short form
+- [x] T023 [P] [US5] #6 Add to `tests/core/phase.test.ts`: `phaseShort('specify')` is `spec`, `clarify` is `clar`, `plan` `plan`, `tasks` `tasks`, `implement` `impl`
+- [x] T024 [US5] #6 Add `PHASE_SHORT` and `phaseShort` to `hooks/core/phase.ts`
+- [x] T025 [US5] #6 Use `phaseShort` wherever a surface shortens a phase: the status entry candidates in `hooks/core/status-text.ts` and the narrow forms in `hooks/core/pane.ts` (the band and the footer name steps and features, not phases, so they have no phase to shorten); add status-text and pane tests at widths that force the short form
 
 ### #7 keys
 

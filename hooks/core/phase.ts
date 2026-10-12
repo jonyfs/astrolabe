@@ -4,6 +4,11 @@ import { parseFrontMatter } from './front-matter'
 import { currentTaskOf, parseTasks } from './tasks-parser'
 import type { Feature, FeatureFiles, FeatureWarning, FrontMatter, Phase } from './types'
 
+/** The one short form of a phase, for any surface short of room (064 #6). */
+export const PHASE_SHORT = { specify: 'spec', clarify: 'clar', plan: 'plan', tasks: 'tasks', implement: 'impl' } as const
+
+export const phaseShort = (phase: string): string => (Object.hasOwn(PHASE_SHORT, phase) ? PHASE_SHORT[phase as keyof typeof PHASE_SHORT] : phase)
+
 const phaseOf = (files: FeatureFiles, front: FrontMatter, done: number, total: number): Phase => {
   if (front.status === 'abandoned') return 'abandoned'
   if (front.status === 'done') return 'done'

@@ -8,6 +8,7 @@ import { byPriority, priorityMark, taskFiles, type Priorities, type Priority } f
 import { parseTasks } from './tasks-parser'
 import { groupOpenTasks } from './task-groups'
 import { STATE_GLYPHS } from './glyphs'
+import { phaseShort } from './phase'
 import { duration } from './duration'
 import { idWidth, padId } from './ids'
 import { STATUS_ROLE, type ThemeRole } from './theme'
@@ -63,6 +64,8 @@ const featureRow = (f: Feature, isActive: boolean, columns: number, ctx: RowCont
     `${head}${name}  ${phase}  ${bar.padEnd(BAR_CELLS)}  ${count} ${percent}${running}${updated}`,
     `${head}${name}  ${phase}  ${count} ${percent}${running}${updated}`,
     `${head}${name}  ${phase} ${percent}${updated}`,
+    // The phase's short form (064 #6) before the name is cut.
+    `${head}${name}  ${phaseShort(f.phase)} ${percent}`,
   ].map(text => text.trimEnd())
   // A compact pane under 60 columns never draws bars (054 #69), even when a short name leaves room.
   const fitting = forms.slice(columns < COMPACT_COLUMNS ? 1 : 0).find(text => width(text) <= columns)
@@ -80,7 +83,7 @@ const featureRow = (f: Feature, isActive: boolean, columns: number, ctx: RowCont
     return { key: `feature-${f.id}`, text: fitting, role, segments }
   }
   if (fitting !== undefined) return { key: `feature-${f.id}`, text: fitting, role }
-  const tail = `  ${f.phase}${percent === '' ? '' : ` ${percent.trim()}`}`
+  const tail = `  ${phaseShort(f.phase)}${percent === '' ? '' : ` ${percent.trim()}`}`
   const cutName = ctx.wrapLongNames === true ? f.name : cut(f.name, columns - width(head) - width(tail))
   const text = cutName === '' ? `${head.trimEnd()}${tail}` : `${head}${cutName}${tail}`
   return { key: `feature-${f.id}`, text, role }

@@ -1,5 +1,6 @@
 // The status line entry (contracts/status-entry.md). Pure: no $.
 import { t, type Lang } from './i18n'
+import { phaseShort } from './phase'
 import type { SpeckitState } from './types'
 
 const MARK = '◆'
@@ -23,8 +24,11 @@ const candidates = (state: SpeckitState, lang: Lang): string[] => {
   const feature = state.features.find(f => f.dir === active.dir)
   if (feature === undefined) return [id]
   const phase = `${id} · ${feature.phase}`
-  const withPercent = feature.total > 0 ? `${phase} ${Math.floor((feature.done * 100) / feature.total)}%` : phase
-  return [`${withPercent}${skill}`, withPercent, phase, id]
+  const short = `${id} · ${phaseShort(feature.phase)}`
+  const percent = feature.total > 0 ? ` ${Math.floor((feature.done * 100) / feature.total)}%` : ''
+  const withPercent = `${phase}${percent}`
+  // The phase shortens before the percentage goes (064 #6).
+  return [`${withPercent}${skill}`, withPercent, `${short}${percent}`, short, id]
 }
 
 export const formatStatus = (state: SpeckitState, columns?: number, lang: Lang = 'en'): string => {
