@@ -6,6 +6,14 @@ tags `vX.Y.Z` equal to `plugin.json`'s `version`.
 
 ## [Unreleased]
 
+## [0.122.0] - 2026-10-12
+
+### Added
+
+- Spec 050 T001 (#97): when `~/.claude/settings.json` sets a `statusLine` command that runs
+  jonyfs/statusline, one toast asks who owns the footer. `/astrolabe footer <astrolabe|statusline>`
+  stores the pick in `$.store`; with `statusline` Astrolabe stops drawing its status entry.
+
 ## [0.121.0] - 2026-10-12
 
 ### Added

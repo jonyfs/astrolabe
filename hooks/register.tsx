@@ -50,6 +50,7 @@ import { guessLang, langOf, paneLabelWidth, t, type Lang, type TextKey } from '.
 import { paneTree } from './surfaces/pane'
 import { activeMark, formatStatus } from './core/status-text'
 import { formatToast } from './core/toasts'
+import { type FooterOwner, footerOwnerOf, parseFooterOwner, statuslineConfigured } from './modules/footer-owner'
 
 const SPECKIT = { plugin: 'astrolabe', key: 'speckit' } as const
 // The session memo lives apart from what drawings read, so no redraw carries it (spec 009).
@@ -129,6 +130,9 @@ const DAYS = 'days'
 const FEATURE_DURATIONS = 'feature-durations'
 // The disk version the plugins were last reloaded for (034).
 const RELOADED = 'reloaded'
+// Who draws the footer once jonyfs/statusline is installed (050 #97): 'astrolabe' or 'statusline'.
+const FOOTER_OWNER = 'footerOwner'
+let footerOwner: FooterOwner = 'astrolabe'
 const GIT_STATUS = ['git', 'status', '--porcelain=v2', '--branch', '--show-stash']
 // The branch's pull request and its checks (023), opt-in, at most once per five minutes per branch.
 const GH_PR = ['gh', 'pr', 'view', '--json', 'number,url,statusCheckRollup']
@@ -174,6 +178,7 @@ const kindOf = (usage: UsageState, now: number, governThresholds?: GovernThresho
 
 /** The status entry: the footer of spec 018, the Spec Kit part first (008, 018). */
 async function drawStatus($: EngineInterface, state: Held['state']): Promise<void> {
+  if (footerOwner === 'statusline') return
   // With the footer in the pane (035), the status entry keeps only what is never dropped.
   const [usage, stats] = await Promise.all([$.state.get(USAGE), $.state.get(SESSION)])
   $.ui.status(footerText({ ...(await footerInput($, state, Math.max(20, columnsSeen - 14), { usage: usage.value ?? DEFAULT_USAGE, stats: stats.value })), lead: footerIn === 'pane' }))
@@ -1799,6 +1804,26 @@ async function stdoutOf($: EngineInterface, argv: readonly string[], cwd?: strin
   }
 }
 
+/**
+ * jonyfs/statusline and this footer would both draw under the prompt (050 #97): read the pick
+ * from the store, and while there is none and a statusline command is set, toast once how to pick.
+ */
+async function settleFooterOwner($: EngineInterface): Promise<void> {
+  try {
+    const stored = parseFooterOwner(await $.store.get(FOOTER_OWNER).catch(() => undefined))
+    const home = (await $.env.get('HOME')) ?? (await $.env.get('USERPROFILE'))
+    const settings = home === undefined || home === '' ? undefined : await $.fs.read(`${home.replace(/[\\/]+$/, '')}/.claude/settings.json`).catch(() => undefined)
+    const { owner, ask } = footerOwnerOf(stored, statuslineConfigured(settings as string | undefined))
+    footerOwner = owner
+    if (!ask) return
+    // Asked once: the question is marked as answered with the default, the command changes it.
+    await $.store.set(FOOTER_OWNER, 'astrolabe').catch(() => undefined)
+    await showToast($, t(currentLang(), 'footer.asked'))
+  } catch (error) {
+    logError($, error)
+  }
+}
+
 /** gstack's update check, found from the home directory; undefined when gstack is not installed. */
 async function gstackCheck($: EngineInterface): Promise<string | undefined> {
   const home = (await $.env.get('HOME')) ?? (await $.env.get('USERPROFILE'))
@@ -2226,6 +2251,7 @@ export const register: Register = (on, options) => {
     const started = await guarded($, previous => reconcileStart(fs, e.cwd, previous, now))
     await afterReconcile($, preset, started)
     await captureFeatureDurations($, started, now)
+    await settleFooterOwner($)
     // Spec priorities for this project, and whether gstack's skills are there (051).
     try {
       const root = started?.state.root
@@ -2675,6 +2701,13 @@ export const register: Register = (on, options) => {
       const about = `${feature.id} ${feature.name}`
       $.clock.after(0, () => void askFork($, question, about))
       return { text: t(currentLang(), 'ask.asking', { feature: about }) }
+    }
+    if (args === 'footer' || args.startsWith('footer ')) {
+      const wanted = parseFooterOwner(args.slice(6))
+      if (wanted === undefined) return { text: t(currentLang(), 'footer.usage', { owner: footerOwner }) }
+      if (e.origin?.kind !== 'composer') return { text: t(currentLang(), 'footer.onlyYou') }
+      await $.store.set(FOOTER_OWNER, wanted)
+      return { text: t(currentLang(), 'footer.set', { owner: wanted, reload: t(currentLang(), 'footer.reload') }) }
     }
     if (args === 'doctor') return { text: await doctor($) }
     // The last 5 turns of the active feature, or of the one named (054 #92).

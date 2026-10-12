@@ -7,7 +7,7 @@ updates, and a status entry with your fullest usage window.
 
 ![Astrolabe in a 180-column terminal](docs/images/overview-180.svg)
 
-> **Version 0.121.0.** Every image in this README is a capture of the real mod running in Claude
+> **Version 0.122.0.** Every image in this README is a capture of the real mod running in Claude
 > Code 2.1.292, made with `scripts/capture/scene.sh` in the demo project
 > [docs/demo/](docs/demo/) (see [How the images are made](#how-the-images-are-made)).
 
@@ -978,7 +978,12 @@ does not fit a mod:
 CI runs the tests on Ubuntu, macOS and Windows for every pull request.
 
 Astrolabe replaces jonyfs/statusline. It does not set `statusLine`, so if you still have a
-classic status line command configured, both show.
+classic status line command configured, both show. When `~/.claude/settings.json` sets a
+`statusLine` command that runs statusline, the first session toasts once how to pick who draws
+the footer. `/astrolabe footer astrolabe` keeps Astrolabe's footer and `/astrolabe footer statusline`
+leaves it to statusline, so Astrolabe stops drawing its status entry from the next session.
+`/astrolabe footer` alone says which one is set. The pick is kept across sessions and Astrolabe
+never asks again; only you can change it, from the prompt.
 
 ## Troubleshooting
 
