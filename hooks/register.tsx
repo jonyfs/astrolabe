@@ -1221,9 +1221,8 @@ async function refreshPr($: EngineInterface, root: string, branch: string, force
     const runs = await $.process.run(GH_RUN(branch), { cwd: root, timeoutMs: 5000 }).catch(() => undefined)
     const ci = runs?.exitCode === 0 ? parseCiRun(runs.stdout) : undefined
     await flushStats($, s => {
-      const base = s.git?.branch === branch ? withPr(s.git, pr) : s.git
-      const { ci: _old, ...rest } = base ?? { ahead: 0, behind: 0, changed: 0, conflicts: 0 }
-      const git = base === undefined ? undefined : ci === undefined ? rest : { ...rest, ci }
+      // A turn may have ended on another branch while `gh` ran: only this branch takes its PR and CI.
+      const git = s.git?.branch === branch ? (({ ci: _old, ...rest }) => (ci === undefined ? rest : { ...rest, ci }))(withPr(s.git, pr)) : s.git
       return { ...s, prCache: { branch, at: now, ...(pr === undefined ? {} : { pr }), ...(ci === undefined ? {} : { ci }) }, ...(git === undefined ? {} : { git }) }
     })
     const speckit = (await $.state.get(SPECKIT)).value
@@ -1270,6 +1269,9 @@ async function* noteModel($: Parameters<Hook<'turn.step'>>[0], e: Parameters<Hoo
   if (e.agentId === undefined) {
     live.model = step.model
     live.effort = step.effort === undefined ? undefined : String(step.effort)
+    // Fast mode, when the request says so (068 #47); false resets it.
+    const mode = e as unknown as { speed?: unknown; fastMode?: unknown; fast?: unknown }
+    live.fast = mode.speed === 'fast' || mode.fastMode === true || mode.fast === true
   }
   const result = yield* next(step)
   if (e.agentId === undefined) noteCache(step.model, result, await $.clock.now())
@@ -2515,6 +2517,12 @@ export const register: Register = (on, options) => {
     const fs = fsOf($)
     const now = await $.clock.now()
     live.dirs = { start: e.cwd, cwd: e.cwd }
+    // Facts of an earlier session in this process must not reach the new session's footer.
+    live.skills = []
+    live.todo = undefined
+    live.cache = undefined
+    live.fast = undefined
+    lastCacheModel = undefined
     const started = await guarded($, previous => reconcileStart(fs, e.cwd, previous, now))
     // Note the active feature's file times, so the first probe of a turn reads nothing.
     if (started !== undefined) await activeFilesChanged(fs, started).catch(() => undefined)
@@ -2668,7 +2676,8 @@ export const register: Register = (on, options) => {
     // A subagent's skill may outlive the main turn, so only main-thread calls set a marker.
     if (e.agentId === undefined) {
       skillRunning = e.skill
-      if (!live.skills.includes(e.skill) && typeof e.skill === 'string') live.skills.push(plainText(e.skill, 40))
+      const skillName = typeof e.skill === 'string' ? plainText(e.skill, 40) : undefined
+      if (skillName !== undefined && !live.skills.includes(skillName)) live.skills.push(skillName)
       const now = await $.clock.now()
       await guarded($, async previous => (previous === undefined ? undefined : applySkill(previous, e.skill, now)))
     }

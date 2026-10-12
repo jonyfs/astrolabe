@@ -197,7 +197,8 @@ appears only when it has something to say:
   `◷ CI` is the last run of the current branch. Both need the `pullRequest` option and `gh`.
 - `❖ humanizer, dataviz +2` is the skills used in this session, five names and then a count. The
   todo chip `▸ Fix authentication (1/3)` is the todo list's current item and its progress.
-- `fast` follows the effort while fast mode is on.
+- `fast` follows the effort while fast mode is on. It shows only when the model request says so
+  (`speed: fast`); a session whose requests do not name it never shows the chip.
 - `⇡ 9%/h` is the burn rate, shown after five usage readings over at least a minute.
   `5h limit ~16:40` is the projection and shows only when the window would fill before it resets.
 - The cache chip is silent while the prompt cache has time to spare. It reads `cache warm · 1m` in

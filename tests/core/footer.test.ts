@@ -237,6 +237,16 @@ describe('statusline parity chips in the footer (068)', () => {
     for (const must of ['⌂ src', 'git:main', '7d 83%', '5h 42%', 'ctx 61%', 'opus 5.5']) expect(text).toContain(asciiFold(must))
     expect(text).not.toContain('jonyfs/astrolabe')
   })
+  test('chip keys are unique, also with per-model windows (068 review)', () => {
+    const readings = [
+      { kind: 'five_hour', percentUsed: 42, resetsAt: parity.readings[0]!.resetsAt },
+      { kind: 'seven_day', percentUsed: 50, resetsAt: parity.readings[0]!.resetsAt },
+      { kind: 'seven_day_opus', percentUsed: 30, resetsAt: parity.readings[0]!.resetsAt },
+      { kind: 'seven_day_sonnet', percentUsed: 20, resetsAt: parity.readings[0]!.resetsAt },
+    ]
+    const keys = footerChips({ ...parity, readings, columns: 300 }).map(c => c.key)
+    expect(new Set(keys).size).toBe(keys.length)
+  })
   test('without an upstream there are no ahead or behind counters', () => {
     const text = footerText({ ...parity, git: { ...parity.git, upstream: undefined } })
     expect(text).toContain(asciiFold('~3 ✖2'))
