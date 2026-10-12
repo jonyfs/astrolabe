@@ -174,6 +174,8 @@ export const ES: Dictionary = {
   'footer.onlyYou': 'Solo tú puedes cambiar quién es dueño del pie.',
   'footer.reload': 'Vale desde la próxima sesión.',
   'pane.parallel': '⇉ {ids} pueden ejecutarse en paralelo como subagentes',
+  'tasks.issues': '⇪ abrir {n} tareas como issues de GitHub',
+  'tasks.issuesConfirm': 'pulsa otra vez: crea hasta {n} issues en GitHub',
   'parallel.button': '▶ enviar {ids} a subagentes a la vez',
   'session.hooksBefore': 'hooks antes',
   'session.hooksAfter': 'hooks después',

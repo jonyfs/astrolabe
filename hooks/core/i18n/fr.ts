@@ -168,6 +168,8 @@ export const FR: Dictionary = {
   'footer.onlyYou': 'Vous seul pouvez changer le propriétaire du pied de page.',
   'footer.reload': 'Effectif à la prochaine session.',
   'pane.parallel': '⇉ {ids} peuvent tourner en parallèle comme sous-agents',
+  'tasks.issues': '⇪ ouvrir {n} tâches comme issues GitHub',
+  'tasks.issuesConfirm': 'appuyez encore : crée jusqu’à {n} issues GitHub',
   'parallel.button': '▶ envoyer {ids} à des sous-agents en même temps',
   'session.hooksBefore': 'hooks avant',
   'session.hooksAfter': 'hooks après',
