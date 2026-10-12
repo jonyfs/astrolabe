@@ -136,7 +136,7 @@ Each block below touches different new files; the apply tasks share `pane.ts` an
 
 - [x] T035 [US6] #10 Add `scripts/capture/flavors.sh`: the overview and the Specs tab in mocha and latte, the overview in frappe, macchiato and colorblind, through `scene.sh` and `ansi-to-svg.mjs`, setting the `flavor` option while it runs and restoring it after (the README images are real captures of the running mod, so the matrix is a capture script, not `scripts/generate-images.ts`)
 - [x] T036 [P] [US6] #10 Latte's `current` and `warn` are in `TEXT_ROLES`, so the contrast loop in `tests/core/theme.test.ts` holds them at 4.5:1 on latte's base (peach is darkened for text: `#b5470a`, 4.80)
-- [ ] T037 [US6] #10 Update `README.md` with a working example for each shared rule (done: the "One vocabulary on every surface" section and the glyph, ramp, duration, prefix, key and separator edits across the file); then run `scripts/capture/flavors.sh` and the existing scenes on a machine with an authenticated `claude` and `tmux`, and commit the regenerated `docs/images` (not done in this branch: the tool needs a live session and changes the plugin's options while it runs)
+- [x] T037 [US6] #10 Update `README.md` with a working example for each shared rule (done: the "One vocabulary on every surface" section and the glyph, ramp, duration, prefix, key and separator edits across the file); then run `scripts/capture/flavors.sh` and the existing scenes on a machine with an authenticated `claude` and `tmux`, and commit the regenerated `docs/images` (captured from the 069 checkout with `claude --plugin-dir`, one temporary plugin copy per flavor: `--plugin-dir` sessions ignore the installed plugin's configured flavor)
 
 ---
 

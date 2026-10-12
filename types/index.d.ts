@@ -329,7 +329,7 @@ export type SessionStats = {
   /** The full text of the last toast shortened to fit the notification limit (052 #44). */
   toastDetails?: string
   /** Subagents running now, from the Agent tool call to its end (069 #43). */
-  liveAgents?: Array<{ id: string; brief: string; type?: string; model?: string; step?: string; contextPercent?: number; tokens?: number; startedAt: number }>
+  liveAgents?: Array<{ id: string; /** The engine's own id for the run, known from its first request. */ engineId?: string; brief: string; type?: string; model?: string; step?: string; contextPercent?: number; tokens?: number; startedAt: number }>
   /** Git hooks and gate scripts in the process list, read on the clock (069 #44). */
   liveGates?: Array<{ pid: number; hook?: string; chain: string[]; where: string; startedAt: number; waiting?: true }>
   /** Spec folders Claude read or edited this session, oldest first (067 #40). */

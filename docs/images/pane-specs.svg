@@ -1,46 +1,129 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="700" height="306" viewBox="0 0 700 306" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="14">
-<rect width="700" height="306" rx="8" fill="#1e1e2e"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="1045" height="774" viewBox="0 0 1045 774" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="14">
+<rect width="1045" height="774" rx="8" fill="#1e1e2e"/>
 <circle cx="16" cy="13" r="5" fill="#f38ba8"/><circle cx="32" cy="13" r="5" fill="#f9e2af"/><circle cx="48" cy="13" r="5" fill="#a6e3a1"/>
-<text x="350" y="17" fill="#a6adc8" font-size="12" text-anchor="middle">/astrolabe pane, specs tab</text>
-<rect x="14.0" y="40" width="8.4" height="18" fill="rgb(38,38,38)"/>
-<text x="14.0" y="53" fill="rgb(175,215,255)" xml:space="preserve" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
-<rect x="22.4" y="40" width="655.2" height="18" fill="rgb(38,38,38)"/>
-<rect x="677.6" y="40" width="8.4" height="18" fill="rgb(38,38,38)"/>
-<text x="677.6" y="53" fill="rgb(148,148,148)" xml:space="preserve" textLength="8.4" lengthAdjust="spacingAndGlyphs">✕</text>
-<rect x="14.0" y="58" width="8.4" height="18" fill="rgb(38,38,38)"/>
-<text x="14.0" y="71" fill="rgb(175,215,255)" xml:space="preserve" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
-<rect x="22.4" y="58" width="75.6" height="18" fill="rgb(38,38,38)"/>
-<text x="22.4" y="71" fill="rgb(175,215,255)" font-weight="bold" xml:space="preserve" textLength="75.6" lengthAdjust="spacingAndGlyphs">[ Specs ]</text>
-<rect x="98.0" y="58" width="168.0" height="18" fill="rgb(38,38,38)"/>
-<text x="98.0" y="71" fill="#cdd6f4" font-weight="bold" xml:space="preserve" textLength="168.0" lengthAdjust="spacingAndGlyphs">[ Tasks ][ Session ]</text>
+<rect x="14.0" y="40" width="999.6" height="18" fill="rgb(38,38,38)"/>
+<rect x="1013.6" y="40" width="8.4" height="18" fill="rgb(38,38,38)"/>
+<text x="1013.6" y="53" fill="rgb(148,148,148)" xml:space="preserve" textLength="8.4" lengthAdjust="spacingAndGlyphs">✕</text>
+<rect x="14.0" y="58" width="226.8" height="18" fill="rgb(38,38,38)"/>
+<text x="14.0" y="71" fill="#cdd6f4" font-weight="bold" xml:space="preserve" textLength="226.8" lengthAdjust="spacingAndGlyphs">[ 1 Specs 2 ][ 2 Tasks 11 ]</text>
+<rect x="240.8" y="58" width="126.0" height="18" fill="rgb(38,38,38)"/>
+<text x="240.8" y="71" fill="rgb(175,215,255)" font-weight="bold" xml:space="preserve" textLength="126.0" lengthAdjust="spacingAndGlyphs">[ ▸ 3 Session ]</text>
+<rect x="366.8" y="58" width="168.0" height="18" fill="rgb(38,38,38)"/>
+<text x="366.8" y="71" fill="#cdd6f4" font-weight="bold" xml:space="preserve" textLength="168.0" lengthAdjust="spacingAndGlyphs">[ 4 PRs ][ 5 Setup ]</text>
+<rect x="534.8" y="58" width="8.4" height="18" fill="rgb(38,38,38)"/>
+<text x="534.8" y="71" fill="#cdd6f4" xml:space="preserve" textLength="8.4" lengthAdjust="spacingAndGlyphs">✕</text>
 <rect x="14.0" y="76" width="8.4" height="18" fill="rgb(38,38,38)"/>
-<text x="14.0" y="89" fill="rgb(175,215,255)" xml:space="preserve" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
-<rect x="22.4" y="76" width="319.2" height="18" fill="rgb(38,38,38)"/>
-<text x="22.4" y="89" fill="rgb(175,215,175)" xml:space="preserve" textLength="319.2" lengthAdjust="spacingAndGlyphs">  ● 001 sign-in  done  ██████████ 100%</text>
-<rect x="14.0" y="94" width="8.4" height="18" fill="rgb(38,38,38)"/>
-<text x="14.0" y="107" fill="rgb(175,215,255)" xml:space="preserve" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
-<rect x="22.4" y="94" width="403.2" height="18" fill="rgb(38,38,38)"/>
-<text x="22.4" y="107" fill="rgb(215,175,255)" xml:space="preserve" textLength="403.2" lengthAdjust="spacingAndGlyphs">▸ ◐ 002 shopping-cart  implement  ████░░░░░░ 45%</text>
+<text x="14.0" y="89" fill="rgb(175,215,255)" xml:space="preserve" textLength="8.4" lengthAdjust="spacingAndGlyphs">h</text>
+<rect x="22.4" y="76" width="50.4" height="18" fill="rgb(38,38,38)"/>
+<text x="22.4" y="89" fill="#cdd6f4" xml:space="preserve" textLength="50.4" lengthAdjust="spacingAndGlyphs">: help</text>
 <rect x="14.0" y="112" width="8.4" height="18" fill="rgb(38,38,38)"/>
-<text x="14.0" y="125" fill="rgb(175,215,255)" xml:space="preserve" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
-<rect x="22.4" y="112" width="226.8" height="18" fill="rgb(38,38,38)"/>
-<text x="22.4" y="125" fill="rgb(215,215,255)" xml:space="preserve" textLength="226.8" lengthAdjust="spacingAndGlyphs">  ◐ 003 order-history  plan</text>
-<rect x="14.0" y="130" width="8.4" height="18" fill="rgb(38,38,38)"/>
-<text x="14.0" y="143" fill="rgb(175,215,255)" xml:space="preserve" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="14.0" y="125" fill="rgb(175,215,255)" xml:space="preserve" textLength="8.4" lengthAdjust="spacingAndGlyphs">r</text>
+<rect x="22.4" y="112" width="75.6" height="18" fill="rgb(38,38,38)"/>
+<text x="22.4" y="125" fill="#cdd6f4" xml:space="preserve" textLength="75.6" lengthAdjust="spacingAndGlyphs">: refresh</text>
 <rect x="14.0" y="148" width="8.4" height="18" fill="rgb(38,38,38)"/>
-<text x="14.0" y="161" fill="rgb(175,215,255)" xml:space="preserve" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
-<rect x="14.0" y="166" width="8.4" height="18" fill="rgb(38,38,38)"/>
-<text x="14.0" y="179" fill="rgb(175,215,255)" xml:space="preserve" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
-<rect x="14.0" y="184" width="8.4" height="18" fill="rgb(38,38,38)"/>
-<text x="14.0" y="197" fill="rgb(175,215,255)" xml:space="preserve" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
-<rect x="14.0" y="202" width="8.4" height="18" fill="rgb(38,38,38)"/>
-<text x="14.0" y="215" fill="rgb(175,215,255)" xml:space="preserve" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
-<rect x="14.0" y="220" width="8.4" height="18" fill="rgb(38,38,38)"/>
-<text x="14.0" y="233" fill="rgb(175,215,255)" xml:space="preserve" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
-<rect x="14.0" y="238" width="8.4" height="18" fill="rgb(38,38,38)"/>
-<text x="14.0" y="251" fill="rgb(175,215,255)" xml:space="preserve" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
-<rect x="14.0" y="256" width="8.4" height="18" fill="rgb(38,38,38)"/>
-<text x="14.0" y="269" fill="rgb(175,215,255)" xml:space="preserve" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
-<rect x="14.0" y="274" width="8.4" height="18" fill="rgb(38,38,38)"/>
-<text x="14.0" y="287" fill="rgb(175,215,255)" xml:space="preserve" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="14.0" y="161" fill="rgb(175,215,255)" xml:space="preserve" textLength="8.4" lengthAdjust="spacingAndGlyphs">m</text>
+<rect x="22.4" y="148" width="92.4" height="18" fill="rgb(38,38,38)"/>
+<text x="22.4" y="161" fill="#cdd6f4" xml:space="preserve" textLength="92.4" lengthAdjust="spacingAndGlyphs">: copy kpis</text>
+<rect x="14.0" y="166" width="285.6" height="18" fill="rgb(38,38,38)"/>
+<text x="14.0" y="179" fill="rgb(175,175,215)" font-weight="bold" xml:space="preserve" textLength="285.6" lengthAdjust="spacingAndGlyphs">Usage  60 cap · 80 hold · 88 pause</text>
+<rect x="14.0" y="184" width="369.6" height="18" fill="rgb(38,38,38)"/>
+<text x="14.0" y="197" fill="rgb(175,215,175)" xml:space="preserve" textLength="369.6" lengthAdjust="spacingAndGlyphs">5h   ▰▰▰▰▰▰▰▰▰▱▱▱┊▱▱▱┊▱┊▱  44%  resets 1h10m</text>
+<rect x="14.0" y="202" width="403.2" height="18" fill="rgb(38,38,38)"/>
+<text x="14.0" y="215" fill="rgb(175,215,175)" xml:space="preserve" textLength="403.2" lengthAdjust="spacingAndGlyphs">7d   ▰▰▱▱▱▱▱▱▱▱▱▱┊▱▱▱┊▱┊▱  11%  resets Mon 07:00</text>
+<rect x="14.0" y="220" width="58.8" height="18" fill="rgb(38,38,38)"/>
+<text x="14.0" y="233" fill="rgb(215,175,255)" font-weight="bold" xml:space="preserve" textLength="58.8" lengthAdjust="spacingAndGlyphs">Project</text>
+<rect x="14.0" y="238" width="361.2" height="18" fill="rgb(38,38,38)"/>
+<text x="14.0" y="251" fill="rgb(215,215,255)" xml:space="preserve" textLength="361.2" lengthAdjust="spacingAndGlyphs">root              ~/src/astrolabe/docs/demo</text>
+<rect x="14.0" y="256" width="218.4" height="18" fill="rgb(38,38,38)"/>
+<text x="14.0" y="269" fill="rgb(215,215,255)" xml:space="preserve" textLength="218.4" lengthAdjust="spacingAndGlyphs">constitution      ratified</text>
+<rect x="14.0" y="274" width="268.8" height="18" fill="rgb(38,38,38)"/>
+<text x="14.0" y="287" fill="rgb(175,175,175)" xml:space="preserve" textLength="268.8" lengthAdjust="spacingAndGlyphs">                  I. Tests first</text>
+<rect x="282.8" y="274" width="16.8" height="18" fill="rgb(38,38,38)"/>
+<text x="282.8" y="287" fill="#cdd6f4" xml:space="preserve" textLength="16.8" lengthAdjust="spacingAndGlyphs"> ↗</text>
+<rect x="14.0" y="292" width="285.6" height="18" fill="rgb(38,38,38)"/>
+<text x="14.0" y="305" fill="rgb(175,175,175)" xml:space="preserve" textLength="285.6" lengthAdjust="spacingAndGlyphs">                  II. Small slices</text>
+<rect x="299.6" y="292" width="16.8" height="18" fill="rgb(38,38,38)"/>
+<text x="299.6" y="305" fill="#cdd6f4" xml:space="preserve" textLength="16.8" lengthAdjust="spacingAndGlyphs"> ↗</text>
+<rect x="14.0" y="310" width="294.0" height="18" fill="rgb(38,38,38)"/>
+<text x="14.0" y="323" fill="rgb(215,215,255)" xml:space="preserve" textLength="294.0" lengthAdjust="spacingAndGlyphs">active            002 shopping-cart</text>
+<rect x="14.0" y="328" width="252.0" height="18" fill="rgb(38,38,38)"/>
+<text x="14.0" y="341" fill="rgb(215,215,255)" xml:space="preserve" textLength="252.0" lengthAdjust="spacingAndGlyphs">chosen by         feature.json</text>
+<rect x="14.0" y="346" width="302.4" height="18" fill="rgb(38,38,38)"/>
+<text x="14.0" y="359" fill="rgb(215,215,255)" xml:space="preserve" textLength="302.4" lengthAdjust="spacingAndGlyphs">next              /speckit-implement</text>
+<rect x="14.0" y="364" width="184.8" height="18" fill="rgb(38,38,38)"/>
+<text x="14.0" y="377" fill="rgb(215,215,255)" xml:space="preserve" textLength="184.8" lengthAdjust="spacingAndGlyphs">running           none</text>
+<rect x="14.0" y="382" width="168.0" height="18" fill="rgb(38,38,38)"/>
+<text x="14.0" y="395" fill="rgb(215,215,255)" xml:space="preserve" textLength="168.0" lengthAdjust="spacingAndGlyphs">analyzed          no</text>
+<rect x="14.0" y="400" width="235.2" height="18" fill="rgb(38,38,38)"/>
+<text x="14.0" y="413" fill="rgb(215,215,255)" xml:space="preserve" textLength="235.2" lengthAdjust="spacingAndGlyphs">current task      T010 · 29s</text>
+<rect x="14.0" y="418" width="67.2" height="18" fill="rgb(38,38,38)"/>
+<text x="14.0" y="431" fill="rgb(215,175,255)" font-weight="bold" xml:space="preserve" textLength="67.2" lengthAdjust="spacingAndGlyphs">Governor</text>
+<rect x="14.0" y="436" width="571.2" height="18" fill="rgb(38,38,38)"/>
+<text x="14.0" y="449" fill="rgb(175,215,175)" xml:space="preserve" textLength="571.2" lengthAdjust="spacingAndGlyphs">state             all clear (5h at 44%): up to 6 subagents at a time</text>
+<rect x="14.0" y="454" width="310.8" height="18" fill="rgb(38,38,38)"/>
+<text x="14.0" y="467" fill="rgb(215,215,255)" xml:space="preserve" textLength="310.8" lengthAdjust="spacingAndGlyphs">usage             5h 44% · 7d 11%: ok</text>
+<rect x="14.0" y="472" width="285.6" height="18" fill="rgb(38,38,38)"/>
+<text x="14.0" y="485" fill="rgb(215,215,255)" xml:space="preserve" textLength="285.6" lengthAdjust="spacingAndGlyphs">subagents         0 running, cap 6</text>
+<rect x="14.0" y="490" width="67.2" height="18" fill="rgb(38,38,38)"/>
+<text x="14.0" y="503" fill="rgb(215,175,255)" font-weight="bold" xml:space="preserve" textLength="67.2" lengthAdjust="spacingAndGlyphs">Activity</text>
+<rect x="14.0" y="508" width="159.6" height="18" fill="rgb(38,38,38)"/>
+<text x="14.0" y="521" fill="rgb(215,215,255)" xml:space="preserve" textLength="159.6" lengthAdjust="spacingAndGlyphs">tool calls        0</text>
+<rect x="14.0" y="526" width="58.8" height="18" fill="rgb(38,38,38)"/>
+<text x="14.0" y="539" fill="rgb(215,175,255)" font-weight="bold" xml:space="preserve" textLength="58.8" lengthAdjust="spacingAndGlyphs">Updates</text>
+<rect x="14.0" y="544" width="470.4" height="18" fill="rgb(38,38,38)"/>
+<text x="14.0" y="557" fill="rgb(255,215,175)" xml:space="preserve" textLength="470.4" lengthAdjust="spacingAndGlyphs">update            gstack 1.91.94.0 (installed 1.91.93.0)</text>
+<rect x="484.4" y="544" width="58.8" height="18" fill="rgb(38,38,38)"/>
+<text x="484.4" y="557" fill="#cdd6f4" xml:space="preserve" textLength="58.8" lengthAdjust="spacingAndGlyphs">install</text>
+<rect x="14.0" y="562" width="411.6" height="18" fill="rgb(38,38,38)"/>
+<text x="14.0" y="575" fill="rgb(255,215,175)" xml:space="preserve" textLength="411.6" lengthAdjust="spacingAndGlyphs">update            specify 1.1.3 (installed 1.1.2)</text>
+<rect x="425.6" y="562" width="75.6" height="18" fill="rgb(38,38,38)"/>
+<text x="425.6" y="575" fill="#cdd6f4" xml:space="preserve" textLength="75.6" lengthAdjust="spacingAndGlyphs"> ↗install</text>
+<rect x="14.0" y="580" width="100.8" height="18" fill="rgb(38,38,38)"/>
+<text x="14.0" y="593" fill="rgb(215,175,255)" font-weight="bold" xml:space="preserve" textLength="100.8" lengthAdjust="spacingAndGlyphs"> tasks 9/20 </text>
+<text x="14.0" y="629" fill="rgb(128,128,128)" xml:space="preserve" textLength="1016.4" lengthAdjust="spacingAndGlyphs">─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────</text>
+<text x="14.0" y="665" fill="rgb(128,128,128)" xml:space="preserve" textLength="1016.4" lengthAdjust="spacingAndGlyphs">─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────</text>
+<rect x="14.0" y="688" width="126.0" height="18" fill="rgb(95,95,95)"/>
+<text x="14.0" y="701" fill="rgb(255,255,255)" xml:space="preserve" textLength="126.0" lengthAdjust="spacingAndGlyphs"> astrolabe </text>
+<rect x="140.0" y="688" width="8.4" height="18" fill="rgb(95,95,95)"/>
+<text x="140.0" y="701" fill="rgb(95,95,95)" xml:space="preserve" textLength="8.4" lengthAdjust="spacingAndGlyphs"></text>
+<rect x="148.4" y="688" width="42.0" height="18" fill="rgb(95,95,95)"/>
+<text x="148.4" y="701" fill="rgb(255,255,255)" xml:space="preserve" textLength="42.0" lengthAdjust="spacingAndGlyphs">  5 </text>
+<rect x="190.4" y="688" width="8.4" height="18" fill="rgb(95,95,95)"/>
+<text x="190.4" y="701" fill="rgb(95,95,95)" xml:space="preserve" textLength="8.4" lengthAdjust="spacingAndGlyphs"></text>
+<rect x="198.8" y="688" width="8.4" height="18" fill="rgb(95,95,95)"/>
+<rect x="207.2" y="688" width="16.8" height="18" fill="rgb(95,95,95)"/>
+<text x="207.2" y="701" fill="rgb(175,215,175)" xml:space="preserve" textLength="16.8" lengthAdjust="spacingAndGlyphs">+0</text>
+<rect x="224.0" y="688" width="33.6" height="18" fill="rgb(95,95,95)"/>
+<text x="224.0" y="701" fill="rgb(255,255,255)" xml:space="preserve" textLength="33.6" lengthAdjust="spacingAndGlyphs"> −0 </text>
+<rect x="257.6" y="688" width="8.4" height="18" fill="rgb(175,215,255)"/>
+<text x="257.6" y="701" fill="rgb(95,95,95)" xml:space="preserve" textLength="8.4" lengthAdjust="spacingAndGlyphs"></text>
+<rect x="266.0" y="688" width="142.8" height="18" fill="rgb(175,215,255)"/>
+<text x="266.0" y="701" fill="rgb(0,0,95)" xml:space="preserve" textLength="142.8" lengthAdjust="spacingAndGlyphs">  PR #159 draft </text>
+<rect x="408.8" y="688" width="8.4" height="18" fill="rgb(95,95,95)"/>
+<text x="408.8" y="701" fill="rgb(175,215,255)" xml:space="preserve" textLength="8.4" lengthAdjust="spacingAndGlyphs"></text>
+<rect x="417.2" y="688" width="8.4" height="18" fill="rgb(95,95,95)"/>
+<rect x="425.6" y="688" width="8.4" height="18" fill="rgb(95,95,95)"/>
+<text x="425.6" y="701" fill="rgb(255,175,175)" xml:space="preserve" textLength="8.4" lengthAdjust="spacingAndGlyphs"></text>
+<rect x="434.0" y="688" width="33.6" height="18" fill="rgb(95,95,95)"/>
+<text x="434.0" y="701" fill="rgb(255,255,255)" xml:space="preserve" textLength="33.6" lengthAdjust="spacingAndGlyphs"> CI </text>
+<text x="467.6" y="701" fill="rgb(95,95,95)" xml:space="preserve" textLength="8.4" lengthAdjust="spacingAndGlyphs"></text>
+<rect x="14.0" y="724" width="16.8" height="18" fill="rgb(95,95,95)"/>
+<text x="14.0" y="737" fill="rgb(255,255,255)" xml:space="preserve" textLength="16.8" lengthAdjust="spacingAndGlyphs">m </text>
+<rect x="30.8" y="724" width="8.4" height="18" fill="rgb(95,95,95)"/>
+<text x="30.8" y="737" fill="rgb(95,95,95)" xml:space="preserve" textLength="8.4" lengthAdjust="spacingAndGlyphs"></text>
+<rect x="39.2" y="724" width="8.4" height="18" fill="rgb(95,95,95)"/>
+<rect x="47.6" y="724" width="8.4" height="18" fill="rgb(95,95,95)"/>
+<text x="47.6" y="737" fill="rgb(175,215,175)" xml:space="preserve" textLength="8.4" lengthAdjust="spacingAndGlyphs"></text>
+<rect x="56.0" y="724" width="184.8" height="18" fill="rgb(95,95,95)"/>
+<text x="56.0" y="737" fill="rgb(255,255,255)" xml:space="preserve" textLength="184.8" lengthAdjust="spacingAndGlyphs"> 7d 11% · 19/10 07:00 </text>
+<rect x="240.8" y="724" width="8.4" height="18" fill="rgb(95,95,95)"/>
+<text x="240.8" y="737" fill="rgb(95,95,95)" xml:space="preserve" textLength="8.4" lengthAdjust="spacingAndGlyphs"></text>
+<rect x="249.2" y="724" width="50.4" height="18" fill="rgb(95,95,95)"/>
+<text x="249.2" y="737" fill="rgb(255,255,255)" xml:space="preserve" textLength="50.4" lengthAdjust="spacingAndGlyphs">  0m </text>
+<rect x="299.6" y="724" width="8.4" height="18" fill="rgb(175,215,215)"/>
+<text x="299.6" y="737" fill="rgb(95,95,95)" xml:space="preserve" textLength="8.4" lengthAdjust="spacingAndGlyphs"></text>
+<rect x="308.0" y="724" width="142.8" height="18" fill="rgb(175,215,215)"/>
+<text x="308.0" y="737" fill="rgb(0,0,95)" xml:space="preserve" textLength="142.8" lengthAdjust="spacingAndGlyphs"> 󱙹 rtk 87% saved </text>
+<text x="450.8" y="737" fill="rgb(175,215,215)" xml:space="preserve" textLength="8.4" lengthAdjust="spacingAndGlyphs"></text>
+<text x="14.0" y="755" fill="rgb(148,148,148)" xml:space="preserve" textLength="16.8" lengthAdjust="spacingAndGlyphs">ts</text>
 </svg>

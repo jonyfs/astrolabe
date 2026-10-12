@@ -360,6 +360,12 @@ One table sits above the prompt, under the band, for everything that is running 
 ◔ 7d                 new subagents wait           hold    ▰▰▰▰▰▰▰▱▱ 81%▴       Wed 12:00
 ```
 
+A real capture of a gate running, at 180 columns and at 100 (the table drops NOW, SIZE and TIME):
+
+![The live table at 180 columns](docs/images/live-table-180.svg)
+
+![The live table at 100 columns](docs/images/live-table-100.svg)
+
 Rows group as agents, gates, cache, limits, three of each at most and then `+N`; the Session tab
 lists every live row. A cell a kind has nothing for stays blank, never `0`. A column keeps the
 width it first needed for the rest of the session, so rows do not jump.
@@ -370,6 +376,10 @@ width it first needed for the rest of the session, so rows do not jump.
 | `⛭` gate | the hook, or `gate` | worktree, `*` for yours | chain of programs | `running`, or `waiting for gates.lock` in yellow | blank | blank | age |
 | `◌` cache | `cache` | 5m or 1h | what the next message does | `warm` or `cold` | time left | tokens to rewrite | expires in |
 | `◔` limit | 5h, 7d | blank | the governor rule in words | `cap`, `hold` or `pause` | usage gauge with the ramp marks | blank | reset |
+
+Agent rows come from the requests and the end of a subagent's own turn. In Claude Code 2.1.296 a
+mod receives no event for a subagent that the Agent tool launches, so the agent rows stay empty
+there and the capture above shows a gate only; they fill when the engine reports a subagent.
 
 The cache row shows in the last two minutes of a five-minute cache (ten for an hour) and once it
 is cold. A limit row shows from 60%.
@@ -591,6 +601,17 @@ color it can show.
 ![preset minimal](docs/images/preset-minimal.svg)
 
 ![flavor latte](docs/images/flavor-latte.svg)
+
+Every flavor, captured from the real mod (the capture tool draws on a dark background and tmux
+reduces each colour to its nearest 256-colour match):
+
+![mocha](docs/images/flavor-mocha-overview.svg)
+![latte](docs/images/flavor-latte-overview.svg)
+![frappe](docs/images/flavor-frappe-overview.svg)
+![macchiato](docs/images/flavor-macchiato-overview.svg)
+![colorblind](docs/images/flavor-colorblind-overview.svg)
+![The Specs tab in mocha](docs/images/flavor-mocha-specs.svg)
+![The Specs tab in latte](docs/images/flavor-latte-specs.svg)
 
 The current values, from a shell:
 

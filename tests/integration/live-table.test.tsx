@@ -65,6 +65,24 @@ describe('the live table (069)', () => {
     expect(await tableOf($ as never)).toBe('')
   })
 
+  test('a running subagent is a row from its start to its end', async ($, on) => {
+    const session = installTree(on as never, halfDone.tree, '/proj')
+    const engine = installEngine(on as never)
+    installRenderEngine(on as never)
+    void session
+    await startSession($ as never, '/proj')
+    engine.holdAgents()
+    const call = $.tool.call({ tool: 'Agent', tool_use_id: 'a1', description: 'Review the spec', subagent_type: 'Explore', model: 'claude-opus-5-5' } as never)
+    await new Promise(resolve => setTimeout(resolve, 50))
+    const during = await tableOf($ as never)
+    engine.releaseAgents()
+    await call
+    const after = await tableOf($ as never)
+    expect(during).toContain('Review the spec')
+    expect(during).toContain('opus')
+    expect(after).toBe('')
+  })
+
   test('drawing reads no file and runs no process', async ($, on) => {
     const session = await setup($ as never, on as never)
     await $.tool.call({ tool: 'Bash', tool_use_id: 'b1', command: 'git push' } as never)

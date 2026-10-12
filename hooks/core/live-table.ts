@@ -41,7 +41,7 @@ export const tokensText = (n: number | undefined): string => {
 
 const tierOf = (model: string | undefined): string => /opus|sonnet|haiku/i.exec(model ?? '')?.[0]?.toLowerCase() ?? ''
 
-export type LiveAgent = { id: string; brief: string; type?: string; model?: string; step?: string; contextPercent?: number; tokens?: number; startedAt: number }
+export type LiveAgent = { id: string; engineId?: string; brief: string; type?: string; model?: string; step?: string; contextPercent?: number; tokens?: number; startedAt: number }
 
 export const agentRows = (agents: readonly LiveAgent[], now: number): LiveRow[] => {
   const shared = new Map<string, number>()

@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1540" height="198" viewBox="0 0 1540 198" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="14">
+<rect width="1540" height="198" rx="8" fill="#1e1e2e"/>
+<circle cx="16" cy="13" r="5" fill="#f38ba8"/><circle cx="32" cy="13" r="5" fill="#f9e2af"/><circle cx="48" cy="13" r="5" fill="#a6e3a1"/>
+<rect x="14.0" y="40" width="42.0" height="18" fill="rgb(215,175,255)"/>
+<text x="14.0" y="53" fill="rgb(0,0,95)" font-weight="bold" xml:space="preserve" textLength="42.0" lengthAdjust="spacingAndGlyphs"> 002 </text>
+<text x="64.4" y="53" fill="rgb(215,215,255)" font-weight="bold" xml:space="preserve" textLength="109.2" lengthAdjust="spacingAndGlyphs">shopping-cart</text>
+<text x="173.6" y="53" fill="rgb(175,175,215)" xml:space="preserve" textLength="42.0" lengthAdjust="spacingAndGlyphs"> +1  </text>
+<text x="215.6" y="53" fill="rgb(175,215,175)" xml:space="preserve" textLength="8.4" lengthAdjust="spacingAndGlyphs">✓</text>
+<text x="224.0" y="53" fill="rgb(175,175,215)" xml:space="preserve" textLength="75.6" lengthAdjust="spacingAndGlyphs"> specify </text>
+<text x="299.6" y="53" fill="rgb(175,215,175)" xml:space="preserve" textLength="8.4" lengthAdjust="spacingAndGlyphs">✓</text>
+<text x="308.0" y="53" fill="rgb(175,175,215)" xml:space="preserve" textLength="75.6" lengthAdjust="spacingAndGlyphs"> clarify </text>
+<text x="383.6" y="53" fill="rgb(175,215,175)" xml:space="preserve" textLength="8.4" lengthAdjust="spacingAndGlyphs">✓</text>
+<text x="392.0" y="53" fill="rgb(175,175,215)" xml:space="preserve" textLength="50.4" lengthAdjust="spacingAndGlyphs"> plan </text>
+<text x="442.4" y="53" fill="rgb(175,215,175)" xml:space="preserve" textLength="8.4" lengthAdjust="spacingAndGlyphs">✓</text>
+<text x="450.8" y="53" fill="rgb(175,175,215)" xml:space="preserve" textLength="58.8" lengthAdjust="spacingAndGlyphs"> tasks </text>
+<rect x="509.6" y="40" width="151.2" height="18" fill="rgb(255,215,175)"/>
+<text x="509.6" y="53" fill="rgb(0,0,95)" font-weight="bold" xml:space="preserve" textLength="151.2" lengthAdjust="spacingAndGlyphs"> ▶ implement 9/20 </text>
+<text x="669.2" y="53" fill="rgb(255,215,175)" xml:space="preserve" textLength="42.0" lengthAdjust="spacingAndGlyphs">█████</text>
+<text x="711.2" y="53" fill="rgb(95,95,135)" xml:space="preserve" textLength="67.2" lengthAdjust="spacingAndGlyphs">░░░░░░░░</text>
+<text x="778.4" y="53" fill="rgb(175,175,215)" xml:space="preserve" textLength="50.4" lengthAdjust="spacingAndGlyphs"> 45%  </text>
+<text x="828.8" y="53" fill="rgb(135,135,175)" xml:space="preserve" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="845.6" y="53" fill="rgb(255,215,175)" xml:space="preserve" textLength="50.4" lengthAdjust="spacingAndGlyphs">▸ T010</text>
+<text x="896.0" y="53" fill="rgb(175,175,215)" xml:space="preserve" textLength="327.6" lengthAdjust="spacingAndGlyphs"> Write failing tests for the empty cart</text>
+<text x="1307.6" y="53" fill="#cdd6f4" font-weight="bold" xml:space="preserve" textLength="58.8" lengthAdjust="spacingAndGlyphs">[ ≡ a ]</text>
+<text x="1374.8" y="53" fill="#cdd6f4" font-weight="bold" xml:space="preserve" textLength="58.8" lengthAdjust="spacingAndGlyphs">[ ⬆ 2 ]</text>
+<text x="1442.0" y="53" fill="#cdd6f4" font-weight="bold" xml:space="preserve" textLength="42.0" lengthAdjust="spacingAndGlyphs">[ ✕ ]</text>
+<text x="1492.4" y="53" fill="rgb(148,148,148)" xml:space="preserve" textLength="25.2" lengthAdjust="spacingAndGlyphs">[-]</text>
+<text x="14.0" y="71" fill="rgb(175,175,175)" xml:space="preserve" textLength="378.0" lengthAdjust="spacingAndGlyphs">  WHO  WHERE WHAT     NOW     LEVEL SIZE TIME</text>
+<text x="14.0" y="89" fill="rgb(255,215,175)" xml:space="preserve" textLength="58.8" lengthAdjust="spacingAndGlyphs">⛭ gate </text>
+<text x="72.8" y="89" fill="rgb(215,215,255)" xml:space="preserve" textLength="319.2" lengthAdjust="spacingAndGlyphs">tmp   gates.sh running             14s</text>
+<text x="14.0" y="125" fill="rgb(128,128,128)" xml:space="preserve" textLength="1512.0" lengthAdjust="spacingAndGlyphs">────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────</text>
+<text x="14.0" y="143" fill="rgb(148,148,148)" xml:space="preserve" textLength="8.4" lengthAdjust="spacingAndGlyphs">❯</text>
+<text x="14.0" y="161" fill="rgb(128,128,128)" xml:space="preserve" textLength="1512.0" lengthAdjust="spacingAndGlyphs">────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────</text>
+<rect x="30.8" y="166" width="117.6" height="18" fill="rgb(95,95,95)"/>
+<text x="30.8" y="179" fill="rgb(255,255,255)" xml:space="preserve" textLength="117.6" lengthAdjust="spacingAndGlyphs"> 󰅶 idle       </text>
+<text x="148.4" y="179" fill="rgb(95,95,95)" xml:space="preserve" textLength="8.4" lengthAdjust="spacingAndGlyphs"></text>
+</svg>

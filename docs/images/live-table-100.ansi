@@ -1,0 +1,40 @@
+
+[38;5;174m ▐[48;5;16m▛███▛█[39m[49m   [1mClaude Code[0m [38;5;246mv2.1.296[39m
+[38;5;174m▝▜[48;5;16m█████[49m█▀[39m  [38;5;246mSonnet 5.5 · Claude Max[39m
+[38;5;174m ▝▝   ▝▝ [39m  [38;5;246m~/src/astrolabe/docs/demo · [38;5;75m]8;id=1nebjpw;https://claude.ai/code?from=cli\/rc[39m]8;;\
+
+
+[38;5;246m[48;5;237m❯ [38;5;231mRun a Bash call with exactly this command and nothing else: mkdir -p /tmp/gt && printf [39m
+  [38;5;231m'#!/bin/sh\nsleep 90\n' > /tmp/gt/gates.sh && sh /tmp/gt/gates.sh[39m
+
+[38;5;246m[49m⏺[39m Creating and running a 90-second sleep script[38;5;246m · 31s[39m
+[38;5;246m  ⎿  $ mkdir -p /tmp/gt && printf '#!/bin/sh\nsleep 90\n' > /tmp/gt/gates.sh && sh /tmp/gt/gates.sh
+[39m     [38;5;246m(29s)[39m
+     [38;5;246m(ctrl+b ctrl+b (twice) to run in background)[39m
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[38;5;215m✽[39m [38;5;216mOsmosing…[38;5;215m [38;5;246m(36s · ↓[39m [38;5;246m168 tokens)[39m
+[1m[38;5;17m[48;5;183m]8;id=16b1d0n;file://~/src/astrolabe/docs/demo/specs/002-shopping-cart/spec.md\ 002 [0m[38;5;146m]8;;\ [38;5;151m]8;id=16b1d0n;file://~/src/astrolabe/docs/demo/specs/002-shopping-cart/spec.md\✓✓]8;id=1vcrx89;file://~/src/astrolabe/docs/demo/specs/002-shopping-cart/plan.md\✓]8;id=1phdfkq;file://~/src/astrolabe/docs/demo/specs/002-shopping-cart/tasks.md\✓[38;5;146m]8;;\ [1m[38;5;17m[48;5;223m ▶ implement 9/20 [0m[38;5;146m [38;5;103m│[38;5;146m [38;5;223m▸ T010[39m                                             [1m[ ⬆2 ][0m [1m[ ✕ ][0m [38;5;246m[-][39m
+[38;5;145m  WHO  WHERE WHAT     LEVEL [39m
+[38;5;223m⛭ gate [38;5;189mtmp   gates.sh       [39m
+
+[38;5;244m────────────────────────────────────────────────────────────────────────────────────────────────────
+[38;5;246m❯ [39m
+[38;5;244m────────────────────────────────────────────────────────────────────────────────────────────────────
+[39m  [38;5;220m⚠ astrolabe: ◆ 002 impl 45% │ 5h 50%[39m
+  [38;5;231m[48;5;59m]8;id=s9s79k;file://~/src/astrolabe/docs/demo\  demo       [38;5;59m[48;5;189m]8;;\[38;5;17m]8;id=1l1goyg;https://github.com/jonyfs/astrolabe/tree/069-live-table\  069-live-table [38;5;189m[48;5;59m]8;;\[38;5;231m  astrolabe [38;5;59m[38;5;231m  15  ? 18 [38;5;59m[38;5;231m [38;5;151m+0[38;5;231m −0 [38;5;59m[48;5;153m[38;5;17m]8;id=3ns9fv;https://github.com/jonyfs/astrolabe/pull/159\  PR #159 draft [38;5;153m[48;5;59m]8;;\[38;5;231m]8;id=1kwlq69;https://github.com/jonyfs/astrolabe/actions?query=branch%3A069-live-table\ [38;5;217m[38;5;231m C…[39m[49m]8;;\
+  [38;5;231m[48;5;59m 󰅶 idle       [38;5;59m[49m[39m
+  [38;5;17m[48;5;189m 󰚩 Sonnet 5.5 [38;5;189m[48;5;59m[38;5;231m 󰊚 medium [38;5;59m[38;5;231m [38;5;151m󰍛[38;5;231m Context 9% [38;5;59m[38;5;231m [38;5;151m󰔟[38;5;231m 5h 50% · 0h52m [38;5;59m[38;5;231m [38;5;151m[38;5;231m 7d 12% · 19/10 07:00 [38;5;59m[49m[39m
+  [38;5;220m⏵⏵ auto mode on[38;5;246m (shift+tab to cycle) · PR[39m [4m[38;5;246m]8;id=3ns9fv;https://github.com/jonyfs/astrolabe/pull/159\#159[0m[38;5;246m]8;;\ · ← 2 agents[39m

@@ -4,7 +4,7 @@
 
 **Decision**: an `Agent` tool call writes a record (brief, type, model, start) to the session state and its end removes it. Step, context gauge and tokens fill only from the usage a subagent's `turn.step` reports; otherwise the cells stay blank.
 
-**Rationale**: the engine does not report a subagent's step or context to a mod. A blank cell is honest (Principle XI).
+**Rationale**: the engine does not report a subagent's step or context to a mod. A blank cell is honest (Principle XI). In Claude Code 2.1.296 a real session showed no hook event for a launched subagent at all (the governor's `inFlight` stayed 0 too), so agent rows fill only when the engine reports the run; the row model is tested with a held `Agent` call.
 
 ## R2 Gate sources
 

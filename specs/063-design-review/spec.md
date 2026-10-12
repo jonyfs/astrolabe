@@ -41,7 +41,7 @@ Constraints that hold for every task: colours only from `theme.ts` (IX), nothing
 - [x] T007 #7 One verb per key: `r` refresh, `q` run queued, `?` help with `h` alias (P2) → 064
 - [x] T008 #8 One message prefix, `astrolabe ✓ …` (P2) → 064
 - [x] T009 #9 Separators by level: `│` between zones, `·` inside one (P2) → 064
-- [ ] T010 #10 Captures in latte, frappe, macchiato and colorblind; latte peach darkened for text (P3) → 064
+- [x] T010 #10 Captures in latte, frappe, macchiato and colorblind; latte peach darkened for text (P3) → 064
 
 ### B. Band, status and prompt → 065-band-and-status
 

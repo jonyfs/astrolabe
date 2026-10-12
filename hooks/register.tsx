@@ -1213,6 +1213,36 @@ async function refreshPr($: EngineInterface, root: string, branch: string, force
   }
 }
 
+/**
+ * A subagent's request names its run (069 #43): the oldest live record without a run takes the
+ * id, the model and the tokens its usage reports. A background agent's tool call returns at once,
+ * so the run's own requests are the only signal it is still going.
+ */
+async function noteSubagentStep($: EngineInterface, agentId: string, model: string | undefined, result: unknown, request?: unknown): Promise<void> {
+  const usage = (result as { usage?: Record<string, unknown> | null } | undefined)?.usage
+  const sum = usage === undefined || usage === null ? 0 : ['input_tokens', 'output_tokens', 'cache_read_input_tokens', 'cache_creation_input_tokens'].reduce((n, k) => n + (typeof usage[k] === 'number' ? (usage[k] as number) : 0), 0)
+  const at = await $.clock.now()
+  // The run's first request: its opening message, as the brief when no tool call named it.
+  const first = ((request as { messages?: ReadonlyArray<{ role?: string; content?: unknown }> } | undefined)?.messages ?? []).find(m => m.role === 'user')?.content
+  const text = typeof first === 'string' ? first : Array.isArray(first) ? first.map(part => (typeof part === 'object' && part !== null && typeof (part as { text?: unknown }).text === 'string' ? (part as { text: string }).text : '')).join(' ') : ''
+  await flushStats($, s => {
+    const list = s.liveAgents ?? []
+    const mine = list.find(a => a.engineId === agentId) ?? list.find(a => a.engineId === undefined)
+    // This engine launches subagents without a tool call a mod sees: the run makes its own row.
+    if (mine === undefined) {
+      const brief = plainText(text.replace(/\s+/g, ' ').trim() === '' ? 'subagent' : text.replace(/\s+/g, ' ').trim(), 60)
+      const row = { id: `run-${agentId}`, engineId: agentId, brief, startedAt: at, ...(model === undefined ? {} : { model }), ...(sum > 0 ? { tokens: sum } : {}) }
+      return { ...s, liveAgents: [...list, row].slice(-12) }
+    }
+    return {
+      ...s,
+      liveAgents: list.map(a =>
+        a === mine ? { ...a, engineId: agentId, ...(a.model === undefined && model !== undefined ? { model } : {}), tokens: (a.tokens ?? 0) + sum } : a,
+      ),
+    }
+  })
+}
+
 /** The prompt cache's time to live: five minutes, an hour when the response created an hour-long entry (068 #42). */
 const CACHE_TTL_MS = 300_000
 const CACHE_TTL_LONG_MS = 3_600_000
@@ -1251,6 +1281,7 @@ async function* noteModel($: Parameters<Hook<'turn.step'>>[0], e: Parameters<Hoo
   }
   const result = yield* next(step)
   if (e.agentId === undefined) noteCache(step.model, result, await $.clock.now())
+  else await noteSubagentStep($, e.agentId, step.model, result, e)
   // The advisor is a server tool the API runs inside the request (055): count each run.
   const advised = ((result as { serverToolUses?: ReadonlyArray<{ name: string }> } | undefined)?.serverToolUses ?? []).filter(use => use.name === 'advisor').length
   if (advised > 0 && e.agentId === undefined) {
@@ -2629,6 +2660,14 @@ export const register: Register = (on, options) => {
 
   on('turn.complete', async ($, e, next) => {
     const result = await next(e)
+    if (e.agentId !== undefined) {
+      // A subagent's run is over: its row leaves the live table (069 #43).
+      const endedId = e.agentId
+      await flushStats($, ({ liveAgents, ...s }) => {
+        const left = (liveAgents ?? []).filter(a => a.engineId !== endedId)
+        return left.length === 0 ? s : { ...s, liveAgents: left }
+      })
+    }
     if (e.agentId === undefined) {
       // The turn is over: the end-of-turn read below is the last word, the file probe stops.
       disarmLiveProbe()
@@ -2869,13 +2908,18 @@ export const register: Register = (on, options) => {
       ].slice(-12),
     }))
     let result: Awaited<ReturnType<typeof next>>
+    let background = false
     try {
       result = await next(e)
+      // A backgrounded agent's call returns at once; its own turn ends the row.
+      background = /backgrounded|running in background/i.test(JSON.stringify(result ?? ''))
     } finally {
-      await flushStats($, ({ liveAgents, ...s }) => {
-        const left = (liveAgents ?? []).filter(a => a.id !== agentId)
-        return left.length === 0 ? s : { ...s, liveAgents: left }
-      })
+      if (!background) {
+        await flushStats($, ({ liveAgents, ...s }) => {
+          const left = (liveAgents ?? []).filter(a => a.id !== agentId)
+          return left.length === 0 ? s : { ...s, liveAgents: left }
+        })
+      }
     }
     gitNeedsRefresh = true
     // A subagent may have written specs or tasks: the tabs follow when it returns (053).
