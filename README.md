@@ -501,6 +501,8 @@ Times in the governor rows read clock first, then the distance (`until 14:00, in
 
 The Dashboard also counts subagent runs per feature (`by feature  002: 3, 001: 1`) and the share of task boxes ticked by subagents against the main thread (`ticked by  subagents 3 · main 1 (75% by subagents)`), counted from the session's Edit calls on `tasks.md` and `spec.md`.
 
+With `skillModels: auto`, while `/speckit-implement` runs, the current task's own words pick the model: tests and mechanical work (`test`, `fixture`, `docs`, `rename`) on Sonnet, design work (`design`, `architecture`, `schema`, `data model`) on Opus. A task that says neither keeps the skill's entry.
+
 At 140 columns and wider the status entry under the prompt shows the whole footer on one line, even when the footer sits in the pane. The prompt-cache reminder (`The prompt cache goes cold in about 30 s`) only fires when the next step is likely soon: a skill is running, or the active feature is implementing with tasks left.
 
 `r` (or the `↻ r` button) refreshes the pane now: it re-reads the specs, git, the worktrees, this

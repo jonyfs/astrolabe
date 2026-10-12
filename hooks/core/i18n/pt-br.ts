@@ -19,6 +19,7 @@ export const PT_BR: Dictionary = {
   'pane.folded.section': 'dobradas; s ou is:{status} mostra',
   'pane.diffMore': '… +{n} linhas',
   'pane.stale': '! .specify/feature.json ainda aponta {done}, que terminou; o branch está em {branch}: aponte para specs/{dir}',
+  'help.modelsByTask': 'Uma tarefa de tipo próprio escolhe o modelo enquanto o speckit-implement roda: testes e edições mecânicas no Sonnet, design no Opus.',
   'help.models': 'Modelo e esforço por skill (a opção skillModels, auto, os usa enquanto a skill roda):',
   'tab.prs': 'PRs',
   'help.prsTab': 'pull requests abertos, checks e revisões; aprovar, atualizar e mergear',

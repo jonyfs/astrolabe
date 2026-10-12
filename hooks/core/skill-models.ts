@@ -28,6 +28,18 @@ export const SKILL_MODELS: Readonly<Record<string, SkillModel>> = {
   health: { model: HAIKU, effort: 'low', why: 'runs checks, reports' },
 }
 
+/**
+ * The model a task of this kind does best on (054 #94), from its words: tests and mechanical
+ * edits on Sonnet, design and architecture on Opus; undefined when the text says neither.
+ */
+export const modelForTask = (text: string | undefined): SkillModel | undefined => {
+  if (text === undefined) return undefined
+  const t = text.toLowerCase()
+  if (/\b(design|architecture|architect|schema|api contract|threat|refactor the|data model|trade-?off)\b/.test(t)) return { model: OPUS, effort: 'high', why: 'a design task' }
+  if (/\b(test|tests|spec|fixture|assert|coverage|mock|rename|format|lint|docs?|readme|changelog)\b/.test(t)) return { model: SONNET, effort: 'medium', why: 'a test or mechanical task' }
+  return undefined
+}
+
 /** The entry for a skill name, with or without a plugin prefix (`gstack:review`, `speckit.plan`). */
 export const skillModelFor = (skill: string | undefined): SkillModel | undefined => {
   if (skill === undefined) return undefined

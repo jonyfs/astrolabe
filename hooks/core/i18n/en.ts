@@ -17,6 +17,7 @@ export const EN = {
   'pane.folded.section': 'folded; s or is:{status} shows them',
   'pane.diffMore': '… +{n} lines',
   'pane.stale': '! .specify/feature.json still names {done}, which is done; the branch is on {branch}: set it to specs/{dir}',
+  'help.modelsByTask': 'A task of its own kind picks the model while speckit-implement runs: tests and mechanical edits on Sonnet, design on Opus.',
   'help.models': 'Model and effort per skill (the skillModels option, auto, sends them while the skill runs):',
   'tab.prs': 'PRs',
   'tab.models': 'Models',

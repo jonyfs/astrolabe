@@ -27,7 +27,7 @@ import { chipForeground, CHIPS, FLAVORS, flavorOf, isThemeKeys, lighten, STATUS_
 import { capDiff, DIFF_FOLD_MS, foldedDiff, recapLine, recapOf, tasksDiff } from './core/summary'
 import { styleSections } from './core/style'
 import { ageOf, parsePullList, prOpened, pullAction, PR_LIST_FIELDS } from './core/pulls'
-import { skillModelFor } from './core/skill-models'
+import { modelForTask, skillModelFor } from './core/skill-models'
 import { getAllSkills } from './core/skill-model-map'
 import { featureDirFor, mergedBranches, parseWorktrees, uncommittedCount, withWorktreeProgress, worktreeName, worktreeState } from './core/worktrees'
 import { readFeature } from './io/snapshot'
@@ -187,6 +187,7 @@ async function drawStatus($: EngineInterface, state: Held['state']): Promise<voi
 }
 
 async function showStatus($: EngineInterface, state: Held['state']): Promise<void> {
+  currentTaskText = state.currentTask?.text
   const now = await $.clock.now()
   if (now >= statusWindowUntil) {
     statusWindowUntil = now + STATUS_COALESCE_MS
@@ -1170,7 +1171,9 @@ async function refreshPr($: EngineInterface, root: string, branch: string, force
 /** Notes the model and effort of each main-thread request (018), leaving the request untouched. */
 async function* noteModel($: Parameters<Hook<'turn.step'>>[0], e: Parameters<Hook<'turn.step'>>[1], next: Parameters<Hook<'turn.step'>>[2]) {
   // skillModels auto (030): while a skill with an entry runs, its model and effort.
-  const pick = skillModels === 'auto' && e.agentId === undefined ? skillModelFor(skillRunning) : undefined
+  // A task's own kind wins while speckit-implement runs (054 #94); otherwise the skill's entry.
+  const byTask = skillModels === 'auto' && e.agentId === undefined && /^speckit[-.]implement$/.test(skillRunning ?? '') ? modelForTask(currentTaskText) : undefined
+  const pick = byTask ?? (skillModels === 'auto' && e.agentId === undefined ? skillModelFor(skillRunning) : undefined)
   const step = pick === undefined ? e : { ...e, model: pick.model, effort: pick.effort }
   if (e.agentId === undefined) {
     live.model = step.model
@@ -1289,6 +1292,8 @@ let pullRequests = false
 const CACHE_WARN_MS = 270_000
 /** From this width the status entry shows the whole footer on one line, even with the footer in the pane (054 #47). */
 const WIDE_STATUS_COLUMNS = 140
+/** The text of the task being worked on, for the model per task kind (054 #94). */
+let currentTaskText: string | undefined
 let cacheWarningTimer: ReturnType<EngineInterface['clock']['after']> | undefined
 
 // The timer is transient; session.start and later usage readings rebuild it from $.state.
