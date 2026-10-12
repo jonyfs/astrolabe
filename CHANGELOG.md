@@ -6,6 +6,8 @@ tags `vX.Y.Z` equal to `plugin.json`'s `version`.
 
 ## [Unreleased]
 
+## [0.121.0] - 2026-10-12
+
 ### Added
 
 - Performance benchmark suite (`npm run benchmark`) with baseline comparison, a regression
