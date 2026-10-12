@@ -68,14 +68,15 @@ describe('specsRows', () => {
       expect(terminalText).not.toContain(longName)
     }
   })
-  test('roles: accent for the active one, done, muted and dim for abandoned; sections muted', () => {
+  test('roles: accent for the active one, done, faint for abandoned; sections muted (064 #2)', () => {
     const rows = specsRows(state(), 80).filter(r => r.key.startsWith('feature-') || r.key.startsWith('warning'))
-    expect(rows.map(r => [r.role, r.dim === true])).toEqual([
-      ['accent', false],
-      ['current', false],
-      ['done', false],
-      ['muted', true],
-    ])
+    expect(rows.map(r => r.role)).toEqual(['accent', 'current', 'done', 'faint'])
+    // Muted text is a colour that reaches 4.5:1, not the terminal's dim attribute.
+    expect(rows.every(r => !('dim' in r))).toBe(true)
+  })
+  test('text rows never use the pending role, which is for rules and glyphs (064 #2)', () => {
+    const rows = [...specsRows(state(), 80), ...taskRows(state(), emptyMemo(), 0, 80, 'en', 0)]
+    expect(rows.filter(r => /[A-Za-z0-9]/.test(r.text)).map(r => r.role)).not.toContain('pending')
   })
   test('the running skill shows on the active feature (044 #33)', () => {
     const rows = specsRows(state({ runningSkill: { name: 'speckit-implement', step: 'implement' } }), 100)

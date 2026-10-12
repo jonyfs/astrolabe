@@ -115,10 +115,10 @@ export const paneTree = (
             </Box>
           ) : row.label !== undefined && row.value !== undefined ? (
             <Box key={row.key} flexDirection="row">
-              <Text color={row.selected === true ? tokens.accent : tokens[row.role]} dimColor={row.dim === true} bold={row.selected === true || row.bold === true}>
+              <Text color={row.selected === true ? tokens.accent : tokens[row.role]} bold={row.selected === true || row.bold === true}>
                 {m(colorblindLabel(row, extras.colorblind))}
               </Text>
-              <Text key={`${row.key}-value`} color={row.selected === true ? tokens.accent : tokens[row.role]} dimColor={row.dim === true} bold={row.selected === true || row.bold === true} wrap="wrap">
+              <Text key={`${row.key}-value`} color={row.selected === true ? tokens.accent : tokens[row.role]} bold={row.selected === true || row.bold === true} wrap="wrap">
                 {m(row.value)}
               </Text>
               {row.href !== undefined && Link !== undefined && <Text> </Text>}
@@ -141,7 +141,7 @@ export const paneTree = (
                 ? extras.onRevokeUsage !== undefined
                 : extras.onRunQueued !== undefined) ? (
             <Box key={row.key} flexDirection="row">
-              <Text color={tokens[row.role]} dimColor={row.dim === true} bold={row.bold === true} wrap={extras.wrapLongNames === true ? 'wrap' : 'truncate-end'}>
+              <Text color={tokens[row.role]} bold={row.bold === true} wrap={extras.wrapLongNames === true ? 'wrap' : 'truncate-end'}>
                 {m(colorblindText(row, extras.colorblind))}
               </Text>
               <Button
@@ -161,7 +161,7 @@ export const paneTree = (
             <Box flexDirection="row">
               {row.selected === true && <Text color={tokens.accent} bold>{m('❯ ')}</Text>}
               {row.segments.map(seg => (
-                <Text color={tokens[seg.role]} dimColor={row.dim === true} wrap={extras.wrapLongNames === true ? 'wrap' : 'truncate-end'} hover={rowHover(row)}>
+                <Text color={tokens[seg.role]} wrap={extras.wrapLongNames === true ? 'wrap' : 'truncate-end'} hover={rowHover(row)}>
                   {m(seg.text)}
                 </Text>
               ))}
@@ -171,7 +171,7 @@ export const paneTree = (
             </Box>
           ) : row.href !== undefined && Link !== undefined ? (
             <Box flexDirection="row">
-              <Text color={row.selected === true ? tokens.accent : tokens[row.role]} dimColor={row.dim === true} bold={row.selected === true || row.bold === true} wrap={extras.wrapLongNames === true ? 'wrap' : 'truncate-end'} hover={rowHover(row)}>
+              <Text color={row.selected === true ? tokens.accent : tokens[row.role]} bold={row.selected === true || row.bold === true} wrap={extras.wrapLongNames === true ? 'wrap' : 'truncate-end'} hover={rowHover(row)}>
                 {m(`${row.selected === true ? '❯ ' : ''}${colorblindText(row, extras.colorblind)}`)}
               </Text>
               <Text> </Text>
@@ -179,7 +179,7 @@ export const paneTree = (
               {(row.links ?? []).map(link => rowLink(row, `link-${link.label}`, link.href, ` ${link.label}${m('↗')}`))}
             </Box>
           ) : (
-            <Text color={row.selected === true ? tokens.accent : tokens[row.role]} dimColor={row.dim === true} bold={row.selected === true || row.bold === true} wrap={extras.wrapLongNames === true ? 'wrap' : 'truncate-end'} hover={rowHover(row)}>
+            <Text color={row.selected === true ? tokens.accent : tokens[row.role]} bold={row.selected === true || row.bold === true} wrap={extras.wrapLongNames === true ? 'wrap' : 'truncate-end'} hover={rowHover(row)}>
               {m(`${row.selected === true ? '❯ ' : ''}${colorblindText(row, extras.colorblind)}`)}
             </Text>
           )
@@ -201,7 +201,7 @@ export const paneTree = (
     </Box>
     {extras.legend === undefined ? null : (
       <Box key="astrolabe-pane-legend">
-        <Text color={tokens.muted} dimColor wrap="truncate-end">
+        <Text color={tokens.faint} wrap="truncate-end">
           {m(extras.legend)}
         </Text>
       </Box>

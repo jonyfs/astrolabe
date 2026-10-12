@@ -40,7 +40,7 @@ export const dial = (active: Phase | undefined, tokens: Tokens): Grid => {
     tasks: tokens.accent,
     implement: tokens.current,
     done: tokens.done,
-    abandoned: tokens.pending,
+    abandoned: tokens.faint,
   }
   for (const [i, step] of CYCLE.entries()) {
     const spot = SPOTS[step]!

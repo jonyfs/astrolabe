@@ -58,8 +58,8 @@ description: "Task list for 064-design-tokens"
 
 **Independent Test**: `npx vitest run tests/core/theme.test.ts tests/core/pane.test.ts`
 
-- [ ] T011 [P] [US2] #2 Write a test in `tests/core/pane.test.ts` and `tests/core/dashboard.test.ts` that no row whose text holds a letter or digit has role `pending`; run it and see it fail on the current rows
-- [ ] T012 [US2] #2 Switch those rows from `pending` to `faint` in `hooks/core/pane.ts`, `hooks/core/dashboard.ts` and the footer chip colours in `hooks/core/footer.ts`; keep `pending` for rules, `│`, `·` and state glyphs; T011 and T003 pass
+- [x] T011 [P] [US2] #2 Write the tests first: in `tests/core/pane.test.ts` abandoned, loading and principle rows carry role `faint` and no `dim` flag, and no text row has role `pending`; add `tool-tests/unit/pending-role-scope.vitest.ts`, a Node scan that lists the only files allowed to draw with `pending` (rules, separators, glyphs); run them and see them fail on the current `dim` rows
+- [x] T012 [US2] #2 Replace the terminal `dim` attribute with the `faint` role: remove `dim` from `PaneRow` in `hooks/core/pane.ts`, give abandoned, loading, done-folded and principle rows `role: 'faint'`, drop `dimColor` in `hooks/surfaces/pane.tsx`, colour the legend `faint`, switch the model-tier and dashboard abandoned labels to `faint`, and give the usage picture's trend line the ramp role in `hooks/core/pixels.ts`; T011 and T003 pass
 
 ---
 

@@ -677,7 +677,7 @@ function modelSkillTabBody(
   const lang = currentLang()
   const auto = skillModels === 'auto'
   const active = getSkillRunning()
-  const tierColour: Record<string, ThemeRole> = { 'deep-reasoning': 'pending', 'balanced-coding': 'accent', 'fast-lightweight': 'done' }
+  const tierColour: Record<string, ThemeRole> = { 'deep-reasoning': 'faint', 'balanced-coding': 'accent', 'fast-lightweight': 'done' }
   const rows: Array<{ node: RenderNode; rows: number }> = []
   for (const category of ['speckit', 'gstack'] as const) {
     rows.push({ rows: 1, node: <Text key={`models-${category}`} color={tokens0.accent} bold>{t(lang, `models.category.${category}`)}</Text> })
@@ -1559,7 +1559,7 @@ async function sessionTabRows(
   const updateRows = updates.map(item => ((url => valueRow(`update-${item.id}`, 'update', `${updateLabel(item, false)} (installed ${item.installed})`, 'current', url === undefined ? {} : { href: url }))(releaseNotesUrl(item))))
   // Without Spec Kit the project rows say so on their own; no headings then.
   if (!state.present) return [...project, ...governor, ...activity, ...updateRows]
-  const block = (key: string, rows: Array<{ key: string; text: string; role: ThemeRole; dim?: boolean; bold?: boolean }>) =>
+  const block = (key: string, rows: Array<{ key: string; text: string; role: ThemeRole; bold?: boolean }>) =>
     rows.length === 0 ? [] : [{ key: `block-${key}`, text: t(lang, `session.block.${key}` as TextKey), role: 'accent' as ThemeRole, bold: true }, ...rows]
   return [...block('project', project), ...block('governor', governor), ...block('activity', activity), ...block('updates', updateRows)]
 }
