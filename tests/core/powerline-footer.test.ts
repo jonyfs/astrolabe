@@ -1,16 +1,17 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import { footerChips, rampOf } from '../../hooks/core/footer'
+import { footerChips } from '../../hooks/core/footer'
+import { usageRamp } from '../../hooks/core/usage-ramp'
 import { iconSet } from '../../hooks/core/icons'
 
 // Spec 039: the pane footer in statusline's colours, as Powerline chips.
 const NOW = Date.UTC(2026, 9, 7, 12, 0)
 
 describe('statusline colours (039)', () => {
-  test('the ramp: green below 60, yellow to 85 with ▵, red above with ▴', () => {
-    expect(rampOf(41)).toEqual({ colour: 'green', mark: '' })
-    expect(rampOf(72)).toEqual({ colour: 'yellow', mark: '▵' })
-    expect(rampOf(94)).toEqual({ colour: 'red', mark: '▴' })
+  test('the ramp: green below 60, yellow to 80 with ▵, red from 80 with ▴ (064 #1)', () => {
+    expect(usageRamp(41)).toMatchObject({ chip: 'green', mark: '' })
+    expect(usageRamp(72)).toMatchObject({ chip: 'yellow', mark: '▵' })
+    expect(usageRamp(94)).toMatchObject({ chip: 'red', mark: '▴' })
   })
   test('chips: Spec Kit mauve, windows ramped with their mark, model red, git lavender (no cost: 054)', () => {
     const chips = footerChips({
@@ -24,7 +25,7 @@ describe('statusline colours (039)', () => {
       columns: 200,
     })
     expect(chips.map(c => c.colour)).toEqual(['mauve', 'yellow', 'red', 'red', 'lavender'])
-    expect(chips[1]?.text.endsWith('▵')).toBe(true)
+    expect(chips[1]?.text).toContain('72%▵')
     // The context ramps in colour only, as statusline does.
     expect(chips[2]?.text.endsWith('▴')).toBe(false)
   })

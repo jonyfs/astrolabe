@@ -1,5 +1,7 @@
 // Usage governance policy (spec 008, contracts/governor.md). Pure: no $.
 import { t, type Lang } from './i18n'
+import { duration } from './duration'
+import { usageRamp } from './usage-ramp'
 import type { QueuedAgent, UsageAnswer, UsageQuestion, UsageReading, UsageState } from './types'
 
 export type Band = 'ok' | 'throttle' | 'hold' | 'stop' | 'ceiling'
@@ -115,10 +117,12 @@ export const nextHeld = (readings: readonly UsageReading[], held: Held | undefin
   return live.some(r => sameWindow(r, held) && r.percentUsed >= REOPEN_BELOW) ? held : undefined
 }
 
-export const usageSegment = (d: Decision, lang: Lang = 'en'): string | undefined => {
+/** The deciding window as text: `7d 81%▴ hold`. The ramp mark follows the figure (064 #1). */
+export const usageSegment = (d: Decision, lang: Lang = 'en', thresholds?: { hold?: number; stop?: number }): string | undefined => {
   if (d.highest === undefined) return undefined
   if (d.highest.renewed === true) return `${labelOf(d.highest.kind)} ${t(lang, 'status.renewed')}`
-  const text = `${labelOf(d.highest.kind)} ${d.highest.percent >= 100 ? t(lang, 'status.full') : `${Math.round(d.highest.percent)}%`}`
+  const ramp = usageRamp(d.highest.percent, thresholds)
+  const text = `${labelOf(d.highest.kind)} ${ramp.full ? t(lang, 'status.full') : `${Math.round(d.highest.percent)}%`}${ramp.mark}`
   return d.band === 'ok' ? text : `${text} ${d.band}`
 }
 
@@ -232,8 +236,7 @@ export const clockOf = (iso: string | undefined): string | undefined => {
 /** A time read one way everywhere in the pane (052 #29): the clock, then the distance (`14:00, in 2h13m`). */
 export const whenOf = (at: number, now: number): string => {
   const clock = clockOf(new Date(at).toISOString()) ?? '?'
-  const minutes = Math.floor(Math.abs(at - now) / 60_000)
-  const span = minutes < 60 ? `${minutes}m` : `${Math.floor(minutes / 60)}h${String(minutes % 60).padStart(2, '0')}m`
+  const span = duration(Math.abs(at - now))
   return at >= now ? `${clock}, in ${span}` : `${clock}, ${span} ago`
 }
 
@@ -244,7 +247,7 @@ export const usageRows = (usage: UsageState, now: number, thresholds?: Record<st
   if (usage.readings.length === 0 && usage.queue.length === 0 && !isOverride && !isLift) return []
   const d = decide(usage.readings, usage.history, usage.override, now, usage.holdLift, usage.held, thresholds)
   const windows = usage.readings
-    .map(r => (isRenewed(r, now) ? `${labelOf(r.kind)} renewed` : `${labelOf(r.kind)} ${Math.round(r.percentUsed)}%`))
+    .map(r => (isRenewed(r, now) ? `${labelOf(r.kind)} renewed` : `${labelOf(r.kind)} ${Math.round(r.percentUsed)}%${usageRamp(r.percentUsed, thresholds?.[r.kind]).mark}`))
     .join(' · ')
   const clock = (at: number) => whenOf(at, now)
   const next = nextBand(usage.readings, usage.history, now)
@@ -307,8 +310,8 @@ export const nextBand = (readings: readonly UsageReading[], history: ReadonlyArr
   const ms = (ahead[0] - top.percentUsed) / rate
   const reset = top.resetsAt === undefined ? Number.NaN : Date.parse(top.resetsAt)
   if (!Number.isNaN(reset) && now + ms >= reset) return `${ahead[1]} at ${ahead[0]}%: not before the reset at this pace`
-  const minutes = Math.max(1, Math.round(ms / 60_000))
-  const span = minutes < 60 ? `${minutes}m` : `${Math.floor(minutes / 60)}h${String(minutes % 60).padStart(2, '0')}m`
+  // An estimate: whole minutes, never a second count.
+  const span = duration(Math.max(1, Math.round(ms / 60_000)) * 60_000)
   return `${ahead[1]} at ${ahead[0]}% in about ${span} at this pace`
 }
 

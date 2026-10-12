@@ -17,7 +17,7 @@ describe('the spinner narrates the current task (US1)', () => {
       expect(await drawSpinner($ as never, handed, surface)).toBeUndefined()
       await session.clock.advance(125_000)
       await $.tool.call(implement)
-      expect(await drawSpinner($ as never, handed, surface)).toBe('… T010 · task 10 · 2m')
+      expect(await drawSpinner($ as never, handed, surface)).toBe('… T010 · task 10 · 2m05s')
       await completeTurn($)
       expect(await drawSpinner($ as never, handed, surface)).toBeUndefined()
     })

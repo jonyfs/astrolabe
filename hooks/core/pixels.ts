@@ -3,6 +3,7 @@
 import { base64, type Grid } from './cells'
 import { burnRate, dial } from './dashboard'
 import type { Tokens } from './theme'
+import { usageRamp } from './usage-ramp'
 import type { Phase, SessionStats } from './types'
 
 const CELL_W = 8
@@ -75,7 +76,7 @@ export const chartImage = (
   if (hasProjection) {
     const last = points.at(-1)!
     const end = Math.min(100, last.percent + (rate! * (reset - o.now)) / 3_600_000)
-    line(xOf(points.length - 1), yOf(last.percent), width - 1, yOf(end), rgbOf(end >= 80 ? o.tokens.current : o.tokens.pending), true)
+    line(xOf(points.length - 1), yOf(last.percent), width - 1, yOf(end), rgbOf(end >= 60 ? o.tokens[usageRamp(end).role] : o.tokens.pending), true)
   }
   return { rgba: base64(px), width, height }
 }

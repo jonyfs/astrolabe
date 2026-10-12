@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import { deriveFeature } from '../../hooks/core/phase'
+import { deriveFeature, PHASE_SHORT, phaseShort } from '../../hooks/core/phase'
 
 const tasks = (done: number, open: number) =>
   [...Array(done).keys()].map(i => `- [X] T${String(i + 1).padStart(3, '0')} done`).join('\n') +
@@ -87,5 +87,17 @@ describe('a folder without spec.md (054 #19)', () => {
     expect(deriveFeature({ dir: '004-x', plan: false, deferred: true }).warnings).not.toContain('no-spec')
     expect(deriveFeature({ dir: '004-x', plan: false, unreadable: ['spec.md'] }).warnings).not.toContain('no-spec')
     expect(deriveFeature({ dir: '004-x', plan: false, spec: '# Feature Specification: X\n' }).warnings).not.toContain('no-spec')
+  })
+})
+
+describe('one phase abbreviation table (064 #6)', () => {
+  test('specify, clarify, plan, tasks and implement have a short form', () => {
+    expect(PHASE_SHORT).toEqual({ specify: 'spec', clarify: 'clar', plan: 'plan', tasks: 'tasks', implement: 'impl' })
+    expect(['specify', 'clarify', 'plan', 'tasks', 'implement'].map(phaseShort)).toEqual(['spec', 'clar', 'plan', 'tasks', 'impl'])
+  })
+  test('done, abandoned and unknown phases print as they are', () => {
+    expect(phaseShort('done')).toBe('done')
+    expect(phaseShort('abandoned')).toBe('abandoned')
+    expect(phaseShort('whatever')).toBe('whatever')
   })
 })

@@ -8,6 +8,7 @@ import { kpiLines } from '../core/dashboard'
 import { t, type Lang } from '../core/i18n'
 import type { Span } from '../core/pixels'
 import type { Tokens } from '../core/theme'
+import { usageRamp } from '../core/usage-ramp'
 
 type Elements = Pick<ElementTable<'mobile'>, 'Box' | 'Text'> & {
   Raster?: ElementTable<'terminal'>['Raster']
@@ -60,7 +61,7 @@ export const dashboardSections = (el: Elements, view: DashboardView, tokens: Tok
       node: (
         <el.Box key="astrolabe-kpi-chips" flexDirection="row">
           {chips.map((chip, i) => (
-            <el.Text key={`kpi-chip-${i}`} color={ascii ? tokens.text : chip.level === undefined ? tokens.accent : chip.level < 60 ? tokens.done : chip.level < 85 ? tokens.current : tokens.blocked} bold>
+            <el.Text key={`kpi-chip-${i}`} color={ascii ? tokens.text : chip.level === undefined ? tokens.accent : tokens[usageRamp(chip.level).role]} bold>
               {ascii ? `[${chip.text}]${i < chips.length - 1 ? ' ' : ''}` : ` ${chip.text} ${i < chips.length - 1 ? '│' : ''}`}
             </el.Text>
           ))}

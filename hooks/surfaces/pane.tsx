@@ -5,6 +5,7 @@ import type { ElementTable, RenderNode } from 'claude-code'
 import type { PaneRow } from '../core/pane'
 import { t, type Lang, type TextKey } from '../core/i18n'
 import { markText } from '../core/icons'
+import { hotkeyOf } from '../core/keys'
 import { COLORBLIND_MARKS, type Tokens } from '../core/theme'
 import type { PaneTab } from '../core/types'
 
@@ -85,10 +86,10 @@ export const paneTree = (
           onPress={() => onSelect(item.tab)}
         />
       ))}
-      {/* h opens Help from any tab (052 #50). */}
-      {tab !== 'help' && <Button key="help-key" label="? h" hotkey="h" plain onPress={() => onSelect('help')} />}
+      {/* ? opens Help from any tab, pressed with h (052 #50, 064 #7). */}
+      {tab !== 'help' && <Button key="help-key" label={`? ${hotkeyOf('?')}`} hotkey={hotkeyOf('?')} plain onPress={() => onSelect('help')} />}
       {/* f focuses the filter (043 #23); ✕ closes the pane (043 #28). */}
-      {extras.onFind !== undefined && <Button key="find" label={m('⌕ f')} hotkey="f" plain onPress={() => extras.onFind!()} />}
+      {extras.onFind !== undefined && <Button key="find" label={m(`/ ${hotkeyOf('/')}`)} hotkey={hotkeyOf('/')} plain onPress={() => extras.onFind!()} />}
       {/* s cycles the status filter (054 #21). */}
       {extras.status !== undefined && <Button key="status-filter" label={`s ${extras.status.label}`} hotkey="s" plain onPress={() => extras.status!.onPress()} />}
       {/* p cycles the active spec's priority: normal, high, low (051). */}
@@ -115,10 +116,10 @@ export const paneTree = (
             </Box>
           ) : row.label !== undefined && row.value !== undefined ? (
             <Box key={row.key} flexDirection="row">
-              <Text color={row.selected === true ? tokens.accent : tokens[row.role]} dimColor={row.dim === true} bold={row.selected === true || row.bold === true}>
+              <Text color={row.selected === true ? tokens.accent : tokens[row.role]} bold={row.selected === true || row.bold === true}>
                 {m(colorblindLabel(row, extras.colorblind))}
               </Text>
-              <Text key={`${row.key}-value`} color={row.selected === true ? tokens.accent : tokens[row.role]} dimColor={row.dim === true} bold={row.selected === true || row.bold === true} wrap="wrap">
+              <Text key={`${row.key}-value`} color={row.selected === true ? tokens.accent : tokens[row.role]} bold={row.selected === true || row.bold === true} wrap="wrap">
                 {m(row.value)}
               </Text>
               {row.href !== undefined && Link !== undefined && <Text> </Text>}
@@ -141,7 +142,7 @@ export const paneTree = (
                 ? extras.onRevokeUsage !== undefined
                 : extras.onRunQueued !== undefined) ? (
             <Box key={row.key} flexDirection="row">
-              <Text color={tokens[row.role]} dimColor={row.dim === true} bold={row.bold === true} wrap={extras.wrapLongNames === true ? 'wrap' : 'truncate-end'}>
+              <Text color={tokens[row.role]} bold={row.bold === true} wrap={extras.wrapLongNames === true ? 'wrap' : 'truncate-end'}>
                 {m(colorblindText(row, extras.colorblind))}
               </Text>
               <Button
@@ -161,7 +162,7 @@ export const paneTree = (
             <Box flexDirection="row">
               {row.selected === true && <Text color={tokens.accent} bold>{m('❯ ')}</Text>}
               {row.segments.map(seg => (
-                <Text color={tokens[seg.role]} dimColor={row.dim === true} wrap={extras.wrapLongNames === true ? 'wrap' : 'truncate-end'} hover={rowHover(row)}>
+                <Text color={tokens[seg.role]} wrap={extras.wrapLongNames === true ? 'wrap' : 'truncate-end'} hover={rowHover(row)}>
                   {m(seg.text)}
                 </Text>
               ))}
@@ -171,7 +172,7 @@ export const paneTree = (
             </Box>
           ) : row.href !== undefined && Link !== undefined ? (
             <Box flexDirection="row">
-              <Text color={row.selected === true ? tokens.accent : tokens[row.role]} dimColor={row.dim === true} bold={row.selected === true || row.bold === true} wrap={extras.wrapLongNames === true ? 'wrap' : 'truncate-end'} hover={rowHover(row)}>
+              <Text color={row.selected === true ? tokens.accent : tokens[row.role]} bold={row.selected === true || row.bold === true} wrap={extras.wrapLongNames === true ? 'wrap' : 'truncate-end'} hover={rowHover(row)}>
                 {m(`${row.selected === true ? '❯ ' : ''}${colorblindText(row, extras.colorblind)}`)}
               </Text>
               <Text> </Text>
@@ -179,7 +180,7 @@ export const paneTree = (
               {(row.links ?? []).map(link => rowLink(row, `link-${link.label}`, link.href, ` ${link.label}${m('↗')}`))}
             </Box>
           ) : (
-            <Text color={row.selected === true ? tokens.accent : tokens[row.role]} dimColor={row.dim === true} bold={row.selected === true || row.bold === true} wrap={extras.wrapLongNames === true ? 'wrap' : 'truncate-end'} hover={rowHover(row)}>
+            <Text color={row.selected === true ? tokens.accent : tokens[row.role]} bold={row.selected === true || row.bold === true} wrap={extras.wrapLongNames === true ? 'wrap' : 'truncate-end'} hover={rowHover(row)}>
               {m(`${row.selected === true ? '❯ ' : ''}${colorblindText(row, extras.colorblind)}`)}
             </Text>
           )
@@ -201,7 +202,7 @@ export const paneTree = (
     </Box>
     {extras.legend === undefined ? null : (
       <Box key="astrolabe-pane-legend">
-        <Text color={tokens.muted} dimColor wrap="truncate-end">
+        <Text color={tokens.faint} wrap="truncate-end">
           {m(extras.legend)}
         </Text>
       </Box>

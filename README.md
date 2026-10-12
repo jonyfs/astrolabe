@@ -16,7 +16,7 @@ updates, and a status entry with your fullest usage window.
 | Where | What Astrolabe draws | Section |
 |---|---|---|
 | Above the prompt | The active feature, the six Spec Kit steps, a progress bar, and buttons for updates | [The band](#what-the-band-shows) |
-| Under the prompt | `◆ 002 · implement 45% · 5h 42%`: feature, phase, progress, usage window | [The status entry](#what-the-status-entry-shows) |
+| Under the prompt | `◆ 002 · implement 45% │ 5h 42%`: feature, phase, progress, usage window | [The status entry](#what-the-status-entry-shows) |
 | The hint line | `next: /speckit-implement · 11 tasks left` | [The prompt hint](#what-the-prompt-hint-shows) |
 | The spinner | `… T011 · Show an empty-cart message · 1s` while Claude works on the feature | [The spinner](#what-the-spinner-says) |
 | `/astrolabe` | A pane with Specs, Tasks and Session tabs | [The pane](#the-astrolabe-pane) |
@@ -117,7 +117,7 @@ Astrolabe adds one entry to the status line under the prompt. Claude Code puts t
 name in front of it:
 
 ```text
-  ⚠ astrolabe: ◆ 002 · implement 45% · 7d 81% hold
+  ⚠ astrolabe: ◆ 002 · implement 45% │ 7d 81%▴ hold
 ```
 
 Each part, from left to right:
@@ -131,29 +131,46 @@ Each part, from left to right:
 | Phase | `implement` | The first Spec Kit step this feature has not finished. See [Phases](#phases). |
 | Percentage | `87%` | Ticked tasks out of all tasks in the feature's `tasks.md`, rounded down. 43 of 49 is `87%`. It appears only once `tasks.md` has tasks. |
 | Running step | `· plan…` | A Spec Kit skill such as `/speckit-plan` was called during this turn. It disappears when the turn ends. |
-| Usage window | `· 7d 81% hold (Mon 14:00)` | The window that decides, its band when it is not ok, and when it resets: a countdown such as `2h13m` when the reset is less than a day away, else the weekday and time. A window at or past 100% reads `full`. The other window follows. See [Usage governance](#usage-governance). |
-| Context | `·  61%` | How full the context window is. Past 85% it reads `86% compact soon`. |
-| Model and effort | `·  opus 5.5 high` | The model and effort of Claude's last request in the main thread. With the 1M context window it reads `opus 5.5 1M`. |
-| Running skill | `· ⟳ implement · sonnet 5.5` | The Spec Kit or gstack skill running now, with the model `skillModels` picked for it. |
-| Git | `·  main ↑2  3` | The branch, commits to push and to pull, and changed or untracked files, from one `git status` at the end of each turn. Without a repository it is left out. |
-| Burn rate | `· 🔥 12/h → 96%` | Usage points an hour over the session, and where the window that decides will be at its reset at that pace. It shows once the session has two readings that rise. |
-| Duration | `·  1h05m` | How long the session has run, from its first minute on. |
+| Usage window | `│ 7d 81%▴ hold (Mon 14:00)` | The window that decides, its mark (`▵` from 60%, `▴` from the window's hold level, 80% by default), its band when it is not ok, and when it resets: a countdown such as `2h13m` when the reset is less than a day away, else the weekday and time. A window at or past 100% reads `full`. The other window follows. See [Usage governance](#usage-governance). |
+| Context | `│  61%` | How full the context window is. Past 85% it reads `86% compact soon`. |
+| Model and effort | `│  opus 5.5 high` | The model and effort of Claude's last request in the main thread. With the 1M context window it reads `opus 5.5 1M`. |
+| Running skill | `│ ⟳ implement · sonnet 5.5` | The Spec Kit or gstack skill running now, with the model `skillModels` picked for it. |
+| Git | `│  main ↑2  3` | The branch, commits to push and to pull, and changed or untracked files, from one `git status` at the end of each turn. Without a repository it is left out. |
+| Burn rate | `│ 🔥 12/h → 96%` | Usage points an hour over the session, and where the window that decides will be at its reset at that pace. It shows once the session has two readings that rise. |
+| Duration | `│  1h05m` | How long the session has run, from its first minute on. |
+
+### One vocabulary on every surface
+
+The band, the status entry, the footer, the spinner, the pane and the toasts share one set of
+marks, formats and keys, so a value reads the same wherever it appears.
+
+| What | Rule | Example |
+|---|---|---|
+| Usage level | One ramp for context, 5h, 7d and the spend limit. Below 60% no mark and the done colour; from 60% yellow with `▵`; from the window's hold level (80% by default) the blocked colour with `▴`; at 100% or more the figure reads `full`. A threshold set in `governThresholds` moves the ramp of that window. | `5h 42%`, `5h 72%▵`, `7d 81%▴ hold`, `7d full▴ ceiling` |
+| Muted text | The `faint` colour role, at least 4.5:1 on the flavor's base in all five flavors. The dimmer `pending` role draws only rules, separators and glyphs. | abandoned rows, the legend, loading rows |
+| State glyphs | One cell wide in every icon set, so a row never shifts when its state changes: `‖` paused, `◷` time running, `▲` warning. | `▸ T010 Write x.ts                    ◷ 12m` |
+| Ids | A task id is shown as written in `tasks.md` (`T011`). Feature ids are padded with spaces to the widest id in the project, 3 or 4 digits, and are never cut: the name is cut first. | `◐ 002  band-hint`, `◐ 1000 long-name` |
+| Durations | `40s`, `4m12s`, `2h09m`; whole minutes drop the zero seconds (`4m`); unknown is `?`. A reset under a day counts down; beyond a day it names the weekday and time. | `2h09m`, `Thu 18:00` |
+| Phases, when room is short | `spec`, `clar`, `plan`, `tasks`, `impl`. | `◆ 002 · impl 45%` |
+| Keys | `r` refresh, `q` run a queued subagent (the first queued run takes `q`), `?` help (pressed as `h`), `/` filter (pressed as `f`), `c` clear, `o` order, `p` priority, `a` advisor, space page, Esc close. | `? help (h)`, `/ filter (f)` |
+| Messages | Toasts start with `astrolabe ✓` for a state or success and `astrolabe ▲` for a warning. | `astrolabe ✓ 002 band-hint moved to tasks · next: /speckit-tasks` |
+| Separators | `│` between zones, `·` inside one, never both in one zone. In the footer each chip is a zone. | `◆ 002 · implement 45% │ 5h 92%▴ ceiling · paused until 14:00` |
 
 ### The footer in place of a statusline
 
 The footer carries what a statusline under the prompt usually shows, so you can remove a
 separate `statusLine` command from your settings. By default it sits at the bottom of the
 `/astrolabe` pane, under every tab, and the status entry keeps only the Spec Kit part and the
-window that decides (`◆ 002 · implement 45% · 5h 42% (2h13m)`). Set `footerIn` to `status` to put
+window that decides (`◆ 002 · implement 45% │ 5h 42% (2h13m)`). Set `footerIn` to `status` to put
 the whole footer back in the status entry, or `both` for both places. On a tab shorter than the
 pane the footer holds the last rows; the Dashboard is longer, so its footer follows the charts.
 
 In the pane the footer is drawn the way the [statusline](https://github.com/jonyfs/statusline)
 project draws its bar: Powerline chips in Catppuccin colours. Spec Kit is mauve, the model red, git
 lavender, and the usage windows and the context follow statusline's ramp: green below
-60%, yellow to 85% (`5h 72%▵`), red above (`5h 94%▴`). The context takes the colour without the
+60%, yellow from 60% to 80% (`5h 72%▵`), red from 80% (`5h 94%▴`), where 80% is the window's hold level. The context takes the colour without the
 mark. The `flavor` option picks the palette; with `ascii` icons, the accessible mode or the
-`NO_COLOR` environment variable set, the footer is plain text with ` · ` between the parts.
+`NO_COLOR` environment variable set, the footer is plain text with ` │ ` between the parts.
 
 When the room is too narrow, the parts go from the end: duration first, then the burn rate, git, model,
 the other window and the context. The Spec Kit part and the window that decides always stay.
@@ -197,7 +214,7 @@ The other entries you may see:
 | `◆ no active feature · next: /speckit-constitution` | Same, and the constitution is missing or still the unfilled template. |
 | `◆ 003 · abandoned` | `feature.json` names a feature whose spec says `status: abandoned`. A percentage follows when it has tasks (`◆ 003 · abandoned 40%`). |
 | `◆ 001 · done 100%` | `feature.json` names a finished feature. Run `/speckit-specify` for the next one. |
-| `… · 5h 42%` | The fuller usage window, with its band when it is not ok (`5h 83% hold`). See [Usage governance](#usage-governance). |
+| `… │ 5h 42%` | The fuller usage window, with its mark and band when it is not ok (`5h 83%▴ hold`). See [Usage governance](#usage-governance). |
 
 ![A folder without Spec Kit](docs/images/no-speckit.svg)
 
@@ -410,7 +427,7 @@ band drawn above it in the terminal:
 
 next: /speckit-implement
 
-◆ 002 · implement 45% · 5h 42% (2h13m) · ctx 61% · opus 5.5 high · git:main ~2
+◆ 002 · implement 45% │ 5h 42% (2h13m) │ ctx 61% │ opus 5.5 high │ git:main ~2
 ```
 
 When Claude ticks tasks with an Edit, the tool's row in the transcript names them
@@ -487,13 +504,13 @@ Type `/astrolabe` to open a pane with seven tabs (`/astrolabe help` lists every 
 right; otherwise it sits above the prompt. It opens with the keyboard on it, so `1` to `7`
 switch tabs right away, and Esc closes it. Later, focus it again with a click or
 `ctrl+x tab`. The tab you pick stays for the session, and the next session of the same project opens on it.
-On Specs, Tasks and Help, `f` puts the cursor in one filter that keeps the rows holding what you
+On Specs, Tasks and Help, `/` (pressed as `f`) puts the cursor in one filter that keeps the rows holding what you
 type (a filter that keeps nothing says so); on Specs, `s` cycles a status filter (all, in progress, next up, done, abandoned), and `is:done` in the filter does the same; in a narrow pane the legend keeps only the keys; from 80 columns it ends with `updated 14:32`, when Astrolabe last wrote what the tabs show; `✕` at the end of the tab row closes the pane.
 
-`h` opens the Help tab from any tab. The tab shown starts with `▸`, and the pane's title names the active feature the way the band and the footer do (`🧭 Astrolabe · ◆ 026 claude-context`, with `~` before the id when the active feature is a guess). Below 80 columns a tab shows only its number and count (`2·11`). Below 60 the pane is compact: the Specs rows drop their progress bars and keep the count. A tab label carries a count when there is one: `Specs 3` features in progress, `Tasks 11` open
+`?` opens the Help tab from any tab; the button is pressed with `h`, because a button hotkey is one digit or letter. The tab shown starts with `▸`, and the pane's title names the active feature the way the band and the footer do (`🧭 Astrolabe · ◆ 026 claude-context`, with `~` before the id when the active feature is a guess). Below 80 columns a tab shows only its number and count (`2·11`). Below 60 the pane is compact: the Specs rows drop their progress bars and keep the count. A tab label carries a count when there is one: `Specs 3` features in progress, `Tasks 11` open
 tasks of the active feature, `PRs 2` open pull requests. Above the footer, a dim row says what the
 tab is for and lists its keys, such as
-`every feature, its phase and progress · 1-7 tabs · h help · f filters · s status · j/k scroll · r ↻ · Esc closes`. A tab with
+`every feature, its phase and progress · 1-7 tabs · ? help (h) · / filter (f) · s status · j/k scroll · r ↻ · Esc closes`. A tab with
 nothing to show says what would fill it and the command that does, for example
 `No active feature. Run /speckit-specify to start one.`
 
@@ -536,11 +553,11 @@ The footer's chips take their order and colour from one table in `hooks/core/foo
 
 The Help tab (and `/astrolabe help`) starts with what this version changed, lists every option
 with its value now (`footerIn=pane`), the footer's parts in their fixed order (Spec Kit, deciding window, other windows, context, model, skill, git, burn, session time; a narrow screen drops session time first, then burn, git, skill, model, the other windows and context), and ends with a legend of every mark Astrolabe draws (`◆`, `●`,
-`◐`, `○`, `?`, `▸`, `⟳`, `~`, `!`, `☐`, `⑂`, `⇉`, `⏱`) and a glossary of the six Spec Kit steps.
+`◐`, `○`, `?`, `▸`, `⟳`, `~`, `!`, `☐`, `⑂`, `⇉`, `◷`) and a glossary of the six Spec Kit steps.
 Its last lines link the Spec Kit docs (https://github.github.com/spec-kit/), gstack
 (https://github.com/garrytan/gstack) and this README; in the pane each of those lines opens its link.
 A toast about a failure names the command that fixes it, for example
-`🧭 #42: not mergeable; run gh pr merge 42 --merge`.
+`astrolabe ▲ #42: not mergeable; run gh pr merge 42 --merge`.
 
 **1 Specs** lists every feature:
 
@@ -590,7 +607,7 @@ after each turn from the branch name (`026-...`) and that worktree's files:
 
 ![The pane, Tasks tab](docs/images/pane-tasks.svg)
 
-The task being worked on is marked `▸` and shows how long it has run (`▸ T010 Write x.ts                    ⏱ 12m`): the row is bold and the clock sits at the right edge. The last turn's diff of `tasks.md` shows at most 6 lines and a `… +N lines` line. The first row names the feature, its phase and its count (`026 claude-context · implement · 9/20 done`). Ticked tasks fold into one dim row (`✓ 9 done · T001…T009`). Headings of `tasks.md`, such as `Phase 3: User Story 1 · 2/5`, head their tasks with their own count, and a run of `[P]` tasks is bracketed with `┌`, `│` and `└` (a lone one gets `⇉`); the `⇉ … can run in parallel` line shows only when no bracket does. When the open tasks, at the time the ticked ones took, would end after the 5-hour window resets, a `⚠` line says so. When more tasks are open than the pane has rows, the last line says `+N more`. A feature with
+The task being worked on is marked `▸` and shows how long it has run (`▸ T010 Write x.ts                    ◷ 12m`): the row is bold and the clock sits at the right edge. The last turn's diff of `tasks.md` shows at most 6 lines and a `… +N lines` line. The first row names the feature, its phase and its count (`026 claude-context · implement · 9/20 done`). Ticked tasks fold into one dim row (`✓ 9 done · T001…T009`). Headings of `tasks.md`, such as `Phase 3: User Story 1 · 2/5`, head their tasks with their own count, and a run of `[P]` tasks is bracketed with `┌`, `│` and `└` (a lone one gets `⇉`); the `⇉ … can run in parallel` line shows only when no bracket does. When the open tasks, at the time the ticked ones took, would end after the 5-hour window resets, a `⚠` line says so. When more tasks are open than the pane has rows, the last line says `+N more`. A feature with
 no `tasks.md` yet says so; a quick spec (`track: quick`) uses the `## Tasks` section of its
 `spec.md` instead. When two or more `[P]` tasks come first among the open ones, a `⇉` line names
 them: they can go to subagents at once. The `▶ send T002, T003 to subagents at once` button above
@@ -708,14 +725,14 @@ nothing else):
 If the task names files, at least one of them has to have been edited, or the toast lists them:
 
 ```text
-🧭 T014 was ticked, but none of its files were edited: tests/core/parser.test.ts
+astrolabe ▲ T014 was ticked, but none of its files were edited: tests/core/parser.test.ts
 ```
 
 A task about tests that names no file, ticked while code changed but no test file did, raises
 one too:
 
 ```text
-🧭 T009 was ticked, but no test file changed
+astrolabe ▲ T009 was ticked, but no test file changed
 ```
 
 A code file is any file inside the Spec Kit root that is not under `specs/` or `.specify/`,
@@ -732,8 +749,8 @@ edit raises the alarm.
 later phase, you see it once per session:
 
 ```text
-🧭 002 band-hint moved to tasks · next: /speckit-tasks
-🧭 002 band-hint is done · next: /speckit-specify
+astrolabe ✓ 002 band-hint moved to tasks · next: /speckit-tasks
+astrolabe ✓ 002 band-hint is done · next: /speckit-specify
 ```
 
 To decide what is new, Astrolabe remembers each feature's last seen phase for the session.
@@ -742,15 +759,15 @@ not toast, and two sessions open on the same project each toast on their own. A 
 
 To turn the toasts off, pick the `minimal` preset, or `compact` to keep only the drift alarm.
 
-When three turns in a row work on the same task and tick nothing, a toast says so once: `🧭 three turns on T010 and nothing ticked: /compact, or split T010 into smaller tasks`. With `claudeContext` on, the line Claude reads also names what still blocks the feature: open `[NEEDS CLARIFICATION]` markers, open checklist items, and `/speckit-analyze` not yet run before the first task. A prompt that names another feature by its id (`fix the bug in 001`) also gets a line saying which feature is active, since `.specify/feature.json` decides what Spec Kit skills work on.
+When three turns in a row work on the same task and tick nothing, a toast says so once: `astrolabe ▲ three turns on T010 and nothing ticked: /compact, or split T010 into smaller tasks`. With `claudeContext` on, the line Claude reads also names what still blocks the feature: open `[NEEDS CLARIFICATION]` markers, open checklist items, and `/speckit-analyze` not yet run before the first task. A prompt that names another feature by its id (`fix the bug in 001`) also gets a line saying which feature is active, since `.specify/feature.json` decides what Spec Kit skills work on.
 
 The first `/speckit-implement` on a feature whose `spec.md` still has `[NEEDS CLARIFICATION` markers is refused. Claude reads why: `Astrolabe: feature 001 auth still has 1 open [NEEDS CLARIFICATION] marker in spec.md. Run /speckit-clarify first. To implement anyway, call /speckit-implement again.` A second call in the same session goes through.
 
 **Usage notices.** Each shows once a session:
 
 ```text
-🧭 The context window is 86% full: /compact before Claude Code compacts it for you
-🧭 The prompt cache goes cold in about 30 s: the next prompt after that re-reads the whole context
+astrolabe ▲ The context window is 86% full: /compact before Claude Code compacts it for you
+astrolabe ▲ The prompt cache goes cold in about 30 s: the next prompt after that re-reads the whole context
 ```
 
 The context line shows at 85%, and once more
@@ -774,7 +791,7 @@ updates: [ gstack 1.91.33.0 ][ specify 1.2.0 ][ Spec Kit skills 1.2.0 ][ astrola
 | Button | How Astrolabe knows | What a click does |
 |---|---|---|
 | gstack | `~/.claude/skills/gstack/bin/gstack-update-check` exists and reports `UPGRADE_AVAILABLE` (Astrolabe reads `HOME`, or `USERPROFILE` on Windows, to find it, and runs nothing when gstack is not installed) | Runs the `/gstack-upgrade` command, which upgrades gstack and reports itself. |
-| specify | `specify self check` names a newer release | Runs `specify self upgrade`, then toasts `🧭 specify updated to 1.2.0`. |
+| specify | `specify self check` names a newer release | Runs `specify self upgrade`, then toasts `astrolabe ✓ specify updated to 1.2.0`. |
 | Spec Kit skills | `specify version` is newer than this project's `.specify/integrations/speckit.manifest.json` | The first click turns the button into `confirm: rewrite .claude/skills/speckit-*`. The second runs `specify init --here --integration claude --force` in the project, which rewrites the project's Spec Kit skills. |
 | astrolabe | GitHub's latest release of jonyfs/astrolabe is newer than the installed version | Runs `claude plugin update astrolabe`, then toasts that you should run `/reload-plugins`. |
 
@@ -871,8 +888,8 @@ Claude Code tells the mod how full your 5-hour and weekly windows are after ever
 Astrolabe adds the window that decides to the status entry and acts on it:
 
 ```text
-⚠ astrolabe: ◆ 002 · implement 45% · 5h 42%
-⚠ astrolabe: ◆ 002 · implement 45% · 5h 83% hold
+⚠ astrolabe: ◆ 002 · implement 45% │ 5h 42%
+⚠ astrolabe: ◆ 002 · implement 45% │ 5h 83%▴ hold
 ```
 
 | Band | Window | New subagents (`Agent` calls) | Other tools |
@@ -901,8 +918,8 @@ The Session tab says where the governor stands in plain words, for example
 `holding (7d at 83%): new subagents wait until 14:00; other tools run`, and, at the pace of the
 recent readings, when the next band comes (`hold at 80% in about 30m at this pace`). It lists
 each queued subagent with the command that sends it now: type `/astrolabe run q1` yourself
-(Claude, a plugin or a script cannot). The queue survives `/reload-plugins` and a new session: when one starts with subagents still waiting, a toast says so, for example `🧭 2 subagents still waiting since 14:02; /astrolabe run <id> runs one now`. While the session is paused, the footer's first chip turns
-red and says until when: `5h 92% ceiling · paused until 14:00`.
+(Claude, a plugin or a script cannot). The queue survives `/reload-plugins` and a new session: when one starts with subagents still waiting, a toast says so, for example `astrolabe ✓ 2 subagents still waiting since 14:02; /astrolabe run <id> runs one now`. While the session is paused, the footer's first chip turns
+red and says until when: `5h 92%▴ ceiling · paused until 14:00`.
 
 Only you can lift stop and the ceiling, by typing the command yourself (a command sent by
 Claude, a plugin or a script is refused):
@@ -979,7 +996,7 @@ The `/astrolabe` pane's Session tab shows the governor: the windows and the band
 running against the cap, the queue, an override and a lift with the time each one ends:
 
 ```text
-usage         5h 42% · 7d 83%: hold
+usage         5h 42% · 7d 83%▴: hold
 subagents     0 running, cap 0
 queue         1 waiting: q1 Full review
 override      ceiling 95% on 7d until 14:00
@@ -1227,6 +1244,10 @@ the screen with its colors. `ansi-to-svg.mjs` turns that into an SVG; `--from`, 
 so the images show the nearest match of each Catppuccin color. Lines from other status
 providers (the author's own statusLine) and Claude Code's own usage notice are dropped, and
 `--replace` shortens the author's home path to `~/src/astrolabe`; nothing else is edited.
+
+`scripts/capture/flavors.sh` captures the overview and the Specs tab in mocha and latte, and the
+overview in frappe, macchiato and colorblind. It sets the `flavor` option while it runs and
+restores the previous value when it ends.
 
 ## Privacy
 

@@ -10,7 +10,7 @@ const withSettings = (settings: unknown) => ({
   ...halfDone.tree,
   '/home/me/.claude/settings.json': JSON.stringify(settings),
 })
-const ASKED = '🧭 statusline also draws a footer: run /astrolabe footer astrolabe or /astrolabe footer statusline'
+const ASKED = 'astrolabe ✓ statusline also draws a footer: run /astrolabe footer astrolabe or /astrolabe footer statusline'
 
 describe('who owns the footer (050 #97)', () => {
   test('statusline configured: one toast at the first session, none at the next', async ($, on) => {

@@ -63,7 +63,7 @@ describe('the PRs tab (032)', () => {
     await ui.press({ key: 'pr-merge-45' })
     await session.clock.advance(100)
     expect(session.processes).toContain('gh pr merge 45 --merge --match-head-commit abc1234def')
-    expect(session.toasts).toContain('🧭 #45 merged')
+    expect(session.toasts).toContain('astrolabe ✓ #45 merged')
     await ui.unmount()
   })
 
@@ -156,6 +156,6 @@ describe('gstack /review after a PR is opened (054 #97)', () => {
     on('session.measure', ($$, e) => ({ changed: e.changed }) as never)
     await startSession($ as never, '/proj')
     await $.tool.call({ tool: 'Bash', tool_use_id: 'b', command: 'gh pr create --title x --body-file b.md' } as never)
-    expect(session.toasts.at(-1)).toBe('🧭 PR #128 opened: run gstack /review on it before the merge')
+    expect(session.toasts.at(-1)).toBe('astrolabe ✓ PR #128 opened: run gstack /review on it before the merge')
   })
 })

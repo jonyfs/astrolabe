@@ -1,6 +1,7 @@
 // The active spec's summary for the pane (024 #7) and the turn's tasks.md diff (024 #8).
 import { plainText } from './git-status'
 import { t, type Lang } from './i18n'
+import { duration } from './duration'
 // Pure: no $. Never throws.
 
 const MAX_PARAGRAPH = 400
@@ -62,8 +63,7 @@ export const foldedDiff = (text: string, file: string, ageMs: number, lang: Lang
   const lines = text.split('\n')
   const added = lines.filter(l => l.startsWith('+') && !l.startsWith('+++')).length
   const removed = lines.filter(l => l.startsWith('-') && !l.startsWith('---')).length
-  const minutes = Math.floor(ageMs / 60_000)
-  const ago = minutes < 60 ? `${minutes}m` : `${Math.floor(minutes / 60)}h${String(minutes % 60).padStart(2, '0')}m`
+  const ago = duration(Math.floor(ageMs / 60_000) * 60_000)
   return t(lang, 'pane.diffFolded', { added, removed, file, ago })
 }
 

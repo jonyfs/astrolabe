@@ -2,8 +2,10 @@
 // session and the session's KPIs. Charts are cell grids (cells.ts). Pure: no $.
 import { blank, put, write, type Grid } from './cells'
 import { clockOf, labelOf } from './governor'
+import { duration } from './duration'
 import { t as tr, type Lang } from './i18n'
 import type { Tokens } from './theme'
+import { usageRamp } from './usage-ramp'
 import type { Feature, Phase, SessionStats } from './types'
 
 const CYCLE: readonly Phase[] = ['specify', 'clarify', 'plan', 'tasks', 'implement', 'done']
@@ -39,7 +41,7 @@ export const dial = (active: Phase | undefined, tokens: Tokens): Grid => {
     tasks: tokens.accent,
     implement: tokens.current,
     done: tokens.done,
-    abandoned: tokens.pending,
+    abandoned: tokens.faint,
   }
   for (const [i, step] of CYCLE.entries()) {
     const spot = SPOTS[step]!
@@ -139,7 +141,7 @@ export const usageChart = (series: SessionStats['series'], o: ChartOptions): Gri
     const span = o.width - from
     for (let i = 0; i < span; i += 1) {
       const value = last.percent + ((end - last.percent) * (i + 1)) / span
-      put(g, from + i, rowOf(value), '·', value >= 80 ? o.tokens.current : o.tokens.pending)
+      put(g, from + i, rowOf(value), '·', value >= 60 ? o.tokens[usageRamp(value).role] : o.tokens.pending)
     }
   }
   const firstTime = clockOf(new Date(points[0]!.at).toISOString()) ?? ''
@@ -150,10 +152,6 @@ export const usageChart = (series: SessionStats['series'], o: ChartOptions): Gri
   return g
 }
 
-const duration = (ms: number) => {
-  const m = Math.max(0, Math.floor(ms / 60_000))
-  return m < 60 ? `${m}m` : `${Math.floor(m / 60)}h${String(m % 60).padStart(2, '0')}m`
-}
 
 /** The KPI rows, label then value; a value the session does not have is left out. */
 /**

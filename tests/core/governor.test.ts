@@ -41,8 +41,8 @@ describe('decide (FR-002)', () => {
 describe('texts', () => {
   test('usage segment', () => {
     expect(usageSegment(decide([r(42)], [], undefined, NOW))).toBe('5h 42%')
-    expect(usageSegment(decide([r(83.4)], [], undefined, NOW))).toBe('5h 83% hold')
-    expect(usageSegment(decide([r(12), r(72, 'seven_day')], [], undefined, NOW))).toBe('7d 72% throttle')
+    expect(usageSegment(decide([r(83.4)], [], undefined, NOW))).toBe('5h 83%▴ hold')
+    expect(usageSegment(decide([r(12), r(72, 'seven_day')], [], undefined, NOW))).toBe('7d 72%▵ throttle')
     expect(usageSegment(decide([], [], undefined, NOW))).toBeUndefined()
   })
   test('refusals name the band, the reset and the queue id', () => {
@@ -178,7 +178,7 @@ describe('parity with the usage-governor skill (016)', () => {
     )
     expect(rows.map(([label]) => label)).toEqual(['state', 'usage', 'subagents', 'queue', 'override', 'lift'])
     expect(rows[0]?.[1]).toBe('slowing down (7d at 83%): at most 1 subagent at a time')
-    expect(rows[1]?.[1]).toBe('5h 42% · 7d 83%: throttle')
+    expect(rows[1]?.[1]).toBe('5h 42% · 7d 83%▴: throttle')
     expect(rows[2]?.[1]).toBe('1 running, cap 1')
     expect(rows[3]?.[1]).toBe('q1 Review · /astrolabe run q1')
     expect(rows[4]?.[1]).toMatch(/^ceiling 95% on 7d until \d\d:\d\d, in \d+(h\d\d)?m$/)
@@ -210,11 +210,11 @@ describe('a gateway spend limit ramps like the windows (047 #69)', () => {
   test('spend_limit takes the same bands and reads as "spend limit"', () => {
     const band = (p: number) => decide([r(p, 'spend_limit')], [], undefined, NOW)
     expect([band(42), band(72), band(83), band(89), band(91)].map(d => d.band)).toEqual(['ok', 'throttle', 'hold', 'stop', 'ceiling'])
-    expect(usageSegment(band(83))).toBe('spend limit 83% hold')
+    expect(usageSegment(band(83))).toBe('spend limit 83%▴ hold')
   })
   test('past 100 on an exceeded limit reads full and stays at the ceiling', () => {
     const d = decide([r(104.5, 'spend_limit')], [], undefined, NOW)
     expect(d.band).toBe('ceiling')
-    expect(usageSegment(d)).toBe('spend limit full ceiling')
+    expect(usageSegment(d)).toBe('spend limit full▴ ceiling')
   })
 })

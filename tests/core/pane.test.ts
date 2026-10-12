@@ -68,14 +68,15 @@ describe('specsRows', () => {
       expect(terminalText).not.toContain(longName)
     }
   })
-  test('roles: accent for the active one, done, muted and dim for abandoned; sections muted', () => {
+  test('roles: accent for the active one, done, faint for abandoned; sections muted (064 #2)', () => {
     const rows = specsRows(state(), 80).filter(r => r.key.startsWith('feature-') || r.key.startsWith('warning'))
-    expect(rows.map(r => [r.role, r.dim === true])).toEqual([
-      ['accent', false],
-      ['current', false],
-      ['done', false],
-      ['muted', true],
-    ])
+    expect(rows.map(r => r.role)).toEqual(['accent', 'current', 'done', 'faint'])
+    // Muted text is a colour that reaches 4.5:1, not the terminal's dim attribute.
+    expect(rows.every(r => !('dim' in r))).toBe(true)
+  })
+  test('text rows never use the pending role, which is for rules and glyphs (064 #2)', () => {
+    const rows = [...specsRows(state(), 80), ...taskRows(state(), emptyMemo(), 0, 80, 'en', 0)]
+    expect(rows.filter(r => /[A-Za-z0-9]/.test(r.text)).map(r => r.role)).not.toContain('pending')
   })
   test('the running skill shows on the active feature (044 #33)', () => {
     const rows = specsRows(state({ runningSkill: { name: 'speckit-implement', step: 'implement' } }), 100)
@@ -94,8 +95,8 @@ describe('specsRows', () => {
   test('narrow panes drop the bar, then the count, then cut the name, never the id', () => {
     const row = (columns: number) => texts(specsRows(state(), columns).filter(r => r.key === 'feature-002'))[0]
     expect(row(48)).toBe('▸ ◐ 002 band-hint   implement   9/20  45%')
-    expect(row(34)).toBe('▸ ◐ 002 band-hint  implement 45%')
-    expect(row(27)).toBe('▸ ◐ 002 b…  implement 45%')
+    expect(row(34)).toBe('▸ ◐ 002 band-hint   impl  45%')
+    expect(row(27)).toBe('▸ ◐ 002 band-h…  impl 45%')
     for (let columns = 12; columns <= 120; columns += 1) {
       for (const row of specsRows(state(), columns).filter(r => r.key.startsWith('feature-'))) {
         expect(width(row.text) <= columns || /^. . \d{3}/.test(row.text)).toBe(true)
@@ -130,7 +131,7 @@ describe('taskRows', () => {
   test('the current task is marked, with how long it has run (045 #42)', () => {
     const now = 10 * 60_000
     const rows = taskRows(state({ currentTask: { id: 'T003', text: 'c', startedAt: 0 } }), memo(TASKS), 10, 80, 'en', now)
-    expect(texts(rows)).toEqual(['002 band-hint · implement · 1/4 done', '✓ 1 done · T001', 'next', '⇉ T002 Write x.ts', 'current', `${'▸ T003 c'.padEnd(80 - '⏱ 10m'.length)}⏱ 10m`, 'later', 'T004 d'])
+    expect(texts(rows)).toEqual(['002 band-hint · implement · 1/4 done', '✓ 1 done · T001', 'next', '⇉ T002 Write x.ts', 'current', `${'▸ T003 c'.padEnd(80 - '◷ 10m'.length)}◷ 10m`, 'later', 'T004 d'])
     expect(rows[5]?.role).toBe('current')
     // The current row is bold and its clock sits at the right edge (052 #20).
     expect(rows[5]?.bold).toBe(true)
@@ -174,7 +175,7 @@ describe('sessionRows', () => {
       'next          /speckit-implement',
       'running       speckit-implement',
       'analyzed      yes',
-      'current task  T010 · 2m',
+      'current task  T010 · 2m05s',
     ])
   })
   test('without Spec Kit', () => {
@@ -403,5 +404,16 @@ describe('wrappedRows: the footer keeps its rows (investigation of the Specs foo
     expect(wrappedRows(paragraph, 100)).toBe(3)
     expect(wrappedRows(`${paragraph}\n\nshort`, 100)).toBe(5)
     expect(wrappedRows('', 100)).toBe(1)
+  })
+})
+
+describe('the phase shortens before the name is cut (064 #6)', () => {
+  test('a narrow row keeps the id and uses impl for implement', () => {
+    const feature: Feature = { id: '002', name: 'band', dir: 'specs/002-band', phase: 'implement', done: 2, total: 8, warnings: [] } as unknown as Feature
+    const st = { present: true, constitution: 'ratified', features: [feature], active: { dir: feature.dir, id: '002', name: 'band' }, worktrees: [] } as unknown as SpeckitState
+    const rows = specsRows(st, 28).filter(r => r.key.startsWith('feature-'))
+    expect(rows[0]?.text).toContain('002')
+    expect(rows[0]?.text).toContain('impl')
+    expect(rows[0]?.text).not.toContain('implement')
   })
 })

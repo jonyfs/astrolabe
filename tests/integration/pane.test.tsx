@@ -49,6 +49,17 @@ describe('the pane tabs (US1, US2)', () => {
     })
   }
 
+  test('064 #7: the tools carry the shared key verbs; ? is pressed with h and / with f', async ($, on) => {
+    await setup($ as never, on as never)
+    const ui = await mountPane($ as never, 'terminal', 120)
+    expect((await ui.find({ key: 'help-key' }))?.props['hotkey']).toBe('h')
+    expect((await ui.find({ key: 'help-key' }))?.props['label']).toBe('? h')
+    expect((await ui.find({ key: 'find' }))?.props['hotkey']).toBe('f')
+    expect((await ui.find({ key: 'find' }))?.props['label']).toBe('/ f')
+    expect((await ui.find({ key: 'refresh' }))?.props['hotkey']).toBe('r')
+    await ui.unmount()
+  })
+
   test('050 #99: every tab renders on Desktop, with PR links or a text fallback', async ($, on) => {
     const { session } = await setup($ as never, on as never)
     session.script.processes['gh pr list --state open --limit 20 --json number,title,headRefName,headRefOid,url,labels,reviewDecision,statusCheckRollup,mergeStateStatus,isDraft,author,createdAt'] = {
@@ -147,7 +158,7 @@ describe('the pane tabs (US1, US2)', () => {
     await desktop.unmount()
     const terminal = await mountPane($ as never, 'terminal', 40)
     expect(await terminal.body()).toContain('…')
-    expect((await terminal.find({ type: 'Text', text: /feature-name-th…/ }))?.props['wrap']).toBe('truncate-end')
+    expect((await terminal.find({ type: 'Text', text: /feature-name-th\S*…/ }))?.props['wrap']).toBe('truncate-end')
     await terminal.unmount()
   })
 
@@ -360,7 +371,7 @@ describe('acting on a spec (051)', () => {
     expect(ran.text).toBe('🧭 reviewing 002 band-hint with opus; the findings land in the Session tab')
     await session.clock.settle()
     expect(asked[0]).toMatchObject({ model: 'opus', effort: 'xhigh' })
-    expect(session.toasts.at(-1)).toBe('🧭 the review of 002 band-hint is in the Session tab')
+    expect(session.toasts.at(-1)).toBe('astrolabe ✓ the review of 002 band-hint is in the Session tab')
     await session.clock.advance(5 * 60_000)
     const ui = await mountPane($ as never, 'terminal', 120, 40)
     await ui.press('tab-session')

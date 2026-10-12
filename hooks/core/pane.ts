@@ -7,11 +7,15 @@ import { fileUrl } from './paths'
 import { byPriority, priorityMark, taskFiles, type Priorities, type Priority } from './spec-actions'
 import { parseTasks } from './tasks-parser'
 import { groupOpenTasks } from './task-groups'
+import { STATE_GLYPHS } from './glyphs'
+import { phaseShort } from './phase'
+import { duration } from './duration'
+import { idWidth, padId } from './ids'
 import { STATUS_ROLE, type ThemeRole } from './theme'
 import type { Feature, SessionMemo, SpeckitState } from './types'
 
 /** A row; `segments`, when given, colour parts of `text` (which stays their join) (052 #12). */
-export type PaneRow = { key: string; text: string; role: ThemeRole; dim?: boolean; bold?: boolean; selected?: boolean; label?: string; value?: string; action?: { id: string; label: string; hotkey: string; kind?: 'allow' | 'revoke' }; copy?: string; href?: string; links?: ReadonlyArray<{ label: string; href: string }>; segments?: ReadonlyArray<{ text: string; role: ThemeRole }> }
+export type PaneRow = { key: string; text: string; role: ThemeRole; bold?: boolean; selected?: boolean; label?: string; value?: string; action?: { id: string; label: string; hotkey?: string; kind?: 'allow' | 'revoke' }; copy?: string; href?: string; links?: ReadonlyArray<{ label: string; href: string }>; segments?: ReadonlyArray<{ text: string; role: ThemeRole }> }
 
 const BAR_CELLS = 10
 const noSpeckit = (lang: Lang): PaneRow => ({ key: 'none', text: tr(lang, 'pane.noSpeckit'), role: 'muted' })
@@ -33,16 +37,16 @@ export const COMPACT_COLUMNS = 60
 
 const featureRow = (f: Feature, isActive: boolean, columns: number, ctx: RowContext): PaneRow => {
   // Not read yet in a large project (040): a mark and no phase until its batch lands.
-  if (f.warnings.includes('loading')) return { key: `feature-${f.id}`, text: `${isActive ? '▸' : ' '} … ${f.id.padEnd(ctx.idWidth ?? 0)} ${f.name}`, role: 'muted', dim: true }
+  if (f.warnings.includes('loading')) return { key: `feature-${f.id}`, text: `${isActive ? '▸' : ' '} … ${padId(f.id, ctx.idWidth ?? 0)} ${f.name}`, role: 'faint' }
   // `↑` high, `↓` low in the space before the id (051).
   // Ids padded to the widest, so every name starts in one column (054 #25).
-  const head = `${isActive ? '▸' : ' '} ${markOf(f)}${priorityMark(ctx.priority)}${f.id.padEnd(ctx.idWidth ?? 0)} `
+  const head = `${isActive ? '▸' : ' '} ${markOf(f)}${priorityMark(ctx.priority)}${padId(f.id, ctx.idWidth ?? 0)} `
   const percent = f.total > 0 ? `${Math.floor((f.done * 100) / f.total)}%`.padStart(4) : ''
   const count = f.total > 0 ? `${f.done}/${f.total}`.padStart(ctx.countWidth) : ''
   const filled = f.total > 0 ? Math.floor((f.done * BAR_CELLS) / f.total) : 0
   const bar = f.total > 0 ? `${'█'.repeat(filled)}${'░'.repeat(BAR_CELLS - filled)}` : ''
-  const role: ThemeRole = isActive ? 'accent' : f.phase === 'done' ? 'done' : f.phase === 'abandoned' ? 'muted' : 'text'
-  const dim = f.phase === 'abandoned' ? { dim: true } : {}
+  // Abandoned rows read in the faint text role (064 #2), not a dimmed one: a colour that is checked.
+  const role: ThemeRole = isActive ? 'accent' : f.phase === 'done' ? 'done' : f.phase === 'abandoned' ? 'faint' : 'text'
   // Chips for open questions and checklist items (044 #39).
   const chips = [
     f.clarifications !== undefined && f.clarifications > 0 ? `?${f.clarifications}` : '',
@@ -60,6 +64,8 @@ const featureRow = (f: Feature, isActive: boolean, columns: number, ctx: RowCont
     `${head}${name}  ${phase}  ${bar.padEnd(BAR_CELLS)}  ${count} ${percent}${running}${updated}`,
     `${head}${name}  ${phase}  ${count} ${percent}${running}${updated}`,
     `${head}${name}  ${phase} ${percent}${updated}`,
+    // The phase's short form (064 #6) before the name is cut.
+    `${head}${name}  ${phaseShort(f.phase)} ${percent}`,
   ].map(text => text.trimEnd())
   // A compact pane under 60 columns never draws bars (054 #69), even when a short name leaves room.
   const fitting = forms.slice(columns < COMPACT_COLUMNS ? 1 : 0).find(text => width(text) <= columns)
@@ -74,13 +80,13 @@ const featureRow = (f: Feature, isActive: boolean, columns: number, ctx: RowCont
       { text: '░'.repeat(BAR_CELLS - filled), role: 'barEmpty' as ThemeRole },
       { text: `  ${count} ${percent}${running}${updated}`.trimEnd(), role },
     ]
-    return { key: `feature-${f.id}`, text: fitting, role, ...dim, segments }
+    return { key: `feature-${f.id}`, text: fitting, role, segments }
   }
-  if (fitting !== undefined) return { key: `feature-${f.id}`, text: fitting, role, ...dim }
-  const tail = `  ${f.phase}${percent === '' ? '' : ` ${percent.trim()}`}`
+  if (fitting !== undefined) return { key: `feature-${f.id}`, text: fitting, role }
+  const tail = `  ${phaseShort(f.phase)}${percent === '' ? '' : ` ${percent.trim()}`}`
   const cutName = ctx.wrapLongNames === true ? f.name : cut(f.name, columns - width(head) - width(tail))
   const text = cutName === '' ? `${head.trimEnd()}${tail}` : `${head}${cutName}${tail}`
-  return { key: `feature-${f.id}`, text, role, ...dim }
+  return { key: `feature-${f.id}`, text, role }
 }
 
 /** Which section a feature belongs to (044): working on it, next up, done, abandoned. */
@@ -145,7 +151,7 @@ const buildSpecsRows = (
   if (state.features.length === 0) return [{ key: 'empty', text: tr(lang, 'pane.noFeatures'), role: 'muted' }]
   const activeDir = state.active?.dir
   const ctx = {
-    idWidth: Math.max(0, ...state.features.map(f => width(f.id)), ...worktreeRows.map(w => width(w.id))),
+    idWidth: idWidth([...state.features.map(f => f.id), ...worktreeRows.map(w => w.id)]),
     nameWidth: wrapLongNames ? Math.max(...state.features.map(f => width(f.name)), ...worktreeRows.map(w => width(w.featureName))) : Math.min(24, Math.max(...state.features.map(f => width(f.name)), ...worktreeRows.map(w => width(w.featureName)))),
     countWidth: Math.max(0, ...state.features.filter(f => f.total > 0).map(f => width(`${f.done}/${f.total}`)), ...worktreeRows.filter(w => w.total > 0).map(w => width(`${w.done}/${w.total}`))),
   }
@@ -183,7 +189,7 @@ const buildSpecsRows = (
     if (trees.length > 1) rows.push({ key: `warning-worktrees-${id}`, text: tr(lang, 'pane.worktreeClash', { id, list: trees.join(', ') }), role: 'current' })
   }
   for (const tree of worktreeRows) {
-    const head = `  ⑂${tree.id.padEnd(ctx.idWidth ?? 0)} `
+    const head = `  ⑂${padId(tree.id, ctx.idWidth ?? 0)} `
     const name = (wrapLongNames ? tree.featureName : cut(tree.featureName, ctx.nameWidth)).padEnd(ctx.nameWidth)
     const phase = tree.phase.padEnd(9)
     const count = tree.total > 0 ? `${tree.done}/${tree.total}`.padStart(ctx.countWidth) : ''
@@ -273,11 +279,6 @@ export const moveSpecSelection = (
   return to === from && found >= 0 ? undefined : rows[to]?.key
 }
 
-const elapsed = (ms: number): string => {
-  const minutes = Math.max(0, Math.floor(ms / 60_000))
-  return minutes < 60 ? `${minutes}m` : `${Math.floor(minutes / 60)}h${String(minutes % 60).padStart(2, '0')}m`
-}
-
 export const taskRows = (
   state: SpeckitState,
   memo: SessionMemo,
@@ -328,8 +329,8 @@ export const taskRows = (
   // The fold row counts what it folds (052 #23).
   // The time they took, from the session's task times (045 #47).
   const took = times.filter(x => x.dir === active.dir && done.includes(x.id)).reduce((sum, x) => sum + x.ms, 0)
-  const tookText = took > 0 ? ` · ${elapsed(took)}` : ''
-  if (done.length > 0) out.push({ key: 'done-folded', text: cut(`${tr(lang, 'pane.folded', { n: done.length, ids: done.length === 1 ? done[0]! : `${done[0]}…${done.at(-1)}` })}${tookText}`, columns), role: 'done', dim: true })
+  const tookText = took > 0 ? ` · ${duration(took)}` : ''
+  if (done.length > 0) out.push({ key: 'done-folded', text: cut(`${tr(lang, 'pane.folded', { n: done.length, ids: done.length === 1 ? done[0]! : `${done[0]}…${done.at(-1)}` })}${tookText}`, columns), role: 'faint' })
   const room = Math.max(1, rows - 1)
   const shown = open.length <= room ? open : open.slice(0, room - 1)
   // A run of [P] tasks at the head can go to subagents at once (020c #19); the line drops when
@@ -346,7 +347,7 @@ export const taskRows = (
     return before && after ? '│ ' : before ? '└ ' : after ? '┌ ' : '⇉ '
   }
   // Ids padded to the widest shown, so the text column lines up (052 #22).
-  const idWidth = Math.max(0, ...shown.map(t => t.id?.length ?? 0))
+  const taskIdWidth = idWidth(shown.flatMap(t => (t.id === undefined ? [] : [t.id])), 0)
   let story: string | undefined
   // The tasks by where they stand: current, next, blocked by an earlier open one, later (054 #27).
   // Headers show only when the shown tasks fall in more than one group.
@@ -371,10 +372,10 @@ export const taskRows = (
     // The task being worked on (045 #42): marked, with how long it has run.
     const current = state.currentTask
     const isCurrent = current !== undefined && t.id !== undefined && current.id === t.id
-    const ran = isCurrent && now !== undefined && current.startedAt !== undefined ? elapsed(now - current.startedAt) : ''
-    const clock = ran === '' ? '' : `⏱ ${ran}`
-    const head = `${isCurrent ? '▸ ' : ''}${groupOf(index)}${t.id === undefined ? '' : `${t.id.padEnd(idWidth)} `}`
-    // The ⏱ sits at the right edge, the current row in bold (052 #20).
+    const ran = isCurrent && now !== undefined && current.startedAt !== undefined ? duration(now - current.startedAt) : ''
+    const clock = ran === '' ? '' : `${STATE_GLYPHS.elapsed} ${ran}`
+    const head = `${isCurrent ? '▸ ' : ''}${groupOf(index)}${t.id === undefined ? '' : `${padId(t.id, taskIdWidth)} `}`
+    // The ◷ sits at the right edge, the current row in bold (052 #20).
     const body = `${head}${cut(cleanTaskText(t.text), columns - width(head) - width(clock) - (clock === '' ? 0 : 2))}`.trimEnd()
     const line = clock === '' ? body : `${body}${' '.repeat(Math.max(2, columns - width(body) - width(clock)))}${clock}`
     const named = isCurrent ? taskFiles(t.text) : []
@@ -425,7 +426,7 @@ export const sessionRows = (state: SpeckitState, now: number, lang: Lang = 'en',
   })
   // Each principle under the constitution row, linked to its heading (054 #83).
   const path = state.root === undefined ? undefined : `${state.root}/.specify/memory/constitution.md`
-  const principles: PaneRow[] = (state.principles ?? []).map((p, i) => ({ key: `session-principle-${i}`, text: `${''.padEnd(labelWidth)}${p.name}`, role: 'text', dim: true, ...(path === undefined ? {} : { href: `${fileUrl(path)}#L${p.line}` }) }))
+  const principles: PaneRow[] = (state.principles ?? []).map((p, i) => ({ key: `session-principle-${i}`, text: `${''.padEnd(labelWidth)}${p.name}`, role: 'faint', ...(path === undefined ? {} : { href: `${fileUrl(path)}#L${p.line}` }) }))
   const at = rows.findIndex(r => r.key === 'session-constitution') + 1
   return [...rows.slice(0, at), ...principles, ...rows.slice(at)]
 }

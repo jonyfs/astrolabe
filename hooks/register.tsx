@@ -22,6 +22,7 @@ import { fileUrl, joinPath } from './core/paths'
 import { configMark, nextFor, nextPriority, skillsForPhase, specDetail, OPTION_GROUPS, optionDefaults, optionGroup, parallelPrompt, parsePriority, REVIEW_MODEL, reviewPrompt, withPriority, type OptionGroup, type Priority } from './core/spec-actions'
 import { parallelTasks } from './core/extensions'
 import { VERSION } from './core/version'
+import { QUEUE_HOTKEYS } from './core/keys'
 import { ASK_MS, clockOf, decide, dropped, EXTEND_MS, HOLD_LIFT_MS, holdQuestion, nextHeld, isPaused, isReadOnlyTool, parseAllow, pauseQuestion, RAISE_MS, refusal, resumePrompt, runPrompt, usageSegment, type Decision, type Question, usageRows } from './core/governor'
 import { chipForeground, CHIPS, FLAVORS, flavorOf, isThemeKeys, lighten, STATUS_ROLE, themeOf, type ThemeRole } from './core/theme'
 import { capDiff, DIFF_FOLD_MS, foldedDiff, recapLine, recapOf, tasksDiff } from './core/summary'
@@ -60,8 +61,7 @@ const PANE_STATE = { plugin: 'astrolabe', key: 'pane' } as const
 const PANE_ID = 'astrolabe'
 const PANE_TITLE = '🧭 Astrolabe'
 const ASK_ID = 'astrolabe-usage'
-// No `b`: it pages the pane back by a window (043 #29).
-const QUEUE_HOTKEYS = 'acdegilmnoqtuvwxyz'
+// The queued run letters come from core/keys.ts: `q` first, never `b` (it pages back, 043 #29).
 /** `/astrolabe doctor` (048 #79): what Astrolabe needs, each line with the fix when it is missing. */
 /** The doctor's checks, one line each; `doctor` and the Help tab's Health block share them (052 #42). */
 async function doctorLines($: EngineInterface): Promise<string[]> {
@@ -143,7 +143,7 @@ const PR_TTL_MS = 300_000
 // The session's numbers between writes (018): a tool call costs no state write; they are
 // written at the end of each main turn and at each measure. A reload loses one turn's counts.
 const live = { toolCalls: 0, drifts: 0, driftsById: {} as Record<string, number>, agentsRun: 0, agentsById: {} as Record<string, number>, ticksMain: 0, ticksSub: 0, agentsQueued: 0, linesAdded: 0, linesRemoved: 0, model: undefined as string | undefined, effort: undefined as string | undefined }
-// The footer's room: the last width a drawing saw, less the "⚠ astrolabe: " the terminal adds.
+// The footer's room: the last width a drawing saw, less the warning mark and "astrolabe: " the terminal adds.
 let columnsSeen = 120
 let surfaceSeen: string | null = 'terminal'
 let iconsOption: unknown = 'auto'
@@ -329,10 +329,10 @@ async function flushStats($: EngineInterface, change: (s: SessionStats) => Sessi
 }
 
 /** Shows a bounded notification and keeps its full text in the Session tab (052 #44). */
-async function showToast($: EngineInterface, text: string, options?: { timeoutMs?: number }): Promise<void> {
-  const formatted = formatToast(text, t(currentLang(), 'toast.details'))
+async function showToast($: EngineInterface, text: string, options?: { timeoutMs?: number; kind?: 'ok' | 'warn' }): Promise<void> {
+  const formatted = formatToast(text, t(currentLang(), 'toast.details'), options?.kind ?? 'ok')
   if (formatted.full !== undefined) await flushStats($, stats => ({ ...stats, toastDetails: formatted.full }))
-  $.ui.toast(formatted.text, options)
+  $.ui.toast(formatted.text, options?.timeoutMs === undefined ? undefined : { timeoutMs: options.timeoutMs })
 }
 
 /** One `git status` at the end of a main turn (018 FR-003): no shell, 2 s at most. */
@@ -462,12 +462,12 @@ async function runPullAction($: EngineInterface, action: 'approve' | 'update' | 
     // A merge waits for green checks (054 #58): pending or failing checks refuse it here.
     const checks = (await $.state.get(SESSION)).value?.pulls?.rows.find(r => r.number === n)?.checks
     if (action === 'merge' && (checks === 'pending' || checks === 'fail')) {
-      await showToast($, t(lang, checks === 'pending' ? 'prs.mergePending' : 'prs.mergeFailing', { n }))
+      await showToast($, t(lang, checks === 'pending' ? 'prs.mergePending' : 'prs.mergeFailing', { n }), { kind: 'warn' })
       return
     }
     const root = (await $.state.get(SPECKIT)).value?.root ?? (await $.session.cwd())
     const run = await $.process.run(pullAction(action, n, head), { cwd: root, timeoutMs: 30_000 })
-    await showToast($, run.exitCode === 0 ? t(lang, `prs.done.${action}`, { n }) : t(lang, 'prs.failed', { n, error: (run.stderr || run.stdout).trim().split('\n')[0] ?? '', fix: pullAction(action, n).join(' ') }))
+    await showToast($, run.exitCode === 0 ? t(lang, `prs.done.${action}`, { n }) : t(lang, 'prs.failed', { n, error: (run.stderr || run.stdout).trim().split('\n')[0] ?? '', fix: pullAction(action, n).join(' ') }), run.exitCode === 0 ? undefined : { kind: 'warn' })
     await refreshPulls($, true)
   } catch (error) {
     $.ui.log(`astrolabe: ${error instanceof Error ? error.message : String(error)}`, { to: 'debug' })
@@ -688,7 +688,7 @@ function modelSkillTabBody(
   const lang = currentLang()
   const auto = skillModels === 'auto'
   const active = getSkillRunning()
-  const tierColour: Record<string, ThemeRole> = { 'deep-reasoning': 'pending', 'balanced-coding': 'accent', 'fast-lightweight': 'done' }
+  const tierColour: Record<string, ThemeRole> = { 'deep-reasoning': 'faint', 'balanced-coding': 'accent', 'fast-lightweight': 'done' }
   const rows: Array<{ node: RenderNode; rows: number }> = []
   for (const category of ['speckit', 'gstack'] as const) {
     rows.push({ rows: 1, node: <Text key={`models-${category}`} color={tokens0.accent} bold>{t(lang, `models.category.${category}`)}</Text> })
@@ -747,7 +747,7 @@ async function saveConfig($: EngineInterface): Promise<void> {
   await $.state.set(PANE_STATE, rest)
   configRows = (await $.config.list().catch(() => [] as ConfigRow[])).filter(row => row.key.startsWith('astrolabe.'))
   const lang = currentLang()
-  await showToast($, refused.length === 0 ? t(lang, 'config.applied', { n: saved }) : t(lang, 'config.refused', { list: refused.join('; ') }))
+  await showToast($, refused.length === 0 ? t(lang, 'config.applied', { n: saved }) : t(lang, 'config.refused', { list: refused.join('; ') }), refused.length === 0 ? undefined : { kind: 'warn' })
 }
 
 // The options as loaded, for drawings that need more than one (039).
@@ -914,7 +914,7 @@ async function confirmPress($: EngineInterface, key: string, run: () => void): P
 /** Runs one of gstack's skills on a feature (051), from a timer: a command does not run inside a render. */
 async function runSkill($: EngineInterface, skill: string, about: string): Promise<void> {
   await $.command.run({ command: skill, args: `Spec Kit feature ${about}` }).catch(async (error: unknown) => {
-    await showToast($, t(currentLang(), 'gstack.failed', { skill }))
+    await showToast($, t(currentLang(), 'gstack.failed', { skill }), { kind: 'warn' })
     $.ui.log(`astrolabe: ${error instanceof Error ? error.message : String(error)}`, { to: 'debug' })
   })
 }
@@ -953,7 +953,7 @@ async function askFork($: EngineInterface, question: string, about: string): Pro
   try {
     const reply = await $.model.fork({ prompt: `About the Spec Kit feature ${about}, answer in at most three sentences, plain text: ${question}` })
     const text = reply.isAnswered ? reply.text.trim() : t(currentLang(), 'ask.failed', { reason: reply.reason })
-    await showToast($, text, { timeoutMs: 15_000 })
+    await showToast($, text, reply.isAnswered ? { timeoutMs: 15_000 } : { timeoutMs: 15_000, kind: 'warn' })
   } catch (error) {
     $.ui.log(`astrolabe: ${error instanceof Error ? error.message : String(error)}`, { to: 'debug' })
   }
@@ -1281,7 +1281,7 @@ async function warnUsage($: EngineInterface, percent: number | undefined): Promi
   }
   if (JSON.stringify(warned) === JSON.stringify(stats?.warned ?? {})) return
   await flushStats($, s => ({ ...s, warned }))
-  for (const text of toasts) await showToast($, text)
+  for (const text of toasts) await showToast($, text, { kind: 'warn' })
 }
 
 // The images option (024): auto, on or off.
@@ -1561,14 +1561,14 @@ async function sessionTabRows(
     ...usageRows(usage, now, governThresholds).map(([name, text]) => {
       const queued = name === 'queue' || name === '' ? usage.queue[queueIndex] : undefined
       if (queued !== undefined) {
-        const hotkey = QUEUE_HOTKEYS[queueIndex]!
+        const hotkey = QUEUE_HOTKEYS[queueIndex]
         queueIndex += 1
         return valueRow(
           `usage-queue-${queued.id}`,
           name,
           `${queued.id} ${queued.description} · /astrolabe run ${queued.id}`,
           'text',
-          { action: { id: queued.id, label: t(lang, 'queue.runButton', { key: hotkey }), hotkey } },
+          { action: { id: queued.id, label: hotkey === undefined ? t(lang, 'queue.runButton', { key: '-' }) : t(lang, 'queue.runButton', { key: hotkey }), ...(hotkey === undefined ? {} : { hotkey }) } },
         )
       }
       return valueRow(`usage-${name}`, name, text, name === 'state' ? bandRole : 'text')
@@ -1600,7 +1600,7 @@ async function sessionTabRows(
   const updateRows = updates.map(item => ((url => valueRow(`update-${item.id}`, 'update', `${updateLabel(item, false)} (installed ${item.installed})`, 'current', url === undefined ? {} : { href: url }))(releaseNotesUrl(item))))
   // Without Spec Kit the project rows say so on their own; no headings then.
   if (!state.present) return [...project, ...governor, ...activity, ...updateRows]
-  const block = (key: string, rows: Array<{ key: string; text: string; role: ThemeRole; dim?: boolean; bold?: boolean }>) =>
+  const block = (key: string, rows: Array<{ key: string; text: string; role: ThemeRole; bold?: boolean }>) =>
     rows.length === 0 ? [] : [{ key: `block-${key}`, text: t(lang, `session.block.${key}` as TextKey), role: 'accent' as ThemeRole, bold: true }, ...rows]
   return [...block('project', project), ...block('governor', governor), ...block('activity', activity), ...block('updates', updateRows)]
 }
@@ -1725,7 +1725,7 @@ async function touchFile(
     // Per feature too (054 #35): the one active when the alarm went off.
     const id = held.state.active?.id
     if (id !== undefined) live.driftsById[id] = (live.driftsById[id] ?? 0) + 1
-    await showToast($, drift)
+    await showToast($, drift, { kind: 'warn' })
   }
 }
 
@@ -1835,7 +1835,7 @@ async function noteProgress($: EngineInterface, before: Held | undefined, held: 
         spinning = turns >= 3 && s.spin?.told !== true
         return { ...s, spin: { id: current, turns, ...(spinning || (s.spin?.id === current && s.spin.told === true && ticked === 0) ? { told: true as const } : {}) } }
       })
-      if (spinning && presetOf(optionsSeen).toasts !== 'none') await showToast($, t(currentLang(), 'toast.spin', { id: current }))
+      if (spinning && presetOf(optionsSeen).toasts !== 'none') await showToast($, t(currentLang(), 'toast.spin', { id: current }), { kind: 'warn' })
     }
     if (ticked > 0 || finished > 0) {
       const stored = await $.store.get(HISTORY)
@@ -2037,14 +2037,14 @@ async function runUpdate($: EngineInterface, id: UpdateId): Promise<void> {
       }
     }
     if (failure !== undefined) {
-      await showToast($, failure)
+      await showToast($, failure, { kind: 'warn' })
       await setUpdates($, h => ({ items: h.items }))
       return
     }
     await dropUpdate($, id)
-    if (id === 'specify') await showToast($, `🧭 specify updated to ${item.latest}`)
-    if (id === 'speckit-skills') await showToast($, `🧭 Spec Kit skills refreshed to ${item.latest}`)
-    if (id === 'astrolabe') await showToast($, `🧭 Astrolabe updated to ${item.latest}; run /reload-plugins`)
+    if (id === 'specify') await showToast($, `specify updated to ${item.latest}`)
+    if (id === 'speckit-skills') await showToast($, `Spec Kit skills refreshed to ${item.latest}`)
+    if (id === 'astrolabe') await showToast($, `Astrolabe updated to ${item.latest}; run /reload-plugins`)
   } catch (error) {
     logError($, error)
     await setUpdates($, h => ({ items: h.items })).catch(() => undefined)
@@ -2481,7 +2481,7 @@ export const register: Register = (on, options) => {
         const activeFeature = speckit?.features.find(f => f.dir === speckit.active?.dir)
         const soon = speckit?.runningSkill !== undefined || (activeFeature !== undefined && activeFeature.phase === 'implement' && activeFeature.done < activeFeature.total)
         if (!soon) return
-        await showToast($, t(currentLang(), 'toast.cache'))
+        await showToast($, t(currentLang(), 'toast.cache'), { kind: 'warn' })
       })
     }
     return result
@@ -3129,7 +3129,13 @@ export const register: Register = (on, options) => {
       onClose: () => $.ui.close({ id: PANE_ID }).then(() => undefined),
       columns,
       ...(pane.tab === 'session' && e.surface === 'terminal'
-        ? { onRunQueued: async (id: string) => showToast($, await runQueued($, id)) }
+        ? {
+            onRunQueued: async (id: string) => {
+              const text = await runQueued($, id)
+              // A stale button names an id that is no longer queued: a warning, not a success.
+              await showToast($, text, /nothing queued as/.test(text) ? { kind: 'warn' } : undefined)
+            },
+          }
         : {}),
       ...(pane.tab === 'session'
         ? {

@@ -37,7 +37,7 @@ describe('usage and cost (022)', () => {
     await measure($ as never, 80, 1)
     await measure($ as never, 86, 1)
     await measure($ as never, 90, 1)
-    expect(session.toasts.filter(t => t.includes('context'))).toEqual(['🧭 The context window is 86% full: /compact before Claude Code compacts it for you'])
+    expect(session.toasts.filter(t => t.includes('context'))).toEqual(['astrolabe ▲ The context window is 86% full: /compact before Claude Code compacts it for you'])
   })
   test('054 #95: no cache warning when nothing is likely to follow within five minutes', async ($, on) => {
     const session = installTree(on, allDone.tree, allDone.cwd)
@@ -56,6 +56,6 @@ describe('usage and cost (022)', () => {
     await session.clock.advance(4 * 60_000)
     expect(session.toasts.filter(t => t.includes('cache'))).toEqual([])
     await session.clock.advance(31_000)
-    expect(session.toasts.filter(t => t.includes('cache'))).toEqual(['🧭 The prompt cache goes cold in about 30 s: the next prompt after that re-reads the whole context'])
+    expect(session.toasts.filter(t => t.includes('cache'))).toEqual(['astrolabe ▲ The prompt cache goes cold in about 30 s: the next prompt after that re-reads the whole context'])
   })
 })

@@ -64,7 +64,9 @@ describe('formatStatus: width degradation never cuts an id', () => {
   })
   test('drops the skill, then the percentage, then the phase, then everything', () => {
     expect(formatStatus(full, 30)).toBe('◆ ~002 · implement 45%')
-    expect(formatStatus(full, 20)).toBe('◆ ~002 · implement')
+    // The phase takes its short form before the percentage goes (064 #6).
+    expect(formatStatus(full, 20)).toBe('◆ ~002 · impl 45%')
+    expect(formatStatus(full, 14)).toBe('◆ ~002 · impl')
     expect(formatStatus(full, 10)).toBe('◆ ~002')
     expect(formatStatus(full, 6)).toBe('◆ ~002')
     expect(formatStatus(full, 5)).toBe('')

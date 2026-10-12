@@ -135,10 +135,10 @@ describe('one click installs (US2)', () => {
     await go()
     session.script.processes['specify self upgrade'] = { exitCode: 1, stderr: 'network down\nmore' }
     await press($ as never, 'update-specify')
-    expect(session.toasts).toEqual(['🧭 specify upgrade failed: network down; run specify self upgrade'])
+    expect(session.toasts).toEqual(['astrolabe ▲ specify upgrade failed: network down; run specify self upgrade'])
     session.script.processes['specify self upgrade'] = { stdout: 'ok' }
     await press($ as never, 'update-specify')
-    expect(session.toasts[1]).toBe('🧭 specify updated to 1.2.0')
+    expect(session.toasts[1]).toBe('astrolabe ✓ specify updated to 1.2.0')
     expect(JSON.stringify((await drawBand($ as never, 'terminal', 160)).tree)).not.toContain('specify 1.2.0')
   })
 
@@ -152,7 +152,7 @@ describe('one click installs (US2)', () => {
     expect(JSON.stringify((await drawBand($ as never, 'terminal', 160)).tree)).toContain('confirm: rewrite .claude/skills/speckit-*')
     await press($ as never, 'update-speckit-skills')
     expect(session.processes).toContain('specify init --here --integration claude --force')
-    expect(session.toasts).toContain('🧭 Spec Kit skills refreshed to 1.2.0')
+    expect(session.toasts).toContain('astrolabe ✓ Spec Kit skills refreshed to 1.2.0')
   })
 
   test('astrolabe updates through claude plugin update', async ($, on) => {
@@ -161,7 +161,7 @@ describe('one click installs (US2)', () => {
     await go()
     session.script.processes['claude plugin update astrolabe'] = { stdout: 'updated' }
     await press($ as never, 'update-astrolabe')
-    expect(session.toasts).toEqual(['🧭 Astrolabe updated to 1.0.0; run /reload-plugins'])
+    expect(session.toasts).toEqual(['astrolabe ✓ Astrolabe updated to 1.0.0; run /reload-plugins'])
   })
 })
 

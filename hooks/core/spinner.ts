@@ -1,5 +1,6 @@
 // The text the spinner adds after its word while Claude works on the active feature
 // (contracts/spinner.md). Pure: no $.
+import { duration } from './duration'
 import type { SessionMemo, SpeckitState } from './types'
 
 const DEFAULT_BUDGET = 80
@@ -14,13 +15,7 @@ export const cleanTaskText = (text: string): string =>
     .replace(/\s+/g, ' ')
     .trim()
 
-export const formatElapsed = (ms: number): string => {
-  const seconds = Math.max(0, Math.floor(ms / 1000))
-  if (seconds < 60) return `${seconds}s`
-  const minutes = Math.floor(seconds / 60)
-  if (minutes < 60) return `${minutes}m`
-  return `${Math.floor(minutes / 60)}h ${minutes % 60}m`
-}
+export const formatElapsed = (ms: number): string => duration(Math.max(0, ms))
 
 /** Whether this turn worked on the active feature: speckit-implement ran, or a tool touched it. */
 const isWorkingOnActive = (state: SpeckitState, memo: SessionMemo): boolean =>

@@ -1,7 +1,11 @@
 // The footer: the status entry under the prompt, in place of a statusline (spec 018).
-// Ranked parts, joined with ' · ', dropped from the least important end to fit. Pure: no $.
+// Ranked parts, one zone each and joined with ' │ ' (064 #9), dropped from the least important end to fit. Pure: no $.
 import { clockOf, decide, isPaused, labelOf, usageSegment, type Decision } from './governor'
 import { branchWebUrl } from './git-status'
+import { duration, resetIn } from './duration'
+import { usageRamp } from './usage-ramp'
+import { joinZones, ZONE_SEPARATOR } from './zones'
+import { EMOJI_WIDE } from './glyphs'
 import type { Icons } from './icons'
 import { t, type Lang } from './i18n'
 import type { GitState, PullRequest, UsageReading } from './types'
@@ -40,11 +44,11 @@ export type FooterInput = {
 }
 
 
-const SEP = ' · '
+const SEP = ZONE_SEPARATOR
 
-/** Columns a text takes: emoji and other wide pictographs count two. */
+/** Columns a text takes: pictographs and the declared wide emoji-set entries count two (064 #3). */
 export const textWidth = (text: string): number =>
-  [...text].reduce((n, ch) => n + ((ch.codePointAt(0) ?? 0) >= 0x1f000 || ch === '⏳' || ch === '⏱' || ch === '⚠' ? 2 : 1), 0)
+  [...text].reduce((n, ch) => n + ((ch.codePointAt(0) ?? 0) >= 0x1f000 || EMOJI_WIDE.includes(ch) ? 2 : 1), 0)
 
 /** `claude-opus-5-5` reads `opus 5.5`; anything else is kept. */
 export const shortModel = (model: string): string => {
@@ -55,10 +59,6 @@ export const shortModel = (model: string): string => {
 }
 
 const withIcon = (icon: string, text: string) => (icon === '' ? text : `${icon} ${text}`)
-const duration = (ms: number): string => {
-  const minutes = Math.max(0, Math.floor(ms / 60_000))
-  return minutes < 60 ? `${minutes}m` : `${Math.floor(minutes / 60)}h${String(minutes % 60).padStart(2, '0')}m`
-}
 
 /** A palette colour name (statusline's), or a ramp read from a level. */
 export type ChipColour = 'mauve' | 'sapphire' | 'yellow' | 'red' | 'lavender' | 'teal' | 'peach' | 'surface1' | 'green'
@@ -84,7 +84,7 @@ export const CHIP_TABLE = [
 type ChipName = (typeof CHIP_TABLE)[number]['name']
 /** A chip's rank and colour from the table. */
 const chipOf = (name: ChipName): { rank: number; colour: ChipColour } => CHIP_TABLE.find(c => c.name === name)!
-type Part = { text: string; rank: number; colour?: ChipColour; level?: number; first?: true; links?: ReadonlyArray<{ text: string; href: string }> }
+type Part = { text: string; rank: number; colour?: ChipColour; level?: number; /** The window's own hold level, when it has one. */ hold?: number; /** The ramp mark is already in the text. */ inlineMark?: true; first?: true; links?: ReadonlyArray<{ text: string; href: string }> }
 
 // An ASCII label ending in ':' is glued to its value (`stash:2`); a glyph takes a space.
 const glued = (icon: string, text: string) => (icon.endsWith(':') ? `${icon}${text}` : withIcon(icon, text))
@@ -94,24 +94,27 @@ const prText = (icons: Icons, pr: PullRequest): string => {
   return mark === '' ? number : `${number} ${mark}`
 }
 
-const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-
 /** When a window resets (041 #2): a countdown within a day (`2h13m`), else weekday and clock (`Mon 07:00`). */
 export const resetOf = (iso: string | undefined, now: number): string | undefined => {
   const at = clockOf(iso)
   if (at === undefined || iso === undefined) return undefined
-  const left = Date.parse(iso) - now
-  if (left <= 0) return undefined
-  return left < 86_400_000 ? duration(left) : `${WEEKDAYS[new Date(Date.parse(iso)).getDay()]} ${at}`
+  if (Date.parse(iso) - now <= 0) return undefined
+  return resetIn(iso, now)
 }
 
-const windowText = (r: UsageReading, now: number, lang: Lang): string => {
+const windowText = (r: UsageReading, now: number, lang: Lang, thresholds?: { hold?: number; stop?: number }): string => {
   const renewed = r.resetsAt !== undefined && Date.parse(r.resetsAt) <= now
   if (renewed) return `${labelOf(r.kind)} ${t(lang, 'status.renewed')}`
   const at = resetOf(r.resetsAt, now)
-  // At or past 100% a window reads `full` (041 #3).
-  const level = r.percentUsed >= 100 ? t(lang, 'status.full') : `${Math.round(r.percentUsed)}%`
-  return `${labelOf(r.kind)} ${level}${at === undefined ? '' : ` (${at})`}`
+  // At or past 100% a window reads `full` (041 #3); the ramp mark follows the figure (064 #1).
+  const ramp = usageRamp(r.percentUsed, thresholds)
+  const level = ramp.full ? t(lang, 'status.full') : `${Math.round(r.percentUsed)}%`
+  return `${labelOf(r.kind)} ${level}${ramp.mark}${at === undefined ? '' : ` (${at})`}`
+}
+
+const holdOf = (input: FooterInput, kind: string): { hold?: number } => {
+  const hold = input.thresholds?.[kind]?.hold
+  return hold === undefined ? {} : { hold }
 }
 
 const parts = (input: FooterInput): Part[] => {
@@ -120,17 +123,17 @@ const parts = (input: FooterInput): Part[] => {
   const decision = input.decision ?? decide(input.readings, [], undefined, now, undefined, undefined, input.thresholds)
   const binding = decision.highest
   if (binding !== undefined) {
-    const segment = usageSegment(decision, input.lang ?? 'en') ?? ''
+    const segment = usageSegment(decision, input.lang ?? 'en', input.thresholds?.[binding.kind]) ?? ''
     const at = binding.renewed === true ? undefined : resetOf(binding.resetsAt, now)
     if (isPaused(decision)) {
       // Paused (047 #65): the first chip, in red, says until when.
       const until = clockOf(binding.resetsAt)
       out.push({ text: `${segment} · ${t(input.lang ?? 'en', 'status.pausedUntil', { at: until ?? t(input.lang ?? 'en', 'ask.theReset') })}`, rank: 0, colour: 'red', first: true })
-    } else out.push({ text: at === undefined ? segment : `${segment} (${at})`, ...chipOf('deciding'), ...(binding.renewed === true ? {} : { level: binding.percent }) })
+    } else out.push({ text: at === undefined ? segment : `${segment} (${at})`, ...chipOf('deciding'), inlineMark: true, ...(binding.renewed === true ? {} : { level: binding.percent, ...holdOf(input, binding.kind) }) })
   }
   for (const r of input.readings) {
     if (r.kind === binding?.kind) continue
-    out.push({ text: windowText(r, now, input.lang ?? 'en'), ...chipOf('windows'), level: r.percentUsed })
+    out.push({ text: windowText(r, now, input.lang ?? 'en', input.thresholds?.[r.kind]), ...chipOf('windows'), inlineMark: true, level: r.percentUsed, ...holdOf(input, r.kind) })
   }
   if (input.context !== undefined) {
     // Past 85% the context chip says to compact (054 #43).
@@ -189,7 +192,7 @@ const parts = (input: FooterInput): Part[] => {
 /** The parts that fit `columns`, Spec Kit first, the least important dropped first. */
 const fitted = (input: FooterInput): { speckit: string; kept: Part[] } => {
   let kept = input.lead === true ? parts(input).filter(p => p.rank === 0) : parts(input)
-  const join = (speckit: string) => [speckit, ...kept.map(p => p.text)].filter(s => s !== '').join(SEP)
+  const join = (speckit: string) => joinZones([[speckit], ...kept.map(p => [p.text])])
   let speckit = input.speckit()
   while (textWidth(join(speckit)) > input.columns) {
     const droppable = kept.filter(p => p.rank > 0)
@@ -198,7 +201,7 @@ const fitted = (input: FooterInput): { speckit: string; kept: Part[] } => {
     kept = kept.filter(p => p !== worst)
   }
   if (textWidth(join(speckit)) > input.columns) {
-    const rest = kept.map(p => p.text).join(SEP)
+    const rest = joinZones(kept.map(p => [p.text]))
     const room = input.columns - (rest === '' ? 0 : textWidth(rest) + SEP.length)
     speckit = input.speckit(Math.max(1, room))
   }
@@ -208,12 +211,8 @@ const fitted = (input: FooterInput): { speckit: string; kept: Part[] } => {
 /** The footer text: Spec Kit first, then the parts in order, fitted to `columns`. */
 export const footerText = (input: FooterInput): string => {
   const { speckit, kept } = fitted(input)
-  return [speckit, ...kept.map(p => p.text)].filter(s => s !== '').join(SEP)
+  return joinZones([[speckit], ...kept.map(p => [p.text])])
 }
-
-/** statusline's level ramp (039): green below 60%, yellow to 85%, red above, a mark past the first band. */
-export const rampOf = (level: number): { colour: ChipColour; mark: string } =>
-  level < 60 ? { colour: 'green', mark: '' } : level < 85 ? { colour: 'yellow', mark: '▵' } : { colour: 'red', mark: '▴' }
 
 export type Chip = { key: string; text: string; colour: ChipColour; rank?: number; links?: ReadonlyArray<{ text: string; href: string }>; /** The whole text of a chip cut to fit, shown on hover (052 #45). */ full?: string }
 
@@ -225,12 +224,13 @@ export const footerChips = (input: FooterInput): Chip[] => {
     ...pinned,
     ...(speckit === '' ? [] : [{ key: 'speckit', text: speckit, colour: 'mauve' as const, ...((whole => (whole !== speckit ? { full: whole } : {}))(input.speckit())) }]),
     ...kept.filter(p => p.first !== true).map((p, i) => {
-      const ramp = p.level === undefined ? undefined : rampOf(p.level)
+      // One ramp for every window and the context (064 #1); the context chip keeps its colour only.
+      const ramp = p.level === undefined ? undefined : usageRamp(p.level, p.hold === undefined ? undefined : { hold: p.hold })
       const isContext = p.colour === 'yellow'
       return {
         key: `part-${i}`,
-        text: ramp === undefined || isContext ? p.text : `${p.text}${ramp.mark}`,
-        colour: ramp?.colour ?? p.colour ?? 'surface1',
+        text: ramp === undefined || isContext || p.inlineMark === true ? p.text : `${p.text}${ramp.mark}`,
+        colour: ramp?.chip ?? p.colour ?? 'surface1',
         rank: p.rank,
         ...(p.links === undefined || p.links.length === 0 ? {} : { links: p.links }),
       }
