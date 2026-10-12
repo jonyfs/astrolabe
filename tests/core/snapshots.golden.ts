@@ -18,9 +18,9 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     "◆ 002 · implement 45%"
   ],
   "mocha/80/footer": [
-    "◆ 002 · implement 45% │ 7d 81%▴ hold (Thu 09:00) │ 5h 42% (2h09m) │ ctx 61%",
+    "◆ 002 · implement 45% │ 7d 81%▴ hold (Thu 12:00) │ 5h 42% (2h09m) │ ctx 61%",
     "◆ 002 · implement 45%|#cba6f7",
-    "7d 81%▴ hold (Thu 09:00)|#f38ba8",
+    "7d 81%▴ hold (Thu 12:00)|#f38ba8",
     "5h 42% (2h09m)|#a6e3a1",
     "ctx 61%|#f9e2af"
   ],
@@ -65,9 +65,9 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     "◆ 002 · implement 45%"
   ],
   "mocha/100/footer": [
-    "◆ 002 · implement 45% │ 7d 81%▴ hold (Thu 09:00) │ 5h 42% (2h09m) │ ctx 61% │ git:main",
+    "◆ 002 · implement 45% │ 7d 81%▴ hold (Thu 12:00) │ 5h 42% (2h09m) │ ctx 61% │ git:main",
     "◆ 002 · implement 45%|#cba6f7",
-    "7d 81%▴ hold (Thu 09:00)|#f38ba8",
+    "7d 81%▴ hold (Thu 12:00)|#f38ba8",
     "5h 42% (2h09m)|#a6e3a1",
     "ctx 61%|#f9e2af",
     "git:main|#b4befe"
@@ -127,9 +127,9 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     "◆ 002 · implement 45%"
   ],
   "mocha/144/footer": [
-    "◆ 002 · implement 45% │ 7d 81%▴ hold (Thu 09:00) │ 5h 42% (2h09m) │ ctx 61% │ opus 5.5 · high │ git:main │ ~3 │ t 1h05m",
+    "◆ 002 · implement 45% │ 7d 81%▴ hold (Thu 12:00) │ 5h 42% (2h09m) │ ctx 61% │ opus 5.5 · high │ git:main │ ~3 │ t 1h05m",
     "◆ 002 · implement 45%|#cba6f7",
-    "7d 81%▴ hold (Thu 09:00)|#f38ba8",
+    "7d 81%▴ hold (Thu 12:00)|#f38ba8",
     "5h 42% (2h09m)|#a6e3a1",
     "ctx 61%|#f9e2af",
     "opus 5.5 · high|#f38ba8",
@@ -192,9 +192,9 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     "◆ 002 · implement 45%"
   ],
   "mocha/200/footer": [
-    "◆ 002 · implement 45% │ 7d 81%▴ hold (Thu 09:00) │ 5h 42% (2h09m) │ ctx 61% │ opus 5.5 · high │ git:main │ ~3 │ t 1h05m",
+    "◆ 002 · implement 45% │ 7d 81%▴ hold (Thu 12:00) │ 5h 42% (2h09m) │ ctx 61% │ opus 5.5 · high │ git:main │ ~3 │ t 1h05m",
     "◆ 002 · implement 45%|#cba6f7",
-    "7d 81%▴ hold (Thu 09:00)|#f38ba8",
+    "7d 81%▴ hold (Thu 12:00)|#f38ba8",
     "5h 42% (2h09m)|#a6e3a1",
     "ctx 61%|#f9e2af",
     "opus 5.5 · high|#f38ba8",
@@ -236,9 +236,9 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     "◆ 002 · implement 45%"
   ],
   "latte/80/footer": [
-    "◆ 002 · implement 45% │ 7d 81%▴ hold (Thu 09:00) │ 5h 42% (2h09m) │ ctx 61%",
+    "◆ 002 · implement 45% │ 7d 81%▴ hold (Thu 12:00) │ 5h 42% (2h09m) │ ctx 61%",
     "◆ 002 · implement 45%|#8839ef",
-    "7d 81%▴ hold (Thu 09:00)|#d20f39",
+    "7d 81%▴ hold (Thu 12:00)|#d20f39",
     "5h 42% (2h09m)|#40a02b",
     "ctx 61%|#df8e1d"
   ],
@@ -283,9 +283,9 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     "◆ 002 · implement 45%"
   ],
   "latte/100/footer": [
-    "◆ 002 · implement 45% │ 7d 81%▴ hold (Thu 09:00) │ 5h 42% (2h09m) │ ctx 61% │ git:main",
+    "◆ 002 · implement 45% │ 7d 81%▴ hold (Thu 12:00) │ 5h 42% (2h09m) │ ctx 61% │ git:main",
     "◆ 002 · implement 45%|#8839ef",
-    "7d 81%▴ hold (Thu 09:00)|#d20f39",
+    "7d 81%▴ hold (Thu 12:00)|#d20f39",
     "5h 42% (2h09m)|#40a02b",
     "ctx 61%|#df8e1d",
     "git:main|#7287fd"
@@ -345,9 +345,9 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     "◆ 002 · implement 45%"
   ],
   "latte/144/footer": [
-    "◆ 002 · implement 45% │ 7d 81%▴ hold (Thu 09:00) │ 5h 42% (2h09m) │ ctx 61% │ opus 5.5 · high │ git:main │ ~3 │ t 1h05m",
+    "◆ 002 · implement 45% │ 7d 81%▴ hold (Thu 12:00) │ 5h 42% (2h09m) │ ctx 61% │ opus 5.5 · high │ git:main │ ~3 │ t 1h05m",
     "◆ 002 · implement 45%|#8839ef",
-    "7d 81%▴ hold (Thu 09:00)|#d20f39",
+    "7d 81%▴ hold (Thu 12:00)|#d20f39",
     "5h 42% (2h09m)|#40a02b",
     "ctx 61%|#df8e1d",
     "opus 5.5 · high|#d20f39",
@@ -410,9 +410,9 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     "◆ 002 · implement 45%"
   ],
   "latte/200/footer": [
-    "◆ 002 · implement 45% │ 7d 81%▴ hold (Thu 09:00) │ 5h 42% (2h09m) │ ctx 61% │ opus 5.5 · high │ git:main │ ~3 │ t 1h05m",
+    "◆ 002 · implement 45% │ 7d 81%▴ hold (Thu 12:00) │ 5h 42% (2h09m) │ ctx 61% │ opus 5.5 · high │ git:main │ ~3 │ t 1h05m",
     "◆ 002 · implement 45%|#8839ef",
-    "7d 81%▴ hold (Thu 09:00)|#d20f39",
+    "7d 81%▴ hold (Thu 12:00)|#d20f39",
     "5h 42% (2h09m)|#40a02b",
     "ctx 61%|#df8e1d",
     "opus 5.5 · high|#d20f39",
@@ -454,9 +454,9 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     "◆ 002 · implement 45%"
   ],
   "frappe/80/footer": [
-    "◆ 002 · implement 45% │ 7d 81%▴ hold (Thu 09:00) │ 5h 42% (2h09m) │ ctx 61%",
+    "◆ 002 · implement 45% │ 7d 81%▴ hold (Thu 12:00) │ 5h 42% (2h09m) │ ctx 61%",
     "◆ 002 · implement 45%|#ca9ee6",
-    "7d 81%▴ hold (Thu 09:00)|#e78284",
+    "7d 81%▴ hold (Thu 12:00)|#e78284",
     "5h 42% (2h09m)|#a6d189",
     "ctx 61%|#e5c890"
   ],
@@ -501,9 +501,9 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     "◆ 002 · implement 45%"
   ],
   "frappe/100/footer": [
-    "◆ 002 · implement 45% │ 7d 81%▴ hold (Thu 09:00) │ 5h 42% (2h09m) │ ctx 61% │ git:main",
+    "◆ 002 · implement 45% │ 7d 81%▴ hold (Thu 12:00) │ 5h 42% (2h09m) │ ctx 61% │ git:main",
     "◆ 002 · implement 45%|#ca9ee6",
-    "7d 81%▴ hold (Thu 09:00)|#e78284",
+    "7d 81%▴ hold (Thu 12:00)|#e78284",
     "5h 42% (2h09m)|#a6d189",
     "ctx 61%|#e5c890",
     "git:main|#babbf1"
@@ -563,9 +563,9 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     "◆ 002 · implement 45%"
   ],
   "frappe/144/footer": [
-    "◆ 002 · implement 45% │ 7d 81%▴ hold (Thu 09:00) │ 5h 42% (2h09m) │ ctx 61% │ opus 5.5 · high │ git:main │ ~3 │ t 1h05m",
+    "◆ 002 · implement 45% │ 7d 81%▴ hold (Thu 12:00) │ 5h 42% (2h09m) │ ctx 61% │ opus 5.5 · high │ git:main │ ~3 │ t 1h05m",
     "◆ 002 · implement 45%|#ca9ee6",
-    "7d 81%▴ hold (Thu 09:00)|#e78284",
+    "7d 81%▴ hold (Thu 12:00)|#e78284",
     "5h 42% (2h09m)|#a6d189",
     "ctx 61%|#e5c890",
     "opus 5.5 · high|#e78284",
@@ -628,9 +628,9 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     "◆ 002 · implement 45%"
   ],
   "frappe/200/footer": [
-    "◆ 002 · implement 45% │ 7d 81%▴ hold (Thu 09:00) │ 5h 42% (2h09m) │ ctx 61% │ opus 5.5 · high │ git:main │ ~3 │ t 1h05m",
+    "◆ 002 · implement 45% │ 7d 81%▴ hold (Thu 12:00) │ 5h 42% (2h09m) │ ctx 61% │ opus 5.5 · high │ git:main │ ~3 │ t 1h05m",
     "◆ 002 · implement 45%|#ca9ee6",
-    "7d 81%▴ hold (Thu 09:00)|#e78284",
+    "7d 81%▴ hold (Thu 12:00)|#e78284",
     "5h 42% (2h09m)|#a6d189",
     "ctx 61%|#e5c890",
     "opus 5.5 · high|#e78284",
@@ -672,9 +672,9 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     "◆ 002 · implement 45%"
   ],
   "macchiato/80/footer": [
-    "◆ 002 · implement 45% │ 7d 81%▴ hold (Thu 09:00) │ 5h 42% (2h09m) │ ctx 61%",
+    "◆ 002 · implement 45% │ 7d 81%▴ hold (Thu 12:00) │ 5h 42% (2h09m) │ ctx 61%",
     "◆ 002 · implement 45%|#c6a0f6",
-    "7d 81%▴ hold (Thu 09:00)|#ed8796",
+    "7d 81%▴ hold (Thu 12:00)|#ed8796",
     "5h 42% (2h09m)|#a6da95",
     "ctx 61%|#eed49f"
   ],
@@ -719,9 +719,9 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     "◆ 002 · implement 45%"
   ],
   "macchiato/100/footer": [
-    "◆ 002 · implement 45% │ 7d 81%▴ hold (Thu 09:00) │ 5h 42% (2h09m) │ ctx 61% │ git:main",
+    "◆ 002 · implement 45% │ 7d 81%▴ hold (Thu 12:00) │ 5h 42% (2h09m) │ ctx 61% │ git:main",
     "◆ 002 · implement 45%|#c6a0f6",
-    "7d 81%▴ hold (Thu 09:00)|#ed8796",
+    "7d 81%▴ hold (Thu 12:00)|#ed8796",
     "5h 42% (2h09m)|#a6da95",
     "ctx 61%|#eed49f",
     "git:main|#b7bdf8"
@@ -781,9 +781,9 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     "◆ 002 · implement 45%"
   ],
   "macchiato/144/footer": [
-    "◆ 002 · implement 45% │ 7d 81%▴ hold (Thu 09:00) │ 5h 42% (2h09m) │ ctx 61% │ opus 5.5 · high │ git:main │ ~3 │ t 1h05m",
+    "◆ 002 · implement 45% │ 7d 81%▴ hold (Thu 12:00) │ 5h 42% (2h09m) │ ctx 61% │ opus 5.5 · high │ git:main │ ~3 │ t 1h05m",
     "◆ 002 · implement 45%|#c6a0f6",
-    "7d 81%▴ hold (Thu 09:00)|#ed8796",
+    "7d 81%▴ hold (Thu 12:00)|#ed8796",
     "5h 42% (2h09m)|#a6da95",
     "ctx 61%|#eed49f",
     "opus 5.5 · high|#ed8796",
@@ -846,9 +846,9 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     "◆ 002 · implement 45%"
   ],
   "macchiato/200/footer": [
-    "◆ 002 · implement 45% │ 7d 81%▴ hold (Thu 09:00) │ 5h 42% (2h09m) │ ctx 61% │ opus 5.5 · high │ git:main │ ~3 │ t 1h05m",
+    "◆ 002 · implement 45% │ 7d 81%▴ hold (Thu 12:00) │ 5h 42% (2h09m) │ ctx 61% │ opus 5.5 · high │ git:main │ ~3 │ t 1h05m",
     "◆ 002 · implement 45%|#c6a0f6",
-    "7d 81%▴ hold (Thu 09:00)|#ed8796",
+    "7d 81%▴ hold (Thu 12:00)|#ed8796",
     "5h 42% (2h09m)|#a6da95",
     "ctx 61%|#eed49f",
     "opus 5.5 · high|#ed8796",
@@ -890,9 +890,9 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     "◆ 002 · implement 45%"
   ],
   "colorblind/80/footer": [
-    "◆ 002 · implement 45% │ 7d 81%▴ hold (Thu 09:00) │ 5h 42% (2h09m) │ ctx 61%",
+    "◆ 002 · implement 45% │ 7d 81%▴ hold (Thu 12:00) │ 5h 42% (2h09m) │ ctx 61%",
     "◆ 002 · implement 45%|#d9a3c7",
-    "7d 81%▴ hold (Thu 09:00)|#ff8a75",
+    "7d 81%▴ hold (Thu 12:00)|#ff8a75",
     "5h 42% (2h09m)|#6bd3a8",
     "ctx 61%|#fff0a6"
   ],
@@ -937,9 +937,9 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     "◆ 002 · implement 45%"
   ],
   "colorblind/100/footer": [
-    "◆ 002 · implement 45% │ 7d 81%▴ hold (Thu 09:00) │ 5h 42% (2h09m) │ ctx 61% │ git:main",
+    "◆ 002 · implement 45% │ 7d 81%▴ hold (Thu 12:00) │ 5h 42% (2h09m) │ ctx 61% │ git:main",
     "◆ 002 · implement 45%|#d9a3c7",
-    "7d 81%▴ hold (Thu 09:00)|#ff8a75",
+    "7d 81%▴ hold (Thu 12:00)|#ff8a75",
     "5h 42% (2h09m)|#6bd3a8",
     "ctx 61%|#fff0a6",
     "git:main|#d4a6e8"
@@ -999,9 +999,9 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     "◆ 002 · implement 45%"
   ],
   "colorblind/144/footer": [
-    "◆ 002 · implement 45% │ 7d 81%▴ hold (Thu 09:00) │ 5h 42% (2h09m) │ ctx 61% │ opus 5.5 · high │ git:main │ ~3 │ t 1h05m",
+    "◆ 002 · implement 45% │ 7d 81%▴ hold (Thu 12:00) │ 5h 42% (2h09m) │ ctx 61% │ opus 5.5 · high │ git:main │ ~3 │ t 1h05m",
     "◆ 002 · implement 45%|#d9a3c7",
-    "7d 81%▴ hold (Thu 09:00)|#ff8a75",
+    "7d 81%▴ hold (Thu 12:00)|#ff8a75",
     "5h 42% (2h09m)|#6bd3a8",
     "ctx 61%|#fff0a6",
     "opus 5.5 · high|#ff8a75",
@@ -1064,9 +1064,9 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
     "◆ 002 · implement 45%"
   ],
   "colorblind/200/footer": [
-    "◆ 002 · implement 45% │ 7d 81%▴ hold (Thu 09:00) │ 5h 42% (2h09m) │ ctx 61% │ opus 5.5 · high │ git:main │ ~3 │ t 1h05m",
+    "◆ 002 · implement 45% │ 7d 81%▴ hold (Thu 12:00) │ 5h 42% (2h09m) │ ctx 61% │ opus 5.5 · high │ git:main │ ~3 │ t 1h05m",
     "◆ 002 · implement 45%|#d9a3c7",
-    "7d 81%▴ hold (Thu 09:00)|#ff8a75",
+    "7d 81%▴ hold (Thu 12:00)|#ff8a75",
     "5h 42% (2h09m)|#6bd3a8",
     "ctx 61%|#fff0a6",
     "opus 5.5 · high|#ff8a75",
