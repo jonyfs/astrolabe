@@ -1,4 +1,5 @@
 import { BenchmarkMetrics, BenchmarkComparison, MetricDelta } from '../types/quality-distribution.js';
+import { readFileSync, writeFileSync } from 'node:fs';
 
 export function compareBenchmarks(
   current: BenchmarkMetrics,
@@ -73,8 +74,7 @@ export function compareBenchmarks(
 
 export function loadBaseline(baselinePath: string): BenchmarkMetrics | null {
   try {
-    const fs = require('node:fs');
-    const content = fs.readFileSync(baselinePath, 'utf-8');
+    const content = readFileSync(baselinePath, 'utf-8');
     return JSON.parse(content);
   } catch {
     return null;
@@ -82,6 +82,5 @@ export function loadBaseline(baselinePath: string): BenchmarkMetrics | null {
 }
 
 export function saveBaseline(baselinePath: string, metrics: BenchmarkMetrics): void {
-  const fs = require('node:fs');
-  fs.writeFileSync(baselinePath, JSON.stringify(metrics, null, 2));
+  writeFileSync(baselinePath, JSON.stringify(metrics, null, 2));
 }
