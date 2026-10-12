@@ -964,7 +964,7 @@ async function askFork($: EngineInterface, question: string, about: string): Pro
   try {
     const reply = await $.model.fork({ prompt: `About the Spec Kit feature ${about}, answer in at most three sentences, plain text: ${question}` })
     const text = reply.isAnswered ? reply.text.trim() : t(currentLang(), 'ask.failed', { reason: reply.reason })
-    await showToast($, text, { timeoutMs: 15_000 })
+    await showToast($, text, reply.isAnswered ? { timeoutMs: 15_000 } : { timeoutMs: 15_000, kind: 'warn' })
   } catch (error) {
     $.ui.log(`astrolabe: ${error instanceof Error ? error.message : String(error)}`, { to: 'debug' })
   }
@@ -3174,7 +3174,13 @@ export const register: Register = (on, options) => {
       onClose: () => $.ui.close({ id: PANE_ID }).then(() => undefined),
       columns,
       ...(pane.tab === 'session' && e.surface === 'terminal'
-        ? { onRunQueued: async (id: string) => showToast($, await runQueued($, id)) }
+        ? {
+            onRunQueued: async (id: string) => {
+              const text = await runQueued($, id)
+              // A stale button names an id that is no longer queued: a warning, not a success.
+              await showToast($, text, /nothing queued as/.test(text) ? { kind: 'warn' } : undefined)
+            },
+          }
         : {}),
       ...(pane.tab === 'session' ? { onUpdate: async (id: string) => runUpdate($, id as UpdateId) } : {}),
       ...(pane.tab === 'session'
