@@ -143,7 +143,7 @@ const PR_TTL_MS = 300_000
 // The session's numbers between writes (018): a tool call costs no state write; they are
 // written at the end of each main turn and at each measure. A reload loses one turn's counts.
 const live = { toolCalls: 0, drifts: 0, driftsById: {} as Record<string, number>, agentsRun: 0, agentsById: {} as Record<string, number>, ticksMain: 0, ticksSub: 0, agentsQueued: 0, linesAdded: 0, linesRemoved: 0, model: undefined as string | undefined, effort: undefined as string | undefined }
-// The footer's room: the last width a drawing saw, less the "⚠ astrolabe: " the terminal adds.
+// The footer's room: the last width a drawing saw, less the warning mark and "astrolabe: " the terminal adds.
 let columnsSeen = 120
 let surfaceSeen: string | null = 'terminal'
 let iconsOption: unknown = 'auto'
