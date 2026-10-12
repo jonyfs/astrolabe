@@ -22,7 +22,7 @@ description: "Task list for 064-design-tokens"
 ## Phase 1: Setup
 
 - [x] T001 Run the baseline with `npm test` (Node tool tests) and `claude plugin test .` (mod tests, about 90 s; three integration tests time out at 5 s under load) and note it in the pull request description
-- [ ] T002 [P] Add a fixed-clock fixture helper for snapshots in `tests/helpers/snapshot-fixture.ts` (fixed `now`, a project with 3 and 4 digit feature ids, readings at 59, 60, 81 and 100 percent, a paused and a held governor decision)
+- [x] T002 [P] Add a fixed-clock fixture helper for snapshots in `tests/helpers/snapshot-fixture.ts` (fixed `now`, a project with 3 and 4 digit feature ids, readings at 59, 60, 81 and 100 percent, a paused and a held governor decision)
 
 ---
 
@@ -142,7 +142,7 @@ Each block below touches different new files; the apply tasks share `pane.ts` an
 
 ## Phase 9: Polish and cross-cutting
 
-- [ ] T038 Add `tests/core/snapshots.test.ts`: band, status entry, footer and pane text for mocha, latte, frappe, macchiato and colorblind at 80, 100, 144 and 200 columns from the T002 fixture (the live table joins in spec 069)
+- [x] T038 Add `tests/core/snapshots.test.ts`: band, status entry, footer and pane text for mocha, latte, frappe, macchiato and colorblind at 80, 100, 144 and 200 columns from the T002 fixture (the live table joins in spec 069)
 - [ ] T039 Fix any literal colour T004 reports in `hooks/surfaces/*` and `hooks/register.tsx` by passing a theme role through the core instead
 - [ ] T040 Run `npm test`, `npm run typecheck` and the commands in `quickstart.md`; every one passes
 - [ ] T041 Tick T001 to T010 in `specs/063-design-review/spec.md` for the improvements whose tasks here are ticked, and set this spec's front matter `status: done` when T001 to T040 are ticked
