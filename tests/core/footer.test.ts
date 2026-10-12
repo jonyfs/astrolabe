@@ -27,7 +27,7 @@ describe('the footer (018 FR-001, FR-002)', () => {
   test('every part in order, ascii icons', () => {
     const text = footerText({ ...full, icons: iconSet('ascii'), columns: 200 })
     expect(text).toBe(
-      `◆ 002 · implement 45% · 7d 83% hold (${resetOf(full.readings[1]!.resetsAt, full.now)}) · 5h 42% (${resetOf(reset, full.now)}) · ctx 61% · opus 5.5 high · git:main ^2 v1 ~3 · t 1h05m`,
+      `◆ 002 · implement 45% · 7d 83%▴ hold (${resetOf(full.readings[1]!.resetsAt, full.now)}) · 5h 42% (${resetOf(reset, full.now)}) · ctx 61% · opus 5.5 high · git:main ^2 v1 ~3 · t 1h05m`,
     )
   })
 
@@ -43,13 +43,13 @@ describe('the footer (018 FR-001, FR-002)', () => {
   test('paused: the first chip, in red, says until when (047 #65)', () => {
     const chips = footerChips({ ...full, readings: [{ kind: 'five_hour', percentUsed: 92, resetsAt: reset }], icons: iconSet('nerd'), columns: 200 })
     expect(chips[0]?.colour).toBe('red')
-    expect(chips[0]?.text).toMatch(/^5h 92% ceiling · paused until \d\d:\d\d$/)
+    expect(chips[0]?.text).toMatch(/^5h 92%▴ ceiling · paused until \d\d:\d\d$/)
     expect(chips[1]?.key).toBe('speckit')
   })
 
   test('at or past 100% a window reads full (041 #3)', () => {
     const text = footerText({ ...full, readings: [{ kind: 'five_hour', percentUsed: 30, resetsAt: reset }, { kind: 'seven_day', percentUsed: 100, resetsAt: new Date(NOW + 5 * 86_400_000).toISOString() }], icons: iconSet('ascii'), columns: 200 })
-    expect(text).toContain('7d full ceiling')
+    expect(text).toContain('7d full▴ ceiling')
   })
   test('a burn chip: points an hour and where the window lands at the reset (041 #4)', () => {
     const text = footerText({ ...full, burn: 10, icons: iconSet('ascii'), columns: 200 })
@@ -82,7 +82,7 @@ describe('the footer (018 FR-001, FR-002)', () => {
       expect(text.startsWith('◆ 002')).toBe(true)
     }
     expect(texts[1]).not.toContain('1h05m')
-    expect(texts.at(-1)).toContain('7d 83% hold')
+    expect(texts.at(-1)).toContain('7d 83%▴ hold')
   })
 
   test('missing data is left out, never shown empty', () => {
@@ -113,7 +113,7 @@ describe("statusline's three-line order (041 #1)", () => {
     expect(lines[0]![0]?.text).toContain('main')
     expect(lines[1]!.map(c => c.text).join('')).toContain('◆ 002')
     expect(lines[1]!.map(c => c.text).join('')).toContain('⟳ implement')
-    expect(lines[2]!.map(c => c.text).join('')).toContain('7d 83%')
+    expect(lines[2]!.map(c => c.text).join('')).toContain('7d 83%▴')
     expect(lines[2]!.map(c => c.text).join('')).toContain('opus 5.5')
   })
 
@@ -159,5 +159,39 @@ describe('advisor and Astrolabe in the mod\'s own footer', () => {
     expect(wide.endsWith('astrolabe 0.134.0')).toBe(true)
     const narrow = footerText({ ...base, astrolabe: { version: '0.134.0' }, advisor: { runs: 2 }, columns: 70 })
     expect(narrow).not.toContain('astrolabe 0.134.0')
+  })
+})
+
+describe('one usage ramp in the footer (064 #1)', () => {
+  const base = { ...full, icons: iconSet('ascii'), columns: 200, lead: true }
+  test('the 7d window at 81% on hold reads 7d 81%▴ hold in the blocked colour', () => {
+    const input = { ...base, readings: [{ kind: 'seven_day', percentUsed: 81, resetsAt: new Date(NOW + 5 * 86_400_000).toISOString() }] }
+    expect(footerText(input)).toContain('7d 81%▴ hold')
+    const chip = footerChips(input).find(c => c.text.startsWith('7d'))
+    expect(chip?.colour).toBe('red')
+  })
+  test('a window under 60% has no mark and the done colour', () => {
+    const input = { ...base, readings: [{ kind: 'five_hour', percentUsed: 59, resetsAt: reset }] }
+    const chip = footerChips({ ...input, lead: false }).find(c => c.text.startsWith('5h'))
+    expect(chip?.text).not.toMatch(/[▵▴]/)
+    expect(chip?.colour).toBe('green')
+  })
+  test('60 to 80% is yellow with ▵ and the mark follows the figure, not the reset', () => {
+    const input = { ...base, lead: false, readings: [{ kind: 'five_hour', percentUsed: 72, resetsAt: reset }] }
+    const chip = footerChips(input).find(c => c.text.startsWith('5h'))
+    expect(chip?.text).toContain('72%▵')
+    expect(chip?.text.endsWith('▵')).toBe(false)
+    expect(chip?.colour).toBe('yellow')
+  })
+  test('a per-window threshold moves the ramp', () => {
+    const input = { ...base, lead: false, thresholds: { five_hour: { hold: 70, stop: 90 } }, readings: [{ kind: 'five_hour', percentUsed: 72, resetsAt: reset }] }
+    const chip = footerChips(input).find(c => c.text.startsWith('5h'))
+    expect(chip?.text).toContain('72%▴')
+    expect(chip?.colour).toBe('red')
+  })
+  test('the context ramps in colour only', () => {
+    const chip = footerChips({ ...base, lead: false, readings: [], context: { percent: 83 } }).find(c => c.text.includes('83%'))
+    expect(chip?.text).not.toMatch(/[▵▴]/)
+    expect(chip?.colour).toBe('red')
   })
 })

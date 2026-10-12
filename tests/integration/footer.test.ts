@@ -48,7 +48,7 @@ describe('the footer (018 US1)', () => {
     await settleStatus(session)
 
     expect(session.statuses).toHaveLength(before + 1)
-    expect(session.last()).toContain('5h 65%')
+    expect(session.last()).toContain('5h 65%▵')
   })
 
   test('model and effort from the last main request, context from the measure, never the cost (054)', { options: { footerIn: 'status', icons: 'ascii' } }, async ($, on) => {

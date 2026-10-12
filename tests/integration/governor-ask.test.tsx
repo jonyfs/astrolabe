@@ -157,7 +157,7 @@ describe('hold: refused at once, then the person is asked (015, 017)', () => {
     expect(session.submitted[0]).toContain('1. job a1: do a1')
     expect(isRefused(await $.tool.call(agent('a2')))).toBe(false)
     await settleStatus(session)
-    expect(session.last()).toContain('5h 83% throttle')
+    expect(session.last()).toContain('5h 83%▴ throttle')
   })
 
   test('Drop this request: the call leaves the queue, and later calls are dropped while the band lasts', async ($, on) => {
@@ -213,7 +213,7 @@ describe('stop and ceiling: refused at once, then the person is asked (015, 017)
     expect(session.submitted[0]).toContain('Continue the work that was paused')
     expect(isRefused(await $.tool.call(bash('b2')))).toBe(false)
     await settleStatus(session)
-    expect(session.last()).toContain('5h 89% hold')
+    expect(session.last()).toContain('5h 89%▴ hold')
   })
 
   test('Pause until the reset (the default) is remembered: later calls are refused without asking', async ($, on) => {

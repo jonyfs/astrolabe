@@ -21,16 +21,16 @@ description: "Task list for 064-design-tokens"
 
 ## Phase 1: Setup
 
-- [ ] T001 Run `npm test` and `npm run typecheck` on the branch and note the baseline (all green expected) in the pull request description
+- [x] T001 Run the baseline with `npm test` (Node tool tests) and `claude plugin test .` (mod tests, about 90 s; three integration tests time out at 5 s under load) and note it in the pull request description
 - [ ] T002 [P] Add a fixed-clock fixture helper for snapshots in `tests/helpers/snapshot-fixture.ts` (fixed `now`, a project with 3 and 4 digit feature ids, readings at 59, 60, 81 and 100 percent, a paused and a held governor decision)
 
 ---
 
 ## Phase 2: Foundational (blocks every story)
 
-- [ ] T003 [P] Extend the contrast loop in `tests/core/theme.test.ts`: export `TEXT_ROLES` from `hooks/core/theme.ts` and add `faint` and `warn` to the checked roles; run it and see it fail (roles missing)
-- [ ] T004 [P] Add `tests/core/no-literal-colour.test.ts`: scan `hooks/surfaces/*` and `hooks/register.tsx` for `#[0-9a-fA-F]{6}` and fail on any hit
-- [ ] T005 Add roles `faint` and `warn` to `ROLES`, `THEME_TOKENS` (`subtle`, `warning`) and every flavor in `hooks/core/theme.ts`, with the values from research.md R1: mocha `#9399b2`, frappe `#949cbb`, macchiato `#939ab7`, latte `#686b80`, colorblind `#9a9a9a`; `warn` from the chip yellows (mocha `#f9e2af`, frappe `#e5c890`, macchiato `#eed49f`, colorblind `#fff0a6`) and, for latte, the lightest yellow that reaches 4.5:1 on `#eff1f5`; T003 now passes
+- [x] T003 [P] Extend the contrast loop in `tests/core/theme.test.ts`: export `TEXT_ROLES` from `hooks/core/theme.ts` and add `faint` and `warn` to the checked roles; run it and see it fail (roles missing)
+- [x] T004 [P] Add `tool-tests/unit/no-literal-colour.vitest.ts` (a Node vitest, run by `npm test`, because mod tests cannot read the source tree): scan every file under `hooks/` except `hooks/core/theme.ts` for `#[0-9a-fA-F]{6}` and fail on any hit
+- [x] T005 Add roles `faint` and `warn` to `ROLES`, `THEME_TOKENS` (`subtle`, `warning`) and every flavor in `hooks/core/theme.ts`, with the values from research.md R1: mocha `#9399b2`, frappe `#949cbb`, macchiato `#939ab7`, latte `#686b80`, colorblind `#9a9a9a`; `warn` from the chip yellows (mocha `#f9e2af`, frappe `#e5c890`, macchiato `#eed49f`, colorblind `#fff0a6`) and, for latte, the lightest yellow that reaches 4.5:1 on `#eff1f5`; T003 now passes
 
 **Checkpoint**: roles exist and pass contrast.
 
@@ -42,11 +42,11 @@ description: "Task list for 064-design-tokens"
 
 **Independent Test**: `npx vitest run tests/core/usage-ramp.test.ts tests/core/footer.test.ts tests/core/governor.test.ts`
 
-- [ ] T006 [P] [US1] #1 Write `tests/core/usage-ramp.test.ts` from contracts/tokens-api.md: 59 ok no mark, 60 warn `▵`, 79 warn, 80 block `▴`, 100 block `▴` and `full`, `{ hold: 70 }` moves the block level to 70, `{ hold: 50 }` warns and blocks from 50 with no inverted band, undefined and NaN give ok with no mark
-- [ ] T007 [US1] #1 Create `hooks/core/usage-ramp.ts` exporting `usageRamp` and `UsageRamp` as in data-model.md; T006 passes
-- [ ] T008 [US1] #1 In `hooks/core/footer.ts` delete `rampOf` and build chip colour and mark from `usageRamp` (context chip keeps no mark); add a case to `tests/core/footer.test.ts` that the 7d reading at 81% on hold reads `7d 81%▴` in the block colour, and one that `thresholds` move the ramp
-- [ ] T009 [US1] #1 In `hooks/core/governor.ts` make `usageSegment` print the ramp mark and `full` beside the reset from `usageRamp`; update `tests/core/governor.test.ts` so the held 7d chip reads `7d 81%▴ hold`
-- [ ] T010 [P] [US1] #1 In `hooks/core/dashboard.ts` and `hooks/core/pane.ts` colour every usage value from `usageRamp(...).role` (replace the peach `current` used for usage levels); extend `tests/core/dashboard.test.ts` and `tests/core/pane.test.ts` to assert the roles at 59, 81 and 100
+- [x] T006 [P] [US1] #1 Write `tests/core/usage-ramp.test.ts` from contracts/tokens-api.md: 59 ok no mark, 60 warn `▵`, 79 warn, 80 block `▴`, 100 block `▴` and `full`, `{ hold: 70 }` moves the block level to 70, `{ hold: 50 }` warns and blocks from 50 with no inverted band, undefined and NaN give ok with no mark
+- [x] T007 [US1] #1 Create `hooks/core/usage-ramp.ts` exporting `usageRamp` and `UsageRamp` as in data-model.md; T006 passes
+- [x] T008 [US1] #1 In `hooks/core/footer.ts` delete `rampOf` and build chip colour and mark from `usageRamp` (context chip keeps no mark); add a case to `tests/core/footer.test.ts` that the 7d reading at 81% on hold reads `7d 81%▴` in the block colour, and one that `thresholds` move the ramp
+- [x] T009 [US1] #1 In `hooks/core/governor.ts` make `usageSegment` print the ramp mark and `full` beside the reset from `usageRamp`; update `tests/core/governor.test.ts` so the held 7d chip reads `7d 81%▴ hold`
+- [x] T010 [P] [US1] #1 In `hooks/core/dashboard.ts` and `hooks/core/pane.ts` colour every usage value from `usageRamp(...).role` (replace the peach `current` used for usage levels); extend `tests/core/dashboard.test.ts` and `tests/core/pane.test.ts` to assert the roles at 59, 81 and 100
 
 **Checkpoint**: US1 independently green.
 

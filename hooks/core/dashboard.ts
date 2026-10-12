@@ -4,6 +4,7 @@ import { blank, put, write, type Grid } from './cells'
 import { clockOf, labelOf } from './governor'
 import { t as tr, type Lang } from './i18n'
 import type { Tokens } from './theme'
+import { usageRamp } from './usage-ramp'
 import type { Feature, Phase, SessionStats } from './types'
 
 const CYCLE: readonly Phase[] = ['specify', 'clarify', 'plan', 'tasks', 'implement', 'done']
@@ -139,7 +140,7 @@ export const usageChart = (series: SessionStats['series'], o: ChartOptions): Gri
     const span = o.width - from
     for (let i = 0; i < span; i += 1) {
       const value = last.percent + ((end - last.percent) * (i + 1)) / span
-      put(g, from + i, rowOf(value), '·', value >= 80 ? o.tokens.current : o.tokens.pending)
+      put(g, from + i, rowOf(value), '·', value >= 60 ? o.tokens[usageRamp(value).role] : o.tokens.pending)
     }
   }
   const firstTime = clockOf(new Date(points[0]!.at).toISOString()) ?? ''

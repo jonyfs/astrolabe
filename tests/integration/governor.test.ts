@@ -41,7 +41,7 @@ describe('windows in the status entry (US1)', () => {
     expect(session.last()).toBe(`◆ 002 · implement 45% · 5h 42% (${at})`)
     await measure($ as never, reading(83, 3_601_000))
     await settleStatus(session)
-    expect(session.last()).toBe(`◆ 002 · implement 45% · 5h 83% hold (${at})`)
+    expect(session.last()).toBe(`◆ 002 · implement 45% · 5h 83%▴ hold (${at})`)
   })
   test('no readings: nothing added, nothing refused', async ($, on) => {
     const { session } = await setup($ as never, on as never)
@@ -178,7 +178,7 @@ describe('pause and the owner ceiling (US3)', () => {
     expect(isRefused(await $.tool.call(bash))).toBe(false)
     expect(isRefused(await $.tool.call(agent('a1')))).toBe(true)
     await settleStatus(session)
-    expect(session.last()).toContain('5h 91% hold')
+    expect(session.last()).toContain('5h 91%▴ hold')
     await $.command.run({ command: 'astrolabe', args: 'revoke', origin: { kind: 'composer' } } as never)
     expect(isRefused(await $.tool.call(bash))).toBe(true)
   })
@@ -189,7 +189,7 @@ describe('pause and the owner ceiling (US3)', () => {
     expect(isRefused(await $.tool.call(bash))).toBe(false)
     expect(isRefused(await $.tool.call(agent('a1')))).toBe(false)
     await settleStatus(session)
-    expect(session.last()).toContain('5h 95% ceiling')
+    expect(session.last()).toContain('5h 95%▴ ceiling')
   })
 
   test('047 #70: observe logs would-be holds in Session without refusing tools', { options: { observeUsage: true } }, async ($, on) => {
@@ -243,7 +243,7 @@ describe('parity with the usage-governor skill (016)', () => {
     await measure($ as never, reading(77))
     expect(session.submitted).toEqual([])
     await settleStatus(session)
-    expect(session.last()).toContain('5h 77% hold')
+    expect(session.last()).toContain('5h 77%▵ hold')
     await measure($ as never, reading(74))
     expect(session.submitted[0]).toContain('1. job a1: do a1')
   })
@@ -277,7 +277,7 @@ describe('parity with the usage-governor skill (016)', () => {
     await session.clock.advance(700_000)
     await session.clock.settle()
     expect(session.submitted).toEqual([])
-    expect(session.last()).toContain('7d 89% stop')
+    expect(session.last()).toContain('7d 89%▴ stop')
     expect(textOf(await $.tool.call(bash))).toContain('usage 7d 89% (stop): paused until')
   })
 
@@ -304,7 +304,7 @@ describe('parity with the usage-governor skill (016)', () => {
     const ui = await mountPane($ as never, 'terminal')
     await ui.press('tab-session')
     const body = await ui.body()
-    expect(body).toContain(`usage${' '.repeat(paneLabelWidth('en') - 'usage'.length)}5h 42% · 7d 83%: hold`)
+    expect(body).toContain(`usage${' '.repeat(paneLabelWidth('en') - 'usage'.length)}5h 42% · 7d 83%▴: hold`)
     expect(body).toContain(`subagents${' '.repeat(paneLabelWidth('en') - 'subagents'.length)}0 running, cap 0`)
     await ui.unmount()
     expect(session.logs).toEqual([])

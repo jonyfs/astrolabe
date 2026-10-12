@@ -2,6 +2,7 @@
 // Ranked parts, joined with ' · ', dropped from the least important end to fit. Pure: no $.
 import { clockOf, decide, isPaused, labelOf, usageSegment, type Decision } from './governor'
 import { branchWebUrl } from './git-status'
+import { usageRamp } from './usage-ramp'
 import type { Icons } from './icons'
 import { t, type Lang } from './i18n'
 import type { GitState, PullRequest, UsageReading } from './types'
@@ -84,7 +85,7 @@ export const CHIP_TABLE = [
 type ChipName = (typeof CHIP_TABLE)[number]['name']
 /** A chip's rank and colour from the table. */
 const chipOf = (name: ChipName): { rank: number; colour: ChipColour } => CHIP_TABLE.find(c => c.name === name)!
-type Part = { text: string; rank: number; colour?: ChipColour; level?: number; first?: true; links?: ReadonlyArray<{ text: string; href: string }> }
+type Part = { text: string; rank: number; colour?: ChipColour; level?: number; /** The window's own hold level, when it has one. */ hold?: number; /** The ramp mark is already in the text. */ inlineMark?: true; first?: true; links?: ReadonlyArray<{ text: string; href: string }> }
 
 // An ASCII label ending in ':' is glued to its value (`stash:2`); a glyph takes a space.
 const glued = (icon: string, text: string) => (icon.endsWith(':') ? `${icon}${text}` : withIcon(icon, text))
@@ -105,13 +106,19 @@ export const resetOf = (iso: string | undefined, now: number): string | undefine
   return left < 86_400_000 ? duration(left) : `${WEEKDAYS[new Date(Date.parse(iso)).getDay()]} ${at}`
 }
 
-const windowText = (r: UsageReading, now: number, lang: Lang): string => {
+const windowText = (r: UsageReading, now: number, lang: Lang, thresholds?: { hold?: number; stop?: number }): string => {
   const renewed = r.resetsAt !== undefined && Date.parse(r.resetsAt) <= now
   if (renewed) return `${labelOf(r.kind)} ${t(lang, 'status.renewed')}`
   const at = resetOf(r.resetsAt, now)
-  // At or past 100% a window reads `full` (041 #3).
-  const level = r.percentUsed >= 100 ? t(lang, 'status.full') : `${Math.round(r.percentUsed)}%`
-  return `${labelOf(r.kind)} ${level}${at === undefined ? '' : ` (${at})`}`
+  // At or past 100% a window reads `full` (041 #3); the ramp mark follows the figure (064 #1).
+  const ramp = usageRamp(r.percentUsed, thresholds)
+  const level = ramp.full ? t(lang, 'status.full') : `${Math.round(r.percentUsed)}%`
+  return `${labelOf(r.kind)} ${level}${ramp.mark}${at === undefined ? '' : ` (${at})`}`
+}
+
+const holdOf = (input: FooterInput, kind: string): { hold?: number } => {
+  const hold = input.thresholds?.[kind]?.hold
+  return hold === undefined ? {} : { hold }
 }
 
 const parts = (input: FooterInput): Part[] => {
@@ -120,17 +127,17 @@ const parts = (input: FooterInput): Part[] => {
   const decision = input.decision ?? decide(input.readings, [], undefined, now, undefined, undefined, input.thresholds)
   const binding = decision.highest
   if (binding !== undefined) {
-    const segment = usageSegment(decision, input.lang ?? 'en') ?? ''
+    const segment = usageSegment(decision, input.lang ?? 'en', input.thresholds?.[binding.kind]) ?? ''
     const at = binding.renewed === true ? undefined : resetOf(binding.resetsAt, now)
     if (isPaused(decision)) {
       // Paused (047 #65): the first chip, in red, says until when.
       const until = clockOf(binding.resetsAt)
       out.push({ text: `${segment} · ${t(input.lang ?? 'en', 'status.pausedUntil', { at: until ?? t(input.lang ?? 'en', 'ask.theReset') })}`, rank: 0, colour: 'red', first: true })
-    } else out.push({ text: at === undefined ? segment : `${segment} (${at})`, ...chipOf('deciding'), ...(binding.renewed === true ? {} : { level: binding.percent }) })
+    } else out.push({ text: at === undefined ? segment : `${segment} (${at})`, ...chipOf('deciding'), inlineMark: true, ...(binding.renewed === true ? {} : { level: binding.percent, ...holdOf(input, binding.kind) }) })
   }
   for (const r of input.readings) {
     if (r.kind === binding?.kind) continue
-    out.push({ text: windowText(r, now, input.lang ?? 'en'), ...chipOf('windows'), level: r.percentUsed })
+    out.push({ text: windowText(r, now, input.lang ?? 'en', input.thresholds?.[r.kind]), ...chipOf('windows'), inlineMark: true, level: r.percentUsed, ...holdOf(input, r.kind) })
   }
   if (input.context !== undefined) {
     // Past 85% the context chip says to compact (054 #43).
@@ -211,10 +218,6 @@ export const footerText = (input: FooterInput): string => {
   return [speckit, ...kept.map(p => p.text)].filter(s => s !== '').join(SEP)
 }
 
-/** statusline's level ramp (039): green below 60%, yellow to 85%, red above, a mark past the first band. */
-export const rampOf = (level: number): { colour: ChipColour; mark: string } =>
-  level < 60 ? { colour: 'green', mark: '' } : level < 85 ? { colour: 'yellow', mark: '▵' } : { colour: 'red', mark: '▴' }
-
 export type Chip = { key: string; text: string; colour: ChipColour; rank?: number; links?: ReadonlyArray<{ text: string; href: string }>; /** The whole text of a chip cut to fit, shown on hover (052 #45). */ full?: string }
 
 /** The footer as Powerline chips in statusline's colours (039); the context ramps without a mark. */
@@ -225,12 +228,13 @@ export const footerChips = (input: FooterInput): Chip[] => {
     ...pinned,
     ...(speckit === '' ? [] : [{ key: 'speckit', text: speckit, colour: 'mauve' as const, ...((whole => (whole !== speckit ? { full: whole } : {}))(input.speckit())) }]),
     ...kept.filter(p => p.first !== true).map((p, i) => {
-      const ramp = p.level === undefined ? undefined : rampOf(p.level)
+      // One ramp for every window and the context (064 #1); the context chip keeps its colour only.
+      const ramp = p.level === undefined ? undefined : usageRamp(p.level, p.hold === undefined ? undefined : { hold: p.hold })
       const isContext = p.colour === 'yellow'
       return {
         key: `part-${i}`,
-        text: ramp === undefined || isContext ? p.text : `${p.text}${ramp.mark}`,
-        colour: ramp?.colour ?? p.colour ?? 'surface1',
+        text: ramp === undefined || isContext || p.inlineMark === true ? p.text : `${p.text}${ramp.mark}`,
+        colour: ramp?.chip ?? p.colour ?? 'surface1',
         rank: p.rank,
         ...(p.links === undefined || p.links.length === 0 ? {} : { links: p.links }),
       }
