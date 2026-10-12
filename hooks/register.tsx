@@ -2453,6 +2453,8 @@ export const register: Register = (on, options) => {
     noColor = ((await $.env.get('NO_COLOR').catch(() => undefined)) ?? '') !== ''
     // A new session starts the chips' ages over (041 #5).
     chipAges.clear()
+    touchedSpecsSeen.clear()
+    planCheckedAt = undefined
     freshDeadline = undefined
     const fs = fsOf($)
     const now = await $.clock.now()
@@ -3084,7 +3086,8 @@ export const register: Register = (on, options) => {
     const width = Math.max(3, ...state!.features.map(f => f.id.length))
     const open = new Set(pane.open ?? [])
     open.add(blockLabel(hit.id, width))
-    await $.state.set(PANE_STATE, { ...rest, view: 'all', open: [...open], selectedFeature: hit.id })
+    // The jump names a block of the status grouping: other groupings have their own headings.
+    await $.state.set(PANE_STATE, { ...rest, view: 'all', group: 'status', open: [...open], selectedFeature: hit.id })
     return e
   })
 
@@ -3204,7 +3207,7 @@ export const register: Register = (on, options) => {
                 // Roadmap view (044 #40): read here, the core stays pure.
                 state.root === undefined ? undefined : roadmapCache.has(state.root) ? roadmapCache.get(state.root) : await $.fs.read(`${state.root}/docs/roadmap.md`).then(text => { roadmapCache.set(state.root!, text); return text }).catch(() => { roadmapCache.set(state.root!, undefined); return undefined }),
                 // Specs at scale (067): the view, the open blocks, the grouping and what Claude touched.
-                { ...(pane.view === undefined ? {} : { view: pane.view }), open: pane.open ?? [], group: pane.group ?? 'status', touched: stats?.touchedSpecs ?? [], planMissing: stats?.planMissing ?? {} },
+                { ...(pane.view === undefined ? {} : { view: pane.view }), filtered: !((specFilter ?? '').trim() === '' && (pane.status ?? 'all') === 'all'), open: pane.open ?? [], group: pane.group ?? 'status', touched: stats?.touchedSpecs ?? [], planMissing: stats?.planMissing ?? {} },
               ),
             ]
     // A filter that keeps nothing says so (052 #7).
