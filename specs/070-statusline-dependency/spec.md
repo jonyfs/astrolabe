@@ -9,147 +9,152 @@ status: active # active | done | abandoned
 
 **Created**: 2026-10-13
 
-**Status**: Draft
+**Status**: Draft (revised after the CEO, eng and design reviews of 2026-10-13)
 
 **Input**: User description: "Make the footer of Astrolabe the jonyfs/statusline project itself, imported and kept up to date automatically when Astrolabe is installed or used, so statusline is a dependency of Astrolabe. Replace the footer that imitates statusline with statusline running inside the footer region of Astrolabe, or usable as Claude Code's own statusLine as it is today."
 
-**Depends on**: [068-footer-statusline-parity](../068-footer-statusline-parity/spec.md) (the footer region, its three lines and fallbacks), [069-live-table](../069-live-table/spec.md). **Source**: [jonyfs/statusline](https://github.com/jonyfs/statusline) (`bin/cli.js`, `src/render.js`).
+**Depends on**: [068-footer-statusline-parity](../068-footer-statusline-parity/spec.md) (footer region and its native chips, kept as fallback). **Source**: [jonyfs/statusline](https://github.com/jonyfs/statusline) (`bin/cli.js`).
 
 ## Why
 
-Since spec 041 and 068 Astrolabe draws its own copy of statusline's bar: chips, ranks, colours and shed order are reimplemented in `hooks/core/footer*.ts`. Every statusline release (rows, themes, gate runs, rtk, Copilot and Codex harnesses, spec 046 to 050 of that project) has to be ported by hand and drifts. The owner of both projects wants one footer: statusline renders it, Astrolabe hosts it.
+Since specs 041 and 068 Astrolabe draws its own copy of statusline's bar: chips, ranks, colours and shed order are reimplemented in `hooks/core/footer*.ts`. Every statusline release has to be ported by hand and drifts. This spec adds the path where statusline itself draws the pane footer. It adds that path and does not yet delete the port; a later spec reduces the native chips once this one has run for a release (see Out of scope).
 
-## Placement
+## What the reviews changed
 
-The footer region keeps its three places (`footerIn`): the bottom of the pane, under the prompt as the status entry, or both. A new option `footerSource` picks who draws the text of that region:
+The first draft fetched release tags at runtime into a data folder. Review found that this cannot work today: the repository's last tag is `v1.3.0` while `package.json` says `1.47.0`; the engine has no `mkdir`, `rename` or `remove` for the mod and no verified plugin data directory; and a runtime clone of mutable code on every user's machine weakens Principle XIV. The design is now a **vendored copy** kept current by CI:
 
-- `statusline` (default when the dependency is present): the statusline project renders the footer. Astrolabe calls its renderer with a payload built from what the mod knows and draws the returned lines in the footer region.
-- `native`: Astrolabe's own chips, as today (specs 041, 064, 068). This is also the fallback while the dependency is missing, stale beyond use or failing.
+- Astrolabe ships `vendor/statusline/` (`bin/`, `src/`, `package.json`, `LICENSE`) and a `VERSION` file with the upstream commit.
+- A scheduled workflow opens a pull request that refreshes the copy, runs the contract test against it, and lets the existing release and auto-reload flow deliver it. "Installed or used" is met: installing Astrolabe installs it, and using Astrolabe (its own auto-update and reload) updates it, with no runtime network and no first-run gap.
 
-Claude Code's own `statusLine` setting is not touched (Principle III). A person who installed statusline as Claude Code's `statusLine` keeps it; Astrolabe then does not draw a second copy in the status entry (`footerOwner`, spec 050).
+## Placement and ownership
+
+The footer region keeps its places (`footerIn`). A new option `footerSource` picks who draws it:
+
+- `statusline` (default): Astrolabe keeps its **native lead** (Spec Kit part, the deciding usage window, advisor, help) on the first row and statusline draws the rows below it. Chips both would draw (context, windows, model, burn) come from statusline; the native lead never repeats them.
+- `native`: Astrolabe's own chips, as in 041 to 069. Also the fallback.
+
+Only the **pane footer** is drawn by statusline. The status entry under the prompt stays native (one plain line, today's rules): it takes plain text and three joined lines would be a regression.
+
+Claude Code's own `statusLine` setting is never touched (Principle III). A person who wants statusline as Claude Code's `statusLine` runs `/astrolabe statusline`, which prints the exact command for the vendored copy to paste; or keeps their own install. When `footerOwner` says statusline is Claude Code's `statusLine`, the pane footer still draws (it is a different place) and the status entry draws only its lead.
+
+## What changes for the person (accepted loss list)
+
+With `footerSource=statusline`: no hover explanation rows, no brighten-on-change, no `full` text on hover, no per-chip action targets, and colour thresholds are statusline's (60 and 85) instead of the governor's (60, 80, 88). Kept: statusline's own links (branch, PR, repo, CI as OSC 8), its segments, ranks and shedding. `footerSource=native` keeps every Astrolabe behaviour. The README states this table.
 
 ## User Scenarios & Testing *(mandatory)*
 
-### User Story 1 - The footer is statusline's own bar (Priority: P1)
+### User Story 1 - The pane footer is statusline's own bar (Priority: P1)
 
-A user installs Astrolabe. The footer under the pane's tabs shows statusline's three lines, the same bar their statusline project draws elsewhere, with its segments, ranks, colours and shedding, without installing or configuring statusline separately.
+A user installs Astrolabe. The pane footer shows Astrolabe's lead and statusline's lines under it, with statusline's segments and colours, without installing anything else.
 
 **Why this priority**: It is the request: one footer, no port to maintain.
 
-**Independent Test**: Install Astrolabe on a machine without statusline; open the pane; compare the footer with `statusline-plugin` output for the same payload.
+**Independent Test**: Run the contract fixture; compare the pane's footer lines with the renderer's own output for the same payload.
 
 **Acceptance Scenarios**:
 
-1. **Given** a fresh install and network access, **When** the first session starts, **Then** the statusline dependency is fetched into Astrolabe's own data folder without a prompt and the pane footer shows its output within one refresh.
-2. **Given** the dependency is present, **When** the pane draws, **Then** the footer lines are statusline's lines for the payload Astrolabe built, cut to the pane's columns, with statusline's own colours.
-3. **Given** `footerSource` is `native`, **When** the pane draws, **Then** the footer is Astrolabe's own chips and no statusline process runs.
-4. **Given** statusline is also set as Claude Code's `statusLine`, **When** the status entry would draw the footer, **Then** Astrolabe draws only its lead, never a second copy.
+1. **Given** Node 18 or newer on the PATH, **When** the pane opens, **Then** the footer shows the native lead row and statusline's lines for a payload built from the session, cut to the pane's width.
+2. **Given** `footerSource=native`, **When** the pane draws, **Then** the footer is the native chips and no statusline process runs.
+3. **Given** the footer text holds an OSC 8 link, **When** drawn on the terminal surface, **Then** it is a link; on a surface without links it is plain text.
+4. **Given** a resize, **When** the pane redraws, **Then** lines cut to the new width show at once and a refresh for that width runs within a second.
 
 ---
 
-### User Story 2 - It stays current without asking (Priority: P1)
+### User Story 2 - It can always fall back (Priority: P1)
 
-A user keeps using Astrolabe. When statusline publishes a new release, Astrolabe picks it up on its own, at most once a day, and the footer changes with it. A failed update leaves the working copy.
+A user without Node, with a broken copy, or with a renderer that fails still sees a complete footer.
 
-**Why this priority**: "Imported and updated automatically" is half the request.
+**Why this priority**: The footer is on every tab; a blank or "unavailable" one is worse than today's.
 
-**Independent Test**: Publish a newer tag in a fixture remote; start a session after the interval; check the footer reports the new version.
+**Independent Test**: Fault-injection: no node; a renderer that exits 1; one that hangs; one that prints its own fallback line with exit 0; one that prints control sequences.
 
 **Acceptance Scenarios**:
 
-1. **Given** a newer release tag exists, **When** a session starts after the daily check, **Then** the copy is replaced with that tag and one toast says `astrolabe ✓ statusline 1.47.0 installed`.
-2. **Given** the network is down or git is missing, **When** the check runs, **Then** the current copy stays, nothing is toasted, and the Setup tab says when the check last ran.
-3. **Given** an update fails halfway, **When** the next draw happens, **Then** the previous complete copy is still the one used.
-4. **Given** the option `checkUpdates` is off, **When** a session starts, **Then** no network call is made for statusline; a copy already present is used as is.
+1. **Given** `node --version` fails or is older than 18, **When** the pane draws, **Then** the native footer shows and the Setup tab states the reason.
+2. **Given** the renderer prints `statusline unavailable` or `statusline needs Node` with exit 0, **When** read, **Then** it counts as a failure, the last good lines are used for up to 60 seconds, then the native footer.
+3. **Given** the renderer exceeds its budget, **When** it is killed, **Then** nothing on the draw path waited and the next refresh retries with backoff of 5, 15 and 60 seconds.
+4. **Given** the output holds control sequences other than colour, attributes and links, **When** parsed, **Then** they are dropped.
+5. **Given** the source in use is not the one chosen, **When** the pane draws, **Then** one dim row under the footer says why, and nothing is toasted.
 
 ---
 
-### User Story 3 - It can always fall back (Priority: P1)
+### User Story 3 - It stays current without asking (Priority: P2)
 
-A user without Node, without git, offline or behind a failing renderer still sees a complete footer.
+When statusline changes, Astrolabe's repository receives a pull request that refreshes the vendored copy, with its contract test run against it; once merged and released, installed copies update through Astrolabe's own flow.
 
-**Why this priority**: The footer is on every tab; a blank or broken one is worse than today's.
+**Why this priority**: "Updated automatically" is half the request.
 
-**Independent Test**: Run with node missing, then with a renderer that exits 1, then with one that hangs.
+**Independent Test**: Run the sync script against a fixture upstream; check the copy, `VERSION` and the contract test.
 
 **Acceptance Scenarios**:
 
-1. **Given** node is not on the PATH, **When** the pane draws, **Then** the native footer shows and the Setup tab says why.
-2. **Given** the renderer exits non-zero or prints nothing, **When** the pane draws, **Then** the last good output is reused for up to a minute, then the native footer.
-3. **Given** the renderer takes longer than its budget, **When** it is killed, **Then** the draw is not delayed (it never ran on the draw path) and the next refresh retries.
-4. **Given** the renderer's output holds control sequences other than colours, **When** drawn, **Then** they are dropped.
+1. **Given** upstream has new commits, **When** the sync workflow runs, **Then** a pull request changes `vendor/statusline/` and `VERSION` and its checks run the contract test.
+2. **Given** the new copy fails the contract test, **When** the workflow runs, **Then** no pull request is opened and the run fails.
+3. **Given** the vendored copy changed in a release, **When** Astrolabe reloads, **Then** the Setup tab shows the new version and commit.
 
 ---
 
-### User Story 4 - Choose and see the source (Priority: P2)
+### User Story 4 - Choose, see and reuse (Priority: P3)
 
-A user can switch between the dependency and Astrolabe's own footer, see which version of statusline is in use, and update it on demand.
-
-**Why this priority**: A dependency that cannot be inspected or turned off is hard to trust.
-
-**Independent Test**: Open the Setup tab; change `footerSource`; run `/astrolabe statusline update`.
+A user can switch the source, see which statusline is in use, and get the command to use the same copy as Claude Code's `statusLine`.
 
 **Acceptance Scenarios**:
 
-1. **Given** the dependency is present, **When** the Setup tab opens, **Then** it shows its version, commit, when it was checked and the source in use.
-2. **Given** `/astrolabe statusline update`, **When** the person runs it, **Then** the check runs now and the result is reported once.
-3. **Given** `/astrolabe doctor`, **When** it runs, **Then** it includes a statusline row: present, version, last check, last render time and any error.
+1. **Given** the Setup tab, **When** it opens, **Then** it shows `Footer source`, the vendored version and commit, and the fallback reason when there is one.
+2. **Given** `/astrolabe statusline`, **When** it runs, **Then** it prints the vendored command and the line to put in `settings.json`, and writes nothing.
 
 ---
 
 ### Edge Cases
 
-- The statusline project changes its output format or exits with an incompatible version: the renderer's version is checked against a range Astrolabe declares; outside it, the native footer shows and the Setup tab says so.
-- The payload lacks fields (the engine gives a mod less than Claude Code's `statusLine` stdin): statusline degrades field by field (its own "missing payload" behaviour); Astrolabe never invents a value.
-- Two sessions update at the same time: the copy is replaced atomically; a session never reads a half-written folder.
-- The folder was edited by hand: an update that cannot fast-forward replaces the folder from the tag; local edits are not kept (the copy is a cache).
-- Windows: the renderer is started with `node` and an argv array, never through a shell.
-- A very narrow pane: statusline's own shedding applies; Astrolabe passes the pane's columns and rows.
-- Desktop surface: ANSI colours are mapped to elements; no raw escape sequence reaches the screen.
+- The payload lacks fields (the engine gives a mod less than Claude Code's own payload): Astrolabe sends only fields it has; statusline degrades per field and fills what it can from git, gh and the transcript on its own; the README lists those probes.
+- `transcript_path` is not exposed to the mod: skills, todo and working chips that read the transcript are absent; stated in the README.
+- Windows: the renderer starts with `node` and an argv array, never through a shell; a missing `HOME` is not assumed.
+- Desktop surface: the renderer is asked for ASCII when `iconsFor` says `ascii` or `emoji`, so no Nerd Font glyph shows as a box.
+- Another statusline install shares `~/.claude/statusline/` state: documented; the caches are keyed by session and safe to share.
+- The statusline project removes an option Astrolabe sets: unknown environment variables are ignored by it; the contract test names the ones Astrolabe relies on.
 
 ## Requirements *(mandatory)*
 
 ### Functional Requirements
 
-- **FR-001**: Astrolabe MUST keep a copy of the statusline project in a folder it owns under the plugin's data directory, never in `~/.claude/settings.json`, the project, or another plugin's folder.
-- **FR-002**: The copy MUST be fetched on first use and checked for a newer release at most once a day, on the mod clock, and MUST be replaced atomically; a failed fetch MUST leave the previous copy in use.
-- **FR-003**: Updates MUST follow release tags of the statusline repository, not its default branch, and MUST accept only a version inside the range Astrolabe declares as compatible.
-- **FR-004**: A new option `footerSource` (`statusline` or `native`, default `statusline`) MUST choose who draws the footer; `footerIn` keeps choosing where.
-- **FR-005**: With `footerSource=statusline`, Astrolabe MUST build a payload from `$.state` (model, effort, workspace, context, rate limits, cost, session facts it already keeps) and run the renderer on the mod clock, storing its lines in `$.state`; the draw path MUST only read that state.
-- **FR-006**: The renderer MUST run as `node <copy>/bin/cli.js` with an argv array, the payload on stdin, the terminal columns and rows in its environment, a time budget, and no shell.
-- **FR-007**: Returned lines MUST be parsed into styled runs; only colour and attribute sequences are kept; every other control sequence MUST be dropped; the pane draws the runs with the colours statusline chose (Principle IX is met by the dependency owning them, and no literal colour is added to an adapter).
-- **FR-008**: When the dependency is missing, outside the compatible range, failing, or `footerSource=native`, the footer MUST be Astrolabe's own (Principle XI), with the reason shown in the Setup tab and in `/astrolabe doctor`.
-- **FR-009**: When statusline is Claude Code's `statusLine`, the status entry MUST NOT repeat the footer (spec 050 `footerOwner` rule).
-- **FR-010**: `checkUpdates=off` MUST disable the network use for this dependency; an existing copy MUST still be used.
-- **FR-011**: A refresh MUST run at most once per turn end and once per usage reading, at most every 5 seconds, and MUST NOT run while the pane is closed and `footerIn=pane`.
-- **FR-012**: The README MUST document the option, the data folder, the update rule, the fallback and how to use statusline as Claude Code's own `statusLine` instead, with working examples and a capture (Principle II).
-- **FR-013**: Principle III and XIV MUST be amended in the constitution in the same change to name the data folder and the pinned-range rule, with their rationale.
-- **FR-014**: Out of scope: installing statusline's `statusLine` setting for the user, its hooks, its Copilot, Codex and OpenCode harnesses, and its own `install` and `update` commands.
+- **FR-001**: The repository MUST ship the runtime of statusline under `vendor/statusline/` (`bin/`, `src/`, `package.json`, `LICENSE`) and `vendor/statusline/VERSION` naming the upstream commit and package version. No other upstream file is shipped.
+- **FR-002**: A workflow MUST refresh the copy on a schedule and on demand through a pull request, MUST run the contract test against it, and MUST NOT open a pull request when the test fails.
+- **FR-003**: The contract test MUST run the vendored `bin/cli.js` on fixture payloads with a fixed environment and assert: exit 0; no fallback text; at least one non-blank line; every line within `COLUMNS`; the environment variable names Astrolabe sets are still read.
+- **FR-004**: A new option `footerSource` (`statusline` or `native`, default `statusline`) MUST choose who draws the pane footer; `footerIn` keeps choosing where. It MUST appear in `plugin.json` (four-language descriptions), the README, the Config tab "display" group and the Setup rows.
+- **FR-005**: With `footerSource=statusline` the pane footer MUST be the native lead row followed by statusline's lines, `LINES` set to the rows the region may take less the lead row; lines past that MUST be dropped.
+- **FR-006**: The renderer MUST run on the mod clock with `node <plugin.root>/vendor/statusline/bin/cli.js`, an argv array, the payload on `stdin`, a budget of 3 seconds, and the environment additions `COLUMNS` (region width), `LINES`, `COLORTERM=truecolor`, `CLAUDE_STATUSLINE_UPDATES=off`, `CLAUDE_STATUSLINE_DEBUG=0`, `CLAUDE_STATUSLINE_FLAVOR` mapped from `flavor` (colorblind has no statusline flavor: native footer), and `CLAUDE_STATUSLINE_ASCII=1` when the icon set is ASCII, the mode accessible or the surface is not the terminal.
+- **FR-007**: The payload MUST carry only fields the mod has, converted to statusLine's shapes (the table in the data model), among them `rate_limits.*.resets_at` as epoch seconds, `context_window.used_percentage`, `cost`, `session_id`, `workspace.current_dir` and `model.display_name`.
+- **FR-008**: Output MUST be parsed into styled runs (SGR colour and attributes, OSC 8 links); every other control sequence MUST be dropped. A result whose plain text holds a known fallback line MUST count as failure.
+- **FR-009**: The draw path MUST only read state: the rendered runs live under their own state key, written only when they change; refresh runs on session start, turn end, each usage reading, pane open and every 30 seconds while the footer is visible, at most every 5 seconds, one process at a time; output older than 90 seconds MUST NOT be presented as current.
+- **FR-010**: When Node is missing or older than 18, the copy is missing, `footerSource=native`, the flavor is colorblind, or the renderer fails, the footer MUST be the native one with the reason in the Setup tab, with no toast.
+- **FR-011**: `/astrolabe statusline` MUST print the command and settings line for the vendored copy and MUST write nothing.
+- **FR-012**: The README MUST document the option, the loss list, what the dependency writes (`~/.claude/statusline/`) and runs (`git`, `gh`, `rtk` probes in detached children), the sync workflow and how to use it as Claude Code's `statusLine`, with a capture (Principle II).
+- **FR-013**: The constitution MUST be amended (MINOR) in the same change: III (a bundled program may keep its own caches under `~/.claude/statusline/`; the mod itself writes nothing outside `$.store` and `$.state`), IX (colours of a dependency's output are data, not adapter literals) and XIV (a bundled dependency is pinned by commit and refreshed by a reviewed pull request), with a Sync Impact Report.
+- **FR-014**: Out of scope: deleting the native chips (a follow-up spec once this has run one release), statusline's `install` and `update` commands, a machine-readable output mode in statusline (a statusline-side change that would replace the ANSI parser), and the status entry.
 
 ### Key Entities
 
-- **Dependency copy**: The folder with a statusline release: its tag, commit, fetched-at time and check time.
-- **Footer payload**: The JSON object Astrolabe builds from state and sends to the renderer.
-- **Rendered footer**: The lines and styled runs the renderer returned, with the time and the version that produced them.
-- **Compatible range**: The versions of statusline Astrolabe declares it can host.
+- **Vendored copy**: The runtime files and their `VERSION`.
+- **Footer payload**: The JSON object built from session state.
+- **Rendered footer**: The runs the renderer returned for a width, with the time they were made.
+- **Source in use**: `statusline` or `native`, and the reason when it differs from the choice.
 
 ## Success Criteria *(mandatory)*
 
 ### Measurable Outcomes
 
-- **SC-001**: On a machine with only Astrolabe installed, the first pane open after one session start shows statusline's footer without any manual step.
-- **SC-002**: The footer's text for a fixture payload equals the renderer's own output for it, line for line (snapshot test).
-- **SC-003**: With node removed, a renderer that exits 1, one that hangs and one that prints control sequences, the pane still draws a complete footer and no draw waits on a process (tests).
-- **SC-004**: An update that fails at any step leaves the previous copy in use (fault-injection test).
-- **SC-005**: `footerSource=native` runs no statusline process and matches the 068 snapshots.
-- **SC-006**: A test shows the draw path performs no process, file or network call.
+- **SC-001**: The contract test passes against the vendored copy in CI on three operating systems.
+- **SC-002**: For a fixture payload the pane's statusline rows equal the renderer's lines after width cutting (snapshot test).
+- **SC-003**: With node missing, a renderer that exits 1, one that hangs, one that prints its fallback and one that prints control sequences, the pane still draws a complete footer and no draw waits on a process (tests).
+- **SC-004**: `footerSource=native` runs no statusline process and matches the 068 snapshots.
+- **SC-005**: A test shows the draw path performs no process, file or network call.
+- **SC-006**: Identical renderer output does not write state (test).
 - **SC-007**: README section and capture exist; the constitution carries the amendments.
 
 ## Assumptions
 
-- Node 18 or newer and git are the only requirements of statusline (its README); Astrolabe needs them only for this feature and falls back without them.
-- The mod can run `node` and `git` through `$.process.run` with stdin and a timeout, and can read and write its plugin data directory.
-- statusline reads its payload from stdin and its width from `COLUMNS`; it exits 0 with a one-line fallback on failure (its CLI contract).
-- A payload built by a mod carries less than Claude Code's own `statusLine` payload; statusline's missing-field behaviour is acceptable and is shown in the capture.
-- Following release tags (not `main`) is the safe reading of "updated automatically": a person gets what its author published as a release. If the owner wants `main`, only FR-003 changes.
-- `footerSource=statusline` is the default because the request is for statusline to be the footer; `native` stays as the documented fallback and an opt-out.
+- Node 18 or newer is common on developer machines; without it the native footer shows. This is the only new requirement.
+- The vendored copy is shipped in the plugin, so it exists wherever Astrolabe does; the mod only reads and executes it.
+- The reviews' open choices were decided as follows and can be flipped without a rewrite: vendoring over runtime fetch; default `statusline` because the request is for statusline to be the footer; native lead kept above statusline's rows; status entry stays native; loss list accepted.
+- `transcript_path` may not reach the mod; if a hook event carries it the mod passes it on.

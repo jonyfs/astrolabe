@@ -2,40 +2,42 @@
 
 ## R1 What the renderer takes and gives
 
-**Finding**: `node bin/cli.js` with no subcommand reads Claude Code's `statusLine` payload on stdin, reads its width from `COLUMNS`, prints ANSI lines and exits 0 with a one-line fallback on any failure (statusline `bin/cli.js`). It reads the payload fields it needs one by one (`model`, `workspace`, `context_window`, `rate_limits`, `cost`, `session_id`, `transcript_path`) and degrades per field.
+**Finding**: `node bin/cli.js` with no subcommand reads Claude Code's `statusLine` payload on stdin and its width from `COLUMNS`, prints ANSI lines (24-bit and 256 colour, SGR attributes, OSC 8 links) and **always exits 0**: on any internal failure it prints ` statusline unavailable ` (and ` statusline needs Node 18+ ` on an old Node). It can print more than three lines (task, subagent and gate rows, an update chip row).
 
-**Decision**: call that entry point as a process. Do not import `src/render.js`: the engine loads a mod's modules in its own host, and statusline's modules use Node APIs and a version floor the host does not promise.
+**Decision**: run it as a process; treat the fallback texts as failure; set `LINES` and turn its own update chip off.
 
-## R2 Where the payload comes from
+## R2 Why not a runtime fetch of release tags
 
-**Finding**: `$.session.usage()` returns `{ startedAt, context, rateLimits, cost }` "as the status line has them" (engine types). `$.session.cwd()`, the model and effort noted by `turn.step`, and the git facts in `SessionStats` cover the rest.
+**Finding**: `git ls-remote --tags` ends at `v1.3.0`; `package.json` is `1.47.0` and HEAD is 210 commits past that tag. The engine has no `mkdir`, `rename` or `remove` for a mod, no `CLAUDE_PLUGIN_DATA` in its types, and `$.process.run`'s `env` only adds to the host's. A clone at runtime means unreviewed code on every machine within a day.
 
-**Decision**: `buildPayload` in the core maps those to the statusLine field names. A field the mod does not have is left out, never zero.
+**Decision**: vendor the runtime into the repository and refresh it by pull request (R3).
 
-## R3 Where the copy lives
+## R3 The vendored copy and its sync
 
-**Finding**: `$.plugin.root` is the install location and may be a git checkout the user owns (folder marketplace). `$.fs.write` and `$.process.run` exist. Claude Code gives plugins a data directory in `CLAUDE_PLUGIN_DATA`.
+**Decision**: `vendor/statusline/{bin,src,package.json,LICENSE}` (about 740 KB, no dependencies) and `VERSION` (`commit`, `version`, `syncedAt`). A script `scripts/sync-statusline.sh` clones upstream `main` at a given ref into a temp folder, copies those paths, writes `VERSION`, runs the contract test; a workflow runs it weekly and on demand and opens a pull request through `gh`. Upstream tags, if the owner publishes them, change only the ref the script defaults to.
 
-**Decision**: the copy lives in `${CLAUDE_PLUGIN_DATA}/statusline/<version>/`, one folder per release, with a small `current.json` naming the folder in use. Replacing the pointer is the atomic step; a half-cloned folder is never named. Two releases are kept, older ones are removed. Without `CLAUDE_PLUGIN_DATA` the feature degrades to native (Principle XI).
+**Alternatives**: npm package (no package manager for a mod, and the package name differs from the repository's owner); importing `src/render.js` (the host has no Node API and a different module loader); a git submodule (needs `git submodule update` at install, which a plugin install does not run).
 
-## R4 How a release is found and fetched
+## R4 Payload
 
-**Decision**: `git ls-remote --tags --refs https://github.com/jonyfs/statusline.git` once a day, the highest `vX.Y.Z` inside the compatible range, then `git clone --depth 1 --branch <tag>` into the versioned folder, then a check that `package.json` names that version and `bin/cli.js` exists. No package manager, no scripts run from the copy except the renderer.
+**Decision**: `buildPayload` in the core. `$.session.usage()` gives `{startedAt, context, rateLimits, cost}`; rate limits convert to `used_percentage` and `resets_at` in epoch seconds (an ISO string would make statusline drop the reset); only `context_window_size` and `used_percentage` are sent for context; `model.display_name` only when known (statusline prints a literal `Claude` otherwise); `session_id` from `$.session.id()`; `workspace.current_dir` from the session's cwd.
 
-**Alternatives**: a git submodule or a vendored folder (pins the copy to an Astrolabe release; no "automatic" update, and doubles the repository); the npm package (needs a package manager and a lifecycle script run); following `main` (unreviewed code every day).
+## R5 Side effects of the renderer
 
-## R5 Trust
+**Finding**: statusline writes `~/.claude/statusline/` (caches, per-session state, update records), spawns detached `git`, `gh` and `rtk` refreshes, and by default checks for its own update.
 
-**Finding**: running downloaded code on every redraw is the sharpest edge of this request.
+**Decision**: pass `CLAUDE_STATUSLINE_UPDATES=off` and `CLAUDE_STATUSLINE_DEBUG=0`; keep its refreshes (they give the PR, CI and rtk chips) and disclose them; amend Principle III to say that a bundled program keeps its caches there. Running statusline also as Claude Code's `statusLine` shares those caches, which are keyed by session and safe to share.
 
-**Decision**: only tags of one hard-coded repository are accepted; the renderer is started with an argv array, a time budget and a trimmed environment (HOME, PATH, COLUMNS, LINES, NO_COLOR, `CLAUDE_STATUSLINE_*`); its output goes through a parser that keeps colour and attribute sequences only. The README states that the dependency is code from that repository and names the option that turns it off.
+## R6 Output to elements and width
 
-## R6 Output to elements
+**Decision**: `parseAnsiLines` yields `Run[][]` with `text`, `fg`, `bg`, `bold`, `dim`, `underline`, `href`. Width is `textWidth` over run text only. `COLUMNS` passed to the renderer is the region width (`columns - 4`). On draw, runs rendered for another width are hard-cut to the current one and one refresh is scheduled (debounced). The region reserves the lead row plus the cached line count (at most three), one refresh behind.
 
-**Finding**: the pane footer draws chips from `Chip[]`; statusline prints ANSI (24-bit colour, Powerline caps). The status entry takes plain text.
+## R7 `$` and the engine
 
-**Decision**: `parseAnsiLines` yields `Run[][]` (`text`, `fg`, `bg`, `bold`). The pane draws each run as a `Text` with those colours; the status entry gets the same lines without colour, joined and cut to the width. Columns are measured with `textWidth` (the single measure).
+**Decision**: every `$` call lives in functions declared in `hooks/register.tsx` (a recorded pitfall: the engine refuses a module that passes `$` across an import). Core and IO modules take plain data and closures built in register. The process call uses the field `stdin`, not `input`.
 
-## R7 Cadence
+## R8 Why the native lead stays
 
-**Decision**: a refresh on turn end and on each usage reading, at most every 5 seconds, and not while the pane is closed with `footerIn=pane`. One process at a time; a refresh that finds one running is dropped. The last good output is reused for 60 seconds on failure.
+**Finding**: statusline knows nothing of Spec Kit, the governor's deciding window or the advisor. With statusline as the whole footer the pane would lose the Spec Kit part and the deciding window on every tab.
+
+**Decision**: a native lead row above statusline's lines.
