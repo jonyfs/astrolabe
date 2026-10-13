@@ -19,7 +19,7 @@ import { ticksIn } from './core/tasks-parser'
 import { spinnerSuffix } from './core/spinner'
 import { bandUpdateLabel, astrolabeUpdate, firstLine, isDue, isStoredUpdates, localDay, parseCliVersion, parseGstackCheck, parseSelfCheck, skillsVersusCli, releaseNotesUrl, skillsUpdate, updateLabel } from './core/updates'
 import { fileUrl, joinPath } from './core/paths'
-import { closeAllSuggestion, closeSuggestion, configMark, nextFor, planFiles, nextPriority, skillsForPhase, specDetail, OPTION_GROUPS, optionDefaults, optionGroup, parallelPrompt, parsePriority, REVIEW_MODEL, reviewPrompt, withPriority, type OptionGroup, type Priority } from './core/spec-actions'
+import { closeAllSuggestion, closeSuggestion, configMark, reconcileSuggestion, nextFor, planFiles, nextPriority, skillsForPhase, specDetail, OPTION_GROUPS, optionDefaults, optionGroup, parallelPrompt, parsePriority, REVIEW_MODEL, reviewPrompt, withPriority, type OptionGroup, type Priority } from './core/spec-actions'
 import { parallelTasks } from './core/extensions'
 import { VERSION } from './core/version'
 import { QUEUE_HOTKEYS } from './core/keys'
@@ -30,7 +30,7 @@ import { withThumb } from './core/thumb'
 import { displaySectionOf, isReadyToClose } from './core/sections'
 import { blockLabel, jumpLine, jumpMatches, jumpQuery, nextGroup } from './core/specs-scale'
 import { usageBarRows } from './core/usage-bars'
-import { deciderNote, governorBoxState, todayCounts, trend24h } from './core/session-usage'
+import { deciderNote, governorBoxState, sessionChips, todayCounts, trend24h } from './core/session-usage'
 import { badgesOf, legacyTab, paneTitle } from './core/pane-tabs'
 import { usageRamp } from './core/usage-ramp'
 import { ASK_MS, clockOf, decide, dropped, EXTEND_MS, HOLD_LIFT_MS, holdQuestion, labelOf, nextHeld, isPaused, isReadOnlyTool, parseAllow, pauseQuestion, RAISE_MS, refusal, resumePrompt, runPrompt, usageSegment, type Decision, type Question, usageRows } from './core/governor'
@@ -672,7 +672,11 @@ function configBody(
   const rows: Array<{ node: RenderNode; rows: number }> = []
   if (configRows.length === 0) return [{ rows: 1, node: <Text color={tokens0.muted}>{t(lang, 'config.none')}</Text> }]
   // Under a heading per group (054 #64).
-  const ordered = (Object.keys(OPTION_GROUPS) as OptionGroup[]).flatMap(group => configRows.filter(row => optionGroup(row.key) === group).map((row, i) => ({ row, heading: i === 0 ? group : undefined })))
+  // `/` finds an option by name (board 4, 075 FR-017): the rows that match stay, and so do their headings.
+  const needle = (pane.filter ?? '').trim().toLowerCase()
+  const wanted = (row: ConfigRow) => needle === '' || `${row.key} ${row.label}`.toLowerCase().includes(needle)
+  const ordered = (Object.keys(OPTION_GROUPS) as OptionGroup[]).flatMap(group => configRows.filter(row => optionGroup(row.key) === group && wanted(row)).map((row, i) => ({ row, heading: i === 0 ? group : undefined })))
+  if (needle !== '' && ordered.length === 0) return [{ rows: 1, node: <Text color={tokens0.muted}>{t(lang, 'pane.noMatch', { filter: needle })}</Text> }]
   for (const { row, heading } of ordered) {
     if (heading !== undefined) rows.push({ rows: 1, node: <Text key={`config-group-${heading}`} color={tokens0.accent} bold>{t(lang, `config.group.${heading}` as TextKey)}</Text> })
     const shown = row.key in draft ? draft[row.key] : row.value
@@ -688,7 +692,13 @@ function configBody(
     else if (row.kind === 'choice' && row.options !== undefined) {
       const options = row.options
       const next = options[(options.indexOf(String(shown)) + 1) % options.length] ?? String(shown)
-      control = <Button key={key} label={`${String(shown)} ▸`} onPress={() => setDraft(row.key, next)} />
+      // `‹ value ›` with the other choices after it (board 4); a press moves to the next one.
+      control = (
+        <Box key={key} flexDirection="row">
+          <Button label={`‹ ${String(shown)} ›`} onPress={() => setDraft(row.key, next)} />
+          <Text color={tokens0.faint}>{`  ${options.filter(o => o !== String(shown)).join(' · ')}`}</Text>
+        </Box>
+      )
     } else if (Input !== undefined) {
       const save = (value: string) => setDraft(row.key, row.kind === 'number' ? Number(value) : value)
       control = <Input key={key} value={String(shown)} onInput={save} onSubmit={save} />
@@ -701,6 +711,7 @@ function configBody(
           <Box flexDirection="row">
             <Text color={changed ? tokens0.current : tokens0.text}>{label}</Text>
             {control}
+            {row.key === 'icons' && String(shown) === 'auto' ? <Text color={tokens0.faint}>{`  (${t(lang, iconsFor('auto', e.surface) === 'nerd' ? 'config.iconsNerd' : iconsFor('auto', e.surface) === 'ascii' ? 'config.iconsAscii' : 'config.iconsEmoji')})`}</Text> : null}
           </Box>
           <Box
             display="none"
@@ -1109,7 +1120,7 @@ function paneHeader(
   const Button = 'Button' in elements ? elements.Button : undefined
   const active = state.active
   // One filter for Specs, Tasks and Help (043 #23).
-  if (viewOf(pane) === 'specs' || viewOf(pane) === 'tasks' || viewOf(pane) === 'help') {
+  if (viewOf(pane) === 'specs' || viewOf(pane) === 'tasks' || viewOf(pane) === 'help' || viewOf(pane) === 'setup') {
     const out: RenderNode[] = []
     if (Input !== undefined) {
       // Each keystroke filters; Enter keeps the text the same way.
@@ -1118,7 +1129,7 @@ function paneHeader(
         await $.state.set(PANE_STATE, { ...held, filter: value })
       }
       out.push(
-        <Input key="astrolabe-filter" placeholder={t(currentLang(), viewOf(pane) === 'specs' ? 'pane.filter' : 'pane.filterRows')} value={pane.filter ?? ''} onInput={setFilter} onSubmit={setFilter} />,
+        <Input key="astrolabe-filter" placeholder={t(currentLang(), viewOf(pane) === 'specs' ? 'pane.filter' : viewOf(pane) === 'setup' ? 'pane.findOption' : 'pane.filterRows')} value={pane.filter ?? ''} onInput={setFilter} onSubmit={setFilter} />,
       )
       // A `#` jump (067 #31): the ids the query completes to, live.
       const jump = viewOf(pane) === 'specs' ? jumpQuery(pane.filter) : undefined
@@ -1651,7 +1662,13 @@ async function sessionTabRows(
   const governorDecision = decisionOf(usage, now)
   const overrideActive = usage.override !== undefined && usage.override.until > now
   const project = [
-    ...sessionRows(state, now, lang, labelWidth),
+    ...sessionRows(state, now, lang, labelWidth).flatMap(row => {
+      // The chips of the active feature sit under its row (board 4, 075 FR-013).
+      if (row.key !== 'session-active') return [row]
+      const feature = state.features.find(f => f.dir === state.active?.dir)
+      const chips = feature === undefined ? [] : sessionChips({ done: feature.done, total: feature.total, taskTimes: (stats?.taskTimes ?? []).filter(x => x.dir === feature.dir), turns: stats?.turns ?? 0, ...(stats?.cost === undefined ? {} : { cost: stats.cost }) })
+      return chips.length === 0 ? [row] : [row, { key: 'session-chips', text: `${''.padEnd(labelWidth)}${chips.map(c => `[ ${c} ]`).join(' ')}`, role: 'muted' as ThemeRole }]
+    }),
     // The branch, linked to its page on the remote (054 #79).
     ...(branch === undefined ? [] : [valueRow('session-branch', t(lang, 'session.branch'), branch, 'text', stats?.git?.remote === undefined ? {} : { href: branchWebUrl(stats.git.remote, branch) })]),
   ]
@@ -1691,7 +1708,8 @@ async function sessionTabRows(
     ...(advisor === undefined ? [] : [valueRow('advisor', t(lang, 'session.advisor'), t(lang, 'advisor.runs', { n: advisor.runs, at: clockOf(new Date(advisor.at).toISOString()) ?? '' }))]),
     ...(advisor?.last === undefined ? [] : advisor.last.text.split('\n').map((line, i) => valueRow(`advisor-${i}`, i === 0 ? `${t(lang, 'session.advisor')} ${advisor.last!.id}` : '', line))),
     ...(review === undefined ? [] : [
-      { key: 'review-heading', text: `${t(lang, 'session.review')} ${review.id} · ${REVIEW_MODEL.model} · ${now - review.at < 60_000 ? t(lang, 'time.justNow') : t(lang, 'time.ago', { age: minutes(now - review.at) })}`, role: 'text' as ThemeRole },
+      // `review 002 · 6 findings (opus xhigh) · 5m ago`: the findings are the lines under it (board 4, 075 FR-015).
+      { key: 'review-heading', text: `${t(lang, 'session.review')} ${review.id} · ${t(lang, 'session.findings', { n: review.text.split('\n').filter(line => line.trim() !== '').length })} (${REVIEW_MODEL.model} ${REVIEW_MODEL.effort}) · ${now - review.at < 60_000 ? t(lang, 'time.justNow') : t(lang, 'time.ago', { age: minutes(now - review.at) })}`, role: 'text' as ThemeRole },
       ...review.text.split('\n').map((line, i) => valueRow(`review-${i}`, '', line)),
     ]),
   ]
@@ -3639,7 +3657,7 @@ export const register: Register = (on, options) => {
       view === 'help'
         ? helpRows(helpText(currentLang(), optionsSeen, stats?.health?.lines ?? []), pane.filter, currentLang())
         : view === 'tasks'
-        ? [...keep(taskRows(state, emptyMemo(), 1000, columns, currentLang(), await $.clock.now(), stats?.taskTimes ?? [])), ...(await pastResetRows($, state, stats, usage))]
+        ? ((list, past) => [...list.slice(0, 1), ...past, ...list.slice(1)])(keep(taskRows(state, emptyMemo(), 1000, columns, currentLang(), await $.clock.now(), stats?.taskTimes ?? [])), await pastResetRows($, state, stats, usage))
         : view === 'session'
           ? await sessionTabRows($, state, usage, stats, updates, updatesRead.value?.confirming)
           : [
@@ -3772,6 +3790,7 @@ export const register: Register = (on, options) => {
       // What the tab is for, then its keys (048 #72).
       onClose: () => $.ui.close({ id: PANE_ID }).then(() => undefined),
       ...(view === 'specs' ? { onCloseReady: (dirs: string[]) => void $.prompt.suggest({ text: closeAllSuggestion(dirs) }).catch(() => undefined) } : {}),
+      ...(view === 'specs' ? { onReconcile: (id: string) => void $.prompt.suggest({ text: reconcileSuggestion(id) }).catch(() => undefined) } : {}),
       columns,
       ...(view === 'session' && e.surface === 'terminal'
         ? {
@@ -3874,7 +3893,7 @@ export const register: Register = (on, options) => {
           }
         : {}),
       onCopy: (text: string) => copyNext($, text, e.surface),
-      onFind: view === 'specs' || view === 'tasks' || view === 'help' ? () => $.ui.focus({ requestId: PANE_ID, key: 'astrolabe-filter' }).then(() => undefined) : undefined,
+      onFind: view === 'specs' || view === 'tasks' || view === 'help' || view === 'setup' ? () => $.ui.focus({ requestId: PANE_ID, key: 'astrolabe-filter' }).then(() => undefined) : undefined,
       // What the tab is for, then its keys; a narrow pane keeps the keys whole (052 #3).
       // Nothing under the Tasks list but its actions: the key row names the keys (board 3, 075 FR-012).
       ...(view === 'tasks'

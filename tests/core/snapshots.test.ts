@@ -60,10 +60,10 @@ describe('what every snapshot must hold (064 FR-005, FR-006, FR-009, FR-016)', (
     for (const flavor of FLAVOR_NAMES) {
       for (const columns of WIDTHS) {
         const rows = GOLDEN[`${flavor}/${columns}/pane`]!.map(r => r.split('|')[0]!)
-        const listed = rows.filter(r => /^[ ▸] [●◐○] \d{3,4} /.test(r))
+        const listed = rows.filter(r => /^[ ▸] [◆✓✖·↑↓ ] \d{3,4} /.test(r))
         expect(listed.length).toBe(4)
         // The name column starts in one place: every id occupies four cells.
-        const nameAt = listed.map(r => /^[ ▸] [●◐○] (\d{3,4} +)/.exec(r)![1]!.length)
+        const nameAt = listed.map(r => /^[ ▸] [◆✓✖·↑↓ ] (\d{3,4} +)/.exec(r)![1]!.length)
         expect(new Set(nameAt).size).toBe(1)
       }
     }

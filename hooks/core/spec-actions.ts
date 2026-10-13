@@ -95,6 +95,12 @@ export const specDetail = (
   ].join(' · ')
 }
 
+/** The prompt a check row offers (board 6): the finding, and the one thing to do about it. The id is `dir\ntext`. */
+export const reconcileSuggestion = (id: string): string => {
+  const [dir = '', ...rest] = id.split('\n')
+  return `Reconcile specs/${dir}: ${rest.join(' ').trim()}. Change only the files that disagree, and say what you changed.`
+}
+
 /** Each option's default from plugin.json's userConfig, keyed `astrolabe.<field>` (054 #63). */
 export const optionDefaults = (pluginJson: string): Record<string, string | number | boolean> => {
   try {

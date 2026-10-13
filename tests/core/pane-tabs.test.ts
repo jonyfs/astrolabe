@@ -57,7 +57,7 @@ describe('the legend row holds key-verb pairs (066 #22)', () => {
   })
   test('Tasks and Setup have their own pairs', () => {
     expect(legendOf('tasks', { wide: true }).map(p => p.verb)).toEqual(['filter', 'refresh'])
-    expect(legendOf('setup', { wide: true }).map(p => p.verb)).toEqual(['refresh'])
+    expect(legendOf('setup', { wide: true }).map(p => p.verb)).toEqual(['filter', 'refresh'])
     expect(legendOf('session', { wide: true }).map(p => p.verb)).toEqual(['copy kpis', 'refresh'])
     expect(legendOf('prs', { wide: true }).map(p => p.verb)).toEqual(['refresh'])
   })

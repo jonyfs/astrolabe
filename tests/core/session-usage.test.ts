@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import { deciderNote, governorBoxState, todayCounts, trend24h } from '../../hooks/core/session-usage'
+import { deciderNote, governorBoxState, sessionChips, todayCounts, trend24h } from '../../hooks/core/session-usage'
 
 const NOW = Date.UTC(2026, 9, 12, 12, 0)
 const H = 3_600_000
@@ -67,5 +67,12 @@ describe('todayCounts', () => {
     ]
     expect(todayCounts(log, NOW - 2 * H)).toEqual({ holds: 2, pauses: 1 })
     expect(todayCounts([], 0)).toEqual({ holds: 0, pauses: 0 })
+  })
+})
+
+describe('the chips of the active feature (075 FR-013)', () => {
+  test('tasks, minutes per task, turns and cost; a chip with no data is left out', () => {
+    expect(sessionChips({ done: 9, total: 20, taskTimes: [{ ms: 480_000 }], turns: 34, cost: 4.1 })).toEqual(['9/20 tasks', '8m/task', '34 turns', '$4.10'])
+    expect(sessionChips({ done: 0, total: 0, taskTimes: [], turns: 0 })).toEqual([])
   })
 })

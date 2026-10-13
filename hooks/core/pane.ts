@@ -15,7 +15,7 @@ import { STATUS_ROLE, type ThemeRole } from './theme'
 import type { Feature, SessionMemo, SpeckitState } from './types'
 
 /** A row; `segments`, when given, colour parts of `text` (which stays their join) (052 #12). */
-export type PaneRow = { key: string; text: string; role: ThemeRole; bold?: boolean; selected?: boolean; label?: string; value?: string; action?: { id: string; label: string; hotkey?: string; kind?: 'allow' | 'revoke' | 'update' | 'lift' | 'close' }; copy?: string; href?: string; links?: ReadonlyArray<{ label: string; href: string }>; segments?: ReadonlyArray<{ text: string; role: ThemeRole }>; /** Drawn on a background: the current task's block (board 3). */ highlight?: true }
+export type PaneRow = { key: string; text: string; role: ThemeRole; bold?: boolean; selected?: boolean; label?: string; value?: string; action?: { id: string; label: string; hotkey?: string; kind?: 'allow' | 'revoke' | 'update' | 'lift' | 'close' | 'reconcile' }; copy?: string; href?: string; links?: ReadonlyArray<{ label: string; href: string }>; segments?: ReadonlyArray<{ text: string; role: ThemeRole }>; /** Drawn on a background: the current task's block (board 3). */ highlight?: true }
 
 /** Nine cells of `▰▱`, as the Specs rows of board 3 draw them. */
 const BAR_CELLS = 9
@@ -225,7 +225,8 @@ const buildSpecsRows = (
     out.push(...featureWarnings(f, lang))
     // Each check also sits under its own spec's row (067 #33).
     for (const c of checks) {
-      if (c.dir === f.dir && c.kind !== 'duplicate-id') out.push({ key: `check-${c.kind}-${f.id}`, text: cut(`▲ ${c.text}`, columns), role: 'current' })
+      // The row offers to put the fix in the composer for Claude (board 6, 075 FR-019).
+      if (c.dir === f.dir && c.kind !== 'duplicate-id') out.push({ key: `check-${c.kind}-${f.id}`, text: cut(`▲ ${c.text}`, columns - 30), role: 'current', action: { id: `${f.dir}\n${c.text}`, label: tr(lang, 'pane.reconcile'), kind: 'reconcile' } })
     }
     shown.add(f.dir)
     return out
@@ -276,7 +277,7 @@ const buildSpecsRows = (
     // What Claude touched this session (067 #40).
     const touched = (scale?.touched ?? []).flatMap(dir => state.features.filter(f => f.dir === dir))
     if (touched.length > 0) {
-      rows.push({ key: 'section-touched', text: `${tr(lang, 'pane.section.touched')} (${touched.length})`, role: 'muted', bold: true })
+      rows.push({ key: 'section-touched', text: `${tr(lang, 'pane.section.touched')} ${touched.length}`, role: 'muted', bold: true })
       for (const f of touched) rows.push(...featureBlock(f))
     }
     const runs = loadingRuns(state.features)
@@ -284,7 +285,7 @@ const buildSpecsRows = (
       for (const section of ['active', 'progress', 'early', 'close'] as const) {
         const inSection = sorted(loaded.filter(f => displaySectionOf(f, activeDir) === section && !touched.includes(f)))
         if (inSection.length === 0) continue
-        rows.push({ key: `section-${section}`, text: `${tr(lang, `pane.section.${section}`)} (${inSection.length})`, role: 'muted', bold: true })
+        rows.push({ key: `section-${section}`, text: `${tr(lang, `pane.section.${section}`)} ${inSection.length}`, role: 'muted', bold: true })
         // One button asks Claude to close every spec that is ready, with their folders in the id (073).
         if (section === 'close' && inSection.length > 1) {
           rows.push({
@@ -330,7 +331,7 @@ const buildSpecsRows = (
       const inSection = byPriority(sortFeatures(state.features.filter(f => displaySectionOf(f, activeDir) === section), sort), priorities)
       if (inSection.length === 0) continue
       const folded = fold && (section === 'done' || section === 'abandoned') && inSection.length > 3 && !inSection.some(f => f.dir === activeDir)
-      rows.push({ key: `section-${section}`, text: `${tr(lang, `pane.section.${section}`)} (${inSection.length})${folded ? ` · ${tr(lang, 'pane.folded.section', { status: section })}` : ''}`, role: 'muted', bold: true })
+      rows.push({ key: `section-${section}`, text: `${tr(lang, `pane.section.${section}`)} ${inSection.length}${folded ? ` · ${tr(lang, 'pane.folded.section', { status: section })}` : ''}`, role: 'muted', bold: true })
       if (folded) continue
       for (const f of inSection) {
         if (f.warnings.includes('loading')) {
@@ -553,8 +554,10 @@ export const taskRows = (
     const edge = [tag, clock].filter(x => x !== '').join(' ')
     const head = `${isCurrent ? '▶ ' : '  ○ '}${t.id === undefined ? '' : `${padId(t.id, taskIdWidth)} `}`
     // The ◷ sits at the right edge, the current row in bold (052 #20).
-    const body = `${head}${cut(cleanTaskText(t.text), columns - width(head) - width(edge) - (edge === '' ? 0 : 2))}`.trimEnd()
-    const line = edge === '' ? body : `${body}${' '.repeat(Math.max(2, columns - width(body) - width(edge)))}${edge}`
+    // The `↗` link after the row takes three cells: the edge text stops short of it.
+    const room = taskFile === undefined || t.line === undefined ? columns : columns - 3
+    const body = `${head}${cut(cleanTaskText(t.text), room - width(head) - width(edge) - (edge === '' ? 0 : 2))}`.trimEnd()
+    const line = edge === '' ? body : `${body}${' '.repeat(Math.max(2, room - width(body) - width(edge)))}${edge}`
     const named = isCurrent ? taskFiles(t.text) : []
     out.push({ key: `task-${t.id ?? index}`, text: line, role: isCurrent ? 'current' : 'text', ...(isCurrent ? { bold: true, highlight: true as const } : {}), ...(taskFile === undefined || t.line === undefined ? {} : { href: `${fileUrl(taskFile)}#L${t.line}` }) })
     // The files the current task names, under it, in the same block (045 #45).
@@ -578,9 +581,9 @@ export const sessionRows = (state: SpeckitState, now: number, lang: Lang = 'en',
   const none = tr(lang, 'word.none')
   const pairs: Array<[string, string, string]> = [
     ['root', tr(lang, 'session.root'), state.root ?? tr(lang, 'word.unknown')],
-    ['constitution', tr(lang, 'session.constitution'), state.constitution],
+    // The constitution and how the active spec was chosen share one row (board 4, 075 FR-014).
+    ['constitution', tr(lang, 'session.constitution'), `${state.constitution === 'ratified' ? '✓ ' : ''}${state.constitution}${state.active === undefined ? '' : ` · ${tr(lang, 'session.activeBy', { source: state.active.source })}`}`],
     ['active', tr(lang, 'session.active'), state.active === undefined ? none : `${state.active.id} ${state.active.name}`],
-    ['chosen-by', tr(lang, 'session.chosenBy'), state.active?.source ?? none],
     ['next', tr(lang, 'session.next'), state.nextCommand ?? none],
     ['running', tr(lang, 'session.running'), state.runningSkill?.name ?? none],
     ['analyzed', tr(lang, 'session.analyzed'), state.isAnalyzed ? tr(lang, 'word.yes') : tr(lang, 'word.no')],

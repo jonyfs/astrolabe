@@ -159,6 +159,10 @@ Checked one by one against the code and the tests. Items 1 to 10 and 21 to 50 ar
 - **FR-021**: Nothing slow on draw (Principle XII): every figure is read from state the session already holds.
 - **FR-022**: The README, the captures in `docs/images` and the CHANGELOG MUST show the new forms.
 
+## Removed to match the board
+
+The breadcrumb (`Specs › 002 shopping-cart`), the summary block above the Specs list and its expand toggle. The first line of the summary and the links to `spec.md`, `plan.md` and `tasks.md` stay on the selected row. The `current / next / blocked / later` headers on the Tasks tab are gone; user stories head the tasks instead. The Tasks tab's bottom key legend is gone.
+
 ## Out of scope (engine draws it)
 
 - The `🧭 Astrolabe · …` title row and the `⚠` before the status entry.
@@ -174,5 +178,6 @@ Checked one by one against the code and the tests. Items 1 to 10 and 21 to 50 ar
 
 ## Assumptions
 
-- The user's reading of board 9 item 14 stands as written under Board 9.
-- The `quick` and `plan.md ✓` tags and the 9-cell bar are accepted now; the earlier hold (spec 073) was an open question, and the design review has now asked for them.
+- Board 9 item 14 reads as written under Board 9.
+- The `quick` and `plan.md ✓` tags and the 9-cell bar were held back in spec 073 as an open question; the request to revisit every board settles it.
+- FR-015's `open` button is not drawn: the findings are the lines under the review heading, so there is nothing to open.
