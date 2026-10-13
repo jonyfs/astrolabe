@@ -16,7 +16,7 @@ import { STATUS_ROLE, type ThemeRole } from './theme'
 import type { Feature, SessionMemo, SpeckitState } from './types'
 
 /** A row; `segments`, when given, colour parts of `text` (which stays their join) (052 #12). */
-export type PaneRow = { key: string; text: string; role: ThemeRole; bold?: boolean; selected?: boolean; label?: string; value?: string; action?: { id: string; label: string; hotkey?: string; kind?: 'allow' | 'revoke' | 'update' | 'lift' }; copy?: string; href?: string; links?: ReadonlyArray<{ label: string; href: string }>; segments?: ReadonlyArray<{ text: string; role: ThemeRole }> }
+export type PaneRow = { key: string; text: string; role: ThemeRole; bold?: boolean; selected?: boolean; label?: string; value?: string; action?: { id: string; label: string; hotkey?: string; kind?: 'allow' | 'revoke' | 'update' | 'lift' | 'close' }; copy?: string; href?: string; links?: ReadonlyArray<{ label: string; href: string }>; segments?: ReadonlyArray<{ text: string; role: ThemeRole }> }
 
 const BAR_CELLS = 10
 const noSpeckit = (lang: Lang): PaneRow => ({ key: 'none', text: tr(lang, 'pane.noSpeckit'), role: 'muted' })
@@ -199,6 +199,11 @@ const buildSpecsRows = (
     if (activeDir === f.dir && f.phase !== 'done' && f.phase !== 'abandoned' && !f.warnings.includes('loading')) {
       out.push({ key: 'gates', text: cut(gatesText(state, f, lang), columns), role: 'muted' })
     }
+    // Why this spec is the active one, under its row (067 board 6, 073).
+    // Only when it was not named outright: a feature.json pick needs no explanation.
+    if (activeDir === f.dir && state.active !== undefined && !f.warnings.includes('loading') && (state.active.source === 'branch' || state.active.source === 'latest')) {
+      out.push({ key: 'active-why', text: cut(`  ${tr(lang, state.active.source === 'branch' ? 'pane.activeWhy.branch' : 'pane.activeWhy.latest')}`, columns), role: 'faint' })
+    }
     out.push(...featureWarnings(f, lang))
     // Each check also sits under its own spec's row (067 #33).
     for (const c of checks) {
@@ -262,6 +267,15 @@ const buildSpecsRows = (
         const inSection = sorted(loaded.filter(f => displaySectionOf(f, activeDir) === section && !touched.includes(f)))
         if (inSection.length === 0) continue
         rows.push({ key: `section-${section}`, text: `${tr(lang, `pane.section.${section}`)} (${inSection.length})`, role: 'muted', bold: true })
+        // One button asks Claude to close every spec that is ready, with their folders in the id (073).
+        if (section === 'close' && inSection.length > 1) {
+          rows.push({
+            key: 'close-all',
+            text: cut(`  ${inSection.map(f => f.id).join(' ')}`, columns - 24),
+            role: 'muted',
+            action: { id: inSection.map(f => f.dir).join('\n'), label: tr(lang, 'pane.closeAll'), kind: 'close' },
+          })
+        }
         for (const f of inSection) rows.push(...featureBlock(f))
       }
       for (const run of runs) rows.push(placeholder(run))

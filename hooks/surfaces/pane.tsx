@@ -42,7 +42,7 @@ export const paneTree = (
   /** What is above and below the rows shown, with the presses that scroll (038). */
   nav?: { above: number; below: number; up: () => Promise<void>; down: () => Promise<void>; labels: { more: string } },
   /** Counts beside the tab labels (043 #21) and the keys of the tab shown (043 #25). */
-  extras: { view?: { label: string; onPress: () => Promise<void> }; group?: { label: string; onPress: () => Promise<void> }; onToggleBlock?: (key: string) => Promise<void>; help?: boolean; onHelp?: () => Promise<void>; onUpdate?: (id: string) => Promise<void>; badges?: Partial<Record<PaneTab, string>>; legend?: string; onClose?: () => Promise<void>; onFind?: () => Promise<void>; onCopy?: (text: string) => Promise<void>; onRefresh?: () => Promise<void>; onCopyKpis?: () => Promise<void>; showKeys?: boolean; sort?: { label: string; onPress: () => Promise<void> }; onClear?: () => Promise<void>; onPriority?: () => Promise<void>; onRunQueued?: (id: string) => Promise<void>; rowButtons?: ReadonlyArray<{ key: string; label: string; hotkey?: string; onPress: () => void }>; rowDetail?: string; onLiftBand?: () => Promise<void>; onAllowUsage?: () => Promise<void>; onRevokeUsage?: () => Promise<void>; status?: { label: string; onPress: () => Promise<void> }; columns?: number; marks?: 'unicode' | 'ascii' | 'words'; colorblind?: boolean; wrapLongNames?: boolean; Link?: ElementTable<'terminal'>['Link'] } = {},
+  extras: { view?: { label: string; onPress: () => Promise<void> }; group?: { label: string; onPress: () => Promise<void> }; onToggleBlock?: (key: string) => Promise<void>; help?: boolean; onHelp?: () => Promise<void>; onUpdate?: (id: string) => Promise<void>; badges?: Partial<Record<PaneTab, string>>; legend?: string; onClose?: () => Promise<void>; onFind?: () => Promise<void>; onCopy?: (text: string) => Promise<void>; onRefresh?: () => Promise<void>; onCopyKpis?: () => Promise<void>; showKeys?: boolean; sort?: { label: string; onPress: () => Promise<void> }; onClear?: () => Promise<void>; onPriority?: () => Promise<void>; onRunQueued?: (id: string) => Promise<void>; rowButtons?: ReadonlyArray<{ key: string; label: string; hotkey?: string; onPress: () => void }>; rowDetail?: string; onLiftBand?: () => Promise<void>; onCloseReady?: (dirs: string[]) => void; onAllowUsage?: () => Promise<void>; onRevokeUsage?: () => Promise<void>; status?: { label: string; onPress: () => Promise<void> }; columns?: number; marks?: 'unicode' | 'ascii' | 'words'; colorblind?: boolean; wrapLongNames?: boolean; Link?: ElementTable<'terminal'>['Link'] } = {},
 ) => {
   const Link = extras.Link
   // The pane's own marks in the set the icons option and the accessible mode pick (052 #49, #47).
@@ -160,6 +160,8 @@ export const paneTree = (
           ) : row.action !== undefined &&
             (row.action.kind === 'lift'
               ? extras.onLiftBand !== undefined
+              : row.action.kind === 'close'
+              ? extras.onCloseReady !== undefined
               : row.action.kind === 'allow'
               ? extras.onAllowUsage !== undefined
               : row.action.kind === 'revoke'
@@ -172,12 +174,14 @@ export const paneTree = (
                 {m(colorblindText(row, extras.colorblind))}
               </Text>
               <Button
-                key={row.action.kind === undefined ? `queue-run-${row.action.id}` : row.action.kind === 'update' ? `update-${row.action.id}` : `usage-${row.action.kind}`}
+                key={row.action.kind === undefined ? `queue-run-${row.action.id}` : row.action.kind === 'update' ? `update-${row.action.id}` : row.action.kind === 'close' ? 'close-ready' : `usage-${row.action.kind}`}
                 label={row.action.label}
                 hotkey={row.action.hotkey}
                 plain
                 onPress={() => row.action?.kind === 'lift'
                   ? extras.onLiftBand!()
+                  : row.action?.kind === 'close'
+                  ? extras.onCloseReady!(row.action.id.split('\n'))
                   : row.action?.kind === 'allow'
                   ? extras.onAllowUsage!()
                   : row.action?.kind === 'revoke'
