@@ -252,7 +252,7 @@ export type SessionStats = {
   agentsQueued: number
   model?: string
   effort?: string
-  context?: { percent: number }
+  context?: { percent: number; /** Tokens in the window and its size, when the engine gave them (071). */ tokens?: number; window?: number }
   cost?: number
   git?: GitState
   /** Lines the session's tools added and removed (041 #7). */

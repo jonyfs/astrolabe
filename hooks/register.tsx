@@ -30,9 +30,10 @@ import { withThumb } from './core/thumb'
 import { displaySectionOf, isReadyToClose } from './core/sections'
 import { blockLabel, jumpLine, jumpMatches, jumpQuery, nextGroup } from './core/specs-scale'
 import { usageBarRows } from './core/usage-bars'
+import { deciderNote, governorBoxState, todayCounts, trend24h } from './core/session-usage'
 import { badgesOf, legacyTab, paneTitle } from './core/pane-tabs'
 import { usageRamp } from './core/usage-ramp'
-import { ASK_MS, clockOf, decide, dropped, EXTEND_MS, HOLD_LIFT_MS, holdQuestion, nextHeld, isPaused, isReadOnlyTool, parseAllow, pauseQuestion, RAISE_MS, refusal, resumePrompt, runPrompt, usageSegment, type Decision, type Question, usageRows } from './core/governor'
+import { ASK_MS, clockOf, decide, dropped, EXTEND_MS, HOLD_LIFT_MS, holdQuestion, labelOf, nextHeld, isPaused, isReadOnlyTool, parseAllow, pauseQuestion, RAISE_MS, refusal, resumePrompt, runPrompt, usageSegment, type Decision, type Question, usageRows } from './core/governor'
 import { ANSI_16, chipForeground, CHIPS, FLAVORS, flavorOf, isThemeKeys, lighten, STATUS_ROLE, themeOf, type ThemeRole } from './core/theme'
 import { capDiff, DIFF_FOLD_MS, foldedDiff, recapLine, recapOf, tasksDiff } from './core/summary'
 import { styleSections } from './core/style'
@@ -1768,16 +1769,55 @@ async function sessionTabRows(
   const updateRows = updates.map(item => ((url => valueRow(`update-${item.id}`, 'update', `${updateLabel(item, confirming === item.id)} (installed ${item.installed})`, 'current', { action: { id: item.id, label: t(lang, 'updates.install'), kind: 'update' as const }, ...(url === undefined ? {} : { href: url }) }))(releaseNotesUrl(item))))
   // Without Spec Kit the project rows say so on their own; no headings then.
   // The usage bars with governor ticks lead the tab (066, board 4).
+  const liveReadings = usage.readings.filter(r => !isRenewedReading(r, now))
+  const note = deciderNote(liveReadings, usage.history, now)
+  const deciding = [...liveReadings].sort((a, b) => b.percentUsed - a.percentUsed)[0]
   const bars = usageBarRows({
-    readings: usage.readings.filter(r => !isRenewedReading(r, now)),
+    readings: liveReadings,
     ...(stats?.context === undefined ? {} : { context: stats.context }),
     thresholds: governThresholds,
     now,
+    ...(note === undefined || deciding === undefined ? {} : { note: { kind: deciding.kind, text: note } }),
   })
-  if (!state.present) return [...bars, ...project, ...governor, ...liveList, ...activity, ...updateRows]
+  // The 24 hour trend of the deciding window, under the bars (071).
+  const trend = trend24h({ series: stats?.series ?? [], now, ...(deciding?.resetsAt === undefined ? {} : { resetsAt: deciding.resetsAt }) })
+  const trendRow = trend === undefined ? [] : [valueRow('usage-trend', t(lang, 'session.trend', { window: deciding === undefined ? '' : labelOf(deciding.kind) }), trend, 'muted')]
+  // The governor box (071): what acts, the queue with its run buttons, lift and revoke. Those
+  // rows leave the Governor block while the box shows, so each appears once.
+  const isLiftActive = usage.holdLift !== undefined && usage.holdLift > now
+  const box = governorBoxState({ band: governorDecision.band, queued: usage.queue.length, override: overrideActive, lift: isLiftActive })
+  const MOVES = /^usage-(?:queue-|allow$|revoke$)/
+  // At hold the box offers `lift 1h` (the band's button); a pause offers the allow row it already had.
+  const liftRow = box.show && box.lift && governorDecision.band === 'hold' && !isLiftActive
+    ? [{ key: 'usage-lift', text: '', role: 'text' as const, action: { id: 'usage-lift', label: t(lang, 'session.box.lift'), hotkey: 'l', kind: 'lift' as const } }]
+    : []
+  const boxButtons = box.show ? [...liftRow, ...governor.filter(r => MOVES.test(r.key))] : []
+  const governorRest = box.show ? governor.filter(r => !MOVES.test(r.key)) : governor
+  const dayStart = new Date(now)
+  dayStart.setHours(0, 0, 0, 0)
+  const counts = todayCounts(usage.log ?? [], dayStart.getTime())
+  const decider = governorDecision.highest
+  const stateLine =
+    isPaused(governorDecision)
+      ? t(lang, 'session.box.pause', { window: decider === undefined ? '' : labelOf(decider.kind), at: decider?.resetsAt === undefined ? '?' : (clockOf(decider.resetsAt) ?? '?') })
+      : governorDecision.band === 'hold'
+        ? t(lang, 'session.box.hold', { window: decider === undefined ? '' : labelOf(decider.kind), at: decider?.resetsAt === undefined ? '?' : (clockOf(decider.resetsAt) ?? '?') })
+        : governorDecision.band === 'throttle'
+          ? t(lang, 'session.box.slow', { cap: governorDecision.cap, window: decider === undefined ? '' : labelOf(decider.kind) })
+          : t(lang, 'session.box.clear')
+  const boxRows = !box.show
+    ? []
+    : [
+        { key: 'governor-box-top', text: `╭─ ${t(lang, 'session.box.title')} ${'─'.repeat(28)}╮`, role: 'current' as ThemeRole },
+        { key: 'governor-box-state', text: `│ ${stateLine}`, role: bandRole },
+        ...boxButtons,
+        { key: 'governor-box-today', text: `│ ${t(lang, 'session.box.today', { holds: counts.holds, pauses: counts.pauses })}`, role: 'muted' as ThemeRole },
+        { key: 'governor-box-bottom', text: `╰${'─'.repeat(t(lang, 'session.box.title').length + 31)}╯`, role: 'current' as ThemeRole },
+      ]
+  if (!state.present) return [...bars, ...trendRow, ...boxRows, ...project, ...governorRest, ...liveList, ...activity, ...updateRows]
   const block = (key: string, rows: Array<{ key: string; text: string; role: ThemeRole; bold?: boolean }>) =>
     rows.length === 0 ? [] : [{ key: `block-${key}`, text: t(lang, `session.block.${key}` as TextKey), role: 'accent' as ThemeRole, bold: true }, ...rows]
-  return [...bars, ...block('project', project), ...block('governor', governor), ...block('live', liveList), ...block('activity', activity), ...block('updates', updateRows)]
+  return [...bars, ...trendRow, ...boxRows, ...block('project', project), ...block('governor', governorRest), ...block('live', liveList), ...block('activity', activity), ...block('updates', updateRows)]
 }
 
 /** Brings the Spec Kit state up to date mid-turn (053); writes only when something moved. */
@@ -3009,7 +3049,9 @@ export const register: Register = (on, options) => {
       const binding = decision.highest
       await flushStats($, s => ({
         ...s,
-        ...(percent === undefined ? {} : { context: { percent } }),
+        ...(percent === undefined
+          ? {}
+          : { context: { percent, ...(e.context.tokens === undefined ? {} : { tokens: e.context.tokens }), ...(e.context.window === undefined || e.context.window === 0 ? {} : { window: e.context.window }) } }),
         // A drop of 20 points or more is a compaction (054 #38): count it and what it freed.
         ...(percent !== undefined && s.context !== undefined && s.context.percent - percent >= 20
           ? { compactions: { n: (s.compactions?.n ?? 0) + 1, freed: (s.compactions?.freed ?? 0) + Math.round(s.context.percent - percent) } }
@@ -3770,6 +3812,10 @@ export const register: Register = (on, options) => {
       ...(view === 'session' ? { onUpdate: async (id: string) => runUpdate($, id as UpdateId) } : {}),
       ...(view === 'session'
         ? {
+            onLiftBand: async () => {
+              await liftBand($)
+              await showToast($, t(currentLang(), 'session.box.lifted'))
+            },
             onAllowUsage: async () => showToast($, await setUsageOverride($, 95, 2 * 3_600_000)),
             onRevokeUsage: async () => showToast($, await revokeUsageOverride($)),
           }
