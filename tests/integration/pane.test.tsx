@@ -162,8 +162,9 @@ describe('the pane tabs (US1, US2)', () => {
     expect((await desktop.find({ type: 'Text', text: /feature-name-that-is-longer/ }))?.props['wrap']).toBe('wrap')
     await desktop.unmount()
     const terminal = await mountPane($ as never, 'terminal', 40)
+    // The terminal's list is the surface module: its rows are cut with an ellipsis, and it truncates (080).
     expect(await terminal.body()).toContain('…')
-    expect((await terminal.find({ type: 'Text', text: /feature-name-th\S*…/ }))?.props['wrap']).toBe('truncate-end')
+    expect((await terminal.clientRows())?.some(row => /feature-name-th\S*…/.test(row.t))).toBe(true)
     await terminal.unmount()
   })
 
@@ -277,7 +278,8 @@ describe('[P] tasks to subagents (054 #89)', () => {
     installPaneEngine(on)
     await startSession($ as never, '/proj')
     const ui = await mountPane($ as never, 'terminal', 120, 40)
-    await ui.press('parallel-002-b-action')
+    // The button lives in the list's surface module; its press is the message it posts (080).
+    await ui.post({ op: 'action', kind: 'parallel', id: '002-b\nT002\nT003' })
     await session.clock.settle()
     const sent = session.submitted.at(-1) ?? ''
     expect(sent).toContain('Dispatch each one to its own subagent')
@@ -455,14 +457,10 @@ describe('design and UX (052)', () => {
   test('052 #16: inactive spec links show on hover, while the selected row stays linked', async ($, on) => {
     await setup($ as never, on as never)
     const ui = await mountPane($ as never, 'terminal', 120, 40)
-    const activeLink = await ui.find({ type: 'Link', text: '↗' })
-    expect(activeLink?.props['href']).toBe('file:///proj/specs/002-band-hint/spec.md')
-    const drawn = JSON.stringify(await ui.drawn())
-    expect(drawn).toContain('"display":"none"')
-    // The links of an unselected row are one absolute group at its right edge: no reflow (079).
-    expect(drawn).toContain('"position":"absolute"')
-    expect(drawn).toContain('"hover":{"scope":"astrolabe-spec-link-feature-001","display":"flex"}')
-    expect(drawn).toContain('"hover":{"scope":"astrolabe-spec-link-feature-001","underline":true}')
+    // The links are the list module's: each row carries its own and the module draws them (080).
+    const rows = await ui.clientRows()
+    expect(rows?.find(row => row.k === 'feature-002')?.l?.[0]?.h).toBe('file:///proj/specs/002-band-hint/spec.md')
+    expect(rows?.find(row => row.k === 'feature-001')?.l?.[0]?.h).toBe('file:///proj/specs/001-core-state/spec.md')
     await ui.unmount()
   })
 })

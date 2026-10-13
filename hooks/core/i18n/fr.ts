@@ -452,7 +452,7 @@ export const FR: Dictionary = {
   'help.filterSyntax': "Filtre Specs : mots, phase:plan, has:questions|checklist|warning|worktree, track:quick, prio:high, is:active|progress|done. c l'efface, o change l'ordre.",
   'help.keys.pane': "Panneau: 1-4 onglets · ? aide (touche h) · j/k défile · b recule · r actualise · Échap efface le filtre, puis l’aide, puis ferme",
   'help.keys.specs': "Specs: / filtre (f) · t tâches seules · s statut · o ordre · e ouvre ou plie tout · a advisor · p priorité · u utilise la spec · c efface le filtre",
-  'help.keys.tasks': "Arbre: Entrée ouvre ou plie la spec sélectionnée · x met la coche de la tâche sélectionnée dans la zone de saisie pour Claude",
+  'help.keys.tasks': "Arbre: Entrée ouvre ou plie la spec sélectionnée · x met la coche de la tâche sélectionnée dans la zone de saisie pour Claude · après un clic sur la liste: → ouvre, ← plie, PageUp, PageDown, Début, Fin déplacent, Tab change d’onglet, Échap rend les touches",
   'help.keys.session': 'Session: l autorise, v révoque, q lance un sous-agent en file · m copie les chiffres',
   'help.keys.prs': "PRs: les flèches choisissent une pull request · Entrée lance sa première action, en demandant deux fois · approuver, mettre à jour et fusionner demandent un second appui",
   'help.keys.setup': "Réglages: les flèches choisissent une option · Entrée change sa valeur · Enregistrer, Réinitialiser, Annuler · les changements vont dans le magasin du mod",

@@ -7,7 +7,7 @@ updates, and a status entry with your fullest usage window.
 
 ![Astrolabe in a 180-column terminal](docs/images/overview-180.svg)
 
-> **Version 0.138.1.** Every image in this README is a capture of the real mod running in Claude
+> **Version 0.139.0.** Every image in this README is a capture of the real mod running in Claude
 > Code 2.1.292, made with `scripts/capture/scene.sh` in the demo project
 > [docs/demo/](docs/demo/) (see [How the images are made](#how-the-images-are-made)).
 
@@ -169,7 +169,7 @@ on the first row (the Spec Kit part, the window that decides, the advisor, the h
 statusline's lines go below it, with its segments, ranks, colours, shedding and links:
 
 ```text
-◆ 002 · implement 45% │ astrolabe 0.138.1 │ /astrolabe help
+◆ 002 · implement 45% │ astrolabe 0.139.0 │ /astrolabe help
  ⌂ astrolabe  jonyfs/astrolabe  ⎇ 070-statusline-dependency  ●3 +7  PR #160 draft  ✓ CI
  ◆ 059 specify  ❖ humanizer, dataviz  ▸ Fix authentication (1/3)  ● working
  opus 5.5 · high  ctx 41%  5h 72%▵ · 2h09m  7d 84%▴ · Thu 18:00  cache warm · 1m  1h12m
@@ -775,6 +775,13 @@ button. Done tasks fold per story into `✓ 5 done · T001…T005 · 52m`. The f
 and tasks: a task that matches keeps its spec visible and open. A spec with a pull request shows
 `PR #41 ✓`, and its gates are five dots (`gates ●●●○○ · analyze –`).
 
+In the terminal the list is drawn by a surface module that takes more keys, once you click on it
+(the engine gives a module the keys only after a click; Esc gives them back): `→` opens the
+selected spec, `←` folds it (on a task it selects the spec), PageUp, PageDown, Home and End move
+the window, Tab and Shift+Tab change tab, and `t`, `e`, `x`, `u`, `p`, `a`, `s`, `o`, `c`, `r` do
+what their buttons do. The selection moves at once. The desktop and the accessible mode draw the
+rows without the module, as before.
+
 Selecting a task row (the arrow keys move through specs and tasks) shows its buttons: `x` puts
 the tick for that task in the prompt box for Claude, `ask Claude to do it` puts the task there, and
 `⧉ T011` copies its id. Astrolabe writes nothing to the project, so a tick is a request to Claude,
@@ -795,7 +802,7 @@ turn ends.
 
 The footer carries the advisor and Astrolabe's own details, so a separate statusline does not have to.
 An `adv N` chip counts the times the advisor ran this session and shows once it has run. The last chip,
-`astrolabe 0.138.1`, names the running version; it is the first one a narrow footer drops.
+`astrolabe 0.139.0`, names the running version; it is the first one a narrow footer drops.
 
 The footer's chips take their order and colour from one table in `hooks/core/footer.ts`, and the Help tab prints it: each chip's rank (a narrow footer drops the highest rank first) and its colour.
 

@@ -113,6 +113,8 @@ type PaneUi = {
   drawn: () => Promise<unknown>
   press: (q: { key: string }) => Promise<unknown>
   input: (q: { key: string; text: string; kind?: string }) => Promise<unknown>
+  key: (q: { key: string; in?: string; shift?: true }) => Promise<void>
+  post: (data: unknown, scope?: { in: string }) => Promise<void>
   unmount: () => Promise<void>
 }
 
@@ -129,12 +131,30 @@ export const mountPane = async ($: Mounter, surface: RenderSurface, bodyColumns 
   return {
     find: (q: { key?: string; text?: string | RegExp; type?: string }) => ui.find(q),
     drawn: () => ui.drawn(),
-    body: async () => (await ui.find({ key: 'astrolabe-pane-body' }))?.text ?? '',
+    // The Specs list is a surface module: the test kit exposes its props, not what it draws, so the
+    // rows are read from the props and put where the tree's own rows were (080).
+    body: async () => {
+      const text = (await ui.find({ key: 'astrolabe-pane-body' }))?.text ?? ''
+      const client = await ui.find({ key: 'astrolabe-specs' })
+      const inner = (client?.props as { props?: { rows?: Array<{ k: string; t: string; i?: number; l?: Array<{ l: string }> }>; sel?: string } } | undefined)?.props
+      if (inner?.rows === undefined) return text
+      const rows = inner.rows.map(r => `${r.k === inner.sel && r.i === 1 ? '❯ ' : ''}${r.t}${(r.l ?? []).map(link => ` ${link.l}`).join('')}`).join('')
+      return `${text}${rows}`
+    },
+    /** The rows the Specs list was handed (080), or undefined when the tree drew them. */
+    clientRows: async () => {
+      const client = await ui.find({ key: 'astrolabe-specs' })
+      return (client?.props as { props?: { rows?: Array<{ k: string; t: string; l?: Array<{ l: string; h: string }> }> } } | undefined)?.props?.rows
+    },
     tabs: async () => (await ui.find({ key: 'astrolabe-pane-tabs' }))?.text ?? '',
     footer: async () => (await ui.find({ key: 'astrolabe-pane-footer' }))?.text ?? '',
     legend: async () => (await ui.find({ key: 'astrolabe-pane-legend' }))?.text ?? '',
     press: (key: string) => ui.press({ key }),
     input: (q: { key: string; text: string; kind?: string }) => ui.input(q),
+    /** A key to the Specs list's surface module, as one pressed after a click on it (080). */
+    key: (q: { key: string; shift?: true }) => ui.key({ ...q, in: 'astrolabe-specs' }),
+    /** A message as the module would post it (080). */
+    post: (data: unknown) => ui.post(data, { in: 'astrolabe-specs' }),
     unmount: () => ui.unmount(),
   }
 }

@@ -32,7 +32,8 @@ import { displaySectionOf, isReadyToClose } from './core/sections'
 import { blockLabel, jumpLine, jumpMatches, jumpQuery, nextGroup } from './core/specs-scale'
 import { usageBarRows } from './core/usage-bars'
 import { deciderNote, governorBoxState, nextLevelText, projectHeader, sessionChips, todayCounts, trend24h } from './core/session-usage'
-import { badgesOf, escapeStep, legacyTab, paneTitle } from './core/pane-tabs'
+import { badgesOf, escapeStep, legacyTab, paneTitle, TABS } from './core/pane-tabs'
+import { parseClientOp, type ClientOp } from './core/pane-client'
 import { changedSettingsJson, LOOK_PRESETS, nextOptionValue, optionConflicts, OPTIONS_README, presetMatching } from './core/setup-extras'
 import { usageRamp } from './core/usage-ramp'
 import { ASK_MS, clockOf, decide, dropped, EXTEND_MS, HOLD_LIFT_MS, holdQuestion, labelOf, nextHeld, isPaused, isReadOnlyTool, parseAllow, pauseQuestion, RAISE_MS, refusal, resumePrompt, runPrompt, usageSegment, type Decision, type Question, usageRows } from './core/governor'
@@ -2632,6 +2633,151 @@ async function specsTreeRows(
   return { rows: paneDensity === 'comfortable' ? spaced(tree) : tree, kept: visible.features.length }
 }
 
+/**
+ * What the Specs list's surface module posted (080): the keys the arrows, Enter and the letters
+ * stand for, applied with the functions the buttons and the Enter hook use, so a key and a click do
+ * the same. The module is code: every field was checked by `parseClientOp`.
+ */
+async function applyClientOp($: EngineInterface, op: ClientOp): Promise<void> {
+  const state = (await $.state.get(SPECKIT)).value
+  if (state === undefined) return
+  const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
+  const activeDir = state.active?.dir
+  const stats = (await $.state.get(SESSION)).value
+  /** The spec a row key names: `feature-<id>`, or `task-<dir>-<id>`. */
+  const dirOf = (key: string): string | undefined =>
+    state.features.find(f => `feature-${f.id}` === key.replace(/~\d+$/, ''))?.dir ?? state.features.find(f => key.startsWith(`task-${f.dir}-`))?.dir
+  const setFold = async (fold: { opened: string[]; closed: string[] }) => {
+    const { selectedTask: _t, ...rest } = held
+    await $.state.set(PANE_STATE, { ...rest, ...fold })
+    if (state.root !== undefined) await $.store.set(`folds:${state.root}`, fold).catch(() => undefined)
+  }
+  const baseFold = { ...(held.opened === undefined ? {} : { opened: held.opened }), ...(held.closed === undefined ? {} : { closed: held.closed }) }
+  const goTo = async (offset: number) => {
+    const to = Math.max(0, Math.min(Math.max(0, (unitsShown['specs'] ?? 1) - 1), offset))
+    // The selection follows the window: the first row that can be selected at or after the new top.
+    const row = specSelectionRows.find(r => r.index >= to) ?? specSelectionRows.at(-1)
+    const picked = row === undefined ? {} : row.key.startsWith('task-') ? { selectedTask: row.key } : { selectedFeature: row.key.slice('feature-'.length) }
+    const { selectedTask: _t, ...rest } = held
+    await $.state.set(PANE_STATE, { ...rest, ...picked, scroll: { tab: 'specs', offset: to } })
+    await rememberScroll($, 'specs', to)
+  }
+  switch (op.op) {
+    case 'select': {
+      const { selectedTask: _t, ...rest } = held
+      await $.state.set(PANE_STATE, op.key.startsWith('task-') ? { ...rest, selectedTask: op.key } : { ...rest, selectedFeature: op.key.slice('feature-'.length) })
+      if (state.root !== undefined) await $.store.set(`selection:${state.root}`, op.key).catch(() => undefined)
+      return
+    }
+    case 'fold': {
+      const dir = dirOf(op.key)
+      if (dir === undefined) return
+      const open = isOpen(dir, activeDir, baseFold)
+      if ((op.mode === 'open' && open) || (op.mode === 'close' && !open)) return
+      await setFold(toggled(dir, activeDir, baseFold))
+      return
+    }
+    case 'page': {
+      const size = Math.max(1, specSelectionWindow.end - specSelectionWindow.start - 1)
+      const from = held.scroll?.tab === 'specs' ? held.scroll.offset : 0
+      await goTo(from + op.by * size)
+      return
+    }
+    case 'home':
+      await goTo(0)
+      return
+    case 'end':
+      await goTo(Math.max(0, (unitsShown['specs'] ?? 1) - 1))
+      return
+    case 'tab': {
+      const at = TABS.findIndex(item => item.tab === held.tab)
+      const next = TABS[(at + op.by + TABS.length) % TABS.length]
+      if (next === undefined) return
+      const { help: _h, ...rest } = held
+      await $.state.set(PANE_STATE, { ...rest, tab: next.tab })
+      if (state.root !== undefined) await $.store.set(`tab:${state.root}`, next.tab).catch(() => undefined)
+      return
+    }
+    case 'block': {
+      const open = new Set(held.open ?? [])
+      if (open.has(op.key)) open.delete(op.key)
+      else open.add(op.key)
+      await $.state.set(PANE_STATE, { ...held, open: [...open] })
+      return
+    }
+    case 'copy':
+      await copyNext($, op.text, 'terminal')
+      return
+    case 'action': {
+      if (op.kind === 'close') void $.prompt.suggest({ text: closeAllSuggestion(op.id.split('\n')) }).catch(() => undefined)
+      else if (op.kind === 'reconcile') void $.prompt.suggest({ text: reconcileSuggestion(op.id) }).catch(() => undefined)
+      else if (op.kind === 'ask') void $.prompt.suggest({ text: questionSuggestion(op.id) }).catch(() => undefined)
+      else if (op.kind === 'specify') void $.prompt.suggest({ text: `/speckit-specify ${op.id}` }).catch(() => undefined)
+      else if (op.kind === 'parallel') {
+        const [dir, ...ids] = op.id.split('\n')
+        const feature = state.features.find(f => f.dir === dir)
+        const picked = (dir === activeDir ? state.activeTasks ?? [] : []).filter(task => task.id !== undefined && ids.includes(task.id))
+        if (feature !== undefined && picked.length > 0) void $.clock.after(0, () => void $.prompt.submit({ text: parallelPrompt(feature, picked) }).catch(() => undefined))
+      }
+      return
+    }
+    case 'act': {
+      const selected = selectedSpecRow
+      const dir = selected === undefined ? undefined : dirOf(selected)
+      const feature = state.features.find(f => f.dir === dir)
+      switch (op.key) {
+        case 't': {
+          const { tasksOnly: _was, ...rest } = held
+          await $.state.set(PANE_STATE, held.tasksOnly === true ? rest : { ...rest, tasksOnly: true })
+          return
+        }
+        case 'e':
+          await setFold(allToggled(state.features.filter(f => f.total > 0).map(f => f.dir), activeDir, baseFold))
+          return
+        case 'x': {
+          if (selected === undefined || !selected.startsWith('task-') || feature === undefined) return
+          const id = selected.slice(`task-${feature.dir}-`.length)
+          const tasks = feature.dir === activeDir ? state.activeTasks ?? [] : specFilesCache.get(feature.dir)?.tasks ?? []
+          const task = tasks.find(x => x.id === id)
+          if (task !== undefined) void $.prompt.suggest({ text: tickSuggestion(feature, { ...(task.id === undefined ? {} : { id: task.id }), ...(task.line === undefined ? {} : { line: task.line }), text: task.text }) }).catch(() => undefined)
+          return
+        }
+        case 'u': {
+          if (feature === undefined || feature.dir === activeDir || state.root === undefined) return
+          const root = state.root
+          await confirmPress($, `use-${feature.id}`, () => void (async () => {
+            await $.store.set(`feature:${root}`, feature.dir).catch(() => undefined)
+            await showToast($, t(currentLang(), 'specs.selected', { id: feature.id, name: feature.name }))
+          })())
+          return
+        }
+        case 'p':
+          if (feature !== undefined) await setPriority($, feature.id, nextPriority(stats?.priorities?.[feature.id])).catch(() => undefined)
+          return
+        case 's':
+          await $.state.set(PANE_STATE, { ...held, status: nextStatus(held.status) })
+          return
+        case 'o':
+          await $.state.set(PANE_STATE, { ...held, sort: nextSort(held.sort) })
+          return
+        case 'c': {
+          const { filter: _f, status: _s, ...rest } = held
+          await $.state.set(PANE_STATE, rest)
+          return
+        }
+        case 'r':
+          await refreshNow($).catch(() => undefined)
+          return
+        case 'a':
+          if (feature !== undefined) await confirmPress($, `advisor-${feature.id}`, () => askAdvisor($, feature))
+          return
+        default:
+          return
+      }
+    }
+  }
+}
+
 /** One line of the governor's history (021): what it asked, what was answered, when it resumed. */
 async function logGovernor($: EngineInterface, text: string): Promise<void> {
   const at = await $.clock.now()
@@ -3891,6 +4037,14 @@ export const register: Register = (on, options) => {
     return { text: 'Astrolabe pane opened.' }
   })
 
+  // What the Specs list's surface module posts (080): validated, then applied. A bad message is ignored.
+  on('ui.message', { component: 'Pane', requestId: PANE_ID }, async ($, e, next) => {
+    if (e.element !== 'astrolabe-specs') return next(e)
+    const op = parseClientOp(e.data)
+    if (op !== undefined) await applyClientOp($, op)
+    return {}
+  })
+
   // The wheel and the arrow keys scroll the pane's body, not the whole pane, so the footer stays (038).
   on('ui.scroll', { component: 'Pane', requestId: PANE_ID }, async ($, e) => {
     const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
@@ -4269,6 +4423,8 @@ export const register: Register = (on, options) => {
         : {}),
       // file: links open only from the terminal; the desktop draws them as plain text, so none there.
       ...((el => ('Link' in el && e.surface === 'terminal' ? { Link: el.Link } : {}))($.ui.resolve(e))),
+      // The Specs list is a surface module in the terminal, off in the accessible mode (080).
+      ...((el => ('Client' in el && e.surface === 'terminal' && !accessible && view === 'specs' ? { Client: el.Client } : {}))($.ui.resolve(e))),
       onRefresh: () => refreshNow($).catch(() => undefined),
       // The Dashboard's numbers copied as Markdown (046 #59).
       ...(view === 'session'
