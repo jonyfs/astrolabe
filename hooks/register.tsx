@@ -50,7 +50,7 @@ import type { Preset } from './core/presets'
 import type { Fs } from './io/fs-port'
 import { findRoot } from './io/root'
 import { nodeStatus, renderFooter, type RunProc } from './io/statusline-run'
-import { buildPayload, chooseSource, cutRuns, statuslineEnv, SUPPORTED_CONTRACT, type Run, type SourceReason } from './core/statusline-dep'
+import { buildPayload, chooseSource, cutRuns, statuslineEnv, SUPPORTED_CONTRACT, transcriptPathFor, type Run, type SourceReason } from './core/statusline-dep'
 import { activeFilesChanged, applyFileTouch, applyRead, applyShell, applySkill, type Held, reconcileDeferred, reconcileNow, reconcileStart, reconcileTurn } from './io/reconcile'
 import { bandRow, edgeWidth, type BandEdge } from './surfaces/band'
 import { askTree } from './surfaces/ask'
@@ -1928,6 +1928,10 @@ async function refreshStatusline($: EngineInterface, onlyWhileShown = false): Pr
     const sessionId = await $.session.id().catch(() => undefined)
     const cwd = await $.session.cwd().catch(() => undefined)
     const modelId = stats?.model
+    // Where Claude Code keeps the transcript, so the renderer can read the skills and the activity (077).
+    const home = (await $.env.get('HOME').catch(() => undefined)) ?? (await $.env.get('USERPROFILE').catch(() => undefined))
+    const configDir = await $.env.get('CLAUDE_CONFIG_DIR').catch(() => undefined)
+    const transcriptPath = transcriptPathFor({ ...(home === undefined ? {} : { home }), ...(configDir === undefined ? {} : { configDir }), ...(cwd === undefined ? {} : { cwd }), ...(sessionId === undefined ? {} : { sessionId }) })
     const payload = buildPayload({
       rateLimits: (usage?.rateLimits ?? []).map(r => ({ kind: r.kind, percentUsed: r.percentUsed, ...(r.resetsAt === undefined ? {} : { resetsAt: r.resetsAt }) })),
       ...(usage?.context === undefined ? {} : { context: { ...(usage.context.percent === undefined ? {} : { percent: usage.context.percent }), ...(usage.context.window === undefined ? {} : { window: usage.context.window }) } }),
@@ -1935,6 +1939,10 @@ async function refreshStatusline($: EngineInterface, onlyWhileShown = false): Pr
       ...(cwd === undefined ? {} : { cwd }),
       ...(modelId === undefined ? {} : { model: { id: modelId } }),
       ...(stats?.effort === undefined ? {} : { effort: stats.effort }),
+      ...(transcriptPath === undefined ? {} : { transcriptPath }),
+      ...(usage?.startedAt === undefined ? {} : { startedAt: usage.startedAt, now }),
+      ...(stats?.lines === undefined ? {} : { lines: stats.lines }),
+      ...(stats?.fast === true ? { fast: true } : {}),
     })
     const surface = surfaceSeen
     const ascii = iconsFor(iconsOption, surface as never) === 'ascii' || accessible || surface !== 'terminal'

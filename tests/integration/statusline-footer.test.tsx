@@ -81,6 +81,18 @@ describe('the pane footer from statusline (070)', () => {
     await ui.unmount()
   })
 
+  test('the renderer is given the transcript path and the session duration it can read (077)', async ($, on) => {
+    const { session } = await setup($ as never, on as never)
+    session.script.sessionId = 'sess-77'
+    session.script.env['HOME'] = '/home/jony'
+    session.script.usage = { startedAt: NOW - 90_000, context: {}, rateLimits: [] }
+    await turn($ as never, session)
+    const cli = await answerCli($ as never, session, GOOD)
+    const given = JSON.parse(session.stdins[cli]!) as { transcript_path?: string; cost?: { total_duration_ms?: number } }
+    expect(given.transcript_path).toBe('/home/jony/.claude/projects/-proj/sess-77.jsonl')
+    expect(given.cost?.total_duration_ms).toBeGreaterThanOrEqual(90_000)
+  })
+
   test('a contract newer than this build reads shows the native footer and says why (076)', async ($, on) => {
     const { session } = await setup($ as never, on as never)
     await turn($ as never, session)
