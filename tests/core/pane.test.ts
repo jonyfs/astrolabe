@@ -507,7 +507,7 @@ describe('the Specs sections in a fixed order (066 #25)', () => {
 describe('the help overlay groups keys by tab (066 #29)', () => {
   test('one line per tab and one example per filter', () => {
     const text = buildHelp('en', {})
-    for (const line of ['Pane: 1-4 tabs', 'Specs: / filter (f)', 'Tree: Enter opens or folds', 'Session: l allow', 'PRs: approve', 'Setup: Enter changes a value']) {
+    for (const line of ['Pane: 1-4 tabs', 'Specs: / filter (f)', 'Tree: Enter opens or folds', 'Session: l allow', 'PRs: arrows pick', 'Setup: arrows pick']) {
       expect(text).toContain(line)
     }
     for (const example of ['phase:plan', 'has:questions', 'has:checklist', 'track:quick', 'prio:high', 'is:active', 'is:done']) expect(text).toContain(example)
