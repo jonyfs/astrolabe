@@ -23,6 +23,7 @@ import { PALETTES, displayWidth, colourEnabled, fgSeq } from "./theme.js";
 import { eighthsBar, rampColour } from "./ramp.js";
 import { abbreviate } from "./tokens.js";
 import { plainText } from "./text.js";
+import { iconTier, resolveSettings } from "./config.js";
 import { readSkillsByAgent } from "./skillEvents.js";
 
 const RESET = "\x1b[0m";
@@ -33,6 +34,15 @@ const RESET = "\x1b[0m";
 const reset = () => (colourEnabled() ? RESET : "");
 
 const fg = (hex) => (hex ? fgSeq(hex) : "");
+
+// The alert glyph the gauges use for a critical band, where the tier has one
+// (specs/054). The other tiers keep the plain mark, which is one column too.
+function criticalMark(asciiArrows) {
+  // The caller's choice when it made one; otherwise the settings the CLI
+  // would resolve, which is what the bar itself uses.
+  const ascii = typeof asciiArrows === "boolean" ? asciiArrows : resolveSettings().asciiArrows;
+  return iconTier({ asciiArrows: ascii }).tier === "nerd" ? "\u{F40C}" : "!";
+}
 
 /**
  * The earliest instant a subagent could plausibly have started.
@@ -142,7 +152,7 @@ const MAX_COLUMN = 48;
  * row and the token count on the next, and padding them to a common width
  * lines up things that are not the same thing.
  */
-function taskCells(task, { columns = 80, palette = PALETTES.mocha, now = Date.now(), nameIsShared = false, skills = [], treePrefix = "" } = {}) {
+function taskCells(task, { columns = 80, palette = PALETTES.mocha, now = Date.now(), nameIsShared = false, skills = [], treePrefix = "", asciiArrows } = {}) {
   // Text, or the placeholder. A name that arrives as an object interpolates
   // as the literal `[object Object]` into the column a reader uses to tell
   // one agent from another.
@@ -188,7 +198,7 @@ function taskCells(task, { columns = 80, palette = PALETTES.mocha, now = Date.no
   // Eight cells in eighths (specs/046-gauges): sixty-four steps in the same
   // columns, where the nine shade cells it replaced had ten.
   const gauge =
-    pct === null ? null : `${eighthsBar(pct)} ${pct >= 85 ? "!" : ""}${Math.round(Math.min(100, pct))}%`;
+    pct === null ? null : `${eighthsBar(pct)} ${pct >= 85 ? criticalMark(asciiArrows) : ""}${Math.round(Math.min(100, pct))}%`;
 
   // What the agent was asked to do leads (specs/049-rows-themes-docs): it is what a
   // reader scans for. It replaces the order the owner chose on 2026-09-08, which led with what
@@ -499,7 +509,7 @@ export async function runTaskRows({ now = Date.now(), input } = {}) {
  * input it needs is an argument: it reads no stdin, no environment and no
  * state directory, so the same tasks render the same rows anywhere.
  */
-export function alignTaskRows(tasks, { columns = 80, palette = PALETTES.mocha, now = Date.now(), skillsByAgent = new Map(), remembered = [], reportWidths = null } = {}) {
+export function alignTaskRows(tasks, { columns = 80, palette = PALETTES.mocha, now = Date.now(), skillsByAgent = new Map(), remembered = [], reportWidths = null, asciiArrows } = {}) {
   // Which names fail to tell one running task from another. Computed over the
   // whole tick, because a name can only be judged against its siblings.
   const seen = new Map();
@@ -547,6 +557,7 @@ export function alignTaskRows(tasks, { columns = 80, palette = PALETTES.mocha, n
     nameIsShared: (seen.get(taskLabel(task)) ?? 0) > 1,
     skills: skillsByAgent.get(task?.id) ?? [],
     treePrefix: prefixes.get(task?.id) ?? "",
+    asciiArrows,
   });
 
   // Two passes: the columns can only be sized once every row in the tick has
@@ -675,7 +686,7 @@ function graphemes(text) {
  * alignment and shedding as Claude Code's rows, then are cut to the width,
  * and past `cap` one more row says how many were left out.
  */
-export function harnessAgentRows(agents, { columns = 120, palette = PALETTES.mocha, now = Date.now(), cap = 6 } = {}) {
+export function harnessAgentRows(agents, { columns = 120, palette = PALETTES.mocha, now = Date.now(), cap = 6, asciiArrows } = {}) {
   if (!Array.isArray(agents) || !agents.length) return [];
   const shown = agents.slice(0, cap).map((agent) => {
     if (taskTier(agent)) return agent;
@@ -684,7 +695,7 @@ export function harnessAgentRows(agents, { columns = 120, palette = PALETTES.moc
     return { ...agent, modelLabel: model ? (effort ? `${model}\u00b7${effort}` : model) : null };
   });
   const skillsByAgent = new Map(shown.map((agent) => [agent.id, Array.isArray(agent.skills) ? agent.skills : []]));
-  const rows = alignTaskRows(shown, { columns, palette, now, skillsByAgent }).map((row) => clipAnsi(row.content, columns));
+  const rows = alignTaskRows(shown, { columns, palette, now, skillsByAgent, asciiArrows }).map((row) => clipAnsi(row.content, columns));
   if (agents.length > cap) rows.push(`${fg(palette.surface2)}+${agents.length - cap} more${reset()}`);
   return rows;
 }

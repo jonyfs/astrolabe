@@ -208,7 +208,13 @@ export function colourDepth(env = process.env) {
   // reports. Terminals that draw truecolor and set neither are named, since
   // they would be served the approximation for no reason: Windows Terminal,
   // and the ones that identify themselves by `TERM_PROGRAM`.
-  const known = env.WT_SESSION || ["iTerm.app", "WezTerm", "vscode", "ghostty", "Hyper"].includes(env.TERM_PROGRAM);
+  // Inside tmux or screen `TERM` names the multiplexer's own 256-colour
+  // terminal and says nothing of the one outside, which is usually truecolor
+  // and often leaves `COLORTERM` unset inside the session.
+  const known =
+    env.WT_SESSION ||
+    env.TMUX ||
+    ["iTerm.app", "WezTerm", "vscode", "ghostty", "Hyper"].includes(env.TERM_PROGRAM);
   if (!known && /-256color$/.test(env.TERM || "")) return "256";
   return "truecolor";
 }
@@ -395,12 +401,19 @@ function quantised(palette) {
   return q;
 }
 
+/** Blank columns between two groups on line 3; `src/layout.js` counts the same number (GROUP_GAP there). */
+const GROUP_SPACING = 3;
+
 /** Markers a segment builder writes into its text; `renderRow` turns them into weight and colour. */
 export const STRONG = "\u0001";
 export const QUIET = "\u0002";
 export const MARK_OFF = "\u0003";
 /** Good news: the text after it is drawn in the healthy colour, readable on the chip. */
 export const GOOD = "\u0004";
+/** A modified count: the text after it is drawn in the modified (yellow) colour, readable on the chip. */
+export const WARM = "\u0005";
+/** Commits behind upstream: the text after it is drawn in the cold (sapphire) colour. */
+export const BEHIND = "\u0006";
 
 /**
  * The colour for a chip marked `quiet`, text that is read second: the palette's `text` or
@@ -421,7 +434,7 @@ export function quietText(palette, colour) {
 export function renderRow(palette, segments, { asciiArrows = false, width = null } = {}) {
   const style = separatorStyle({ asciiArrows });
   const glyphs = SEPARATOR_GLYPHS[style];
-  const chips = segments.map((seg) => {
+  const chips = segments.map((seg, i) => {
     const { fg: chipFg, bg: segBg } = chipOf(palette, seg.color);
     const readable = (c, onBg) => {
       if (isAnsi(c) || isAnsi(onBg)) return c;
@@ -440,6 +453,16 @@ export function renderRow(palette, segments, { asciiArrows = false, width = null
     // Without colour a chip has no edge. Its leading pad becomes a thin bar,
     // the same width, so the fit that was measured with the pad still holds.
     let label = colourEnabled() ? seg.text : `\u258f${seg.text.replace(/^ /, "")}`;
+    // A pill carries its own caps, so its leading pad goes and one column of
+    // trailing padding stays: 0 before, 1 after, as the guide draws it
+    // (specs/054-guide-gaps, owner decision of 2026-10-12).
+    if (style === "round" && colourEnabled()) label = label.replace(/^ /, "");
+    // `CLAUDE_STATUSLINE_PADDING=wide`: two columns before the icon of every
+    // chip that follows an arrow (the review's section 5.5). Opt-in, because it
+    // costs a column a chip and the track already costs about six a gauge.
+    if (i > 0 && style === "arrow" && String(process.env.CLAUDE_STATUSLINE_PADDING ?? "").toLowerCase() === "wide") {
+      label = ` ${label}`;
+    }
     // An icon in its own colour on a neutral chip: the first word of the
     // text, drawn in the token's colour made readable on this background,
     // then the chip's own text colour again.
@@ -453,16 +476,23 @@ export function renderRow(palette, segments, { asciiArrows = false, width = null
     // Under `NO_COLOR` the markers are removed and nothing replaces them: the
     // bar's contract there is plain text with no escape at all, and a bold on
     // every figure would put one on every chip.
-    if (/[\u0001-\u0004]/.test(label)) {
+    if (/[\u0001-\u0006]/.test(label)) {
       if (!colourEnabled()) {
-        label = label.replace(/[\u0001-\u0004]/g, "");
+        label = label.replace(/[\u0001-\u0006]/g, "");
       } else {
-        const quiet = fg(quietText(palette, seg.color));
+        // `CLAUDE_STATUSLINE_DIM=sgr` asks for the terminal's own dim (SGR 2)
+        // where the default is a quieter text colour that keeps 4.5:1.
+        const sgrDim = String(process.env.CLAUDE_STATUSLINE_DIM ?? "").toLowerCase() === "sgr";
+        const quiet = sgrDim ? "\x1b[2m" : fg(quietText(palette, seg.color));
         const good = fg(readable(resolveColour(palette, "green"), segBg));
+        const warm = fg(readable(resolveColour(palette, "yellow"), segBg));
+        const behind = fg(readable(resolveColour(palette, "sapphire"), segBg));
         label = label
           .replace(/\u0001/g, "\x1b[1m")
           .replace(/\u0002/g, quiet)
           .replace(/\u0004/g, good)
+          .replace(/\u0005/g, warm)
+          .replace(/\u0006/g, behind)
           .replace(/\u0003/g, `\x1b[22m${fg(segFg)}`);
       }
     }
@@ -492,9 +522,11 @@ export function renderRow(palette, segments, { asciiArrows = false, width = null
       const used = displayWidth(out) + displayWidth(glyphs.close);
       const need = displayWidth(chip.text) + displayWidth(glyphs.open) + displayWidth(glyphs.close);
       const room = width - used - need;
-      out += room > 0 ? `${close(prev)}${" ".repeat(room)}${open(chip)}` : `${close(prev)} ${open(chip)}`;
+      // With no room it follows as usual: the width fit counts one end glyph
+      // between two chips and no space, so adding one overflowed an exact fit.
+      out += room > 0 ? `${close(prev)}${" ".repeat(room)}${open(chip)}` : `${close(prev)}${open(chip)}`;
     } else if (chip.group && prev.group && chip.group !== prev.group) {
-      out += `${close(prev)} ${open(chip)}`;
+      out += `${close(prev)}${" ".repeat(GROUP_SPACING)}${open(chip)}`;
     } else if (chip.segBg === prev.segBg) {
       // The same colour on both sides: a solid arrow would be a shape cut out
       // of one colour, invisible. The thin one is drawn in the text colour
@@ -544,12 +576,13 @@ export function renderRow(palette, segments, { asciiArrows = false, width = null
 const AMBIGUOUS = new Set([
   // Drawn today:
   0x00b7, // · middle dot, the separator between a row's columns
-  0x2500, // ─ the empty cell of a gauge
-  0x2588, 0x2592, 0x2593, // █ ▒ ▓ its fills
+  0x2500, // ─ the tree prefixes of a nested agent's row
+  0x2588, // █ the full cell of the eighths bar and the sparkline
   0x258f, // ▏ the left edge of a chip when NO_COLOR removes its background
   0x2589, 0x258a, 0x258b, 0x258c, 0x258d, 0x258e, // ▉ to ▎ the eighths of an agent row's bar
   0x2581, 0x2582, 0x2583, 0x2584, 0x2585, 0x2586, 0x2587, // ▁ to ▇ the sparkline
   0x2014, // — an unknown figure
+  0x251c, 0x2514, // ├ └ the tree prefixes of a nested agent's row
   0x2026, // … ellipsis, where a clipped row or label is cut
   // Not drawn today, and listed anyway. These are Ambiguous per Unicode
   // whether or not this bar uses them, and every one of them was on the bar
@@ -563,6 +596,7 @@ const AMBIGUOUS = new Set([
   0x2190, 0x2191, 0x2193, // ← ↑ ↓
   0x25b2, 0x25b3, // ▲ △
   0x25c6, 0x25cb, 0x25cf, 0x25d0, // ◆ ○ ● ◐
+  0x2592, 0x2593, // ▒ ▓ the fills of the band bar that feature 055 removed
 ]);
 
 /**
@@ -604,7 +638,7 @@ function isWide(cp) {
 export function displayWidth(text) {
   const plain = String(text)
     .replace(/\x1b\[[0-9;:]*m/g, "")
-    .replace(/[\u0001-\u0004]/g, "")
+    .replace(/[\u0001-\u0006]/g, "")
     .replace(/\x1b\]8;;[^\x07]*\x07/g, "");
 
   const chars = [...plain];

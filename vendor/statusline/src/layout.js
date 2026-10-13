@@ -27,6 +27,9 @@ import { copilotPadding } from "./copilotSettings.js";
 /** What to assume when Claude Code is too old to set `COLUMNS`. */
 export const DEFAULT_WIDTH = 120;
 
+/** The blank columns between two groups on line 3 (the review's section 5.5: three). */
+export const GROUP_GAP = 3;
+
 /** A Powerline separator occupies one column between segments. */
 const SEPARATOR_COLUMNS = 1;
 
@@ -134,7 +137,7 @@ export function rowWidth(row) {
     extra += s.extra ?? 0;
     if (i > 0 && s.group && row[i - 1].group && s.group !== row[i - 1].group) gaps += 1;
   });
-  return content + row.length * SEPARATOR_COLUMNS + gaps + extra;
+  return content + row.length * SEPARATOR_COLUMNS + gaps * GROUP_GAP + extra;
 }
 
 /**
@@ -170,7 +173,11 @@ export function fitToWidth(row, width = terminalWidth()) {
     essentialsShortened = true;
     for (const s of byPriority) {
       if (s.priority < PRIORITY_BANDS.essential || dropped.has(s.key)) continue;
-      for (const text of s.variants || []) {
+      // A chip's icon-only form (`iconLast`) is a last resort: it is tried
+      // when the loop reaches the chip, not here, so one essential going to
+      // its icon does not take every other name down with it (specs/054).
+      const forms = s.iconLast ? (s.variants || []).slice(0, -1) : s.variants || [];
+      for (const text of forms) {
         shortened.set(s.key, text);
         const kept = current();
         if (rowWidth(kept) <= width) return kept;
@@ -186,6 +193,14 @@ export function fitToWidth(row, width = terminalWidth()) {
       if (kept) return kept;
     }
     if (shortened.has(candidate.key) && candidate.priority >= PRIORITY_BANDS.essential) {
+      // A chip with an icon-only form still has that step to give.
+      const last = candidate.iconLast ? (candidate.variants || []).at(-1) : null;
+      if (last && shortened.get(candidate.key) !== last) {
+        shortened.set(candidate.key, last);
+        const kept = current();
+        if (rowWidth(kept) <= width) return kept;
+        continue;
+      }
       // Already at its shortest; nothing left but to drop it.
       shortened.delete(candidate.key);
       dropped.add(candidate.key);
@@ -205,6 +220,11 @@ export function fitToWidth(row, width = terminalWidth()) {
   }
 
   const survivor = [...row].sort((a, b) => b.priority - a.priority)[0];
+  // The one chip left still gives up its words before the line overflows.
+  for (const text of survivor.variants || []) {
+    const shorter = { ...survivor, text };
+    if (rowWidth([shorter]) <= width) return [shorter];
+  }
   return [survivor];
 }
 

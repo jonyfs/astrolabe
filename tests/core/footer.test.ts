@@ -157,10 +157,10 @@ describe('advisor and Astrolabe in the mod\'s own footer', () => {
     expect(footerText(base)).not.toContain('adv')
   })
   test('Astrolabe\'s version is the last chip and the first to go on a narrow footer', () => {
-    const wide = footerText({ ...base, astrolabe: { version: '0.136.0' } })
-    expect(wide.endsWith('astrolabe 0.136.0')).toBe(true)
-    const narrow = footerText({ ...base, astrolabe: { version: '0.136.0' }, advisor: { runs: 2 }, columns: 70 })
-    expect(narrow).not.toContain('astrolabe 0.136.0')
+    const wide = footerText({ ...base, astrolabe: { version: '0.137.0' } })
+    expect(wide.endsWith('astrolabe 0.137.0')).toBe(true)
+    const narrow = footerText({ ...base, astrolabe: { version: '0.137.0' }, advisor: { runs: 2 }, columns: 70 })
+    expect(narrow).not.toContain('astrolabe 0.137.0')
   })
 })
 

@@ -1,6 +1,6 @@
 {
   "name": "@jonfys/statusline",
-  "version": "1.46.0",
+  "version": "1.53.1",
   "description": "Catppuccin Powerline statusline for Claude Code: model/effort, context and rate-limit usage, active skills, git branch and pull request state.",
   "keywords": [
     "claude",

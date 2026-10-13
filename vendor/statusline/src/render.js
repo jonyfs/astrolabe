@@ -1,7 +1,7 @@
 import path from "node:path";
 import os from "node:os";
 import { realpathSync } from "node:fs";
-import { PALETTES, renderRow, displayWidth, separatorStyle, colourEnabled, bgSeq, STRONG, QUIET, MARK_OFF, GOOD } from "./theme.js";
+import { PALETTES, renderRow, displayWidth, separatorStyle, colourEnabled, bgSeq, STRONG, QUIET, MARK_OFF, GOOD, WARM, BEHIND } from "./theme.js";
 import {
   getDirLabel,
   getDirUrl,
@@ -117,7 +117,7 @@ import { byLine, segment, inChannel, SEGMENTS } from "./segments.js";
 import { resolveArrangement } from "./arrangement.js";
 import { resolveLayout, iconTier, repoConfig } from "./config.js";
 import { abbreviateBranch, cutMiddle, DEFAULT_BRANCH_PREFIXES, BRANCH_COLUMNS } from "./names.js";
-import { bar, gaugeChip, bandFor, track, paceBand, contextBand } from "./ramp.js";
+import { gaugeChip, bandFor, track, paceBand, contextBand } from "./ramp.js";
 import { ROLE } from "./colourRoles.js";
 import { plainText } from "./text.js";
 import { ratePerHour, projectFull, pushSample, sparkline } from "./samples.js";
@@ -177,8 +177,9 @@ const NF_EFFORT_MEDIUM = "\u{F029A}"; // nf-md-gauge
 const NF_EFFORT_HIGH = "\u{F0874}";   // nf-md-gauge_full
 const NF_FROM = "\u{F004D}";     // nf-md-arrow_left: what this came from
 const NF_ALERT = "\u{F40C}";     // nf-oct-alert_fill: unmerged paths
-const NF_CHECK = "\u{F42E}";     // nf-oct-check: the run passed
-const NF_X = "\u{F467}";         // nf-oct-x: the run failed
+const NF_CHECK = "\u{F4A4}";     // nf-oct-check_circle_fill: the run passed
+const NF_CI_SKIPPED = "\u{F517}"; // nf-oct-skip: a skipped or cancelled run
+const NF_X = "\u{F530}";         // nf-oct-x_circle_fill: the run failed
 // F0997 was here until 2026-10-06, under the name progress_clock, and it
 // draws md-progress_download: a CI run still going read as a download
 // (specs/031-git-gate-rows/glyph-evidence.png shows both side by side).
@@ -188,7 +189,7 @@ const NF_RUNNING = "\u{F0996}";  // nf-md-progress_clock: still going
 // two columns each where a private-use glyph costs one: eight of them were
 // spending eight columns of a bar whose segments already compete for the
 // width COLUMNS reports (Principle I, Glyphs).
-const NF_TASKLIST = "\u{F4A0}";  // nf-oct-tasklist. F0BE, listed as
+const NF_TASKLIST = "\u{F0756}";  // nf-md-format_list_checks (was nf-oct-tasklist). F0BE, listed as
                                  // "checklist", draws the App Store logo
 // A hammer and a coffee cup, chosen by the owner on 2026-09-06 from a sheet
 // of twelve candidate pairs rendered from the installed font. What they
@@ -199,9 +200,9 @@ const NF_TASKLIST = "\u{F4A0}";  // nf-oct-tasklist. F0BE, listed as
 const NF_WORKING = "\u{F08EA}";  // nf-md-hammer
 const NF_IDLE = "\u{F0176}";     // nf-md-coffee
 const NF_SKILLS = "\u{F0431}";   // nf-md-puzzle
-const NF_MODEL = "\u{F06A9}";    // nf-md-robot
+const NF_MODEL = "\u{F167A}";    // nf-md-robot_outline (was nf-md-robot)
 const NF_EFFORT = NF_EFFORT_HIGH;
-const NF_CONTEXT = "\u{F035B}";  // nf-md-memory: a context window is memory.
+const NF_CONTEXT = "\u{F09D1}";  // nf-md-brain: the context window (guide section 5.3)
                                  // F09DA, listed as "brain", draws a boxed
                                  // chevron in this build
 const NF_TIMER = "\u{F051F}";    // an hourglass: a window that runs out, time remaining. F44E, listed as "stopwatch",
@@ -225,7 +226,7 @@ const NF_SNOWFLAKE = "\u{F0717}";   // nf-md-snowflake: cold
 // The statusline's own updates, one icon per direction (specs/026-update-
 // check/glyph-evidence.png). F0CE0, listed as an up arrow in a circle, points
 // right; F4A9, listed as a rocket, draws a monitor; F06B1 draws a watch.
-const NF_DOWNLOAD = "\u{F01DA}";      // nf-md-download: ready, blocked, failed
+const NF_DOWNLOAD = "\u{F0394}";      // nf-md-new_box: an update is waiting
 const NF_UPDATED = "\u{F12CC}";       // a cloud with a tick: updated this session
 // Two modes the payload reports (specs/027-bar-polish/glyph-evidence.png).
 const NF_VIM = "\u{E62B}";           // nf-custom-vim: the vim mode
@@ -239,7 +240,7 @@ const NF_SHIELD_OFF = "\u{F099E}";   // nf-md-shield_off: allow all
 // "waiting on a lock". F0299 md-gate draws a fence and F0E86 md-boom_gate a
 // crane at one cell. A gate still running and a CI run still going are the
 // same fact, so they share the clock.
-const NF_GATE_RUNNING = NF_RUNNING;  // nf-md-progress_clock
+const NF_GATE_RUNNING = "\u{F52E}";  // nf-oct-workflow: a gate is running (guide section 5.3)
 const NF_GATE_WAITING = "\u{F097F}"; // nf-md-lock_clock
 
 /**
@@ -295,6 +296,7 @@ export const GLYPHS = {
     conflict: NF_ALERT,
     ciPass: NF_CHECK,
     ciFail: NF_X,
+    ciSkipped: NF_CI_SKIPPED,
     ciRunning: NF_RUNNING,
     todo: NF_TASKLIST,
     working: NF_WORKING,
@@ -321,6 +323,7 @@ export const GLYPHS = {
     cacheWarmLow: NF_HOURGLASS_EMPTY,
     cacheCold: NF_SNOWFLAKE,
     updateReady: NF_DOWNLOAD,
+    updateBlocked: "\u{F01DA}",   // nf-md-download: the update cannot go in
     updateDone: NF_UPDATED,
     vim: NF_VIM,
     fast: NF_SPEEDOMETER,
@@ -375,6 +378,7 @@ export const GLYPHS = {
     conflict: "\u{1F4A5}",       // 💥
     ciPass: "\u2705",            // ✅
     ciFail: "\u274C",            // ❌
+    ciSkipped: "\u23E9",         // ⏩
     ciRunning: "\u{1F504}",      // 🔄
     todo: "\u{1F4CB}",           // 📋
     working: "\u{1F528}",        // 🔨
@@ -401,6 +405,7 @@ export const GLYPHS = {
     cacheWarmLow: "\u231B",      // ⌛
     cacheCold: "\u{1F9CA}",      // 🧊
     updateReady: "\u{1F195}",     // 🆕
+    updateBlocked: "\u23EC",      // ⏬
     updateDone: "\u{1F680}",      // 🚀
     vim: "\u{1F524}",            // 🔤
     fast: "\u{1F407}",           // 🐇
@@ -477,6 +482,7 @@ export const GLYPHS = {
     conflict: "\u2716",   // ✖
     ciPass: "\u2713",     // ✓
     ciFail: "\u2717",     // ✗
+    ciSkipped: "-",        // a skipped or cancelled run
     ciRunning: "\u229A",  // ⊚
     todo: "\u25B8",       // ▸
     // Filled against broken: the same distinction the Nerd set draws with a
@@ -513,6 +519,7 @@ export const GLYPHS = {
     cacheCold: "\u2744",  // ❄
     // Both East Asian Narrow, and not the doubled arrows push and pull use.
     updateReady: "\u2913", // ⤓
+    updateBlocked: "\u21E9", // ⇩
     updateDone: "\u2912",  // ⤒
     vim: "\u2328",        // ⌨
     fast: "\u21F6",       // ⇶ three arrows
@@ -537,13 +544,19 @@ async function readStdinAsync() {
   });
 }
 
-export async function render({ asciiArrows = false, flavor = "mocha" } = {}) {
+export async function render({ asciiArrows = false, flavor = "mocha", strict = false } = {}) {
   const raw = await readStdinAsync();
   let payload = {};
   try {
     payload = raw ? JSON.parse(raw) : {};
   } catch {
     payload = {};
+    // A host that asked for the data contract is told, where the bar a person
+    // reads draws what it can (specs/056-runs-output-contract, decision 7).
+    if (strict) throw Object.assign(new Error("the status payload is not a JSON object"), { code: "bad-payload" });
+  }
+  if (strict && (!raw.trim() || payload === null || typeof payload !== "object" || Array.isArray(payload))) {
+    throw Object.assign(new Error("the status payload is not a JSON object"), { code: "bad-payload" });
   }
 
   if (process.env.CLAUDE_STATUSLINE_DEBUG === "1") {
@@ -1164,6 +1177,7 @@ export function renderReadings(
   // named: declared rather than assumed, as the plain separator rule asks.
   const opts = { asciiArrows: asciiArrows || (tier === "emoji" && !process.env.CLAUDE_STATUSLINE_SEPARATOR), width: maxWidth };
   const roundStyle = separatorStyle(opts) === "round";
+  const widePadding = String(process.env.CLAUDE_STATUSLINE_PADDING ?? "").toLowerCase() === "wide" && separatorStyle(opts) === "arrow";
   // The rows are kept as segment lists until every line exists, because
   // aligning the first column across the bar needs all of them at once.
   // Rendering each line to text as it was built is what left that alignment
@@ -1216,7 +1230,7 @@ export function renderReadings(
     for (const seg of segs) {
       if (pooled.has(seg.key)) continue;
       pooled.add(seg.key);
-      const plain = (s) => String(s).replace(/[\u0001-\u0003]/g, "");
+      const plain = (s) => String(s).replace(/[\u0001-\u0006]/g, "");
       pool.push({
         key: seg.key,
         text: plain(seg.text),
@@ -1229,6 +1243,7 @@ export function renderReadings(
         // shorter forms travel with it or the page would drop what the
         // terminal only shortens.
         ...(seg.variants ? { variants: seg.variants.map(plain) } : {}),
+        ...(seg.iconLast ? { iconLast: true } : {}),
       });
     }
   };
@@ -1244,7 +1259,15 @@ export function renderReadings(
     }
   })();
   const dirGlyph = atHome ? g.home : g.dir;
-  const dirSegment = (label) => ({ key: "dir", color: ROLE.neutral, text: ` ${dirGlyph} ${label} `, url: dirUrl });
+  const dirSegment = (label) => ({
+    key: "dir",
+    color: ROLE.neutral,
+    text: ` ${dirGlyph} ${label} `,
+    // Last step: the icon alone, so the chip never has to disappear (F57).
+    variants: [` ${dirGlyph} `],
+    iconLast: true,
+    url: dirUrl,
+  });
   const l1 = [dirSegment(dirLabel)];
 
   // A17: Claude can move during a session, and then the directory on the bar
@@ -1278,6 +1301,8 @@ export function renderReadings(
       color: ROLE.identity,
         emphasis: changes.isChanged("branch"),
       text: ` ${detached ? g.commit : g.branch} ${label} `,
+      variants: [` ${detached ? g.commit : g.branch} `],
+      iconLast: true,
       url: branchUrl,
     });
     // Working-tree state and divergence from upstream, right after the
@@ -1286,15 +1311,15 @@ export function renderReadings(
     const state = [];
     // File counts are not animated: they change on every save, and
     // Principle X reserves animation for state that changes discretely.
-    if (git.changed) state.push(`${g.modified} ${git.changed}`);
+    if (git.changed) state.push(`${WARM}${g.modified} ${git.changed}${MARK_OFF}`);
     // Staged and removed files, from the same status read (specs/050).
-    if (git.staged) state.push(`${g.added} ${git.staged}`);
+    if (git.staged) state.push(`${GOOD}${g.added} ${git.staged}${MARK_OFF}`);
     if (git.removed) state.push(`${g.removed} ${git.removed}`);
     if (git.untracked) state.push(`${g.untracked} ${git.untracked}`);
     // A null ahead/behind means there is no upstream at all, which is not
     // the same as being in sync with one (FR-012).
     if (git.ahead) state.push(`${g.push} ${git.ahead}`);
-    if (git.behind) state.push(`${g.pull} ${git.behind}`);
+    if (git.behind) state.push(`${BEHIND}${g.pull} ${git.behind}${MARK_OFF}`);
     if (state.length) {
       l1.push({ key: "worktreeState", color: ROLE.neutral, text: ` ${state.join("  ")} ` });
     } else if (git.changed === 0 && git.untracked === 0 && !git.conflicts && git.ahead !== null && git.behind !== null) {
@@ -1327,8 +1352,11 @@ export function renderReadings(
     if (ci) {
       const running = ci.status && ci.status !== "completed";
       const passed = ci.conclusion === "success";
-      const mark = running ? g.ciRunning : passed ? g.ciPass : g.ciFail;
-      const icon = running ? ROLE.modified : passed ? ROLE.healthy : ROLE.critical;
+      // A run that was skipped or cancelled did not fail: it says so in its
+      // own mark instead of drawing the failure (specs/054).
+      const skipped = !running && ["skipped", "cancelled", "neutral"].includes(ci.conclusion);
+      const mark = running ? g.ciRunning : passed ? g.ciPass : skipped ? g.ciSkipped : g.ciFail;
+      const icon = running ? ROLE.modified : passed ? ROLE.healthy : skipped ? undefined : ROLE.critical;
       // The runs for the branch you are on, not the repository's most recent:
       // scoping the link the same way the segment scopes its answer is what
       // stops a click landing on main's green tick from a branch you never
@@ -1386,10 +1414,12 @@ export function renderReadings(
       // request each have their own mark, and the review word carries its own
       // beside it. Where the source gave no state the request is open.
       const prGlyph =
-        { draft: g.prDraft, merged: g.prMerged, closed: g.prClosed }[pr.review] ?? g.pr;
+        { draft: g.prDraft, merged: g.prMerged, closed: g.prClosed }[pr.prState ?? pr.review] ?? g.pr;
       const reviewGlyph =
         { approved: g.reviewApproved, commented: g.reviewComments, review_required: g.reviewRequested }[pr.review] ?? null;
       const reviewMark = reviewGlyph ? `${reviewGlyph} ` : "";
+      // The count of comments, beside its own glyph, where the source has one.
+      const commentMark = pr.comments ? ` ${g.reviewComments} ${pr.comments}` : "";
       // Same "show a few, count the rest" shape as the skills chip: a PR
       // with zero labels must render exactly as before this field existed
       // (specs/006, FR-003), so the suffix is only ever added, never a
@@ -1404,7 +1434,7 @@ export function renderReadings(
         key: "pr",
         color: String(pr.state).toUpperCase() === "MERGED" ? ROLE.merged : ROLE.open,
         emphasis: changes.isChanged("pr"),
-        text: ` ${prGlyph} ${label} #${pr.number}${review ? ` ${reviewMark}${review}` : ""}${labelText} `,
+        text: ` ${prGlyph} ${label} #${pr.number}${review ? ` ${reviewMark}${review}` : ""}${commentMark}${labelText} `,
         variants: [` ${prGlyph} #${pr.number}${reviewGlyph ? ` ${reviewGlyph}` : review ? ` ${review}` : ""} `],
         url: pr.url,
       });
@@ -1415,7 +1445,10 @@ export function renderReadings(
   // the channel is identity; the icon and the words say which state it is.
   const update = shows("update") ? readings.update?.value : null;
   if (update?.text) {
-    const icon = update.state === "updated" ? g.updateDone : g.updateReady;
+    // Only a waiting update is the new box: blocked and failed are the
+    // download mark, so a failed install never reads as good news (specs/054).
+    const icon =
+      update.state === "updated" ? g.updateDone : update.state === "ready" ? g.updateReady : g.updateBlocked;
     // At the right edge of the line, and the first chip to go. Its words are
     // the first thing it gives up, which leaves the icon: the state is the
     // glyph, and the sentence is for a line with room (specs/045).
@@ -1499,6 +1532,14 @@ export function renderReadings(
         color: ROLE.skills,
         emphasis: changes.isChanged("skills"),
         text: ` ${g.skills} ${skills.join(skillJoin)}${hidden > 0 ? ` +${hidden}` : ""}${skillsSuffix ? ` (${skillsSuffix})` : ""} `,
+        // The newest skill with how many more there are, then the icon (F57).
+        iconLast: true,
+        variants: [
+          ...(skills.length + hidden > 1 || skillsSuffix
+            ? [` ${g.skills} ${skills[0]}${skills.length + hidden > 1 ? ` +${skills.length + hidden - 1}` : ""} `]
+            : []),
+          ` ${g.skills} `,
+        ],
       },
     ];
     pushLine2Extras(l2);
@@ -1584,6 +1625,8 @@ export function renderReadings(
         color: ROLE.identity,
         emphasis: changes.isChanged("model"),
         text: ` ${g.model} ${modelName} `,
+        // No icon-only form: a model glyph alone names nothing, so the chip
+        // goes whole when the line runs out of room (specs/054).
         ...(routed ? { variants: [` ${g.model} ${routed} `] } : {}),
       };
     },
@@ -1608,7 +1651,10 @@ export function renderReadings(
         variants: [` ${g.spend} ${amount} · ${level} `],
       };
     },
-    effort: () => (effort ? { color: ROLE.identity, text: ` ${effortGlyph(effort)} ${effort} ` } : null),
+    effort: () =>
+      effort
+        ? { color: ROLE.identity, text: ` ${effortGlyph(effort)} ${effort} `, variants: [` ${effortGlyph(effort)} `], iconLast: true }
+        : null,
     // Fast mode spends faster, so it sits with the model and effort that say
     // what is spending. Drawn only when on (specs/027-bar-polish).
     fastMode: () => (shows("fastMode") && readings.fastMode?.value ? { color: ROLE.neutral, text: ` ${g.fast} fast ` } : null),
@@ -1628,13 +1674,13 @@ export function renderReadings(
     // are the ones with a consequence you cannot undo.
     context: () => {
       const { band } = contextBand(ctxPct, repoConfig(readings.cwd || process.cwd()).contextBands);
-      const built = gaugeChipText({ icon: g.context, label: "context", pct: ctxPct, band });
+      const built = gaugeChipText({ icon: g.context, label: "", pct: ctxPct, band });
       // The last eight context readings, when asked for and when there are that
       // many: whether it is climbing or flat (specs/050-catalog-gaps).
       const spark = process.env.CLAUDE_STATUSLINE_SPARKLINE === "1" ? sparkline(sampleHistory, "contextPct", 8) : null;
       if (spark) {
         const fig = gaugeFigure(ctxPct, band);
-        const longer = ` ${g.context} context ${track(ctxPct, trackSet)} ${fig} ${quiet(spark)} `;
+        const longer = ` ${g.context} ${track(ctxPct, trackSet)} ${fig} ${quiet(spark)} `;
         return {
           ...gaugeChip(ctxPct, band),
           text: longer,
@@ -1643,7 +1689,9 @@ export function renderReadings(
       }
       // The word is the next thing to go after the track.
       const bare = ` ${g.context} ${gaugeFigure(ctxPct, band)} `;
-      return { ...gaugeChip(ctxPct, band), text: built.text, variants: [...built.variants, bare] };
+      // With no word to give up the figure-only form is the one already there.
+      const steps = [...built.variants, bare].filter((v, i, all) => all.indexOf(v) === i);
+      return { ...gaugeChip(ctxPct, band), text: built.text, variants: steps };
     },
     // Each window says how much of it is gone and when it comes back, in one
     // chip. Until 2026-09-06 the two resets shared a segment two places away
@@ -1735,7 +1783,7 @@ export function renderReadings(
         const minutes = cacheMinutesLeft(promptCache.secondsLeft);
         return {
           color: ROLE.neutral,
-          icon: ROLE.modified,
+          icon: ROLE.attention,
           text: ` ${glyph} cache warm \u00b7 ${minutes} `,
           variants: [` ${glyph} ${minutes} `],
         };
@@ -1880,6 +1928,8 @@ export function renderReadings(
     }
   };
 
+  const sleeping =
+    Boolean(activity) && !activity.awaiting && !activity.working && typeof activity.idleMs === "number" && activity.idleMs >= 5 * 60_000;
   const assemble = () => {
     const built = [...content, ...buildLine3()];
     leaveOneRed(built);
@@ -1889,7 +1939,16 @@ export function renderReadings(
       const placed = attach(seg);
       if (placementFor(seg.key)?.on === false) continue;
       // The pill style adds two caps to every chip, which the fit has to know.
-      if (roundStyle) placed.extra = 2;
+      if (roundStyle) placed.extra = 1;
+      // The wide padding adds one column to every chip after the first.
+      if (widePadding && !roundStyle) placed.extra = 1;
+      // A sleeping session recedes: line 2 is drawn in the quiet colour.
+      // A chip that has its own fill goes neutral too: a quiet text colour on a
+      // flamingo fill would change nothing a reader could see.
+      if (sleeping && placed.line === 2) {
+        placed.color = ROLE.neutral;
+        placed.quiet = true;
+      }
       byLineNumber.get(placed.line)?.push(placed);
     }
     const out = [];
@@ -1933,7 +1992,16 @@ export function renderReadings(
   // `CLAUDE_STATUSLINE_BLOCK=1`: every line is padded to the widest one with
   // spaces on `mantle`, so the right edge is a block and not a ragged one.
   const block = process.env.CLAUDE_STATUSLINE_BLOCK === "1" && colourEnabled();
-  const texts = surviving.map((_, i) => renderRow(palette, aligned[i], opts));
+  // `CLAUDE_STATUSLINE_HAIRLINE=1`: an overline (SGR 53) across line 1, which
+  // is a rule above the bar without being a fourth line. A terminal that does
+  // not draw it ignores it. It is not a colour, so it stays with `NO_COLOR`
+  // only where there is no other escape to add: it is skipped there.
+  const hairline = process.env.CLAUDE_STATUSLINE_HAIRLINE === "1" && colourEnabled();
+  const texts = surviving.map((entry, i) => {
+    const text = renderRow(palette, aligned[i], opts);
+    // Every reset in the row clears the overline too, so it is set again after each.
+    return hairline && entry.line === 1 ? `\x1b[53m${text.replace(/\x1b\[0m/g, "\x1b[0m\x1b[53m")}\x1b[0m` : text;
+  });
   const widest = block ? Math.max(0, ...texts.map((text) => displayWidth(text))) : 0;
   const drawn = surviving.map((entry, i) => {
     let text = texts[i];
@@ -1949,7 +2017,7 @@ export function renderReadings(
   // count toward the three, and the per-line view above never sees them
   // (Principle II, specs/030-copilot-agent-rows).
   if (!trailingRows) return drawn.map((entry) => entry.text).join("\n");
-  const agentRows = isCopilot ? harnessAgentRows(agentList, { columns: maxWidth, palette, now, cap: AGENT_ROW_CAP }) : [];
+  const agentRows = isCopilot ? harnessAgentRows(agentList, { columns: maxWidth, palette, now, cap: AGENT_ROW_CAP, asciiArrows }) : [];
   // The gates, in Claude Code and Copilot alike, unless the arrangement
   // switched them off. They are the first thing a short window gives up,
   // before any of the bar's own lines; the line 1 chip still counts them.
@@ -2015,5 +2083,6 @@ function trimFromLeft(label, columns) {
     kept.unshift(chars[i]);
     width = next;
   }
-  return kept.length ? `…/${kept.join("")}` : null;
+  // The cut is said in the quiet colour (E49): what is left is the name.
+  return kept.length ? `${QUIET}…/${MARK_OFF}${kept.join("")}` : null;
 }

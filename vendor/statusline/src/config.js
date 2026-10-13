@@ -10,6 +10,7 @@
  * repository travels to everyone who clones it, and `~` is not a project.
  */
 
+import { cachedBackgroundIsLight } from "./terminalBackground.js";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import os from "node:os";
@@ -159,9 +160,13 @@ export function iconTier({ env = process.env, asciiArrows = false } = {}) {
  */
 export function terminalFlavor(env = process.env) {
   const parts = String(env.COLORFGBG || "").split(";");
-  if (parts.length < 2) return null;
-  const background = Number(parts[parts.length - 1]);
-  return background === 7 || background === 15 ? "latte" : null;
+  if (parts.length >= 2) {
+    const background = Number(parts[parts.length - 1]);
+    return background === 7 || background === 15 ? "latte" : null;
+  }
+  // Nothing in the environment: the answer `install` or `doctor` got from the
+  // terminal itself, remembered per terminal. Never asked for from here.
+  return cachedBackgroundIsLight(env) === true ? "latte" : null;
 }
 
 /**
