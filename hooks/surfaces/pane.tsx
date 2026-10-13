@@ -62,9 +62,26 @@ export const paneTree = (
       : undefined
   const rowLink = (row: PaneRow, key: string, href: string, label: string) => {
     if (Link === undefined) return null
-    const node = <Link key={key} href={href} label={label} />
-    if (tab !== 'specs' || row.href === undefined || row.selected === true) return node
-    return <Box key={`${key}-hover`} display="none" hover={{ scope: linkScope(row), display: 'flex' }}>{node}</Box>
+    return <Link key={key} href={href} label={label} />
+  }
+  /**
+   * The links at the end of a row: always there on the selected row, and for the others a group
+   * drawn absolute at the right edge while the row is hovered, so showing it moves nothing (079).
+   */
+  const rowLinks = (row: PaneRow, label: string) => {
+    if (Link === undefined) return null
+    const items = [
+      ...(row.href === undefined ? [] : [{ key: `${row.key}-spec-link`, href: row.href, label }]),
+      ...(row.links ?? []).map(link => ({ key: `link-${row.key}-${link.label}`, href: link.href, label: ` ${link.label}${label}` })),
+    ]
+    if (items.length === 0) return null
+    const nodes = items.map(item => <Link key={item.key} href={item.href} label={item.label} />)
+    if (tab !== 'specs' || row.selected === true || row.href === undefined) return [<Text key={`${row.key}-links-gap`}> </Text>, ...nodes]
+    return (
+      <Box key={`${row.key}-links`} position="absolute" top={0} right={0} display="none" backgroundColor={tokens.barEmpty} hover={{ scope: linkScope(row), display: 'flex' }}>
+        {nodes}
+      </Box>
+    )
   }
   // The footer's chips draw their own links; `rowLink` wraps a PaneRow's hover, these stay plain (041 #6).
   const chipLink = (key: string, href: string, label: string) => {
@@ -154,9 +171,7 @@ export const paneTree = (
               <Text key={`${row.key}-value`} color={row.selected === true ? tokens.accent : tokens[row.role]} bold={row.selected === true || row.bold === true} wrap="wrap">
                 {m(row.value)}
               </Text>
-              {row.href !== undefined && Link !== undefined && <Text> </Text>}
-              {row.href !== undefined && Link !== undefined && rowLink(row, `${row.key}-spec-link`, row.href, m('↗'))}
-              {Link !== undefined && (row.links ?? []).map(link => rowLink(row, `link-${link.label}`, link.href, ` ${link.label}${m('↗')}`))}
+              {rowLinks(row, m('↗'))}
               {row.action !== undefined && row.action.kind === 'update' && extras.onUpdate !== undefined && (
                 <Button
                   key={`update-${row.action.id}`}
@@ -240,18 +255,14 @@ export const paneTree = (
                   {m(seg.text)}
                 </Text>
               ))}
-              {row.href !== undefined && Link !== undefined && <Text> </Text>}
-              {row.href !== undefined && Link !== undefined && rowLink(row, `${row.key}-spec-link`, row.href, m('↗'))}
-              {Link !== undefined && (row.links ?? []).map(link => rowLink(row, `link-${link.label}`, link.href, ` ${link.label}${m('↗')}`))}
+              {rowLinks(row, m('↗'))}
             </Box>
           ) : row.href !== undefined && Link !== undefined ? (
             <Box flexDirection="row">
               <Text color={row.selected === true ? tokens.accent : tokens[row.role]} {...(row.highlight === true ? { backgroundColor: tokens.barEmpty } : {})} bold={row.selected === true || row.bold === true} wrap={extras.wrapLongNames === true ? 'wrap' : 'truncate-end'} hover={rowHover(row)}>
                 {m(`${row.selected === true ? '❯ ' : ''}${colorblindText(row, extras.colorblind)}`)}
               </Text>
-              <Text> </Text>
-              {rowLink(row, `${row.key}-spec-link`, row.href, m('↗'))}
-              {(row.links ?? []).map(link => rowLink(row, `link-${link.label}`, link.href, ` ${link.label}${m('↗')}`))}
+              {rowLinks(row, m('↗'))}
             </Box>
           ) : (
             <Text color={row.selected === true ? tokens.accent : tokens[row.role]} {...(row.highlight === true ? { backgroundColor: tokens.barEmpty } : {})} bold={row.selected === true || row.bold === true} wrap={extras.wrapLongNames === true ? 'wrap' : 'truncate-end'} hover={rowHover(row)}>
@@ -366,12 +377,15 @@ export const paneTree = (
           {footer.notice === undefined ? null : (
             <Text color={tokens.faint} wrap="truncate-end">{`↳ ${footer.notice}`}</Text>
           )}
-          {/* One sentence for the chip under the pointer (068 #50), hidden until a chip is hovered. */}
-          {(footer.chips ?? []).flatMap(row => row).filter(chip => chip.explain !== undefined).map(chip => (
-            <Box key={`chip-${chip.key}-explain`} display="none" hover={{ scope: `astrolabe-chip-${chip.key}`, display: 'flex' }}>
-              <Text color={tokens.faint} wrap="truncate-end">{`↳ ${chip.explain}`}</Text>
-            </Box>
-          ))}
+          {/* One sentence for the chip under the pointer (068 #50): a slot of one row that is always there,
+              the sentences absolute inside it, so a hover moves nothing (079). */}
+          <Box key="astrolabe-chip-explain-slot" height={1}>
+            {(footer.chips ?? []).flatMap(row => row).filter(chip => chip.explain !== undefined).map(chip => (
+              <Box key={`chip-${chip.key}-explain`} position="absolute" top={0} left={0} display="none" hover={{ scope: `astrolabe-chip-${chip.key}`, display: 'flex' }}>
+                <Text color={tokens.faint} wrap="truncate-end">{`↳ ${chip.explain}`}</Text>
+              </Box>
+            ))}
+          </Box>
         </Box>
       </Box>
     )}

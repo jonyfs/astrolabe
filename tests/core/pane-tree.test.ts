@@ -2,9 +2,9 @@ import { describe, expect, test } from 'claude-code/testing'
 
 import { gateDots, sectionBar, specsRows } from '../../hooks/core/pane'
 import { allToggled, breadcrumb, doTaskSuggestion, foldGlyph, isOpen, questionSuggestion, questionsIn, spaced, tickSuggestion, toggled, withChildren } from '../../hooks/core/pane-tree'
-import { pullsBySpec, specOfBranch } from '../../hooks/core/pulls'
+import { primaryPullAction, pullsBySpec, specOfBranch } from '../../hooks/core/pulls'
 import { nextLevelText, projectHeader } from '../../hooks/core/session-usage'
-import { changedSettingsJson, LOOK_PRESETS, optionConflicts, presetMatching } from '../../hooks/core/setup-extras'
+import { changedSettingsJson, LOOK_PRESETS, nextOptionValue, optionConflicts, presetMatching } from '../../hooks/core/setup-extras'
 import { familyOf, skillModelFor, withOverride, SKILL_MODELS } from '../../hooks/core/skill-models'
 import { liveTextRows, layoutLive } from '../../hooks/core/live-table'
 import type { Feature, SpeckitState } from '../../hooks/core/types'
@@ -141,5 +141,20 @@ describe('Setup (078 FR-075, FR-077, FR-081, FR-082)', () => {
     expect(changed?.effort).toBe('low')
     expect(withOverride('speckit-plan', undefined, {})).toBeUndefined()
     expect(skillModelFor('gstack:review')?.effort).toBe('high')
+  })
+})
+
+describe('Enter on a selected row (079)', () => {
+  test('a pull request takes the first action its row offers', () => {
+    expect(primaryPullAction({ review: 'none', isDraft: false, merge: 'CLEAN' })).toBe('approve')
+    expect(primaryPullAction({ review: 'approved', isDraft: false, merge: 'BEHIND' })).toBe('update')
+    expect(primaryPullAction({ review: 'approved', isDraft: false, merge: 'CLEAN' })).toBe('merge')
+    expect(primaryPullAction({ review: 'approved', isDraft: true, merge: 'CLEAN' })).toBeUndefined()
+  })
+  test('an option flips, takes the next choice, or stays when locked', () => {
+    expect(nextOptionValue({ kind: 'boolean' }, true)).toBe(false)
+    expect(nextOptionValue({ kind: 'choice', options: ['a', 'b', 'c'] }, 'c')).toBe('a')
+    expect(nextOptionValue({ kind: 'choice', options: ['a', 'b'], isLocked: true }, 'a')).toBeUndefined()
+    expect(nextOptionValue({ kind: 'number' }, 3)).toBeUndefined()
   })
 })

@@ -459,6 +459,8 @@ describe('design and UX (052)', () => {
     expect(activeLink?.props['href']).toBe('file:///proj/specs/002-band-hint/spec.md')
     const drawn = JSON.stringify(await ui.drawn())
     expect(drawn).toContain('"display":"none"')
+    // The links of an unselected row are one absolute group at its right edge: no reflow (079).
+    expect(drawn).toContain('"position":"absolute"')
     expect(drawn).toContain('"hover":{"scope":"astrolabe-spec-link-feature-001","display":"flex"}')
     expect(drawn).toContain('"hover":{"scope":"astrolabe-spec-link-feature-001","underline":true}')
     await ui.unmount()
