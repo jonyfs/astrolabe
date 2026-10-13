@@ -368,7 +368,7 @@ columns, with the 9th of 20 tasks of feature 002 in progress:
 | Part | Example | What it means |
 |---|---|---|
 | Id chip | ` 002 ` | The active feature, from `specs/002-band-hint/`, as a chip. A `~` before the id means the feature was guessed. It opens `spec.md`. |
-| Name | `shopping-cart` | The feature's name in bold. A `+2` after it counts the other features in progress, and `⑂ name` names the linked worktree this session runs in. |
+| Name | `shopping-cart` | The feature's name in bold. A `+2` after it counts the other features in progress, and `⎇ name` names the linked worktree this session runs in. |
 | Finished steps | `✓ specify ✓ clarify ✓ plan ✓ tasks` | Each step already done. A click opens the step's file (`spec.md`, `plan.md`, `tasks.md`). The constitution step appears only while the constitution is not ratified. |
 | Current step | ` ▶ implement 9/20 ` | The step the feature is in, as a peach chip holding the ticked and total tasks. With open questions left after the plan it is a red ` ? clarify 2 ` chip. A quick-track spec (`track: quick`) shows `✓ spec ✓ tasks` and ` ▶ impl 3/5 `. |
 | `…` after the chip | `▶ plan …` | A Spec Kit skill for that step is running in this turn. |
@@ -781,7 +781,7 @@ The footer's chips take their order and colour from one table in `hooks/core/foo
 
 The Help tab (and `/astrolabe help`) starts with what this version changed, lists every option
 with its value now (`footerIn=pane`), the footer's parts in their fixed order (Spec Kit, deciding window, other windows, context, model, skill, git, burn, session time; a narrow screen drops session time first, then burn, git, skill, model, the other windows and context), and ends with a legend of every mark Astrolabe draws (`◆`, `●`,
-`◐`, `○`, `?`, `▸`, `⟳`, `~`, `!`, `☐`, `⑂`, `⇉`, `◷`) and a glossary of the six Spec Kit steps.
+`◐`, `○`, `?`, `▸`, `⟳`, `~`, `!`, `☐`, `⎇`, `⇉`, `◷`) and a glossary of the six Spec Kit steps.
 Its last lines link the Spec Kit docs (https://github.github.com/spec-kit/), gstack
 (https://github.com/garrytan/gstack) and this README; in the pane each of those lines opens its link.
 A toast about a failure names the command that fixes it, for example
@@ -856,13 +856,13 @@ The tabs follow Claude during a turn: a Write of `.specify/feature.json` or the 
 Bash command that makes a spec or switches the branch, and a subagent's return all redraw them at
 once, without waiting for the turn to end.
 
-Where the row has room, its phase takes its colour on the rail (clarify and implement peach, plan blue, tasks mauve) and the bar its fill and empty colours. A spec's own warnings sit right under its row, the blocking ones first (a file that cannot be read, a missing `spec.md`). With no filter, Done and Abandoned past three features fold to their heading (`Done (12) · folded; s or is:done shows them`). The Help tab explains each gate. Under the active feature a dim `gates` row shows where it stands: `constitution ✓  clarify ✗2  checklist ✗3  tasks ✓  analyze –` (`✓` passed, `✗` with what is open, `–` not reached yet). A feature row names the worktrees working on it (`⑂ wt-a`), and its count takes the worktree's ticks when that worktree has more of the same task list done; one feature open in two worktrees gets a `!` line, since their changes will collide. `/astrolabe worktrees` lists every worktree and the feature it works on, as text. A worktree row also says how many files it has not committed (`· 3 uncommitted`) and, once its branch is merged into the main checkout's branch, `· merged · git worktree remove /path/to/it`. A folder under `specs/` with no `spec.md` gets a `?` line naming it.
+Where the row has room, its phase takes its colour on the rail (clarify and implement peach, plan blue, tasks mauve) and the bar its fill and empty colours. A spec's own warnings sit right under its row, the blocking ones first (a file that cannot be read, a missing `spec.md`). With no filter, Done and Abandoned past three features fold to their heading (`Done (12) · folded; s or is:done shows them`). The Help tab explains each gate. Under the active feature a dim `gates` row shows where it stands: `constitution ✓  clarify ✗2  checklist ✗3  tasks ✓  analyze –` (`✓` passed, `✗` with what is open, `–` not reached yet). A feature row names the worktrees working on it (`⎇ wt-a`), and its count takes the worktree's ticks when that worktree has more of the same task list done; one feature open in two worktrees gets a `!` line, since their changes will collide. `/astrolabe worktrees` lists every worktree and the feature it works on, as text. A worktree row also says how many files it has not committed (`· 3 uncommitted`) and, once its branch is merged into the main checkout's branch, `· merged · git worktree remove /path/to/it`. A folder under `specs/` with no `spec.md` gets a `?` line naming it.
 
 When the repository has other git worktrees, the features they work on show under the list, read
 after each turn from the branch name (`026-...`) and that worktree's files:
 
 ```text
-⑂ astrolabe-dev  ◐ 026 claude-context  implement 3/5
+⎇ astrolabe-dev  ◐ 026 claude-context  implement 3/5
 ```
 
 **2 Tasks** lists the active feature's open tasks in file order, after a count. In the terminal each task ends with `↗`, a link to its line (`tasks.md#L42`, or `spec.md` for a quick spec):

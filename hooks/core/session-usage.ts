@@ -98,3 +98,46 @@ export const sessionChips = (input: {
   ...(input.turns > 0 ? [`${input.turns} turns`] : []),
   ...(input.cost !== undefined && input.cost > 0 ? [`$${input.cost.toFixed(2)}`] : []),
 ]
+
+/** The next level above the deciding window's figure: `hold at 80% (30 points away)` (078 FR-049). */
+export const nextLevelText = (percent: number): string | undefined => {
+  const ahead = LEVELS.find(([at]) => at > percent)
+  return ahead === undefined ? undefined : `${ahead[1]} at ${ahead[0]}% (${Math.round(ahead[0] - percent)} points away)`
+}
+
+type ProjectRow = { key: string; text: string; role: string; label?: string; value?: string; href?: string; action?: unknown }
+
+/**
+ * The project as a header (078 FR-050): the root with its branch on one row, the constitution with
+ * the active spec on the next, and what runs now on a third; the eight rows it replaces are gone.
+ * `now` is the label of the third row.
+ */
+export const projectHeader = <R extends ProjectRow>(rows: readonly R[], opts: { now: string; labelWidth: number; branch?: string; branchHref?: string }): R[] => {
+  const get = (key: string) => rows.find(r => r.key === key)
+  const join = (...parts: Array<string | undefined>) => parts.filter((p): p is string => p !== undefined && p !== '').join(' · ')
+  const root = get('session-root')
+  const constitution = get('session-constitution')
+  const merged = new Map<string, R>()
+  if (root !== undefined) {
+    const value = join(root.value, opts.branch === undefined ? undefined : `⎇ ${opts.branch}`)
+    merged.set('session-root', { ...root, value, text: `${root.label ?? ''}${value}`, ...(opts.branchHref === undefined ? {} : { href: opts.branchHref }) })
+  }
+  if (constitution !== undefined) {
+    const value = join(constitution.value, get('session-active')?.value)
+    merged.set('session-constitution', { ...constitution, value, text: `${constitution.label ?? ''}${value}` })
+  }
+  const now = [get('session-next'), get('session-running'), get('session-analyzed'), get('session-current-task')].filter((r): r is R => r !== undefined)
+  const nowValue = now.map(r => `${(r.label ?? '').trim()} ${r.value ?? ''}`.trim()).join(' · ')
+  const label = opts.now.padEnd(opts.labelWidth)
+  const drop = new Set(['session-active', 'session-next', 'session-running', 'session-analyzed', 'session-current-task', 'session-branch'])
+  const out: R[] = []
+  for (const row of rows) if (!drop.has(row.key)) out.push(merged.get(row.key) ?? row)
+  if (nowValue !== '') {
+    // After the chips row when there is one, else after the constitution and its principles.
+    const chips = out.findIndex(r => r.key === 'session-chips')
+    const lastOfConstitution = out.reduce((at, r, i) => (r.key === 'session-constitution' || r.key.startsWith('session-principle-') ? i : at), -1)
+    const nowRow = { key: 'session-now', text: `${label}${nowValue}`, role: 'text', label, value: nowValue } as unknown as R
+    out.splice(chips >= 0 ? chips + 1 : lastOfConstitution + 1, 0, nowRow)
+  }
+  return out
+}

@@ -31,16 +31,16 @@ import { withThumb } from './core/thumb'
 import { displaySectionOf, isReadyToClose } from './core/sections'
 import { blockLabel, jumpLine, jumpMatches, jumpQuery, nextGroup } from './core/specs-scale'
 import { usageBarRows } from './core/usage-bars'
-import { deciderNote, governorBoxState, sessionChips, todayCounts, trend24h } from './core/session-usage'
+import { deciderNote, governorBoxState, nextLevelText, projectHeader, sessionChips, todayCounts, trend24h } from './core/session-usage'
 import { badgesOf, legacyTab, paneTitle } from './core/pane-tabs'
+import { changedSettingsJson, LOOK_PRESETS, optionConflicts, OPTIONS_README, presetMatching } from './core/setup-extras'
 import { usageRamp } from './core/usage-ramp'
 import { ASK_MS, clockOf, decide, dropped, EXTEND_MS, HOLD_LIFT_MS, holdQuestion, labelOf, nextHeld, isPaused, isReadOnlyTool, parseAllow, pauseQuestion, RAISE_MS, refusal, resumePrompt, runPrompt, usageSegment, type Decision, type Question, usageRows } from './core/governor'
 import { ANSI_16, chipForeground, CHIPS, FLAVORS, flavorOf, isThemeKeys, lighten, STATUS_ROLE, themeOf, type ThemeRole } from './core/theme'
 import { capDiff, DIFF_FOLD_MS, foldedDiff, recapLine, recapOf, tasksDiff } from './core/summary'
 import { styleSections } from './core/style'
-import { ageOf, parsePullList, prOpened, pullAction, PR_LIST_FIELDS } from './core/pulls'
-import { modelForTask, skillModelFor } from './core/skill-models'
-import { getAllSkills } from './core/skill-model-map'
+import { ageOf, parsePullList, prOpened, pullAction, pullsBySpec, specOfBranch, PR_LIST_FIELDS } from './core/pulls'
+import { EFFORTS, familyOf, MODEL_FAMILIES, modelForTask, skillModelFor, skillNameOf, SKILL_MODELS, type SkillOverrides } from './core/skill-models'
 import { featureDirFor, mergedBranches, parseWorktrees, uncommittedCount, withWorktreeProgress, worktreeName, worktreeState } from './core/worktrees'
 import { readFeature } from './io/snapshot'
 import { deriveSpeckitState, snapshotFromMemo } from './core/speckit'
@@ -59,7 +59,7 @@ import { dashboardSections, dashboardTree } from './surfaces/dashboard'
 import { burnRate, dial, kpiChips, kpisMarkdown, phaseBars, sparkline, usageChart, kpiRows, trendRows } from './core/dashboard'
 import { addDay, addWeek, dayKey, lastWeeks, pastReset, slowest, updateFeatureDurations, weekKey, weekdays, type Days, type FeatureDuration, type Weeks } from './core/history'
 import { footerChipLines, footerChips, footerText, linesChanged, type FooterInput } from './core/footer'
-import { detectGates, layoutLive, liveRows, parseProcesses, type LiveColumn, type LiveRowsOption } from './core/live-table'
+import { detectGates, layoutLive, liveRows, liveTextRows, parseProcesses, type LiveColumn, type LiveRowsOption } from './core/live-table'
 import { liveTable } from './surfaces/live-table'
 import { branchWebUrl, parseCiRun, parseGitStatus, parsePullRequest, plainText, remoteWebUrl } from './core/git-status'
 import { iconSet, iconsFor } from './core/icons'
@@ -131,6 +131,10 @@ const WELCOMED = 'welcomed'
 let sessionNumber = Number.POSITIVE_INFINITY
 const ASK = { plugin: 'astrolabe', key: 'ask' } as const
 const DEFAULT_PANE: PaneState = { tab: 'specs', autoOpened: false }
+
+/** The filters `m` cycles (078 FR-034), and the name each one shows. */
+const PRESET_FILTERS = ['', 'is:active', 'has:questions', 'is:ready'] as const
+const PRESET_OF: Readonly<Record<string, 'all' | 'mine' | 'blocked' | 'ready'>> = { '': 'all', 'is:active': 'mine', 'has:questions': 'blocked', 'is:ready': 'ready' }
 const UPDATES = { plugin: 'astrolabe', key: 'updates' } as const
 const UPDATES_STORE = 'updates'
 const RELEASES_URL = 'https://api.github.com/repos/jonyfs/astrolabe/releases/latest'
@@ -271,7 +275,7 @@ async function footerInput(
       ...((rate => (rate === undefined ? {} : { burn: rate }))(stats === undefined ? undefined : burnRate(stats.series))),
       ...(state.runningSkill === undefined
         ? {}
-        : { skill: { name: state.runningSkill.name, ...((m => (m === undefined ? {} : { model: m }))(skillModels === 'auto' ? skillModelFor(state.runningSkill.name)?.model : undefined)) } }),
+        : { skill: { name: state.runningSkill.name, ...((m => (m === undefined ? {} : { model: m }))(skillModels === 'auto' ? skillModelFor(state.runningSkill.name, skillOverrides)?.model : undefined)) } }),
       now,
       icons: iconSet(iconsFor(iconsOption, surfaceSeen as never)),
       columns: width,
@@ -468,6 +472,8 @@ async function captureFeatureDurations($: EngineInterface, held: Held | undefine
 let skillModels: unknown = 'off'
 // The skill the main thread last started this turn, cleared when the turn ends (030).
 let skillRunning: string | undefined
+// What the person changed in the Setup table: the model family and effort of a skill (078 FR-079).
+let skillOverrides: SkillOverrides = {}
 
 /** Gets the currently running skill (030). */
 export function getSkillRunning(): string | undefined {
@@ -536,6 +542,7 @@ function pullsBody(
   e: Parameters<Hook<'ui.render'>>[1],
   pane: PaneState,
   stats: SessionStats | undefined,
+  speckit?: SpeckitState,
 ): Array<{ node: RenderNode; rows: number }> {
   const elements = $.ui.resolve(e)
   const branch = stats?.git?.branch
@@ -557,7 +564,7 @@ function pullsBody(
             ),
           },
         ]
-  return [...ship, ...gate, ...pullsRows($, e, pane, stats)]
+  return [...ship, ...gate, ...pullsRows($, e, pane, stats, speckit)]
 }
 
 /** The PRs tab's rows (032): a link per pull request, its state, and the buttons GitHub allows. */
@@ -566,6 +573,7 @@ function pullsRows(
   e: Parameters<Hook<'ui.render'>>[1],
   pane: PaneState,
   stats: SessionStats | undefined,
+  speckit?: SpeckitState,
 ): Array<{ node: RenderNode; rows: number }> {
   const elements = $.ui.resolve(e)
   const { Box, Text, Button } = elements
@@ -595,15 +603,53 @@ function pullsRows(
   // Checks as cells: ✓ passed, ✖ failed, ◷ pending (066 #28).
   const mark = (c: string) => (c === 'pass' ? '✓' : c === 'fail' ? '✖' : c === 'pending' ? STATE_GLYPHS.elapsed : '·')
   const colour = (c: string) => (c === 'pass' ? tokens0[STATUS_ROLE.success] : c === 'fail' ? tokens0[STATUS_ROLE.error] : c === 'pending' ? tokens0[STATUS_ROLE.warning] : tokens0.muted)
+  const columns = (e.props as { bodyColumns?: number }).bodyColumns ?? 80
+  // The filter of the tab: `is:failing`, `is:draft`, `is:approved`, `is:behind`, `is:mine` (the branch you are on), words (078 FR-070).
+  const tokens = (pane.filter ?? '').trim().toLowerCase().split(/\s+/).filter(x => x !== '')
+  const words = tokens.filter(x => !x.startsWith('is:')).join(' ')
+  const is = new Set(tokens.filter(x => x.startsWith('is:')).map(x => x.slice(3)))
+  const mine = stats?.git?.branch
+  const wanted = rows.filter(pr =>
+    (words === '' || `#${pr.number} ${pr.title} ${pr.branch}`.toLowerCase().includes(words)) &&
+    (!is.has('failing') || pr.checks === 'fail') &&
+    (!is.has('draft') || pr.isDraft) &&
+    (!is.has('approved') || pr.review === 'approved') &&
+    (!is.has('behind') || pr.merge === 'BEHIND') &&
+    (!is.has('mine') || (mine !== undefined && pr.branch === mine)),
+  )
+  // The ones that need the person lead: failing checks, then requested changes, then the rest (078 FR-066).
+  const need = (pr: (typeof rows)[number]): number => (pr.checks === 'fail' ? 0 : pr.review === 'changes' ? 1 : pr.merge === 'BEHIND' ? 2 : pr.checks === 'pending' ? 3 : 4)
+  const ordered = [...wanted].sort((a, b) => need(a) - need(b) || b.number - a.number)
+  // The table's columns: the title takes what the checks, the review and the age leave (078 FR-061).
+  const reviewWidth = Math.max(...Object.values({ a: 'approved', b: 'changes requested', c: 'review required', d: 'no review' }).map(w => w.length))
+  const titleRoom = Math.max(12, columns - 2 - 8 - reviewWidth - 4 - 6)
+  const spec = (pr: (typeof rows)[number]) => specOfBranch(pr.branch, speckit?.features ?? [])
   const header = { rows: 1, node: <Text key="prs-header" color={tokens0.faint} wrap="truncate-end">{t(lang, 'prs.header')}</Text> }
-  return [header, ...rows.flatMap(pr => {
+  const noPr =
+    mine === undefined || mine === 'main' || mine === 'master' || rows.some(pr => pr.branch === mine) || is.size > 0 || words !== ''
+      ? []
+      : [
+          {
+            rows: 1,
+            node: (
+              <Box key="prs-no-pr" flexDirection="row">
+                <Text color={tokens0.muted}>{`${t(lang, 'prs.noPr', { branch: mine })}  `}</Text>
+                <Button key="prs-open-pr" label={t(lang, 'prs.openPr')} plain onPress={() => void $.prompt.suggest({ text: `Open a pull request for branch ${mine} with: gh pr create --fill` }).catch(() => undefined)} />
+              </Box>
+            ),
+          },
+        ]
+  if (ordered.length === 0) return [header, ...noPr, { rows: 1, node: <Text color={tokens0.muted}>{t(lang, 'pane.noMatch', { filter: (pane.filter ?? '').trim() })}</Text> }]
+  return [header, ...noPr, ...ordered.flatMap(pr => {
     const title = `#${pr.number} ${pr.title}`
-    const cells = [pr.isDraft ? t(lang, 'prs.draft') : '', pr.labels.join(','), t(lang, `prs.review.${pr.review}`), (pr.runs === undefined || pr.runs.length === 0 ? mark(pr.checks) : pr.runs.slice(0, 6).map(run => mark(run.result)).join(''))]
-      .filter(c => c !== '')
-      .join('  ')
+    const shownTitle = [...title].length > titleRoom ? `${[...title].slice(0, titleRoom - 1).join('')}…` : title
+    const cells = pr.runs === undefined || pr.runs.length === 0 ? mark(pr.checks) : pr.runs.slice(0, 6).map(run => mark(run.result)).join('')
     // Who opened it and how long ago, as of the last read (052 #40).
-    const opened = [pr.author === undefined ? '' : `@${pr.author}`, pr.createdAt === undefined || stats?.pulls === undefined ? '' : ageOf(pr.createdAt, stats.pulls.at)].filter(s => s !== '').join(' ')
-    const facts = [opened, pr.branch].filter(s => s !== '').join('  ')
+    const age = pr.createdAt === undefined || stats?.pulls === undefined ? '' : ageOf(pr.createdAt, stats.pulls.at)
+    const opened = [pr.author === undefined ? '' : `@${pr.author}`, age].filter(x => x !== '').join(' ')
+    const facts = [opened, pr.branch].filter(x => x !== '').join('  ')
+    // Draft and labels are small chips, dim for a draft (078 FR-065).
+    const chips = [pr.isDraft ? `[${t(lang, 'prs.draft')}]` : '', ...pr.labels.map(l => `[${l}]`)].filter(x => x !== '').join(' ')
     const buttons: RenderNode[] = []
     const add = (action: 'approve' | 'update' | 'merge') => {
       const key = `pr-${action}-${pr.number}`
@@ -612,13 +658,17 @@ function pullsRows(
     if (pr.review !== 'approved' && !pr.isDraft) add('approve')
     if (pr.merge === 'BEHIND') add('update')
     if (pr.merge === 'CLEAN' && !pr.isDraft) add('merge')
+    const dir = spec(pr)
+    const feature = speckit?.features.find(f => f.dir === dir)
     return [
       {
         rows: 1,
         node: (
           <Box flexDirection="row">
-            {Link !== undefined && pr.url !== '' ? <Link href={pr.url} label={title} /> : <Text color={colour(pr.checks)}>{title}</Text>}
-            <Text color={colour(pr.checks)} wrap="truncate-end">{`  ${cells}`}</Text>
+            {Link !== undefined && pr.url !== '' ? <Link href={pr.url} label={shownTitle} /> : <Text color={colour(pr.checks)}>{shownTitle}</Text>}
+            <Text>{' '.repeat(Math.max(2, titleRoom - [...shownTitle].length + 2))}</Text>
+            <Text color={colour(pr.checks)}>{cells.padEnd(8)}</Text>
+            <Text color={pr.isDraft ? tokens0.faint : tokens0.text} wrap="truncate-end">{`${t(lang, `prs.review.${pr.review}`).padEnd(reviewWidth)}  ${age}`}</Text>
           </Box>
         ),
       },
@@ -626,7 +676,13 @@ function pullsRows(
         rows: 1,
         node: (
           <Box flexDirection="row">
-            <Text color={tokens0.muted}>{`   ${facts}  `}</Text>
+            <Text color={pr.isDraft ? tokens0.faint : tokens0.muted}>{`   ${chips === '' ? '' : `${chips}  `}${facts}  `}</Text>
+            {feature === undefined ? null : <Button key={`pr-spec-${pr.number}`} label={`→ ${feature.id}`} plain onPress={async () => {
+              const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
+              const { help: _h, tasksOnly: _t, selectedTask: _s, ...rest } = held
+              await $.state.set(PANE_STATE, { ...rest, tab: 'specs', selectedFeature: feature.id })
+            }} />}
+            {feature === undefined ? null : <Text> </Text>}
             {buttons}
           </Box>
         ),
@@ -654,7 +710,7 @@ function pullsRows(
 // Astrolabe's own /config rows (028), read at session start and after a save.
 let configRows: ConfigRow[] = []
 
-/** The Config tab's rows (028): one per option, its control, and Save / Cancel. */
+/** The Config tab's rows (028): a heading per group that folds, an option per row, its control and card. */
 function configBody(
   $: Parameters<Hook<'ui.render'>>[0],
   e: Parameters<Hook<'ui.render'>>[1],
@@ -664,6 +720,7 @@ function configBody(
   const { Box, Text, Button } = elements
   const Select = 'Select' in elements ? elements.Select : undefined
   const Input = 'Input' in elements ? elements.Input : undefined
+  const Link = 'Link' in elements && e.surface === 'terminal' ? elements.Link : undefined
   const lang = currentLang()
   const draft = pane.draft ?? {}
   const setDraft = async (key: string, value: string | number | boolean) => {
@@ -672,14 +729,63 @@ function configBody(
   }
   const rows: Array<{ node: RenderNode; rows: number }> = []
   if (configRows.length === 0) return [{ rows: 1, node: <Text color={tokens0.muted}>{t(lang, 'config.none')}</Text> }]
-  // Under a heading per group (054 #64).
-  // `/` finds an option by name (board 4, 075 FR-017): the rows that match stay, and so do their headings.
+  // The values as they would be with the draft, for the conflicts between options (078 FR-082).
+  const values: Record<string, unknown> = {}
+  for (const row of configRows) values[row.key.replace(/^astrolabe\./, '')] = row.key in draft ? draft[row.key] : row.value
+  const conflicts = optionConflicts(values, lang)
+  // `/` finds an option by its name and by what it says (board 4, 075 FR-017, 078 FR-074).
   const needle = (pane.filter ?? '').trim().toLowerCase()
-  const wanted = (row: ConfigRow) => needle === '' || `${row.key} ${row.label}`.toLowerCase().includes(needle)
-  const ordered = (Object.keys(OPTION_GROUPS) as OptionGroup[]).flatMap(group => configRows.filter(row => optionGroup(row.key) === group && wanted(row)).map((row, i) => ({ row, heading: i === 0 ? group : undefined })))
+  const wanted = (row: ConfigRow) => needle === '' || `${row.key} ${row.label} ${row.description ?? ''}`.toLowerCase().includes(needle)
+  const groups = Object.keys(OPTION_GROUPS) as OptionGroup[]
+  const ordered = groups.flatMap(group => configRows.filter(row => optionGroup(row.key) === group && wanted(row)).map((row, i) => ({ row, group, heading: i === 0 ? group : undefined })))
   if (needle !== '' && ordered.length === 0) return [{ rows: 1, node: <Text color={tokens0.muted}>{t(lang, 'pane.noMatch', { filter: needle })}</Text> }]
-  for (const { row, heading } of ordered) {
-    if (heading !== undefined) rows.push({ rows: 1, node: <Text key={`config-group-${heading}`} color={tokens0.accent} bold>{t(lang, `config.group.${heading}` as TextKey)}</Text> })
+  const changedGroups = new Set(configRows.filter(r => r.key in draft && draft[r.key] !== r.value).map(r => optionGroup(r.key)))
+  // Only the group with a change is open, and the first one; a search opens every group it finds (078 FR-071).
+  const isOpen = (group: OptionGroup): boolean => needle !== '' || changedGroups.has(group) || (pane.groupsOpen === undefined ? group === groups[0] : pane.groupsOpen.includes(group))
+  const toggle = (group: OptionGroup) => async () => {
+    const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
+    const openNow = new Set(groups.filter(g => (held.groupsOpen === undefined ? g === groups[0] : held.groupsOpen.includes(g))))
+    if (openNow.has(group)) openNow.delete(group)
+    else openNow.add(group)
+    await $.state.set(PANE_STATE, { ...held, groupsOpen: [...openNow] })
+  }
+  // The look presets: one key each, set as a draft that Save applies (078 FR-075).
+  if (needle === '') {
+    const matching = presetMatching(values)
+    rows.push({
+      rows: 1,
+      node: (
+        <Box key="setup-presets" flexDirection="row">
+          <Text color={tokens0.muted}>{`${t(lang, 'setup.presets')}  `}</Text>
+          {(['minimal', 'balanced', 'full'] as const).map(name => (
+            <Button
+              key={`setup-preset-${name}`}
+              label={t(lang, `setup.preset.${name}` as TextKey)}
+              {...(matching === name ? { variant: 'primary' as const } : {})}
+              onPress={async () => {
+                const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
+                const next: Record<string, string | number | boolean> = { ...(held.draft ?? {}) }
+                for (const [field, value] of Object.entries(LOOK_PRESETS[name])) {
+                  const row = configRows.find(r => r.key === `astrolabe.${field}`)
+                  if (row !== undefined && !row.isLocked) next[row.key] = value
+                }
+                await $.state.set(PANE_STATE, { ...held, draft: next })
+              }}
+            />
+          ))}
+        </Box>
+      ),
+    })
+  }
+  for (const { row, group, heading } of ordered) {
+    if (heading !== undefined) {
+      const n = configRows.filter(r => optionGroup(r.key) === group).length
+      rows.push({
+        rows: 1,
+        node: <Button key={`config-group-${heading}`} label={`${isOpen(group) ? '▾' : '▸'} ${t(lang, `config.group.${heading}` as TextKey)} ${n}`} plain onPress={toggle(group)} />,
+      })
+    }
+    if (!isOpen(group)) continue
     const shown = row.key in draft ? draft[row.key] : row.value
     const changed = row.key in draft && draft[row.key] !== row.value
     // ● a change not saved yet; • a saved value that differs from the option's default (052 #39).
@@ -705,6 +811,10 @@ function configBody(
       control = <Input key={key} value={String(shown)} onInput={save} onSubmit={save} />
     } else control = <Text>{String(shown)}</Text>
     const defaultValue = defaultsSeen[row.key]
+    const field = row.key.replace(/^astrolabe\./, '')
+    const named = conflicts.filter(c => c.field === field)
+    // One option back to its default, as a draft (078 FR-077).
+    const offDefault = !row.isLocked && defaultValue !== undefined && shown !== defaultValue
     rows.push({
       rows: 1,
       node: (
@@ -714,55 +824,95 @@ function configBody(
           <Box flexDirection="row">
             <Text color={changed ? tokens0.current : tokens0.text}>{label}</Text>
             {control}
-            {row.key === 'icons' && String(shown) === 'auto' ? <Text color={tokens0.faint}>{`  (${t(lang, iconsFor('auto', e.surface) === 'nerd' ? 'config.iconsNerd' : iconsFor('auto', e.surface) === 'ascii' ? 'config.iconsAscii' : 'config.iconsEmoji')})`}</Text> : null}
+            {offDefault ? <Button key={`config-reset-${row.key}`} label={t(lang, 'setup.resetOne')} plain onPress={() => setDraft(row.key, defaultValue)} /> : null}
+            {row.key === 'astrolabe.icons' && String(shown) === 'auto' ? <Text color={tokens0.faint}>{`  (${t(lang, iconsFor('auto', e.surface) === 'nerd' ? 'config.iconsNerd' : iconsFor('auto', e.surface) === 'ascii' ? 'config.iconsAscii' : 'config.iconsEmoji')})`}</Text> : null}
           </Box>
+          {named.map((c, i) => (
+            <Text key={`config-conflict-${row.key}-${i}`} color={tokens0.current} wrap="truncate-end">{`  ▲ ${c.text}`}</Text>
+          ))}
           <Box display="none" paddingX={1} backgroundColor={tokens0.barEmpty} hover={{ display: 'flex' }} flexDirection="column">
             <Text color={tokens0.accent}>{`${t(lang, 'config.default')}: ${defaultValue === undefined ? t(lang, 'word.unknown') : String(defaultValue)}`}</Text>
             <Text color={tokens0.text} wrap="wrap">{row.description ?? t(lang, 'config.noDescription')}</Text>
+            {Link === undefined ? null : <Link href={OPTIONS_README} label={`${t(lang, 'setup.readme')} ↗`} />}
           </Box>
         </Box>
       ),
     })
   }
-  const pending = Object.keys(draft).filter(k => draft[k] !== configRows.find(r => r.key === k)?.value)
-  rows.push({
-    rows: 1,
-    node: (
-      <Box flexDirection="row">
-        <Button key="config-save" label={pending.length === 0 ? t(lang, 'config.saved') : t(lang, 'config.save', { n: pending.length })} variant="primary" onPress={() => saveConfig($)} />
-        <Text> </Text>
-        {/* Every option back to its default, as a draft Save applies (054 #63). */}
-        <Button key="config-reset" label={t(lang, 'config.reset')} onPress={() => draftDefaults($)} />
-        <Text> </Text>
-        <Button key="config-cancel" label={t(lang, 'config.cancel')} onPress={async () => {
-          const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
-          const { draft: _gone, ...rest } = held
-          await $.state.set(PANE_STATE, rest)
-        }} />
-      </Box>
-    ),
-  })
   return rows
 }
 
-/** The Models tab's rows (030), [ Skill · category · tier · model · effort ], auto mode's ▸ on the skill running now. */
+/** Save, Reset, Cancel and the copy button: one bar that stays in view above the options (078 FR-073). */
+function configBar(
+  $: Parameters<Hook<'ui.render'>>[0],
+  e: Parameters<Hook<'ui.render'>>[1],
+  pane: PaneState,
+): RenderNode[] {
+  const { Box, Text, Button } = $.ui.resolve(e)
+  const lang = currentLang()
+  const draft = pane.draft ?? {}
+  if (configRows.length === 0) return []
+  const pending = Object.keys(draft).filter(k => draft[k] !== configRows.find(r => r.key === k)?.value)
+  return [
+    <Box key="config-bar" flexDirection="row">
+      <Button key="config-save" label={pending.length === 0 ? t(lang, 'config.saved') : t(lang, 'config.save', { n: pending.length })} variant="primary" onPress={() => saveConfig($)} />
+      <Text> </Text>
+      {/* Every option back to its default, as a draft Save applies (054 #63). */}
+      <Button key="config-reset" label={t(lang, 'config.reset')} onPress={() => draftDefaults($)} />
+      <Text> </Text>
+      <Button key="config-cancel" label={t(lang, 'config.cancel')} onPress={async () => {
+        const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
+        const { draft: _gone, ...rest } = held
+        await $.state.set(PANE_STATE, rest)
+      }} />
+      {pending.length === 0 ? null : <Text> </Text>}
+      {pending.length === 0 ? null : <Button key="config-copy" label={t(lang, 'setup.copy')} plain onPress={() => void copyNext($, changedSettingsJson(Object.fromEntries(pending.map(k => [k, draft[k]!]))), e.surface)} />}
+    </Box>,
+  ]
+}
+
+/**
+ * The model table of Setup (030, 078 FR-079): each skill with the model family and effort auto mode
+ * sends it with, as two buttons that cycle; `▸` marks the skill running now. A choice is kept in the
+ * mod's store and laid over the built-in table.
+ */
 function modelSkillTabBody(
   $: Parameters<Hook<'ui.render'>>[0],
   e: Parameters<Hook<'ui.render'>>[1],
   _pane: PaneState,
 ): Array<{ node: RenderNode; rows: number }> {
-  const { Text } = $.ui.resolve(e)
+  const { Box, Text, Button } = $.ui.resolve(e)
   const lang = currentLang()
   const auto = skillModels === 'auto'
   const active = getSkillRunning()
-  const tierColour: Record<string, ThemeRole> = { 'deep-reasoning': 'faint', 'balanced-coding': 'accent', 'fast-lightweight': 'done' }
   const rows: Array<{ node: RenderNode; rows: number }> = []
+  const change = (name: string, patch: { model?: (typeof MODEL_FAMILIES)[number]; effort?: (typeof EFFORTS)[number] }) => async () => {
+    skillOverrides = { ...skillOverrides, [name]: { ...(skillOverrides[name] ?? {}), ...patch } }
+    await $.store.set('skillOverrides', skillOverrides).catch(() => undefined)
+    const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
+    await $.state.set(PANE_STATE, { ...held })
+  }
+  const names = Object.keys(SKILL_MODELS)
   for (const category of ['speckit', 'gstack'] as const) {
     rows.push({ rows: 1, node: <Text key={`models-${category}`} color={tokens0.accent} bold>{t(lang, `models.category.${category}`)}</Text> })
-    for (const skill of getAllSkills().filter(s => s.category === category)) {
-      const running = auto && active === skill.skill
-      const text = `${running ? '▸' : ' '} ${skill.skill}  ${skill.tier}  ${skill.model}  ${skill.effort}${running ? `  ← ${t(lang, 'models.running')}` : ''}`
-      rows.push({ rows: 1, node: <Text key={`skill-${skill.skill}`} color={running ? tokens0.current : tokens0[tierColour[skill.tier] ?? 'text']}>{text}</Text> })
+    for (const name of names.filter(n => (category === 'speckit') === n.startsWith('speckit-'))) {
+      const entry = skillModelFor(name, skillOverrides)!
+      const running = auto && active !== undefined && skillNameOf(active) === name
+      const family = familyOf(entry.model)
+      const nextFamily = MODEL_FAMILIES[(MODEL_FAMILIES.indexOf(family) + 1) % MODEL_FAMILIES.length]!
+      const nextEffort = EFFORTS[(EFFORTS.indexOf(entry.effort) + 1) % EFFORTS.length]!
+      rows.push({
+        rows: 1,
+        node: (
+          <Box key={`skill-${name}`} flexDirection="row">
+            <Text color={running ? tokens0.current : tokens0.text}>{`${running ? '▸' : ' '} ${name.padEnd(22)}`}</Text>
+            <Button key={`model-${name}`} label={`‹ ${family} ›`} plain onPress={change(name, { model: nextFamily })} />
+            <Text> </Text>
+            <Button key={`effort-${name}`} label={`‹ ${entry.effort} ›`} plain onPress={change(name, { effort: nextEffort })} />
+            <Text color={tokens0.faint}>{`  ${entry.why}${running ? `  ← ${t(lang, 'models.running')}` : ''}`}</Text>
+          </Box>
+        ),
+      })
     }
   }
   rows.push({ rows: 1, node: <Text color={tokens0.muted}>{auto ? t(lang, 'models.autoModeActive', { active: active ?? t(lang, 'models.idle') }) : t(lang, 'models.autoModeOff')}</Text> })
@@ -1111,7 +1261,7 @@ function paneHeader(
   const Button = 'Button' in elements ? elements.Button : undefined
   const active = state.active
   // One filter for Specs (and its tasks), Help and Setup (043 #23, 078).
-  if (viewOf(pane) === 'specs' || viewOf(pane) === 'help' || viewOf(pane) === 'setup') {
+  if (viewOf(pane) === 'specs' || viewOf(pane) === 'help' || viewOf(pane) === 'setup' || viewOf(pane) === 'prs') {
     const out: RenderNode[] = []
     if (Input !== undefined) {
       // Each keystroke filters; Enter keeps the text the same way.
@@ -1120,7 +1270,7 @@ function paneHeader(
         await $.state.set(PANE_STATE, { ...held, filter: value })
       }
       out.push(
-        <Input key="astrolabe-filter" placeholder={t(currentLang(), viewOf(pane) === 'specs' ? 'pane.filter' : viewOf(pane) === 'setup' ? 'pane.findOption' : 'pane.filterRows')} value={pane.filter ?? ''} onInput={setFilter} onSubmit={setFilter} />,
+        <Input key="astrolabe-filter" placeholder={t(currentLang(), viewOf(pane) === 'specs' ? 'pane.filter' : viewOf(pane) === 'setup' ? 'pane.findOption' : viewOf(pane) === 'prs' ? 'prs.filter' : 'pane.filterRows')} value={pane.filter ?? ''} onInput={setFilter} onSubmit={setFilter} />,
       )
       // A `#` jump (067 #31): the ids the query completes to, live.
       const jump = viewOf(pane) === 'specs' ? jumpQuery(pane.filter) : undefined
@@ -1259,7 +1409,7 @@ async function* noteModel($: Parameters<Hook<'turn.step'>>[0], e: Parameters<Hoo
   // skillModels auto (030): while a skill with an entry runs, its model and effort.
   // A task's own kind wins while speckit-implement runs (054 #94); otherwise the skill's entry.
   const byTask = skillModels === 'auto' && e.agentId === undefined && /^speckit[-.]implement$/.test(skillRunning ?? '') ? modelForTask(currentTaskText) : undefined
-  const pick = byTask ?? (skillModels === 'auto' && e.agentId === undefined ? skillModelFor(skillRunning) : undefined)
+  const pick = byTask ?? (skillModels === 'auto' && e.agentId === undefined ? skillModelFor(skillRunning, skillOverrides) : undefined)
   const step = pick === undefined ? e : { ...e, model: pick.model, effort: pick.effort }
   if (e.agentId === undefined) {
     live.model = step.model
@@ -1632,6 +1782,8 @@ async function sessionTabRows(
   updates: readonly UpdateItem[],
   /** The update waiting for its second click (Spec Kit skills rewrite files). */
   confirming?: string,
+  /** The pane's columns, for the live table, and which folded blocks are open (078). */
+  layout: { columns: number; updatesOpen: boolean; logOpen: boolean } = { columns: 80, updatesOpen: false, logOpen: false },
 ): Promise<PaneRow[]> {
   const lang = currentLang()
   const labelWidth = paneLabelWidth(lang)
@@ -1652,7 +1804,7 @@ async function sessionTabRows(
   const branch = stats?.git?.branch
   const governorDecision = decisionOf(usage, now)
   const overrideActive = usage.override !== undefined && usage.override.until > now
-  const project = [
+  const project = projectHeader([
     ...sessionRows(state, now, lang, labelWidth).flatMap(row => {
       // The chips of the active feature sit under its row (board 4, 075 FR-013).
       if (row.key !== 'session-active') return [row]
@@ -1660,9 +1812,7 @@ async function sessionTabRows(
       const chips = feature === undefined ? [] : sessionChips({ done: feature.done, total: feature.total, taskTimes: (stats?.taskTimes ?? []).filter(x => x.dir === feature.dir), turns: stats?.turns ?? 0, ...(stats?.cost === undefined ? {} : { cost: stats.cost }) })
       return chips.length === 0 ? [row] : [row, { key: 'session-chips', text: `${''.padEnd(labelWidth)}${chips.map(c => `[ ${c} ]`).join(' ')}`, role: 'muted' as ThemeRole }]
     }),
-    // The branch, linked to its page on the remote (054 #79).
-    ...(branch === undefined ? [] : [valueRow('session-branch', t(lang, 'session.branch'), branch, 'text', stats?.git?.remote === undefined ? {} : { href: branchWebUrl(stats.git.remote, branch) })]),
-  ]
+  ], { now: t(lang, 'session.now'), labelWidth, ...(branch === undefined ? {} : { branch }), ...(branch === undefined || stats?.git?.remote === undefined ? {} : { branchHref: branchWebUrl(stats.git.remote, branch) }) })
   let queueIndex = 0
   const governor = [
     ...usageRows(usage, now, governThresholds).map(([name, text]) => {
@@ -1686,8 +1836,18 @@ async function sessionTabRows(
     ...(overrideActive
       ? [{ key: 'usage-revoke', text: '', role: 'text' as const, action: { id: 'usage-revoke', label: t(lang, 'governor.revoke'), hotkey: 'v', kind: 'revoke' as const } }]
       : []),
-    // Today's governor steps, at most 10 (054 #62).
-    ...(usage.log ?? []).filter(entry => new Date(entry.at).toDateString() === new Date(now).toDateString()).slice(-10).map((entry, i) => valueRow(`governor-log-${i}`, i === 0 ? t(lang, 'session.governor') : '', `${clockOf(new Date(entry.at).toISOString()) ?? ''} ${entry.text}`, 'muted')),
+    // Today's governor steps, at most 10 (054 #62), folded to one row until opened (078 FR-059).
+    ...((today: Array<{ at: number; text: string }>) =>
+      today.length === 0
+        ? []
+        : layout.logOpen
+          ? [
+              valueRow('governor-log-fold', t(lang, 'session.governor'), t(lang, 'session.log.hide', { n: today.length }), 'muted', { action: { id: 'log', label: t(lang, 'session.fold'), kind: 'fold' as const } }),
+              ...today.map((entry, i) => valueRow(`governor-log-${i}`, '', `${clockOf(new Date(entry.at).toISOString()) ?? ''} ${entry.text}`, 'muted')),
+            ]
+          : [valueRow('governor-log-fold', t(lang, 'session.governor'), t(lang, 'session.log.show', { n: today.length }), 'muted', { action: { id: 'log', label: t(lang, 'session.unfold'), kind: 'fold' as const } })])(
+      (usage.log ?? []).filter(entry => new Date(entry.at).toDateString() === new Date(now).toDateString()).slice(-10),
+    ),
   ]
   const summary = stats?.lastSummary
   const review = stats?.lastReview
@@ -1701,23 +1861,39 @@ async function sessionTabRows(
     ...(review === undefined ? [] : [
       // `review 002 · 6 findings (opus xhigh) · 5m ago`: the findings are the lines under it (board 4, 075 FR-015).
       { key: 'review-heading', text: `${t(lang, 'session.review')} ${review.id} · ${t(lang, 'session.findings', { n: review.text.split('\n').filter(line => line.trim() !== '').length })} (${REVIEW_MODEL.model} ${REVIEW_MODEL.effort}) · ${now - review.at < 60_000 ? t(lang, 'time.justNow') : t(lang, 'time.ago', { age: minutes(now - review.at) })}`, role: 'text' as ThemeRole },
-      ...review.text.split('\n').map((line, i) => valueRow(`review-${i}`, '', line)),
+      ...review.text.split('\n').map((line, i) => valueRow(`review-${i}`, '', line, 'text', line.trim() === '' ? {} : { action: { id: `${review.id}\n${line}`, label: t(lang, 'tree.ask'), kind: 'finding' as const } })),
     ]),
   ]
   // Every live row, past the three per kind the table above the prompt keeps (069 #43).
-  const liveList = liveRows({
-    agents: stats?.liveAgents ?? [],
-    gates: stats?.liveGates ?? [],
-    cache: stats?.cache,
-    readings: usage.readings,
-    thresholds: governThresholds,
-    band,
-    now,
-    option: liveRowsOption,
-    lang,
-  }).map((r, i) => valueRow(`live-${i}`, `${r.kind}`, [r.who, r.where, r.what, r.now, r.level === undefined ? '' : `${r.level.percent}%${r.level.mark ?? ''}`, r.size, r.time].filter(part => part !== '').join(' · ').replace(/[\u0000-\u001f\u007f-\u009f]/g, ''), r.nowWarn === true ? 'current' : 'text'))
+  // The same columns as the table above the prompt, aligned (078 FR-053).
+  const liveList: PaneRow[] = liveTextRows(
+    layoutLive({
+      rows: liveRows({
+        agents: stats?.liveAgents ?? [],
+        gates: stats?.liveGates ?? [],
+        cache: stats?.cache,
+        readings: usage.readings,
+        thresholds: governThresholds,
+        band,
+        now,
+        option: liveRowsOption,
+        lang,
+      }),
+      columns: Math.max(30, layout.columns - 2),
+      reservation: {},
+      all: true,
+    }),
+  )
   // Each with a link to the new version's release notes when there is one (054 #82).
-  const updateRows = updates.map(item => ((url => valueRow(`update-${item.id}`, 'update', `${updateLabel(item, confirming === item.id)} (installed ${item.installed})`, 'current', { action: { id: item.id, label: t(lang, 'updates.install'), kind: 'update' as const }, ...(url === undefined ? {} : { href: url }) }))(releaseNotesUrl(item))))
+  const allUpdateRows = updates.map(item => ((url => valueRow(`update-${item.id}`, 'update', `${updateLabel(item, confirming === item.id)} (installed ${item.installed})`, 'current', { action: { id: item.id, label: t(lang, 'updates.install'), kind: 'update' as const }, ...(url === undefined ? {} : { href: url }) }))(releaseNotesUrl(item))))
+  // Two or more updates fold behind one row, `⬆ 2 updates`, until it is opened (078 FR-054).
+  const updateRows: PaneRow[] =
+    allUpdateRows.length < 2
+      ? allUpdateRows
+      : [
+          valueRow('updates-fold', 'update', t(lang, 'updates.many', { n: allUpdateRows.length, names: updates.map(u => u.id).join(', ') }), 'current', { action: { id: 'updates', label: layout.updatesOpen ? t(lang, 'session.fold') : t(lang, 'updates.review'), kind: 'fold' as const } }),
+          ...(layout.updatesOpen ? allUpdateRows : []),
+        ]
   // Without Spec Kit the project rows say so on their own; no headings then.
   // The usage bars with governor ticks lead the tab (066, board 4).
   const liveReadings = usage.readings.filter(r => !isRenewedReading(r, now))
@@ -1761,6 +1937,8 @@ async function sessionTabRows(
     : [
         { key: 'governor-box-top', text: `╭─ ${t(lang, 'session.box.title')} ${'─'.repeat(28)}╮`, role: 'current' as ThemeRole },
         { key: 'governor-box-state', text: `│ ${stateLine}`, role: bandRole },
+        // What the deciding window reaches next (078 FR-049).
+        ...((next => (next === undefined ? [] : [{ key: 'governor-box-next', text: `│ ${t(lang, 'session.box.next', { next })}`, role: 'muted' as ThemeRole }]))(decider === undefined ? undefined : nextLevelText(decider.percent))),
         ...boxButtons,
         { key: 'governor-box-today', text: `│ ${t(lang, 'session.box.today', { holds: counts.holds, pauses: counts.pauses })}`, role: 'muted' as ThemeRole },
         { key: 'governor-box-bottom', text: `╰${'─'.repeat(t(lang, 'session.box.title').length + 31)}╯`, role: 'current' as ThemeRole },
@@ -2365,7 +2543,7 @@ async function specsTreeRows(
     e.surface === 'desktop',
     pane.sort ?? 'status',
     state.root === undefined ? undefined : roadmapCache.has(state.root) ? roadmapCache.get(state.root) : await $.fs.read(`${state.root}/docs/roadmap.md`).then(text => { roadmapCache.set(state.root!, text); return text }).catch(() => { roadmapCache.set(state.root!, undefined); return undefined }),
-    { ...(pane.view === undefined ? {} : { view: pane.view }), filtered: !((filter ?? '').trim() === '' && (pane.status ?? 'all') === 'all'), open: pane.open ?? [], group: pane.group ?? 'status', touched: stats?.touchedSpecs ?? [], planMissing: stats?.planMissing ?? {}, tree: fold },
+    { ...(pane.view === undefined ? {} : { view: pane.view }), filtered: !((filter ?? '').trim() === '' && (pane.status ?? 'all') === 'all'), open: pane.open ?? [], group: pane.group ?? 'status', touched: stats?.touchedSpecs ?? [], planMissing: stats?.planMissing ?? {}, tree: fold, pulls: pullsBySpec(stats?.pulls?.rows, state.features) },
   )
   const tasksOnly = pane.tasksOnly === true
   const childrenOf = (f: Feature): PaneRow[] => {
@@ -2916,6 +3094,13 @@ export const register: Register = (on, options) => {
     } catch {
       // No priorities, no gstack row.
     }
+    // What the person set in the Setup model table (078 FR-079).
+    try {
+      const saved = await $.store.get('skillOverrides')
+      if (typeof saved === 'object' && saved !== null && !Array.isArray(saved)) skillOverrides = saved as SkillOverrides
+    } catch {
+      // No overrides: the built-in table.
+    }
     // The tab this project had last (043 #22).
     try {
       const root = started?.state.root
@@ -3403,6 +3588,17 @@ export const register: Register = (on, options) => {
             hide: { label: t(currentLang(), 'updates.hide'), onPress: () => hideUpdates($) },
           }),
       onLift: () => liftBand($),
+      // The task in the band opens the pane with that task selected, under its spec (078 FR-013).
+      ...(value?.currentTask?.id === undefined || value.active === undefined
+        ? {}
+        : {
+            onTask: async () => {
+              const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
+              const { tasksOnly: _off, help: _help, ...rest } = held
+              await $.state.set(PANE_STATE, { ...rest, tab: 'specs', selectedTask: `task-${value.active!.dir}-${value.currentTask!.id}` })
+              await openPane($)
+            },
+          }),
       ...(pr === undefined ? {} : { pr: { ...pr, ...(sessionStats?.git?.pr?.url === undefined ? {} : { href: sessionStats.git.pr.url }) } }),
       // `a` opens the pane once the band has the focus (025 #41); from 100 columns.
       ...(e.props.bodyColumns >= 100 ? { open: { label: t(currentLang(), 'next.paneShort'), onPress: () => openPane($) } } : {}),
@@ -3568,7 +3764,7 @@ export const register: Register = (on, options) => {
     if (args === 'worktrees') {
       const list = (await $.state.get(SESSION)).value?.worktrees ?? []
       if (list.length === 0) return { text: t(currentLang(), 'worktrees.none') }
-      return { text: list.map(w => `⑂ ${w.name}  ${w.id} ${w.featureName}  ${w.phase}${w.total === 0 ? '' : ` ${w.done}/${w.total}`}${w.branch === undefined ? '' : `  (${w.branch})`}${worktreeState(w)}`).join('\n') }
+      return { text: list.map(w => `⎇ ${w.name}  ${w.id} ${w.featureName}  ${w.phase}${w.total === 0 ? '' : ` ${w.done}/${w.total}`}${w.branch === undefined ? '' : `  (${w.branch})`}${worktreeState(w)}`).join('\n') }
     }
     if (args === 'config reset') {
       if (e.origin?.kind !== 'composer') return { text: t(currentLang(), 'config.resetOnlyYou') }
@@ -3738,7 +3934,7 @@ export const register: Register = (on, options) => {
       view === 'help'
         ? helpRows(helpText(currentLang(), optionsSeen, stats?.health?.lines ?? []), pane.filter, currentLang())
         : view === 'session'
-          ? await sessionTabRows($, state, usage, stats, updates, updatesRead.value?.confirming)
+          ? await sessionTabRows($, state, usage, stats, updates, updatesRead.value?.confirming, { columns, updatesOpen: pane.updatesOpen === true, logOpen: pane.logOpen === true })
           : view === 'specs'
             ? await (async () => {
                 const tree = await specsTreeRows($, e, state, stats, pane, specFilter, columns, await pastResetRows($, state, stats, usage))
@@ -3898,6 +4094,20 @@ export const register: Register = (on, options) => {
           }
         : {}),
       ...(view === 'session' ? { onUpdate: async (id: string) => runUpdate($, id as UpdateId) } : {}),
+      // The folded blocks of the Session tab: the updates and today's governor log (078).
+      ...(view === 'session'
+        ? {
+            onFold: async (id: string) => {
+              const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
+              const { updatesOpen: u, logOpen: l, ...rest } = held
+              await $.state.set(PANE_STATE, id === 'updates' ? { ...rest, ...(l === true ? { logOpen: true as const } : {}), ...(u === true ? {} : { updatesOpen: true as const }) } : { ...rest, ...(u === true ? { updatesOpen: true as const } : {}), ...(l === true ? {} : { logOpen: true as const }) })
+            },
+            onFinding: (id: string) => {
+              const [spec = '', ...rest] = id.split('\n')
+              void $.prompt.suggest({ text: `Address this review finding of spec ${spec}: ${rest.join(' ')}` }).catch(() => undefined)
+            },
+          }
+        : {}),
       ...(view === 'session'
         ? {
             onLiftBand: async () => {
@@ -3910,7 +4120,8 @@ export const register: Register = (on, options) => {
         : {}),
       colorblind: optionsSeen['flavor'] === 'colorblind',
       wrapLongNames: e.surface === 'desktop',
-      marks: accessible ? ('words' as const) : iconsFor(iconsOption, e.surface) === 'ascii' ? ('ascii' as const) : ('unicode' as const),
+      // The accessible mode takes effect in the pane as soon as it is drafted (078 FR-080).
+      marks: accessible || pane.draft?.['astrolabe.accessible'] === true ? ('words' as const) : iconsFor(iconsOption, e.surface) === 'ascii' ? ('ascii' as const) : ('unicode' as const),
       // s cycles the Specs tab's status filter (054 #21).
       ...(view === 'specs'
         ? {
@@ -3980,6 +4191,18 @@ export const register: Register = (on, options) => {
               },
             },
             onAsk: (id: string) => void $.prompt.suggest({ text: questionSuggestion(id) }).catch(() => undefined),
+            onSpecify: (id: string) => void $.prompt.suggest({ text: `/speckit-specify ${id}` }).catch(() => undefined),
+            // m cycles what the list shows: all, mine (the active spec), blocked, ready to close (078 FR-034).
+            preset: {
+              label: t(currentLang(), 'tree.preset', { name: t(currentLang(), `tree.preset.${PRESET_OF[(pane.filter ?? '').trim()] ?? 'all'}` as TextKey) }),
+              onPress: async () => {
+                const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
+                const at = (PRESET_FILTERS as readonly string[]).indexOf((held.filter ?? '').trim())
+                const next = PRESET_FILTERS[(at + 1) % PRESET_FILTERS.length]!
+                const { filter: _old, ...rest } = held
+                await $.state.set(PANE_STATE, next === '' ? rest : { ...rest, filter: next })
+              },
+            },
             onParallel: (id: string) => {
               const [dir, ...ids] = id.split('\n')
               const feature = state.features.find(f => f.dir === dir)
@@ -4010,7 +4233,7 @@ export const register: Register = (on, options) => {
           }
         : {}),
       onCopy: (text: string) => copyNext($, text, e.surface),
-      onFind: view === 'specs' || view === 'help' || view === 'setup' ? () => $.ui.focus({ requestId: PANE_ID, key: 'astrolabe-filter' }).then(() => undefined) : undefined,
+      onFind: view === 'specs' || view === 'help' || view === 'setup' || view === 'prs' ? () => $.ui.focus({ requestId: PANE_ID, key: 'astrolabe-filter' }).then(() => undefined) : undefined,
       // What the tab is for, then its keys; a narrow pane keeps the keys whole (052 #3).
       // Nothing under the Tasks list but its actions: the key row names the keys (board 3, 075 FR-012).
       ...(view === 'specs' && pane.tasksOnly === true
@@ -4116,14 +4339,16 @@ export const register: Register = (on, options) => {
       }
     }
     if (view === 'prs') {
-      const units = pullsBody($, e, pane, stats)
-      const { win, pad, nav } = navFor(units.map(u => u.rows), bodyRows - 1 - footerReserve)
+      const units = pullsBody($, e, pane, stats, state)
+      // The filter box leads the table: `is:failing`, `is:draft`, `is:mine` (078 FR-070).
+      const prsHeader = paneHeader($, e, pane, state, stats, undefined, await $.clock.now())
+      const { win, pad, nav } = navFor(units.map(u => u.rows), bodyRows - 1 - footerReserve - prsHeader.length)
       const body = (
         <Box key="astrolabe-prs" flexDirection="column">
           {units.slice(win.start, win.end).map(u => u.node)}
         </Box>
       )
-      return paneTree({ Box, Text, Button }, pane.tab, [], tokens, select, body, currentLang(), [], await footerFor(pad), nav, extras)
+      return paneTree({ Box, Text, Button }, pane.tab, [], tokens, select, body, currentLang(), prsHeader, await footerFor(pad), nav, extras)
     }
     if (view === 'setup') {
       // Setup (066 #21): the options, then the model per skill.
@@ -4140,13 +4365,15 @@ export const register: Register = (on, options) => {
         ...modelSkillTabBody($, e, pane),
       ]
       const units = setupUnits
-      const { win, pad, nav } = navFor(units.map(u => u.rows), bodyRows - 1 - footerReserve)
+      const bar = configBar($, e, pane)
+      const { win, pad, nav } = navFor(units.map(u => u.rows), bodyRows - 1 - footerReserve - 1 - bar.length)
       const body = (
         <Box key="astrolabe-setup" flexDirection="column">
           {units.slice(win.start, win.end).map(u => u.node)}
         </Box>
       )
-      return paneTree({ Box, Text, Button }, pane.tab, [], tokens, select, body, currentLang(), [], await footerFor(pad), nav, extras)
+      const setupHeader = [...paneHeader($, e, pane, state, stats, undefined, await $.clock.now()), ...bar]
+      return paneTree({ Box, Text, Button }, pane.tab, [], tokens, select, body, currentLang(), setupHeader, await footerFor(pad), nav, extras)
     }
     if (view !== 'session') {
       const filterCount =

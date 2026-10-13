@@ -6,6 +6,13 @@ import { installEngine, installTree, startSession, type Session } from '../helpe
 import { drawBand, installPaneEngine, installRenderEngine, mountPane } from '../helpers/render'
 
 const HOME = '/home/me'
+
+/** Two updates or more fold behind one row; open it (078 FR-054). */
+const unfold = async (ui: { find: (q: { key: string }) => Promise<unknown>; press: (key: string) => Promise<unknown> }, wanted?: string) => {
+  // The fold state lasts across mounts: open it only when it is closed.
+  if (wanted !== undefined && (await ui.find({ key: wanted })) !== undefined) return
+  if ((await ui.find({ key: 'updates-fold-action' })) !== undefined && (wanted !== undefined || (await ui.find({ key: 'update-gstack' })) === undefined)) await ui.press('updates-fold-action')
+}
 const GSTACK = `${HOME}/.claude/skills/gstack/bin/gstack-update-check`
 const RELEASES = 'https://api.github.com/repos/jonyfs/astrolabe/releases/latest'
 const MANIFEST = '/proj/.specify/integrations/speckit.manifest.json'
@@ -52,6 +59,7 @@ describe('update checks (US1)', () => {
     expect(JSON.stringify(band.tree)).toContain('⬆ 4')
     const ui = await mountPane($ as never, 'terminal')
     await ui.press('tab-session')
+    await unfold(ui)
     const list = await ui.body()
     expect(list).toContain('gstack 1.91.33.0')
     expect(list).toContain('specify 1.2.0')
@@ -110,6 +118,7 @@ describe('update checks (US1)', () => {
     expect(tree).toContain('⬆ 2')
     const ui = await mountPane($ as never, 'terminal')
     await ui.press('tab-session')
+    await unfold(ui)
     const list = await ui.body()
     expect(list).not.toContain('gstack')
     expect(list).toContain('specify 1.2.0')
@@ -130,6 +139,7 @@ describe('update checks (US1)', () => {
     await go()
     const ui = await mountPane($ as never, 'terminal')
     await ui.press('tab-session')
+    await unfold(ui)
     expect(await ui.body()).toContain(`update${' '.repeat(paneLabelWidth('en') - 'update'.length)}gstack 1.91.33.0 (installed 1.91.32.0)`)
     await ui.unmount()
   })
@@ -140,6 +150,7 @@ describe('one click installs (US2)', () => {
   const press = async ($: never, key: string) => {
     const ui = await mountPane($, 'terminal', 100)
     await ui.press('tab-session')
+    await unfold(ui, key)
     await ui.press(key)
     await ui.unmount()
   }
@@ -175,6 +186,7 @@ describe('one click installs (US2)', () => {
     expect(session.processes).not.toContain('specify init --here --integration claude --force')
     const ui = await mountPane($ as never, 'terminal', 100)
     await ui.press('tab-session')
+    await unfold(ui, 'update-speckit-skills')
     expect(await ui.body()).toContain('confirm: rewrite .claude/skills/speckit-*')
     await ui.unmount()
     await press($ as never, 'update-speckit-skills')

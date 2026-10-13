@@ -43,7 +43,7 @@ export const paneTree = (
   /** What is above and below the rows shown, with the presses that scroll (038). */
   nav?: { above: number; below: number; up: () => Promise<void>; down: () => Promise<void>; labels: { more: string } },
   /** Counts beside the tab labels (043 #21) and the keys of the tab shown (043 #25). */
-  extras: { view?: { label: string; onPress: () => Promise<void> }; group?: { label: string; onPress: () => Promise<void> }; onToggleBlock?: (key: string) => Promise<void>; help?: boolean; onHelp?: () => Promise<void>; onUpdate?: (id: string) => Promise<void>; badges?: Partial<Record<PaneTab, string>>; legend?: string; onClose?: () => Promise<void>; onFind?: () => Promise<void>; onCopy?: (text: string) => Promise<void>; onRefresh?: () => Promise<void>; onCopyKpis?: () => Promise<void>; showKeys?: boolean; sort?: { label: string; onPress: () => Promise<void> }; onClear?: () => Promise<void>; onPriority?: () => Promise<void>; onRunQueued?: (id: string) => Promise<void>; rowButtons?: ReadonlyArray<{ key: string; label: string; hotkey?: string; onPress: () => void }>; rowDetail?: string; onLiftBand?: () => Promise<void>; taskActions?: ReadonlyArray<{ key: string; label: string; onPress: () => void }>; rowDescription?: string; onCloseReady?: (dirs: string[]) => void; onReconcile?: (id: string) => void; onAsk?: (id: string) => void; onParallel?: (id: string) => void; tasksOnly?: { label: string; onPress: () => Promise<void> }; openAll?: { label: string; onPress: () => Promise<void> }; onAllowUsage?: () => Promise<void>; onRevokeUsage?: () => Promise<void>; status?: { label: string; onPress: () => Promise<void> }; columns?: number; marks?: 'unicode' | 'ascii' | 'words'; colorblind?: boolean; wrapLongNames?: boolean; Link?: ElementTable<'terminal'>['Link'] } = {},
+  extras: { view?: { label: string; onPress: () => Promise<void> }; group?: { label: string; onPress: () => Promise<void> }; onToggleBlock?: (key: string) => Promise<void>; help?: boolean; onHelp?: () => Promise<void>; onUpdate?: (id: string) => Promise<void>; badges?: Partial<Record<PaneTab, string>>; legend?: string; onClose?: () => Promise<void>; onFind?: () => Promise<void>; onCopy?: (text: string) => Promise<void>; onRefresh?: () => Promise<void>; onCopyKpis?: () => Promise<void>; showKeys?: boolean; sort?: { label: string; onPress: () => Promise<void> }; onClear?: () => Promise<void>; onPriority?: () => Promise<void>; onRunQueued?: (id: string) => Promise<void>; rowButtons?: ReadonlyArray<{ key: string; label: string; hotkey?: string; onPress: () => void }>; rowDetail?: string; onLiftBand?: () => Promise<void>; taskActions?: ReadonlyArray<{ key: string; label: string; onPress: () => void }>; rowDescription?: string; onCloseReady?: (dirs: string[]) => void; onReconcile?: (id: string) => void; onAsk?: (id: string) => void; onFold?: (id: string) => void; onFinding?: (id: string) => void; onSpecify?: (id: string) => void; preset?: { label: string; onPress: () => Promise<void> }; onParallel?: (id: string) => void; tasksOnly?: { label: string; onPress: () => Promise<void> }; openAll?: { label: string; onPress: () => Promise<void> }; onAllowUsage?: () => Promise<void>; onRevokeUsage?: () => Promise<void>; status?: { label: string; onPress: () => Promise<void> }; columns?: number; marks?: 'unicode' | 'ascii' | 'words'; colorblind?: boolean; wrapLongNames?: boolean; Link?: ElementTable<'terminal'>['Link'] } = {},
 ) => {
   const Link = extras.Link
   // The pane's own marks in the set the icons option and the accessible mode pick (052 #49, #47).
@@ -111,6 +111,8 @@ export const paneTree = (
             {extras.view !== undefined && <Text> </Text>}
             {extras.group !== undefined && <Button key="group" label={extras.group.label} hotkey="g" plain onPress={() => extras.group!.onPress()} />}
             {extras.group !== undefined && <Text> </Text>}
+            {extras.preset !== undefined && <Button key="preset" label={extras.preset.label} hotkey="m" plain onPress={() => extras.preset!.onPress()} />}
+            {extras.preset !== undefined && <Text> </Text>}
             {extras.onClear !== undefined && <Button key="clear-filter" label={verb('clear') ?? 'clear'} hotkey="c" plain onPress={() => extras.onClear!()} />}
             {extras.onClear !== undefined && <Text> </Text>}
             {extras.onRefresh !== undefined && verb('refresh') !== undefined && <Button key="refresh" label={verb('refresh')!} hotkey="r" plain onPress={() => extras.onRefresh!()} />}
@@ -152,7 +154,13 @@ export const paneTree = (
                   onPress={() => extras.onUpdate!(row.action!.id)}
                 />
               )}
-              {row.action !== undefined && row.action.kind !== 'update' && extras.onRunQueued !== undefined && (
+              {row.action !== undefined && row.action.kind === 'fold' && extras.onFold !== undefined && (
+                <Button key={`${row.key}-action`} label={row.action.label} plain onPress={() => extras.onFold!(row.action!.id)} />
+              )}
+              {row.action !== undefined && row.action.kind === 'finding' && extras.onFinding !== undefined && (
+                <Button key={`${row.key}-action`} label={row.action.label} plain onPress={() => extras.onFinding!(row.action!.id)} />
+              )}
+              {row.action !== undefined && row.action.kind !== 'update' && row.action.kind !== 'fold' && row.action.kind !== 'finding' && extras.onRunQueued !== undefined && (
                 <Button
                   key={`queue-run-${row.action.id}`}
                   label={row.action.label}
@@ -169,6 +177,8 @@ export const paneTree = (
               ? extras.onCloseReady !== undefined
               : row.action.kind === 'reconcile'
               ? extras.onReconcile !== undefined
+              : row.action.kind === 'specify'
+              ? extras.onSpecify !== undefined
               : row.action.kind === 'ask'
               ? extras.onAsk !== undefined
               : row.action.kind === 'parallel'
@@ -185,7 +195,7 @@ export const paneTree = (
                 {m(colorblindText(row, extras.colorblind))}
               </Text>
               <Button
-                key={row.action.kind === undefined ? `queue-run-${row.action.id}` : row.action.kind === 'update' ? `update-${row.action.id}` : row.action.kind === 'close' ? 'close-ready' : row.action.kind === 'reconcile' ? `reconcile-${row.key}` : row.action.kind === 'ask' || row.action.kind === 'parallel' ? `${row.key}-action` : `usage-${row.action.kind}`}
+                key={row.action.kind === undefined ? `queue-run-${row.action.id}` : row.action.kind === 'update' ? `update-${row.action.id}` : row.action.kind === 'close' ? 'close-ready' : row.action.kind === 'reconcile' ? `reconcile-${row.key}` : row.action.kind === 'ask' || row.action.kind === 'parallel' || row.action.kind === 'specify' ? `${row.key}-action` : `usage-${row.action.kind}`}
                 label={row.action.label}
                 hotkey={row.action.hotkey}
                 plain
@@ -195,6 +205,8 @@ export const paneTree = (
                   ? extras.onCloseReady!(row.action.id.split('\n'))
                   : row.action?.kind === 'reconcile'
                   ? extras.onReconcile!(row.action.id)
+                  : row.action?.kind === 'specify'
+                  ? extras.onSpecify!(row.action.id)
                   : row.action?.kind === 'ask'
                   ? extras.onAsk!(row.action.id)
                   : row.action?.kind === 'parallel'

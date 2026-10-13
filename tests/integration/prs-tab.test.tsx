@@ -55,7 +55,7 @@ describe('the PRs tab (032)', () => {
     expect(tree).toContain('https://github.com/o/r/pull/45')
     expect(tree).toContain('#45 feat: style')
     // The table: a header row and the checks as cells (066 #28).
-    expect(tree).toContain('PR  title  draft  labels  review  checks')
+    expect(tree).toContain('PR  title  checks  review  age')
     expect(tree).toContain('approved')
     expect(tree).toContain('pr-update-46')
     expect(tree).not.toContain('pr-merge-46')

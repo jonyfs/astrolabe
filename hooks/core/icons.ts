@@ -95,7 +95,7 @@ const MARKS: ReadonlyArray<[string, string, string]> = [
   ['⟳', '~', 'running'],
   ['✓', '+', 'done:'],
   ['☐', '[ ]', 'open checklist items:'],
-  ['⑂', 'wt:', 'worktree'],
+  ['⎇', 'wt:', 'worktree'],
   ['⌕', '/', 'find'],
   ['█', '#', ''],
   ['░', '.', ''],

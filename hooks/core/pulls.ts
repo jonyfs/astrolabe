@@ -22,6 +22,28 @@ export type PullRow = {
   createdAt?: number
 }
 
+/**
+ * The spec a pull request's branch belongs to (078 FR-030, FR-063): the branch is the feature
+ * folder, or starts with its id (`002-cart`, `feature/002-cart`).
+ */
+export const specOfBranch = (branch: string, features: ReadonlyArray<{ id: string; dir: string }>): string | undefined => {
+  const tail = branch.split('/').at(-1) ?? branch
+  return features.find(f => f.dir === tail || tail.startsWith(`${f.id}-`))?.dir
+}
+
+/** The pull request of each spec, by feature dir: the first open one for that branch. */
+export const pullsBySpec = (
+  rows: ReadonlyArray<{ number: number; branch: string; checks: PullRequest['checks'] }> | undefined,
+  features: ReadonlyArray<{ id: string; dir: string }>,
+): Record<string, { number: number; checks: PullRequest['checks'] }> => {
+  const out: Record<string, { number: number; checks: PullRequest['checks'] }> = {}
+  for (const row of rows ?? []) {
+    const dir = specOfBranch(row.branch, features)
+    if (dir !== undefined && out[dir] === undefined) out[dir] = { number: row.number, checks: row.checks }
+  }
+  return out
+}
+
 /** How long ago, in the largest whole unit: `12m`, `5h`, `3d` (052 #40). */
 export const ageOf = (at: number, now: number): string => {
   const minutes = Math.max(0, Math.floor((now - at) / 60_000))

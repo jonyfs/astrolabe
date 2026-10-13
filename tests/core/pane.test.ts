@@ -61,7 +61,7 @@ describe('specsRows', () => {
     expect(texts(specsRows(state(), 80))).toEqual([
       'Active 1',
       '▸ ◆ 002 band-hint   implement  ▰▰▰▰▱▱▱▱▱   9/20  45%',
-      '  gates  constitution ✓  clarify ✗  checklist –  tasks ✓  analyze ✓',
+      '  gates ●○○●● · clarify ✗ · checklist –',
       '! 002: [NEEDS CLARIFICATION] left after the plan',
       'Done 1',
       '  ✓ 001 core-state  done       ▰▰▰▰▰▰▰▰▰  49/49 100%',
@@ -250,7 +250,7 @@ describe('filterFeatures (054 #21)', () => {
 describe('worktrees on the Specs tab (054 #49, #52)', () => {
   test('a feature row names its worktrees; two on one feature is a warning', () => {
     const rows = specsRows(state(), 140, 'en', {}, { '002': ['wt-a', 'wt-b'] })
-    expect(texts(rows).find(t => t.includes('002 band-hint'))).toContain('⑂ wt-a, wt-b')
+    expect(texts(rows).find(t => t.includes('002 band-hint'))).toContain('⎇ wt-a, wt-b')
     expect(texts(rows)).toContain('! 002 is open in two worktrees (wt-a, wt-b): their changes will collide')
     expect(texts(specsRows(state(), 140, 'en', {}, { '002': ['wt-a'] })).some(t => t.includes('collide'))).toBe(false)
   })
@@ -269,7 +269,8 @@ describe('folded sections (052 #10, #11)', () => {
     const done = ['011', '012', '013', '014'].map(id => f(id, `d${id}`, 'done', 1, 1))
     const st = state({ features: [f('002', 'band-hint', 'implement', 9, 20), ...done] })
     const rows = texts(specsRows(st, 120, 'en', {}, {}, true))
-    expect(rows).toContain('Done 4 · folded; s or is:done shows them')
+    // The heading carries a bar of the states inside (078 FR-027).
+    expect(rows.some(r => /^Done 4 █{8} · folded; s or is:done shows them$/.test(r))).toBe(true)
     expect(rows.some(t => t.includes('011 d011'))).toBe(false)
     expect(texts(specsRows(st, 120)).some(t => t.includes('011 d011'))).toBe(true)
   })

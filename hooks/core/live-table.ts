@@ -149,6 +149,9 @@ export const liveRows = (input: {
   return [...agents, ...gates, ...cacheRows(input.cache, input.now, lang), ...limitRows(input.readings, input.now, input.thresholds, input.band, lang)]
 }
 
+/** The glyph of each kind, shared by the table above the prompt and the Session tab (078 FR-053). */
+export const KIND_GLYPH: Readonly<Record<LiveKind, string>> = { agent: '◇', gate: '⛭', cache: '◌', limit: '◔' }
+
 export type LiveLine = { kind: LiveKind; rule?: true; cells: Record<LiveColumn, string>; row?: LiveRow }
 export type LiveLayout = {
   lines: LiveLine[]
@@ -198,6 +201,8 @@ export const layoutLive = (input: {
   columns: number
   reservation: Partial<Record<LiveColumn, number>>
   maxRows?: number
+  /** Every row, not three per kind: the Session tab lists them all (078). */
+  all?: boolean
 }): LiveLayout => {
   const groups = KIND_ORDER.map(kind => input.rows.filter(r => r.kind === kind))
   const fitsRows = (shed: ReadonlySet<LiveKind>): number => {
@@ -217,8 +222,8 @@ export const layoutLive = (input: {
     const kind = KIND_ORDER[i]!
     if (group.length === 0 || shed.has(kind)) return
     if (lines.length > 0) lines.push({ kind, rule: true, cells: { ...BLANK } })
-    for (const row of group.slice(0, PER_KIND)) lines.push({ kind, cells: cellsOf(row), row })
-    if (group.length > PER_KIND) {
+    for (const row of group.slice(0, input.all === true ? group.length : PER_KIND)) lines.push({ kind, cells: cellsOf(row), row })
+    if (group.length > PER_KIND && input.all !== true) {
       hidden += group.length - PER_KIND
       lines.push({ kind, cells: { ...BLANK, what: `+${group.length - PER_KIND}` } })
     }
@@ -362,4 +367,18 @@ export const detectGates = (
     })
   }
   return out
+}
+
+/** The layout as text rows, a header and a line per live row, for the Session tab (078 FR-053). */
+export const liveTextRows = (layout: LiveLayout): Array<{ key: string; text: string; role: 'faint' | 'text' | 'current' }> => {
+  if (layout.lines.length === 0) return []
+  const cols = layout.columns
+  return [
+    { key: 'live-header', text: `  ${cols.map(c => layout.header[c]).join(' ')}`.trimEnd(), role: 'faint' },
+    ...layout.lines.flatMap((line, i) =>
+      line.rule === true
+        ? []
+        : [{ key: `live-${i}`, text: `${KIND_GLYPH[line.kind]} ${cols.map(c => line.cells[c]).join(' ')}`.trimEnd(), role: line.row?.nowWarn === true ? ('current' as const) : ('text' as const) }],
+    ),
+  ]
 }

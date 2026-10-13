@@ -133,7 +133,8 @@ describe('the pane tabs (US1, US2)', () => {
   test('without Spec Kit the pane says so', async ($, on) => {
     await setup($ as never, on as never, noSpeckit)
     const ui = await mountPane($ as never, 'terminal')
-    expect((await ui.body()).endsWith('This project does not use Spec Kit. Run specify init to start.')).toBe(true)
+    // The row offers its command to copy, so a ⧉ may follow it (078 FR-036).
+    expect((await ui.body()).replace(/\s*⧉\s*$/, '').endsWith('This project does not use Spec Kit. Run specify init to start.')).toBe(true)
     await ui.unmount()
   })
 
