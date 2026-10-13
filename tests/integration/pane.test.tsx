@@ -35,7 +35,8 @@ describe('the pane tabs (US1, US2)', () => {
       const { session } = await setup($ as never, on as never)
       const ui = await mountPane($ as never, surface)
       expect(await ui.tabs()).toContain('Specs')
-      expect(await ui.body()).toContain('❯ ▾ ◆ 002 band-hint   implement  ▰▰▰▰▱▱▱▱▱  9/20  45%')
+      // The name column is as wide as the longest name shown, so a finished spec left out narrows it (081).
+      expect(await ui.body()).toContain('❯ ▾ ◆ 002 band-hint  implement  ▰▰▰▰▱▱▱▱▱  9/20  45%')
       const reads = session.counts.read
       // The tasks sit under their spec: no tab to press (078 FR-001).
       expect(await ui.body()).toContain('T010 task 10')
@@ -43,7 +44,7 @@ describe('the pane tabs (US1, US2)', () => {
       await ui.press('tab-session')
       expect(await ui.body()).toContain('✓ ratified · active by feature.json')
       await ui.press('tab-specs')
-      expect(await ui.body()).toContain('✓ 001 core-state')
+      expect(await ui.body()).toContain('1 done hidden')
       expect(session.counts.read).toBe(reads)
       await ui.unmount()
     })
@@ -460,18 +461,26 @@ describe('design and UX (052)', () => {
     // The links are the list module's: each row carries its own and the module draws them (080).
     const rows = await ui.clientRows()
     expect(rows?.find(row => row.k === 'feature-002')?.l?.[0]?.h).toBe('file:///proj/specs/002-band-hint/spec.md')
-    expect(rows?.find(row => row.k === 'feature-001')?.l?.[0]?.h).toBe('file:///proj/specs/001-core-state/spec.md')
+
     await ui.unmount()
   })
 })
 
 describe('the status filter (054 #21)', () => {
-  test('s cycles the Specs tab through all, in progress, next up, done and abandoned', async ($, on) => {
+  test('the default is the specs that are not done; s cycles all, in progress, next up, done, abandoned (081)', async ($, on) => {
     await setup($ as never, on as never)
     const ui = await mountPane($ as never, 'terminal', 100, 30)
-    expect(await ui.body()).toContain('001 core-state')
-    await ui.press('status-filter')
+    // Not done: the finished spec is left out and counted.
     let body = await ui.body()
+    expect(body).toContain('002 band-hint')
+    expect(body).not.toContain('001 core-state')
+    expect(body).toContain('1 done hidden')
+    await ui.press('status-filter')
+    body = await ui.body()
+    expect(body).toContain('001 core-state')
+    expect(body).toContain('002 band-hint')
+    await ui.press('status-filter')
+    body = await ui.body()
     expect(body).toContain('002 band-hint')
     expect(body).not.toContain('001 core-state')
     await ui.press('status-filter')

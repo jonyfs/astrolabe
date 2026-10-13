@@ -60,7 +60,7 @@ describe('renderFooter (070 FR-006, FR-008)', () => {
   })
 })
 
-describe('readResolvedConfig (081 FR-005)', () => {
+describe('readResolvedConfig (082 FR-005)', () => {
   const base = { cli: '/p/vendor/statusline/bin/cli.js', env: { COLUMNS: '90' }, cwd: '/proj' }
   test('asks for --print-config with the render environment and directory', async () => {
     let seen: { argv: string[]; init: Record<string, unknown> } | undefined

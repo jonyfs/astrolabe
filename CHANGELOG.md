@@ -8,7 +8,7 @@ tags `vX.Y.Z` equal to `plugin.json`'s `version`.
 
 ### Added
 
-- Spec 081: the pane footer uses what statusline 1.54 to 1.58 added for a host. `footerStatuslineMode`
+- Spec 082: the pane footer uses what statusline 1.54 to 1.58 added for a host. `footerStatuslineMode`
   (`live`, the default, or `passive`) runs the bundled copy with `CLAUDE_STATUSLINE_PASSIVE=1` and a
   cache folder inside the plugin's data folder, so it starts only read-only `git` and writes only
   there; the pull request, CI, gate and `rtk` chips are not drawn in that mode. `footerOmit` passes a
@@ -17,6 +17,14 @@ tags `vX.Y.Z` equal to `plugin.json`'s `version`.
   for is not the one drawn. The vendored copy is statusline 1.58.0, taken as its render-only build
   with the shared host fixtures, which the contract test now renders. With neither option set the
   footer is drawn as before.
+
+## [0.140.0] - 2026-10-13
+
+### Changed
+
+- The Specs tab starts on **not done**: specs that are done or abandoned are left out and counted in
+  one dim row (`✓ 57 done hidden · s shows them`). `s` cycles not done, all, in progress, next up,
+  done, abandoned. A text typed in the filter box and a `#` jump still look at every spec.
 
 ## [0.139.0] - 2026-10-13
 

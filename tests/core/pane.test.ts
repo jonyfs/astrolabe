@@ -400,7 +400,9 @@ describe('the Specs filter language and order (061)', () => {
   })
   test('filterChips names the active tokens', () => {
     expect(filterChips('phase:plan has:questions beta', 'done')).toEqual(['status:done', 'phase:plan', 'has:questions', '"beta"'])
-    expect(filterChips('', 'all')).toEqual([])
+    // `open` is the default and has no chip; `all` is a choice and does (081).
+    expect(filterChips('', 'open')).toEqual([])
+    expect(filterChips('', 'all')).toEqual(['status:all'])
   })
   test('o cycles status, progress, name', () => {
     expect([nextSort(undefined), nextSort('progress'), nextSort('name')]).toEqual(['progress', 'name', 'status'])

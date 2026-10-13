@@ -30,7 +30,9 @@ describe('the Specs tab is a tree (078 FR-002, FR-003)', () => {
     const ui = await mountPane($ as never, 'terminal', 100, 40, 40)
     const body = await ui.body()
     expect(body).toContain('▾ ◆ 002 band-hint')
-    expect(body).toContain('▸ ✓ 001 core-state')
+    // The finished spec is left out of the default list and counted.
+    expect(body).not.toContain('001 core-state')
+    expect(body).toContain('1 done hidden')
     expect(body).toContain('▸ · 003 cart')
     expect(body).toContain('T012')
     expect(body).not.toContain('add cart')

@@ -1,5 +1,5 @@
 #!/usr/bin/env sh
-# Refreshes vendor/statusline/ from the statusline repository (specs 070 and 081).
+# Refreshes vendor/statusline/ from the statusline repository (specs 070 and 082).
 # Usage: scripts/sync-statusline.sh [ref] [source]
 #   ref     a branch, tag or commit of the source repository (default: main)
 #   source  a git URL or a local path (default: https://github.com/jonyfs/statusline.git)

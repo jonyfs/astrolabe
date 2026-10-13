@@ -1,4 +1,4 @@
-// The shared host fixtures (statusline spec 060, Astrolabe spec 081 FR-006): the payloads and the
+// The shared host fixtures (statusline spec 060, Astrolabe spec 082 FR-006): the payloads and the
 // plain rows statusline drew for them, rendered through the vendored copy in the environment the
 // fixtures name. A copy older than 1.58.0 has no such folder, and the tests skip.
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
@@ -19,7 +19,7 @@ type Helper = {
 
 const load = async (): Promise<Helper> => (await import(pathToFileURL(HELPER).href)) as Helper
 
-describe('the vendored host fixtures (081)', () => {
+describe('the vendored host fixtures (082)', () => {
   test.skipIf(!present)('every payload has an expected file per width, and no expected file is orphaned', async () => {
     const helper = await load()
     const names = helper.payloads()

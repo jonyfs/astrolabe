@@ -132,7 +132,7 @@ export type Session = {
   processes: string[]
   /** What each of those processes was given on stdin, keyed by the argv line (the last wins). */
   stdins: Record<string, string>
-  /** The environment each of those processes was given, keyed by the argv line (the last wins) (081). */
+  /** The environment each of those processes was given, keyed by the argv line (the last wins) (082). */
   envs: Record<string, Record<string, string>>
   /** Every URL the plugin fetched. */
   fetches: string[]
@@ -149,7 +149,7 @@ export type Session = {
     processes: ProcessScript
     http: Record<string, { status: number; text: string }>
     env: Record<string, string>
-    /** The stdout of any `node <cli> --print-config` (081). */
+    /** The stdout of any `node <cli> --print-config` (082). */
     printConfig?: string
     /** What `$.session.id()` answers; without it the call is refused, as before (077). */
     sessionId?: string
@@ -253,10 +253,10 @@ export const installTree = (on: On, tree: Tree, cwd: string, seed: Record<string
     const given = (e as { init?: { stdin?: unknown } }).init?.stdin
     if (typeof given === 'string') stdins[line] = given
     const givenEnv = (e as { init?: { env?: Record<string, string> } }).init?.env
-    // A path in the argv may be spelled with backslashes on Windows; a test keys it with slashes (081).
+    // A path in the argv may be spelled with backslashes on Windows; a test keys it with slashes (082).
     const slashed = line.replace(/\\/g, '/')
     if (givenEnv !== undefined) envs[line] = envs[slashed] = { ...givenEnv }
-    // What `--print-config` answers for any copy path, so a test need not know how the engine spells it (081).
+    // What `--print-config` answers for any copy path, so a test need not know how the engine spells it (082).
     const answer = script.processes[line] ?? script.processes[slashed] ?? (slashed.endsWith(' --print-config') && script.printConfig !== undefined ? { stdout: script.printConfig } : undefined)
     if (answer === undefined || answer === 'missing') return { deny: `ENOENT: ${e.argv[0]}` }
     return { value: { exitCode: answer.exitCode ?? 0, stdout: answer.stdout ?? '', stderr: answer.stderr ?? '', isStdoutTruncated: false, isStderrTruncated: false } } as never

@@ -13,7 +13,7 @@ import { bandPr, bandSegments, bandText, nextReason, otherFeaturesCard, stepCard
 import { hintTail } from './core/hint'
 import { phaseToasts } from './core/phase-toast'
 import { justFinished } from './core/next-command'
-import { filterChips, filterFeatures, helpRows, moveSpecSelection, nextSort, nextStatus, parseSpecFilter, windowUnits, wrappedRows, type PaneRow, sessionRows, specsRows } from './core/pane'
+import { DEFAULT_STATUS, filterChips, filterFeatures, helpRows, moveSpecSelection, nextSort, nextStatus, parseSpecFilter, windowUnits, wrappedRows, type PaneRow, sessionRows, specsRows } from './core/pane'
 import { allToggled, breadcrumb, doTaskSuggestion, isOpen, questionSuggestion, questionsIn, spaced, specChildren, tickSuggestion, toggled, withChildren, type Fold, type TreeTask } from './core/pane-tree'
 import { presetOf } from './core/presets'
 import { parseTasks, ticksIn } from './core/tasks-parser'
@@ -2089,7 +2089,7 @@ const mayRunGate = (command: string): boolean => /\bgit\s+(?:\S+\s+)*(?:commit|p
 
 // The footer statusline draws (070): the choice, Node's state, the one in-flight render and its pacing.
 let footerSource: 'statusline' | 'native' = 'statusline'
-// How the bundled copy runs and what it leaves out (081), and the last `--print-config` answer.
+// How the bundled copy runs and what it leaves out (082), and the last `--print-config` answer.
 let footerStatuslineMode: 'live' | 'passive' = 'live'
 let footerOmit = ''
 let footerResolved: ResolvedConfig | undefined
@@ -2191,7 +2191,7 @@ async function refreshStatusline($: EngineInterface, onlyWhileShown = false): Pr
     const surface = surfaceSeen
     const ascii = iconsFor(iconsOption, surface as never) === 'ascii' || accessible || surface !== 'terminal'
     const width = Math.max(20, columnsSeen - 4)
-    // Passive mode writes only inside a folder of this plugin's own data (081); without one it writes nothing.
+    // Passive mode writes only inside a folder of this plugin's own data (082); without one it writes nothing.
     const dataDir = footerStatuslineMode === 'passive' ? await $.env.get('CLAUDE_PLUGIN_DATA').catch(() => undefined) : undefined
     const env = statuslineEnv({
       columns: width,
@@ -2207,7 +2207,7 @@ async function refreshStatusline($: EngineInterface, onlyWhileShown = false): Pr
       footerFailures = 0
       footerBackoffUntil = 0
       footerGoodAt = now
-      // What the copy resolved, at most once a minute and after a render that worked, never on the draw path (081).
+      // What the copy resolved, at most once a minute and after a render that worked, never on the draw path (082).
       // The answer depends on the environment (flavor, glyph set, mode, omit list), not on the size.
       const configKey = JSON.stringify({ ...env, COLUMNS: undefined, LINES: undefined, cwd })
       if (configKey !== footerResolvedKey || now - footerResolvedAt >= FOOTER_CONFIG_MS) {
@@ -2628,7 +2628,7 @@ async function specsTreeRows(
     closed: (baseFold.closed ?? []).filter(d => !taskDirs.has(d)),
   }
   const context = { ...specFilterContext(stats), taskDirs }
-  const visible = filtered(state, filter, pane.status, context)
+  const visible = filtered(state, filter, pane.status ?? DEFAULT_STATUS, context)
   const features = withWorktreeProgress(visible.features, stats?.worktrees)
   const base = specsRows(
     { ...visible, features },
@@ -2636,12 +2636,12 @@ async function specsTreeRows(
     lang,
     stats?.priorities ?? {},
     worktreesById(stats?.worktrees),
-    (filter ?? '').trim() === '' && (pane.status ?? 'all') === 'all',
+    (filter ?? '').trim() === '' && (pane.status ?? DEFAULT_STATUS) === 'all',
     stats?.worktrees?.map(w => ({ name: w.name, id: w.id, featureName: w.featureName, phase: w.phase, done: w.done, total: w.total, status: worktreeState(w) })) ?? [],
     e.surface === 'desktop',
     pane.sort ?? 'status',
     state.root === undefined ? undefined : roadmapCache.has(state.root) ? roadmapCache.get(state.root) : await $.fs.read(`${state.root}/docs/roadmap.md`).then(text => { roadmapCache.set(state.root!, text); return text }).catch(() => { roadmapCache.set(state.root!, undefined); return undefined }),
-    { ...(pane.view === undefined ? {} : { view: pane.view }), filtered: !((filter ?? '').trim() === '' && (pane.status ?? 'all') === 'all'), open: pane.open ?? [], group: pane.group ?? 'status', touched: stats?.touchedSpecs ?? [], planMissing: stats?.planMissing ?? {}, tree: fold, pulls: pullsBySpec(stats?.pulls?.rows, state.features) },
+    { ...(pane.view === undefined ? {} : { view: pane.view }), filtered: !((filter ?? '').trim() === '' && ((pane.status ?? DEFAULT_STATUS) === 'all' || (pane.status ?? DEFAULT_STATUS) === 'open')), open: pane.open ?? [], group: pane.group ?? 'status', touched: stats?.touchedSpecs ?? [], planMissing: stats?.planMissing ?? {}, tree: fold, pulls: pullsBySpec(stats?.pulls?.rows, state.features), ...(visible.features.length === 0 && state.features.length > 0 ? { allHidden: true as const } : {}) },
   )
   const tasksOnly = pane.tasksOnly === true
   const childrenOf = (f: Feature): PaneRow[] => {
@@ -2670,7 +2670,19 @@ async function specsTreeRows(
     if (head !== undefined) return { rows: [head, ...childrenOf(active)], kept: visible.features.length }
   }
   const tree = withChildren(base, features, f => isOpen(f.dir, activeDir, fold) && f.total + (f.clarifications ?? 0) > 0, childrenOf)
-  return { rows: paneDensity === 'comfortable' ? spaced(tree) : tree, kept: visible.features.length }
+  // What the default view leaves out is counted, so the shorter list does not look like a lost one (081).
+  const hidden = words === '' && (pane.status ?? DEFAULT_STATUS) === 'open' ? { done: state.features.filter(f => f.phase === 'done').length, abandoned: state.features.filter(f => f.phase === 'abandoned').length } : undefined
+  const note: PaneRow[] =
+    hidden === undefined || hidden.done + hidden.abandoned === 0
+      ? []
+      : [{
+          key: 'hidden-finished',
+          text: t(lang, 'pane.hidden', {
+            list: [hidden.done > 0 ? t(lang, 'pane.hidden.done', { n: hidden.done }) : '', hidden.abandoned > 0 ? t(lang, 'pane.hidden.abandoned', { n: hidden.abandoned }) : ''].filter(x => x !== '').join(', '),
+          }),
+          role: 'faint',
+        }]
+  return { rows: [...(paneDensity === 'comfortable' ? spaced(tree) : tree), ...note], kept: visible.features.length }
 }
 
 /**
@@ -4159,7 +4171,8 @@ export const register: Register = (on, options) => {
     const open = new Set(pane.open ?? [])
     open.add(blockLabel(hit.id, width))
     // The jump names a block of the status grouping: other groupings have their own headings.
-    await $.state.set(PANE_STATE, { ...rest, view: 'all', group: 'status', open: [...open], selectedFeature: hit.id })
+    // A jump may name a finished spec: every status is shown (081).
+    await $.state.set(PANE_STATE, { ...rest, view: 'all', group: 'status', status: 'all', open: [...open], selectedFeature: hit.id })
     return e
   })
 
@@ -4272,7 +4285,7 @@ export const register: Register = (on, options) => {
             : []
     // A filter that keeps nothing says so (052 #7).
     const matchesNone =
-      (needle !== '' || (view === 'specs' && (pane.status ?? 'all') !== 'all')) &&
+      (needle !== '' || (view === 'specs' && (pane.status ?? DEFAULT_STATUS) !== 'all' && (pane.status ?? DEFAULT_STATUS) !== 'open')) &&
       (view === 'specs' ? keptSpecs === 0 && state.features.length > 0 : view === 'help' && rows.length === 0)
     if (matchesNone && view === 'specs') rows.splice(0, rows.length, ...rows.filter(r => r.key !== 'empty'))
     if (matchesNone) rows.push({ key: 'no-match', text: t(currentLang(), 'pane.noMatch', { filter: pane.filter?.trim() ?? '' }), role: 'muted' })
@@ -4459,7 +4472,7 @@ export const register: Register = (on, options) => {
       // s cycles the Specs tab's status filter (054 #21).
       ...(view === 'specs'
         ? {
-            status: { label: t(currentLang(), `pane.status.${pane.status ?? 'all'}` as TextKey), onPress: async () => {
+            status: { label: t(currentLang(), `pane.status.${pane.status ?? DEFAULT_STATUS}` as TextKey), onPress: async () => {
               const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
               await $.state.set(PANE_STATE, { ...held, status: nextStatus(held.status) })
             } },

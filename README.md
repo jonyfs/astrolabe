@@ -7,7 +7,7 @@ updates, and a status entry with your fullest usage window.
 
 ![Astrolabe in a 180-column terminal](docs/images/overview-180.svg)
 
-> **Version 0.139.0.** Every image in this README is a capture of the real mod running in Claude
+> **Version 0.140.0.** Every image in this README is a capture of the real mod running in Claude
 > Code 2.1.292, made with `scripts/capture/scene.sh` in the demo project
 > [docs/demo/](docs/demo/) (see [How the images are made](#how-the-images-are-made)).
 
@@ -169,7 +169,7 @@ on the first row (the Spec Kit part, the window that decides, the advisor, the h
 statusline's lines go below it, with its segments, ranks, colours, shedding and links:
 
 ```text
-◆ 002 · implement 45% │ astrolabe 0.139.0 │ /astrolabe help
+◆ 002 · implement 45% │ astrolabe 0.140.0 │ /astrolabe help
  ⌂ astrolabe  jonyfs/astrolabe  ⎇ 070-statusline-dependency  ●3 +7  PR #160 draft  ✓ CI
  ◆ 059 specify  ❖ humanizer, dataviz  ▸ Fix authentication (1/3)  ● working
  opus 5.5 · high  ctx 41%  5h 72%▵ · 2h09m  7d 84%▴ · Thu 18:00  cache warm · 1m  1h12m
@@ -712,12 +712,17 @@ The current values, from a shell:
 The first session after you install Astrolabe shows one toast: `/astrolabe opens the pane,
 /astrolabe help lists the commands`.
 
+The Specs tab starts on **not done**: the specs that are finished (`done`) or dropped (`abandoned`)
+are left out and counted in one dim row at the end (`✓ 57 done, 2 abandoned hidden · s shows them`).
+Press `s` for all of them or for one status. A text typed in the filter box looks at every spec, so a
+name finds a finished one, and a `#` jump shows all statuses.
+
 Type `/astrolabe` to open a pane with four tabs (`/astrolabe help` lists every command and key):
 
 ```text
 🧭 Astrolabe · ◆ 002 shopping-cart · feature.json                       [ ✕ ]
  1 Specs 2·11   2 Session ▲   3 PRs 1   4 Setup
- f: filter  t: tasks only  s: in progress  o: by progress  e: open all  r: refresh
+ f: filter  t: tasks only  s: not done  o: by progress  e: open all  r: refresh
 ────────────────────────────────────────────────────────────────────────
 ```
 
@@ -747,7 +752,7 @@ session of the same project opens on it.
 The second row of the pane is the tabs and nothing else. The third row holds the keys of the tab
 shown, each drawn by its own button as `key: verb`: `/` (pressed as `f`) puts the cursor in one
 filter that keeps the rows holding what you type (a filter that keeps nothing says so), `s` cycles
-the status filter (all, in progress, next up, done, abandoned), `o` the order, `p` the priority of
+the status filter (not done, all, in progress, next up, done, abandoned), `o` the order, `p` the priority of
 the active spec, `c` clears the filter, `r` refreshes, `m` copies the Dashboard's numbers. From 80
 columns the row below the body ends with `updated 14:32`, when Astrolabe last wrote what the tabs
 show; `✕` closes the pane.
@@ -819,7 +824,7 @@ turn ends.
 
 The footer carries the advisor and Astrolabe's own details, so a separate statusline does not have to.
 An `adv N` chip counts the times the advisor ran this session and shows once it has run. The last chip,
-`astrolabe 0.139.0`, names the running version; it is the first one a narrow footer drops.
+`astrolabe 0.140.0`, names the running version; it is the first one a narrow footer drops.
 
 The footer's chips take their order and colour from one table in `hooks/core/footer.ts`, and the Help tab prints it: each chip's rank (a narrow footer drops the highest rank first) and its colour.
 

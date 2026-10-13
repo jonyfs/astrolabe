@@ -138,7 +138,7 @@ describe('statuslineEnv (070 FR-006)', () => {
   })
 })
 
-describe('the embedding options (081)', () => {
+describe('the embedding options (082)', () => {
   const base = { columns: 80, lines: 3, flavor: 'mocha', ascii: false }
   test('with no option the environment is the one of spec 070', () => {
     const env = statuslineEnv(base)

@@ -166,7 +166,7 @@ describe('the pane footer from statusline (070)', () => {
   })
 })
 
-describe('the embedding options (081)', () => {
+describe('the embedding options (082)', () => {
   // The renderer's environment, as the mod gave it, once a render answered.
   const renderEnv = async ($: never, on: never, script?: (s: Session) => void) => {
     const { session } = await setup($, on)

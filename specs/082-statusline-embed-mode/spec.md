@@ -5,7 +5,7 @@ status: done # active | done | abandoned
 
 # Feature Specification: Use statusline's embedding contract
 
-**Feature Branch**: `081-statusline-embed-mode`
+**Feature Branch**: `082-statusline-embed-mode`
 
 **Created**: 2026-10-13
 
