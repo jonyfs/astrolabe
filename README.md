@@ -7,7 +7,7 @@ updates, and a status entry with your fullest usage window.
 
 ![Astrolabe in a 180-column terminal](docs/images/overview-180.svg)
 
-> **Version 0.137.2.** Every image in this README is a capture of the real mod running in Claude
+> **Version 0.138.0.** Every image in this README is a capture of the real mod running in Claude
 > Code 2.1.292, made with `scripts/capture/scene.sh` in the demo project
 > [docs/demo/](docs/demo/) (see [How the images are made](#how-the-images-are-made)).
 
@@ -19,7 +19,7 @@ updates, and a status entry with your fullest usage window.
 | Under the prompt | `◆ 002 · implement 45% │ 5h 42%`: feature, phase, progress, usage window | [The status entry](#what-the-status-entry-shows) |
 | The hint line | `next: /speckit-implement · 11 tasks left` | [The prompt hint](#what-the-prompt-hint-shows) |
 | The spinner | `… T011 · Show an empty-cart message · 1s` while Claude works on the feature | [The spinner](#what-the-spinner-says) |
-| `/astrolabe` | A pane with Specs, Tasks and Session tabs | [The pane](#the-astrolabe-pane) |
+| `/astrolabe` | A pane with Specs (and their tasks), Session, PRs and Setup tabs | [The pane](#the-astrolabe-pane) |
 | Toasts | A task ticked with no code edited; a phase finished | [Toasts](#toasts) |
 | Tool calls | New subagents capped or held, the session paused near the limit | [Usage governance](#usage-governance) |
 
@@ -169,7 +169,7 @@ on the first row (the Spec Kit part, the window that decides, the advisor, the h
 statusline's lines go below it, with its segments, ranks, colours, shedding and links:
 
 ```text
-◆ 002 · implement 45% │ astrolabe 0.137.2 │ /astrolabe help
+◆ 002 · implement 45% │ astrolabe 0.138.0 │ /astrolabe help
  ⌂ astrolabe  jonyfs/astrolabe  ⎇ 070-statusline-dependency  ●3 +7  PR #160 draft  ✓ CI
  ◆ 059 specify  ❖ humanizer, dataviz  ▸ Fix authentication (1/3)  ● working
  opus 5.5 · high  ctx 41%  5h 72%▵ · 2h09m  7d 84%▴ · Thu 18:00  cache warm · 1m  1h12m
@@ -292,7 +292,7 @@ always stay.
 | 5-hour and 7-day windows with their resets | Line three, and the governor acts on them |
 | Session duration | Line three (Astrolabe shows no cost: on a subscription it means nothing) |
 | Burn rate and projection | Line three, and the Dashboard tab |
-| Todo progress, Claude working or idle | Line two, the band, the spinner and the Tasks tab |
+| Todo progress, Claude working or idle | Line two, the band, the spinner and the tasks under their spec |
 | Skills in use | Line two, with the running Spec Kit skill in the band |
 | Pull request, draft state and last CI run | Line one with the `pullRequest` option on |
 | Prompt cache timer | The cache chip, and a toast 30 seconds before the cache goes cold (see [Toasts](#toasts)) |
@@ -368,7 +368,7 @@ columns, with the 9th of 20 tasks of feature 002 in progress:
 | Part | Example | What it means |
 |---|---|---|
 | Id chip | ` 002 ` | The active feature, from `specs/002-band-hint/`, as a chip. A `~` before the id means the feature was guessed. It opens `spec.md`. |
-| Name | `shopping-cart` | The feature's name in bold. A `+2` after it counts the other features in progress, and `⑂ name` names the linked worktree this session runs in. |
+| Name | `shopping-cart` | The feature's name in bold. A `+2` after it counts the other features in progress, and `⎇ name` names the linked worktree this session runs in. |
 | Finished steps | `✓ specify ✓ clarify ✓ plan ✓ tasks` | Each step already done. A click opens the step's file (`spec.md`, `plan.md`, `tasks.md`). The constitution step appears only while the constitution is not ratified. |
 | Current step | ` ▶ implement 9/20 ` | The step the feature is in, as a peach chip holding the ticked and total tasks. With open questions left after the plan it is a red ` ? clarify 2 ` chip. A quick-track spec (`track: quick`) shows `✓ spec ✓ tasks` and ` ▶ impl 3/5 `. |
 | `…` after the chip | `▶ plan …` | A Spec Kit skill for that step is running in this turn. |
@@ -649,6 +649,7 @@ one reloads the mod right away.
 | `skillModels` | `off`, `auto` | `off` | `auto` sends each Spec Kit and gstack skill's requests with the model and effort it does best with, as the Help tab lists them (Opus for specify, clarify, plan, analyze and review; Sonnet for tasks, implement and ship; Haiku for quick reports). Switching models re-reads the context, so on a long session it costs more. |
 | `accessible` | `true`, `false` | `false` | Text only, for screen readers and plain terminals: ASCII icons, charts as text, no hover styles on the band, no animated dial and no pictures. |
 | `bandDensity` | `full`, `compact`, `minimal` | `full` | How much the band shows: the rail with step names when there is room, the current step and the count, or the id and the step. |
+| `paneDensity` | `compact`, `comfortable` | `compact` | How roomy the Specs list is: `compact` keeps the rows together, `comfortable` leaves a blank row between specs. The content is the same. |
 | `liveRows` | `agents`, `gates`, `both`, `off` | `both` | Which rows the live table above the prompt shows besides the cache and the limits: running subagents, git gates, both or neither. |
 | `footerIn` | `pane`, `status`, `both` | `pane` | Where the footer goes: the bottom of the `/astrolabe` pane (the status entry keeps the Spec Kit part and the deciding window), the status entry, or both. |
 | `footerLines` | `1`, `3` | `1` | How the pane's footer draws its chips: one row, or three in statusline's order (place and git, then the Spec Kit work and the skill, then the model and the limits). |
@@ -694,29 +695,30 @@ The current values, from a shell:
 The first session after you install Astrolabe shows one toast: `/astrolabe opens the pane,
 /astrolabe help lists the commands`.
 
-Type `/astrolabe` to open a pane with five tabs (`/astrolabe help` lists every command and key):
+Type `/astrolabe` to open a pane with four tabs (`/astrolabe help` lists every command and key):
 
 ```text
 🧭 Astrolabe · ◆ 002 shopping-cart · feature.json                       [ ✕ ]
- 1 Specs 2   2 Tasks 11   3 Session ▲   4 PRs 1   5 Setup
- h: help  f: filter  s: in progress  o: by progress  p: priority  r: refresh
+ 1 Specs 2·11   2 Session ▲   3 PRs 1   4 Setup
+ f: filter  t: tasks only  s: in progress  o: by progress  e: open all  r: refresh
 ────────────────────────────────────────────────────────────────────────
 ```
 
 | Tab | What it holds |
 |---|---|
-| 1 Specs | Every feature in sections: Active, In progress, Early, Ready to close, Next up, Done and Abandoned (the last two fold). The selected spec is a block: its row, what it needs (`11 left · ? 1 question · checklist 2 open`), the next command, copy, advisor, and gstack's skills for its phase. |
-| 2 Tasks | The active feature's open tasks: a header with what is left (`002 shopping-cart · implement · 9/20 · ≈1h20m left`), a warning when open tasks pass the 5h reset, the current task bold with `◷ 4m12s` at the right edge and its files under it, each user story with its count (`US3 Cart page 0/5`), `[P]` runs as a `┐ ┤ ┘` bracket, done tasks folded. |
-| 3 Session | Usage as 20-cell bars with `┊` ticks at the governor levels (the context bar adds `82k/200k`, the deciding window ends with the next level it will reach, `stop 88% in ≈3h`), a 24 hour trend with its projection (`7d · 24h ▁▂▃…┄┄  now → reset`), the governor box while it acts or work is queued (`‖ holding new subagents · 7d decides · until Mon 07:00`, the queue with run buttons, `l` lift 1h at a hold or allow at a pause, `v` revoke, `today: 2 holds · 0 pauses`), the project and activity rows, the updates with an install button each, then the Dashboard: dial, phases, the usage chart and the numbers. |
-| 4 PRs | The open pull requests as a table: number and title (a link), draft, labels, review state and checks as `✓ ✖ ◷` cells, with approve, update and merge buttons that ask for a second press. |
-| 5 Setup | Every Astrolabe option under Look, Usage governor, Claude and Integrations, then the model per skill. A value that differs from its default carries `•`, and its default shows on hover. Changes save to the mod store; nothing writes `settings.json`. |
+| 1 Specs | Every feature in sections: Active, In progress, Early, Ready to close, Next up, Done and Abandoned (the last two fold). A spec is a tree: its row, then under it, indented, its open questions, the current task, each user story with its bar and its tasks. The active spec starts open and the others folded (`▾` open, `▸` folded). The selected spec is a block: its row, what it needs (`11 left · ? 1 question · checklist 2 open`), the next command, copy, advisor, and gstack's skills for its phase. |
+| 2 Session | Usage as 20-cell bars with `┊` ticks at the governor levels (the context bar adds `82k/200k`, the deciding window ends with the next level it will reach, `stop 88% in ≈3h`), a 24 hour trend with its projection (`7d · 24h ▁▂▃…┄┄  now → reset`), the governor box while it acts or work is queued (`‖ holding new subagents · 7d decides · until Mon 07:00`, the next level, the queue with run buttons, `l` lift 1h at a hold or allow at a pause, `v` revoke, `today: 2 holds · 0 pauses`), the project as a header, the live table, the activity rows with a sparkline of tokens per turn and a folded list of turns, the updates folded behind one row, what the doctor found wrong with its fix, then the Dashboard: dial, phases, the usage chart and the numbers. |
+| 3 PRs | The open pull requests as a table: number and title (a link), checks as `✓ ✖ ◷` cells, review state and age, the spec of the branch (`→ 002`), with approve, update and merge buttons that ask for a second press. The ones that need you (failing checks, requested changes, a branch behind) come first; `is:failing`, `is:draft`, `is:approved`, `is:behind` and `is:mine` filter. |
+| 4 Setup | Every Astrolabe option under Look, Usage governor, Claude and Integrations, as groups that fold (the group with a change is open), the look presets Minimal, Balanced and Full, then the model and effort per skill as two buttons each. A value that differs from its default carries `•`, a `↺ default` button and, on hover, its default and a link to the Options section. Options that cancel each other are named on the row they do nothing for. Changes save to the mod store; nothing writes `settings.json`. |
 
 Help is not a tab. `?` (pressed as `h`) opens it over the tab you are on, and a tab key or `h`
 again closes it. A tab stored by an earlier version maps to its new tab: `dashboard` opens
 Session, `config` and `models` open Setup.
 
 In a fullscreen terminal the pane docks at the right; otherwise it sits above the prompt. It
-opens with the keyboard on it, so `1` to `5` switch tabs right away, and Esc closes it. Later,
+opens with the keyboard on it, so `1` to `4` switch tabs right away (the digits follow the order
+of the tab row), and Esc takes one layer away: it clears the filter first, then the help overlay,
+then closes the pane. A thin `▌` at the start of the tab row shows that the keys go to the pane. Later,
 focus it again with a click or `ctrl+x tab`. The tab you pick stays for the session, and the next
 session of the same project opens on it.
 
@@ -731,11 +733,11 @@ show; `✕` closes the pane.
 The pane's title names the active feature the way the band and the footer do, and why it is the
 active one: `🧭 Astrolabe · ◆ 026 claude-context · feature.json` (or `branch`, or `highest open
 spec`; a `~` before the id means the feature is a guess). A tab label carries a count only when
-something waits on you: `Specs 3` features in progress, `Tasks 11` open tasks of the active
-feature, `PRs 2` open pull requests, and `Session ▲` while the governor holds or pauses. Below 80
-columns a tab shows only its number and count (`2·11`), and below 60 the Specs rows drop their
+something waits on you: `Specs 3·11` features in progress and the open tasks of the active
+spec, `PRs 2` open pull requests, and `Session ▲` while the governor holds or pauses. Below 80
+columns a tab shows only its number and count (`1:3·11`), and below 60 the Specs rows drop their
 progress bars. Above the footer, a dim row says what the tab is for and lists its keys, such as
-`every feature, its phase and progress · 1-5 tabs · h help · f filters · s status · j/k scroll · r ↻ · Esc closes`.
+`every feature, its tasks, phase and progress · 1-4 tabs · h help · Enter folds · t tasks only · j/k scroll · Esc closes`.
 A tab with nothing to show says what would fill it and the command that does, for example
 `No active feature. Run /speckit-specify to start one.`
 
@@ -754,12 +756,25 @@ since, the idle poller does the same refresh by itself, so a dimmed band and a s
 up without a keypress. It repeats every ten idle minutes, six times at most, and the next turn
 starts it over.
 
-The Tasks tab lists the open tasks in file order. The task being worked on is a highlighted block
-(`▶ T011 title`, its clock at the right edge and the files it names under it); each waiting task
-starts with `○`, and a task that writes tests carries a `test` tag at the right edge. User stories
-head their tasks with a count (`US2 Out of stock 0/2`). The estimate that the open tasks pass the
-5h reset sits under the header. The run of `[P]` tasks as one prompt and the open tasks as GitHub
-issues are buttons under the list.
+Tasks are items of a spec, so they sit under it in the Specs tab (there is no Tasks tab). Enter
+on the selected row opens or folds its spec; `e` opens every spec and, pressed again, folds all
+but the active one; `t` shows only the active spec and its tasks, with the pane's whole height;
+`u` makes the selected spec the active one (it asks twice). Which specs you opened and folded is
+kept per project. Under an open spec the rows read: `? n open questions` first (each with an
+`ask Claude` button), the task being worked on (`▶ T011 title`, its clock at the right edge, the
+files it names and the test that covers it), then each user story with a bar (`US2 Out of stock
+▰▱▱▱▱ 0/2`) and its tasks at column 4. A waiting task starts with `○`; a task that writes tests
+carries `test` (and `test → T013` when the next task covers it); a task that waits for another
+says so (`‖ after T012`); a run of `[P]` tasks is bracketed `┐ ┤ ┘` and offers one `run these`
+button. Done tasks fold per story into `✓ 5 done · T001…T005 · 52m`. The filter box matches specs
+and tasks: a task that matches keeps its spec visible and open. A spec with a pull request shows
+`PR #41 ✓`, and its gates are five dots (`gates ●●●○○ · analyze –`).
+
+Selecting a task row (the arrow keys move through specs and tasks) shows its buttons: `x` puts
+the tick for that task in the prompt box for Claude, `ask Claude to do it` puts the task there, and
+`⧉ T011` copies its id. Astrolabe writes nothing to the project, so a tick is a request to Claude,
+and the row shows `✓` once `tasks.md` changes. In the band, the current task (`▸ T011`) is a
+button that opens the pane with that task selected.
 
 `k` and `j` scroll the pane by a window, up and down, and `b` also pages back by a window. Space is not
 a key a pane button can take, so forward stays `j`. Each tab keeps its scroll offset per project,
@@ -775,13 +790,13 @@ turn ends.
 
 The footer carries the advisor and Astrolabe's own details, so a separate statusline does not have to.
 An `adv N` chip counts the times the advisor ran this session and shows once it has run. The last chip,
-`astrolabe 0.137.2`, names the running version; it is the first one a narrow footer drops.
+`astrolabe 0.138.0`, names the running version; it is the first one a narrow footer drops.
 
 The footer's chips take their order and colour from one table in `hooks/core/footer.ts`, and the Help tab prints it: each chip's rank (a narrow footer drops the highest rank first) and its colour.
 
 The Help tab (and `/astrolabe help`) starts with what this version changed, lists every option
 with its value now (`footerIn=pane`), the footer's parts in their fixed order (Spec Kit, deciding window, other windows, context, model, skill, git, burn, session time; a narrow screen drops session time first, then burn, git, skill, model, the other windows and context), and ends with a legend of every mark Astrolabe draws (`◆`, `●`,
-`◐`, `○`, `?`, `▸`, `⟳`, `~`, `!`, `☐`, `⑂`, `⇉`, `◷`) and a glossary of the six Spec Kit steps.
+`◐`, `○`, `?`, `▸`, `⟳`, `~`, `!`, `☐`, `⎇`, `⇉`, `◷`) and a glossary of the six Spec Kit steps.
 Its last lines link the Spec Kit docs (https://github.github.com/spec-kit/), gstack
 (https://github.com/garrytan/gstack) and this README; in the pane each of those lines opens its link.
 A toast about a failure names the command that fixes it, for example
@@ -856,31 +871,18 @@ The tabs follow Claude during a turn: a Write of `.specify/feature.json` or the 
 Bash command that makes a spec or switches the branch, and a subagent's return all redraw them at
 once, without waiting for the turn to end.
 
-Where the row has room, its phase takes its colour on the rail (clarify and implement peach, plan blue, tasks mauve) and the bar its fill and empty colours. A spec's own warnings sit right under its row, the blocking ones first (a file that cannot be read, a missing `spec.md`). With no filter, Done and Abandoned past three features fold to their heading (`Done (12) · folded; s or is:done shows them`). The Help tab explains each gate. Under the active feature a dim `gates` row shows where it stands: `constitution ✓  clarify ✗2  checklist ✗3  tasks ✓  analyze –` (`✓` passed, `✗` with what is open, `–` not reached yet). A feature row names the worktrees working on it (`⑂ wt-a`), and its count takes the worktree's ticks when that worktree has more of the same task list done; one feature open in two worktrees gets a `!` line, since their changes will collide. `/astrolabe worktrees` lists every worktree and the feature it works on, as text. A worktree row also says how many files it has not committed (`· 3 uncommitted`) and, once its branch is merged into the main checkout's branch, `· merged · git worktree remove /path/to/it`. A folder under `specs/` with no `spec.md` gets a `?` line naming it.
+Where the row has room, its phase takes its colour on the rail (clarify and implement peach, plan blue, tasks mauve) and the bar its fill and empty colours. A spec's own warnings sit right under its row, the blocking ones first (a file that cannot be read, a missing `spec.md`). With no filter, Done and Abandoned past three features fold to their heading (`Done (12) · folded; s or is:done shows them`). The Help tab explains each gate. Under the active feature a dim `gates` row shows where it stands: `constitution ✓  clarify ✗2  checklist ✗3  tasks ✓  analyze –` (`✓` passed, `✗` with what is open, `–` not reached yet). A feature row names the worktrees working on it (`⎇ wt-a`), and its count takes the worktree's ticks when that worktree has more of the same task list done; one feature open in two worktrees gets a `!` line, since their changes will collide. `/astrolabe worktrees` lists every worktree and the feature it works on, as text. A worktree row also says how many files it has not committed (`· 3 uncommitted`) and, once its branch is merged into the main checkout's branch, `· merged · git worktree remove /path/to/it`. A folder under `specs/` with no `spec.md` gets a `?` line naming it.
 
 When the repository has other git worktrees, the features they work on show under the list, read
 after each turn from the branch name (`026-...`) and that worktree's files:
 
 ```text
-⑂ astrolabe-dev  ◐ 026 claude-context  implement 3/5
+⎇ astrolabe-dev  ◐ 026 claude-context  implement 3/5
 ```
 
-**2 Tasks** lists the active feature's open tasks in file order, after a count. In the terminal each task ends with `↗`, a link to its line (`tasks.md#L42`, or `spec.md` for a quick spec):
+**Tasks under their spec** are the rows described above. In the terminal each task ends with `↗`, a link to its line (`tasks.md#L42`, or `spec.md` for a quick spec). With `t` (tasks only) the tab shows the active spec's tasks at full height and, under them, the open tasks as GitHub issues button and the last turn's change to `tasks.md` as a diff, each box it ticked or unticked with its line number. A spec with no `tasks.md` yet says `no tasks yet`; a quick spec (`track: quick`) uses the `## Tasks` section of its `spec.md`. A warning that the open tasks pass the 5h reset sits under the active spec.
 
-![The pane, Tasks tab](docs/images/pane-tasks.svg)
-
-The task being worked on is marked `▸` and shows how long it has run (`▸ T010 Write x.ts                    ◷ 12m`): the row is bold and the clock sits at the right edge. The last turn's diff of `tasks.md` shows at most 6 lines and a `… +N lines` line. The first row names the feature, its phase and its count (`026 claude-context · implement · 9/20 done`). Ticked tasks fold into one dim row (`✓ 9 done · T001…T009`). Headings of `tasks.md`, such as `Phase 3: User Story 1 - Cart page`, head their tasks with their own count (`US1 Cart page 2/5`), and a run of `[P]` tasks is bracketed at the right edge with `┐ P`, `┤ P` and `┘ P` (a lone one gets `P`); the `can run in parallel` line shows only when no bracket does. After two done tasks the first row adds what is left at their pace (`≈1h20m left`). When the open tasks, at the time the ticked ones took, would end after the 5-hour window resets, a `▲` line says so. When more tasks are open than the pane has rows, the last line says `+N more`. A feature with
-no `tasks.md` yet says so; a quick spec (`track: quick`) uses the `## Tasks` section of its
-`spec.md` instead. When two or more `[P]` tasks come first among the open ones, a `⇉` line names
-them: they can go to subagents at once. The `▶ send T002, T003 to subagents at once` button above
-the list submits one prompt that asks Claude to dispatch each of them to its own subagent in one
-message, with the plan and the files the task names, and to tick each when it is done.
-
-Above the count, the last main turn's change to the task list shows as a diff: each box it
-ticked or unticked, with its line number in the file. It stays until a later turn changes the
-list again.
-
-**3 Session** shows how Astrolabe sees the project right now, and any updates: Its rows sit under four headings: Project, Governor, Activity (summaries, reviews, advisor runs) and Updates. The Project block also shows the branch; in the terminal its `↗` opens the branch's page on the remote (`git remote get-url origin`, asked once a session). In the terminal, an update to Astrolabe or Spec Kit ends with `↗`, a link to that version's release notes. The governor's `state` row is green when all is clear, yellow while it slows down or holds, and red when paused.
+**2 Session** shows how Astrolabe sees the project right now, and any updates: Its rows sit under four headings: Project, Governor, Activity (summaries, reviews, advisor runs) and Updates. The Project block also shows the branch; in the terminal its `↗` opens the branch's page on the remote (`git remote get-url origin`, asked once a session). In the terminal, an update to Astrolabe or Spec Kit ends with `↗`, a link to that version's release notes. The governor's `state` row is green when all is clear, yellow while it slows down or holds, and red when paused.
 
 ![The pane, Session tab](docs/images/pane-session.svg)
 
@@ -893,7 +895,7 @@ A tab in the indentation and an unclosed quote are named the same way. In a
 folder with several Spec Kit projects under it, `other roots` names them, and
 `/astrolabe root <folder>` reads one of them as the session's project.
 
-**4 Dashboard** puts the session in numbers and charts (from 100 columns the session's KPI rows sit two to a line):
+**The Dashboard**, at the end of the Session tab, puts the session in numbers and charts (from 100 columns the session's KPI rows sit two to a line):
 
 - a first row of chips: tasks done, burn rate, context and where the deciding window lands at its reset (`tasks 9/20 │ burn 12/h │ context 61% │ 5h at reset 70%`), the burn and context chips green, yellow or red like the footer;
 - an astrolabe dial with the six Spec Kit steps around a ring, the active feature's step marked
@@ -932,18 +934,18 @@ A tab longer than the pane scrolls inside it while the footer stays on the last 
 pane has the keyboard, or use the wheel and the arrow keys. The Dashboard scrolls by whole
 sections, so a chart is never cut in half.
 
-**5 Help** lists the `/astrolabe` commands, the pane and band keys, and the options, in your
+**The Help overlay** (`h`) lists the `/astrolabe` commands, the pane and band keys, and the options, in your
 language. Each `/astrolabe` command ends with a `⧉` button that copies the command (`/astrolabe
 focus`, without its optional `[on|off]`) and says so in a toast. A Health block at the end holds the
 checks of `/astrolabe doctor`, read when the tab opens and at most once a minute.
 
-**6 Config** lists every Astrolabe option as `/config` holds it, under four headings (Display, Governor, Claude, Integrations), with a control for each: a picker
+**4 Setup** lists every Astrolabe option as `/config` holds it, under four headings (Display, Governor, Claude, Integrations), with a control for each: a picker
 for a choice, a toggle for on and off, a field for a number or a text. A changed row is marked `●`.
 `Save N changes` applies them through Claude Code's settings, and Astrolabe reloads with the new
 values; `Cancel` drops them. A row your organization's policy locks shows its value and cannot be
 changed; `•` marks an option saved with a value other than its default. `Reset to defaults` puts every option back to its default as a draft that Save applies; `/astrolabe config reset`, typed by you, does it at once.
 
-**7 PRs** starts, when gstack is installed and the branch is not `main`, with `▶ gstack /ship for <branch>`, which runs gstack's `/ship` on it. When a `gh pr create` in the session prints the new PR's URL, a toast offers gstack's `/review` on it (`🧭 PR #128 opened: run gstack /review on it before the merge`). It lists the repository's open pull requests, read with `gh` when the tab opens and at most
+**3 PRs** starts, when gstack is installed and the branch is not `main`, with `▶ gstack /ship for <branch>`, which runs gstack's `/ship` on it. When a `gh pr create` in the session prints the new PR's URL, a toast offers gstack's `/review` on it (`🧭 PR #128 opened: run gstack /review on it before the merge`). It lists the repository's open pull requests, read with `gh` when the tab opens and at most
 every two minutes after a turn while it is shown. Each row links to the pull request and shows its
 checks (`✓` passed, `✗` failed, `…` running), its review state, its labels and its branch. In the
 terminal a third line links each check to its run page, six at most (`✓ test (macos)`). The
@@ -1500,7 +1502,7 @@ node scripts/capture/ansi-to-svg.mjs docs/images/overview-180.ansi docs/images/o
 ```
 
 `scene.sh` starts `claude` in a tmux window of the given size, sends the keys you list (for
-example `"/astrolabe" Enter 3 "keys:2"` to open the pane and show the Tasks tab), and saves
+example `"/astrolabe" Enter 3 "keys:2"` to open the pane and show the Session tab), and saves
 the screen with its colors. `ansi-to-svg.mjs` turns that into an SVG; `--from`, `--drop`,
 `--crop` and `--cut` select the part to show. Inside tmux Claude Code draws with 256 colors,
 so the images show the nearest match of each Catppuccin color. Lines from other status

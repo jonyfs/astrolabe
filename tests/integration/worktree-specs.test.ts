@@ -42,8 +42,8 @@ describe('worktree specs (037)', () => {
     expect(session.processes).toContain(WORKTREES)
     const ui = await mountPane($ as never, 'terminal', 100, 40)
     const body = await ui.body()
-    const featureRow = body.match(/▸ ◆ 025 a\s+done/)?.[0] ?? ''
-    const worktreeRow = body.match(/⑂026 claude-context\s+implement/)?.[0] ?? ''
+    const featureRow = body.match(/[▸▾] ◆ 025 a\s+done/)?.[0] ?? ''
+    const worktreeRow = body.match(/⎇026 claude-context\s+implement/)?.[0] ?? ''
     expect(worktreeRow).not.toBe('')
     expect(featureRow.indexOf('025') + 4).toBe(featureRow.indexOf('a'))
     expect(worktreeRow.indexOf('026') + 4).toBe(worktreeRow.indexOf('claude-context'))
@@ -73,7 +73,7 @@ describe('worktree specs (037)', () => {
     await completeTurn($)
     await session.clock.advance(1000)
     const ui = await mountPane($ as never, 'terminal', 140, 40)
-    expect(await ui.body()).toContain('⑂026 claude-context  implement  1/3  · 1 uncommitted  · merged · git worktree remove /wt/dev')
+    expect(await ui.body()).toContain('⎇026 claude-context  implement  1/3  · 1 uncommitted  · merged · git worktree remove /wt/dev')
     await ui.unmount()
   })
 

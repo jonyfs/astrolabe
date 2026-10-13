@@ -23,6 +23,8 @@ export type BandEdge = {
   hide?: { label: string; onPress: () => Promise<void> }
   /** The lift button of a paused or holding band. */
   onLift?: () => Promise<void>
+  /** The current task opens the pane with that task selected (078 FR-013). */
+  onTask?: () => Promise<void>
   /** The project root, to turn a segment's path into a link. */
   root?: string
 }
@@ -61,6 +63,9 @@ export const bandRow = (
     )
     if (segment.action === 'lift' && Button !== undefined && edge.onLift !== undefined) {
       return <Button key="band-lift" label={segment.text} onPress={() => edge.onLift!()} />
+    }
+    if (segment.action === 'task' && Button !== undefined && edge.onTask !== undefined) {
+      return <Button key="band-task" label={segment.text} plain onPress={() => edge.onTask!()} />
     }
     if (segment.href !== undefined && Link !== undefined && edge.root !== undefined && segment.text.trim() !== '') {
       return (

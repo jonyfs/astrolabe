@@ -177,7 +177,7 @@ describe('other states (042, 065)', () => {
     const impl = state(feature('implement', 9, 20, { dir: '002-band-hint' }), {})
     const withOthers = { ...impl, features: [...impl.features, feature('plan', 0, 0, { id: '003', name: 'other', dir: '003-other' })] } as SpeckitState
     expect(at(withOthers, 200)).toContain('+1')
-    expect(at(impl, 200, { worktree: 'wt-cart' })).toContain('⑂ wt-cart')
+    expect(at(impl, 200, { worktree: 'wt-cart' })).toContain('⎇ wt-cart')
   })
 })
 

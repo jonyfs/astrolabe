@@ -169,13 +169,13 @@ export type SpeckitState = {
   activeDocs?: Array<'spec.md' | 'plan.md' | 'tasks.md'>
 }
 
-export type PaneTab = 'specs' | 'tasks' | 'session' | 'prs' | 'setup'
+export type PaneTab = 'specs' | 'session' | 'prs' | 'setup'
 
 /** What the pane body shows: a tab, or the help overlay above it (066 #21). */
 export type PaneView = PaneTab | 'help'
 
 /** The /astrolabe pane's session state: the tab shown and whether it opened unasked already. */
-export type PaneState = { tab: PaneTab; /** The help overlay is on, above the tab. */ help?: true; /** Specs at scale (067): the view, the open blocks and the grouping. */ view?: 'focus' | 'all'; open?: string[]; group?: 'status' | 'phase' | 'track' | 'priority'; autoOpened: boolean; filter?: string; status?: 'all' | 'progress' | 'next' | 'done' | 'abandoned'; sort?: 'status' | 'progress' | 'name'; scroll?: { tab: PaneView; offset: number }; selectedFeature?: string; summary?: { dir: string; expanded: boolean }; draft?: Record<string, string | number | boolean>; confirm?: string; confirmSelecting?: string }
+export type PaneState = { tab: PaneTab; /** The help overlay is on, above the tab. */ help?: true; /** Specs at scale (067): the view, the open blocks and the grouping. */ view?: 'focus' | 'all'; open?: string[]; group?: 'status' | 'phase' | 'track' | 'priority'; autoOpened: boolean; filter?: string; status?: 'all' | 'progress' | 'next' | 'done' | 'abandoned'; sort?: 'status' | 'progress' | 'name'; scroll?: { tab: PaneView; offset: number }; selectedFeature?: string; /** A task row selected in the tree (078): its key. */ selectedTask?: string; /** Specs the person opened and folded (078); the active spec is open unless it is in `closed`. */ opened?: string[]; closed?: string[]; /** Only the active spec's tasks, full height (078). */ tasksOnly?: true; /** The Session tab's folded blocks the person opened (078). */ updatesOpen?: true; logOpen?: true; turnsOpen?: true; /** The Setup groups the person opened (078). */ groupsOpen?: string[]; summary?: { dir: string; expanded: boolean }; draft?: Record<string, string | number | boolean>; confirm?: string; confirmSelecting?: string }
 
 export type UpdateId = 'gstack' | 'specify' | 'speckit-skills' | 'astrolabe'
 
@@ -265,6 +265,8 @@ export type SessionStats = {
   weeksTrend?: number[]
   /** Each main turn's answer, as one line, with the feature it ran on: the last 20 (054 #92). */
   recap?: Array<{ at: number; id?: string; text: string }>
+  /** One entry per main turn, the last 30: when, the spec and task it was on, and the tokens it used (078 FR-052, FR-056). */
+  turnLog?: Array<{ at: number; id?: string; task?: string; tokens?: number; text?: string }>
   /** Focus mode (054 #88): Claude is told to change only the files the current task names. */
   focus?: boolean
   /** Tasks ticked on each day of this week, Monday first (046 #54). */
@@ -327,7 +329,7 @@ export type SessionStats = {
   /** How many times the advisor ran this session, and the last time (055). */
   advisor?: { runs: number; at: number; last?: { id: string; text: string; at: number } }
   /** The release gate of a repository with a plugin.json (054 #60): its version and whether that tag exists. */
-  release?: { version: string; tagged: boolean; latest?: string }
+  release?: { version: string; tagged: boolean; latest?: string; /** Commits since the latest tag (078). */ unreleased?: number }
   /** What `/astrolabe doctor` found, read when the Help tab opens (052 #42). */
   health?: { at: number; lines: string[] }
   /** The full text of the last toast shortened to fit the notification limit (052 #44). */

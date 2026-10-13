@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'claude-code/testing'
 
 import { idWidth, padId } from '../../hooks/core/ids'
-import { specsRows, taskRows } from '../../hooks/core/pane'
+import { specsRows } from '../../hooks/core/pane'
 import { parseTasks } from '../../hooks/core/tasks-parser'
 import { emptyMemo, type Feature, type SpeckitState } from '../../hooks/core/types'
 

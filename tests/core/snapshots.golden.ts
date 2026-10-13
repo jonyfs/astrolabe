@@ -38,16 +38,15 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
   "mocha/80/pane": [
     "Active 1|#a6adc8",
     "▸ ◆ 002  band-hint                 implement  ▰▰▰▰▱▱▱▱▱   9/20  45%|#cba6f7",
-    "  gates  constitution ✓  clarify ✓  checklist –  tasks ✓  analyze ✓|#a6adc8",
-    "Next up 2|#a6adc8",
+    "  gates ●●○●● · checklist –|#a6adc8",
+    "Next up 2 ░░░░░░░░|#a6adc8",
     "  · 064  design-tokens             plan                     full|#cdd6f4",
     "  · 1000 long-numbered-feature-n…  tasks       0/12   0%  full · plan.md ✓|#cdd6f4",
     "Done 1|#a6adc8",
     "  ✓ 001  core-state                done       ▰▰▰▰▰▰▰▰▰  10/10 100%|#a6e3a1",
-    "002 band-hint · implement · 1/3 done|#a6adc8",
-    "✓ 1 done · T009|#9399b2",
-    "▶ T010 Show an empty-cart message|#fab387",
-    "  ○ T011 Add the checkout button|#cdd6f4"
+    "  ▶ T010 Show an empty-cart message|#fab387",
+    "    ✓ 1 done · T009|#9399b2",
+    "    ○ T011 Add the checkout button|#cdd6f4"
   ],
   "mocha/100/band": [
     " 002 |#cba6f7",
@@ -95,16 +94,15 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
   "mocha/100/pane": [
     "Active 1|#a6adc8",
     "▸ ◆ 002  band-hint                 implement  ▰▰▰▰▱▱▱▱▱   9/20  45%|#cba6f7",
-    "  gates  constitution ✓  clarify ✓  checklist –  tasks ✓  analyze ✓|#a6adc8",
-    "Next up 2|#a6adc8",
+    "  gates ●●○●● · checklist –|#a6adc8",
+    "Next up 2 ░░░░░░░░|#a6adc8",
     "  · 064  design-tokens             plan                     full|#cdd6f4",
     "  · 1000 long-numbered-feature-n…  tasks      ▱▱▱▱▱▱▱▱▱   0/12   0%  full · plan.md ✓|#cdd6f4",
     "Done 1|#a6adc8",
     "  ✓ 001  core-state                done       ▰▰▰▰▰▰▰▰▰  10/10 100%|#a6e3a1",
-    "002 band-hint · implement · 1/3 done|#a6adc8",
-    "✓ 1 done · T009|#9399b2",
-    "▶ T010 Show an empty-cart message|#fab387",
-    "  ○ T011 Add the checkout button|#cdd6f4"
+    "  ▶ T010 Show an empty-cart message|#fab387",
+    "    ✓ 1 done · T009|#9399b2",
+    "    ○ T011 Add the checkout button|#cdd6f4"
   ],
   "mocha/144/band": [
     " 002 |#cba6f7",
@@ -167,16 +165,15 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
   "mocha/144/pane": [
     "Active 1|#a6adc8",
     "▸ ◆ 002  band-hint                 implement  ▰▰▰▰▱▱▱▱▱   9/20  45%|#cba6f7",
-    "  gates  constitution ✓  clarify ✓  checklist –  tasks ✓  analyze ✓|#a6adc8",
-    "Next up 2|#a6adc8",
+    "  gates ●●○●● · checklist –|#a6adc8",
+    "Next up 2 ░░░░░░░░|#a6adc8",
     "  · 064  design-tokens             plan                     full|#cdd6f4",
     "  · 1000 long-numbered-feature-n…  tasks      ▱▱▱▱▱▱▱▱▱   0/12   0%  full · plan.md ✓|#cdd6f4",
     "Done 1|#a6adc8",
     "  ✓ 001  core-state                done       ▰▰▰▰▰▰▰▰▰  10/10 100%|#a6e3a1",
-    "002 band-hint · implement · 1/3 done|#a6adc8",
-    "✓ 1 done · T009|#9399b2",
-    "▶ T010 Show an empty-cart message|#fab387",
-    "  ○ T011 Add the checkout button|#cdd6f4"
+    "  ▶ T010 Show an empty-cart message|#fab387",
+    "    ✓ 1 done · T009|#9399b2",
+    "    ○ T011 Add the checkout button|#cdd6f4"
   ],
   "mocha/200/band": [
     " 002 |#cba6f7",
@@ -241,16 +238,15 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
   "mocha/200/pane": [
     "Active 1|#a6adc8",
     "▸ ◆ 002  band-hint                 implement  ▰▰▰▰▱▱▱▱▱   9/20  45%|#cba6f7",
-    "  gates  constitution ✓  clarify ✓  checklist –  tasks ✓  analyze ✓|#a6adc8",
-    "Next up 2|#a6adc8",
+    "  gates ●●○●● · checklist –|#a6adc8",
+    "Next up 2 ░░░░░░░░|#a6adc8",
     "  · 064  design-tokens             plan                     full|#cdd6f4",
     "  · 1000 long-numbered-feature-n…  tasks      ▱▱▱▱▱▱▱▱▱   0/12   0%  full · plan.md ✓|#cdd6f4",
     "Done 1|#a6adc8",
     "  ✓ 001  core-state                done       ▰▰▰▰▰▰▰▰▰  10/10 100%|#a6e3a1",
-    "002 band-hint · implement · 1/3 done|#a6adc8",
-    "✓ 1 done · T009|#9399b2",
-    "▶ T010 Show an empty-cart message|#fab387",
-    "  ○ T011 Add the checkout button|#cdd6f4"
+    "  ▶ T010 Show an empty-cart message|#fab387",
+    "    ✓ 1 done · T009|#9399b2",
+    "    ○ T011 Add the checkout button|#cdd6f4"
   ],
   "latte/80/band": [
     " 002 |#8839ef",
@@ -290,16 +286,15 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
   "latte/80/pane": [
     "Active 1|#5c5f77",
     "▸ ◆ 002  band-hint                 implement  ▰▰▰▰▱▱▱▱▱   9/20  45%|#8839ef",
-    "  gates  constitution ✓  clarify ✓  checklist –  tasks ✓  analyze ✓|#5c5f77",
-    "Next up 2|#5c5f77",
+    "  gates ●●○●● · checklist –|#5c5f77",
+    "Next up 2 ░░░░░░░░|#5c5f77",
     "  · 064  design-tokens             plan                     full|#4c4f69",
     "  · 1000 long-numbered-feature-n…  tasks       0/12   0%  full · plan.md ✓|#4c4f69",
     "Done 1|#5c5f77",
     "  ✓ 001  core-state                done       ▰▰▰▰▰▰▰▰▰  10/10 100%|#2a7a1c",
-    "002 band-hint · implement · 1/3 done|#5c5f77",
-    "✓ 1 done · T009|#686b80",
-    "▶ T010 Show an empty-cart message|#b5470a",
-    "  ○ T011 Add the checkout button|#4c4f69"
+    "  ▶ T010 Show an empty-cart message|#b5470a",
+    "    ✓ 1 done · T009|#686b80",
+    "    ○ T011 Add the checkout button|#4c4f69"
   ],
   "latte/100/band": [
     " 002 |#8839ef",
@@ -347,16 +342,15 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
   "latte/100/pane": [
     "Active 1|#5c5f77",
     "▸ ◆ 002  band-hint                 implement  ▰▰▰▰▱▱▱▱▱   9/20  45%|#8839ef",
-    "  gates  constitution ✓  clarify ✓  checklist –  tasks ✓  analyze ✓|#5c5f77",
-    "Next up 2|#5c5f77",
+    "  gates ●●○●● · checklist –|#5c5f77",
+    "Next up 2 ░░░░░░░░|#5c5f77",
     "  · 064  design-tokens             plan                     full|#4c4f69",
     "  · 1000 long-numbered-feature-n…  tasks      ▱▱▱▱▱▱▱▱▱   0/12   0%  full · plan.md ✓|#4c4f69",
     "Done 1|#5c5f77",
     "  ✓ 001  core-state                done       ▰▰▰▰▰▰▰▰▰  10/10 100%|#2a7a1c",
-    "002 band-hint · implement · 1/3 done|#5c5f77",
-    "✓ 1 done · T009|#686b80",
-    "▶ T010 Show an empty-cart message|#b5470a",
-    "  ○ T011 Add the checkout button|#4c4f69"
+    "  ▶ T010 Show an empty-cart message|#b5470a",
+    "    ✓ 1 done · T009|#686b80",
+    "    ○ T011 Add the checkout button|#4c4f69"
   ],
   "latte/144/band": [
     " 002 |#8839ef",
@@ -419,16 +413,15 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
   "latte/144/pane": [
     "Active 1|#5c5f77",
     "▸ ◆ 002  band-hint                 implement  ▰▰▰▰▱▱▱▱▱   9/20  45%|#8839ef",
-    "  gates  constitution ✓  clarify ✓  checklist –  tasks ✓  analyze ✓|#5c5f77",
-    "Next up 2|#5c5f77",
+    "  gates ●●○●● · checklist –|#5c5f77",
+    "Next up 2 ░░░░░░░░|#5c5f77",
     "  · 064  design-tokens             plan                     full|#4c4f69",
     "  · 1000 long-numbered-feature-n…  tasks      ▱▱▱▱▱▱▱▱▱   0/12   0%  full · plan.md ✓|#4c4f69",
     "Done 1|#5c5f77",
     "  ✓ 001  core-state                done       ▰▰▰▰▰▰▰▰▰  10/10 100%|#2a7a1c",
-    "002 band-hint · implement · 1/3 done|#5c5f77",
-    "✓ 1 done · T009|#686b80",
-    "▶ T010 Show an empty-cart message|#b5470a",
-    "  ○ T011 Add the checkout button|#4c4f69"
+    "  ▶ T010 Show an empty-cart message|#b5470a",
+    "    ✓ 1 done · T009|#686b80",
+    "    ○ T011 Add the checkout button|#4c4f69"
   ],
   "latte/200/band": [
     " 002 |#8839ef",
@@ -493,16 +486,15 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
   "latte/200/pane": [
     "Active 1|#5c5f77",
     "▸ ◆ 002  band-hint                 implement  ▰▰▰▰▱▱▱▱▱   9/20  45%|#8839ef",
-    "  gates  constitution ✓  clarify ✓  checklist –  tasks ✓  analyze ✓|#5c5f77",
-    "Next up 2|#5c5f77",
+    "  gates ●●○●● · checklist –|#5c5f77",
+    "Next up 2 ░░░░░░░░|#5c5f77",
     "  · 064  design-tokens             plan                     full|#4c4f69",
     "  · 1000 long-numbered-feature-n…  tasks      ▱▱▱▱▱▱▱▱▱   0/12   0%  full · plan.md ✓|#4c4f69",
     "Done 1|#5c5f77",
     "  ✓ 001  core-state                done       ▰▰▰▰▰▰▰▰▰  10/10 100%|#2a7a1c",
-    "002 band-hint · implement · 1/3 done|#5c5f77",
-    "✓ 1 done · T009|#686b80",
-    "▶ T010 Show an empty-cart message|#b5470a",
-    "  ○ T011 Add the checkout button|#4c4f69"
+    "  ▶ T010 Show an empty-cart message|#b5470a",
+    "    ✓ 1 done · T009|#686b80",
+    "    ○ T011 Add the checkout button|#4c4f69"
   ],
   "frappe/80/band": [
     " 002 |#ca9ee6",
@@ -542,16 +534,15 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
   "frappe/80/pane": [
     "Active 1|#a5adce",
     "▸ ◆ 002  band-hint                 implement  ▰▰▰▰▱▱▱▱▱   9/20  45%|#ca9ee6",
-    "  gates  constitution ✓  clarify ✓  checklist –  tasks ✓  analyze ✓|#a5adce",
-    "Next up 2|#a5adce",
+    "  gates ●●○●● · checklist –|#a5adce",
+    "Next up 2 ░░░░░░░░|#a5adce",
     "  · 064  design-tokens             plan                     full|#c6d0f5",
     "  · 1000 long-numbered-feature-n…  tasks       0/12   0%  full · plan.md ✓|#c6d0f5",
     "Done 1|#a5adce",
     "  ✓ 001  core-state                done       ▰▰▰▰▰▰▰▰▰  10/10 100%|#a6d189",
-    "002 band-hint · implement · 1/3 done|#a5adce",
-    "✓ 1 done · T009|#949cbb",
-    "▶ T010 Show an empty-cart message|#ef9f76",
-    "  ○ T011 Add the checkout button|#c6d0f5"
+    "  ▶ T010 Show an empty-cart message|#ef9f76",
+    "    ✓ 1 done · T009|#949cbb",
+    "    ○ T011 Add the checkout button|#c6d0f5"
   ],
   "frappe/100/band": [
     " 002 |#ca9ee6",
@@ -599,16 +590,15 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
   "frappe/100/pane": [
     "Active 1|#a5adce",
     "▸ ◆ 002  band-hint                 implement  ▰▰▰▰▱▱▱▱▱   9/20  45%|#ca9ee6",
-    "  gates  constitution ✓  clarify ✓  checklist –  tasks ✓  analyze ✓|#a5adce",
-    "Next up 2|#a5adce",
+    "  gates ●●○●● · checklist –|#a5adce",
+    "Next up 2 ░░░░░░░░|#a5adce",
     "  · 064  design-tokens             plan                     full|#c6d0f5",
     "  · 1000 long-numbered-feature-n…  tasks      ▱▱▱▱▱▱▱▱▱   0/12   0%  full · plan.md ✓|#c6d0f5",
     "Done 1|#a5adce",
     "  ✓ 001  core-state                done       ▰▰▰▰▰▰▰▰▰  10/10 100%|#a6d189",
-    "002 band-hint · implement · 1/3 done|#a5adce",
-    "✓ 1 done · T009|#949cbb",
-    "▶ T010 Show an empty-cart message|#ef9f76",
-    "  ○ T011 Add the checkout button|#c6d0f5"
+    "  ▶ T010 Show an empty-cart message|#ef9f76",
+    "    ✓ 1 done · T009|#949cbb",
+    "    ○ T011 Add the checkout button|#c6d0f5"
   ],
   "frappe/144/band": [
     " 002 |#ca9ee6",
@@ -671,16 +661,15 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
   "frappe/144/pane": [
     "Active 1|#a5adce",
     "▸ ◆ 002  band-hint                 implement  ▰▰▰▰▱▱▱▱▱   9/20  45%|#ca9ee6",
-    "  gates  constitution ✓  clarify ✓  checklist –  tasks ✓  analyze ✓|#a5adce",
-    "Next up 2|#a5adce",
+    "  gates ●●○●● · checklist –|#a5adce",
+    "Next up 2 ░░░░░░░░|#a5adce",
     "  · 064  design-tokens             plan                     full|#c6d0f5",
     "  · 1000 long-numbered-feature-n…  tasks      ▱▱▱▱▱▱▱▱▱   0/12   0%  full · plan.md ✓|#c6d0f5",
     "Done 1|#a5adce",
     "  ✓ 001  core-state                done       ▰▰▰▰▰▰▰▰▰  10/10 100%|#a6d189",
-    "002 band-hint · implement · 1/3 done|#a5adce",
-    "✓ 1 done · T009|#949cbb",
-    "▶ T010 Show an empty-cart message|#ef9f76",
-    "  ○ T011 Add the checkout button|#c6d0f5"
+    "  ▶ T010 Show an empty-cart message|#ef9f76",
+    "    ✓ 1 done · T009|#949cbb",
+    "    ○ T011 Add the checkout button|#c6d0f5"
   ],
   "frappe/200/band": [
     " 002 |#ca9ee6",
@@ -745,16 +734,15 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
   "frappe/200/pane": [
     "Active 1|#a5adce",
     "▸ ◆ 002  band-hint                 implement  ▰▰▰▰▱▱▱▱▱   9/20  45%|#ca9ee6",
-    "  gates  constitution ✓  clarify ✓  checklist –  tasks ✓  analyze ✓|#a5adce",
-    "Next up 2|#a5adce",
+    "  gates ●●○●● · checklist –|#a5adce",
+    "Next up 2 ░░░░░░░░|#a5adce",
     "  · 064  design-tokens             plan                     full|#c6d0f5",
     "  · 1000 long-numbered-feature-n…  tasks      ▱▱▱▱▱▱▱▱▱   0/12   0%  full · plan.md ✓|#c6d0f5",
     "Done 1|#a5adce",
     "  ✓ 001  core-state                done       ▰▰▰▰▰▰▰▰▰  10/10 100%|#a6d189",
-    "002 band-hint · implement · 1/3 done|#a5adce",
-    "✓ 1 done · T009|#949cbb",
-    "▶ T010 Show an empty-cart message|#ef9f76",
-    "  ○ T011 Add the checkout button|#c6d0f5"
+    "  ▶ T010 Show an empty-cart message|#ef9f76",
+    "    ✓ 1 done · T009|#949cbb",
+    "    ○ T011 Add the checkout button|#c6d0f5"
   ],
   "macchiato/80/band": [
     " 002 |#c6a0f6",
@@ -794,16 +782,15 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
   "macchiato/80/pane": [
     "Active 1|#a5adcb",
     "▸ ◆ 002  band-hint                 implement  ▰▰▰▰▱▱▱▱▱   9/20  45%|#c6a0f6",
-    "  gates  constitution ✓  clarify ✓  checklist –  tasks ✓  analyze ✓|#a5adcb",
-    "Next up 2|#a5adcb",
+    "  gates ●●○●● · checklist –|#a5adcb",
+    "Next up 2 ░░░░░░░░|#a5adcb",
     "  · 064  design-tokens             plan                     full|#cad3f5",
     "  · 1000 long-numbered-feature-n…  tasks       0/12   0%  full · plan.md ✓|#cad3f5",
     "Done 1|#a5adcb",
     "  ✓ 001  core-state                done       ▰▰▰▰▰▰▰▰▰  10/10 100%|#a6da95",
-    "002 band-hint · implement · 1/3 done|#a5adcb",
-    "✓ 1 done · T009|#939ab7",
-    "▶ T010 Show an empty-cart message|#f5a97f",
-    "  ○ T011 Add the checkout button|#cad3f5"
+    "  ▶ T010 Show an empty-cart message|#f5a97f",
+    "    ✓ 1 done · T009|#939ab7",
+    "    ○ T011 Add the checkout button|#cad3f5"
   ],
   "macchiato/100/band": [
     " 002 |#c6a0f6",
@@ -851,16 +838,15 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
   "macchiato/100/pane": [
     "Active 1|#a5adcb",
     "▸ ◆ 002  band-hint                 implement  ▰▰▰▰▱▱▱▱▱   9/20  45%|#c6a0f6",
-    "  gates  constitution ✓  clarify ✓  checklist –  tasks ✓  analyze ✓|#a5adcb",
-    "Next up 2|#a5adcb",
+    "  gates ●●○●● · checklist –|#a5adcb",
+    "Next up 2 ░░░░░░░░|#a5adcb",
     "  · 064  design-tokens             plan                     full|#cad3f5",
     "  · 1000 long-numbered-feature-n…  tasks      ▱▱▱▱▱▱▱▱▱   0/12   0%  full · plan.md ✓|#cad3f5",
     "Done 1|#a5adcb",
     "  ✓ 001  core-state                done       ▰▰▰▰▰▰▰▰▰  10/10 100%|#a6da95",
-    "002 band-hint · implement · 1/3 done|#a5adcb",
-    "✓ 1 done · T009|#939ab7",
-    "▶ T010 Show an empty-cart message|#f5a97f",
-    "  ○ T011 Add the checkout button|#cad3f5"
+    "  ▶ T010 Show an empty-cart message|#f5a97f",
+    "    ✓ 1 done · T009|#939ab7",
+    "    ○ T011 Add the checkout button|#cad3f5"
   ],
   "macchiato/144/band": [
     " 002 |#c6a0f6",
@@ -923,16 +909,15 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
   "macchiato/144/pane": [
     "Active 1|#a5adcb",
     "▸ ◆ 002  band-hint                 implement  ▰▰▰▰▱▱▱▱▱   9/20  45%|#c6a0f6",
-    "  gates  constitution ✓  clarify ✓  checklist –  tasks ✓  analyze ✓|#a5adcb",
-    "Next up 2|#a5adcb",
+    "  gates ●●○●● · checklist –|#a5adcb",
+    "Next up 2 ░░░░░░░░|#a5adcb",
     "  · 064  design-tokens             plan                     full|#cad3f5",
     "  · 1000 long-numbered-feature-n…  tasks      ▱▱▱▱▱▱▱▱▱   0/12   0%  full · plan.md ✓|#cad3f5",
     "Done 1|#a5adcb",
     "  ✓ 001  core-state                done       ▰▰▰▰▰▰▰▰▰  10/10 100%|#a6da95",
-    "002 band-hint · implement · 1/3 done|#a5adcb",
-    "✓ 1 done · T009|#939ab7",
-    "▶ T010 Show an empty-cart message|#f5a97f",
-    "  ○ T011 Add the checkout button|#cad3f5"
+    "  ▶ T010 Show an empty-cart message|#f5a97f",
+    "    ✓ 1 done · T009|#939ab7",
+    "    ○ T011 Add the checkout button|#cad3f5"
   ],
   "macchiato/200/band": [
     " 002 |#c6a0f6",
@@ -997,16 +982,15 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
   "macchiato/200/pane": [
     "Active 1|#a5adcb",
     "▸ ◆ 002  band-hint                 implement  ▰▰▰▰▱▱▱▱▱   9/20  45%|#c6a0f6",
-    "  gates  constitution ✓  clarify ✓  checklist –  tasks ✓  analyze ✓|#a5adcb",
-    "Next up 2|#a5adcb",
+    "  gates ●●○●● · checklist –|#a5adcb",
+    "Next up 2 ░░░░░░░░|#a5adcb",
     "  · 064  design-tokens             plan                     full|#cad3f5",
     "  · 1000 long-numbered-feature-n…  tasks      ▱▱▱▱▱▱▱▱▱   0/12   0%  full · plan.md ✓|#cad3f5",
     "Done 1|#a5adcb",
     "  ✓ 001  core-state                done       ▰▰▰▰▰▰▰▰▰  10/10 100%|#a6da95",
-    "002 band-hint · implement · 1/3 done|#a5adcb",
-    "✓ 1 done · T009|#939ab7",
-    "▶ T010 Show an empty-cart message|#f5a97f",
-    "  ○ T011 Add the checkout button|#cad3f5"
+    "  ▶ T010 Show an empty-cart message|#f5a97f",
+    "    ✓ 1 done · T009|#939ab7",
+    "    ○ T011 Add the checkout button|#cad3f5"
   ],
   "colorblind/80/band": [
     " 002 |#d4a6e8",
@@ -1046,16 +1030,15 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
   "colorblind/80/pane": [
     "Active 1|#bdbdbd",
     "▸ ◆ 002  band-hint                 implement  ▰▰▰▰▱▱▱▱▱   9/20  45%|#d4a6e8",
-    "  gates  constitution ✓  clarify ✓  checklist –  tasks ✓  analyze ✓|#bdbdbd",
-    "Next up 2|#bdbdbd",
+    "  gates ●●○●● · checklist –|#bdbdbd",
+    "Next up 2 ░░░░░░░░|#bdbdbd",
     "  · 064  design-tokens             plan                     full|#f2f2f2",
     "  · 1000 long-numbered-feature-n…  tasks       0/12   0%  full · plan.md ✓|#f2f2f2",
     "Done 1|#bdbdbd",
     "  ✓ 001  core-state                done       ▰▰▰▰▰▰▰▰▰  10/10 100%|#6bd3a8",
-    "002 band-hint · implement · 1/3 done|#bdbdbd",
-    "✓ 1 done · T009|#9a9a9a",
-    "▶ T010 Show an empty-cart message|#ffd166",
-    "  ○ T011 Add the checkout button|#f2f2f2"
+    "  ▶ T010 Show an empty-cart message|#ffd166",
+    "    ✓ 1 done · T009|#9a9a9a",
+    "    ○ T011 Add the checkout button|#f2f2f2"
   ],
   "colorblind/100/band": [
     " 002 |#d4a6e8",
@@ -1103,16 +1086,15 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
   "colorblind/100/pane": [
     "Active 1|#bdbdbd",
     "▸ ◆ 002  band-hint                 implement  ▰▰▰▰▱▱▱▱▱   9/20  45%|#d4a6e8",
-    "  gates  constitution ✓  clarify ✓  checklist –  tasks ✓  analyze ✓|#bdbdbd",
-    "Next up 2|#bdbdbd",
+    "  gates ●●○●● · checklist –|#bdbdbd",
+    "Next up 2 ░░░░░░░░|#bdbdbd",
     "  · 064  design-tokens             plan                     full|#f2f2f2",
     "  · 1000 long-numbered-feature-n…  tasks      ▱▱▱▱▱▱▱▱▱   0/12   0%  full · plan.md ✓|#f2f2f2",
     "Done 1|#bdbdbd",
     "  ✓ 001  core-state                done       ▰▰▰▰▰▰▰▰▰  10/10 100%|#6bd3a8",
-    "002 band-hint · implement · 1/3 done|#bdbdbd",
-    "✓ 1 done · T009|#9a9a9a",
-    "▶ T010 Show an empty-cart message|#ffd166",
-    "  ○ T011 Add the checkout button|#f2f2f2"
+    "  ▶ T010 Show an empty-cart message|#ffd166",
+    "    ✓ 1 done · T009|#9a9a9a",
+    "    ○ T011 Add the checkout button|#f2f2f2"
   ],
   "colorblind/144/band": [
     " 002 |#d4a6e8",
@@ -1175,16 +1157,15 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
   "colorblind/144/pane": [
     "Active 1|#bdbdbd",
     "▸ ◆ 002  band-hint                 implement  ▰▰▰▰▱▱▱▱▱   9/20  45%|#d4a6e8",
-    "  gates  constitution ✓  clarify ✓  checklist –  tasks ✓  analyze ✓|#bdbdbd",
-    "Next up 2|#bdbdbd",
+    "  gates ●●○●● · checklist –|#bdbdbd",
+    "Next up 2 ░░░░░░░░|#bdbdbd",
     "  · 064  design-tokens             plan                     full|#f2f2f2",
     "  · 1000 long-numbered-feature-n…  tasks      ▱▱▱▱▱▱▱▱▱   0/12   0%  full · plan.md ✓|#f2f2f2",
     "Done 1|#bdbdbd",
     "  ✓ 001  core-state                done       ▰▰▰▰▰▰▰▰▰  10/10 100%|#6bd3a8",
-    "002 band-hint · implement · 1/3 done|#bdbdbd",
-    "✓ 1 done · T009|#9a9a9a",
-    "▶ T010 Show an empty-cart message|#ffd166",
-    "  ○ T011 Add the checkout button|#f2f2f2"
+    "  ▶ T010 Show an empty-cart message|#ffd166",
+    "    ✓ 1 done · T009|#9a9a9a",
+    "    ○ T011 Add the checkout button|#f2f2f2"
   ],
   "colorblind/200/band": [
     " 002 |#d4a6e8",
@@ -1249,15 +1230,14 @@ export const GOLDEN: Readonly<Record<string, readonly string[]>> = {
   "colorblind/200/pane": [
     "Active 1|#bdbdbd",
     "▸ ◆ 002  band-hint                 implement  ▰▰▰▰▱▱▱▱▱   9/20  45%|#d4a6e8",
-    "  gates  constitution ✓  clarify ✓  checklist –  tasks ✓  analyze ✓|#bdbdbd",
-    "Next up 2|#bdbdbd",
+    "  gates ●●○●● · checklist –|#bdbdbd",
+    "Next up 2 ░░░░░░░░|#bdbdbd",
     "  · 064  design-tokens             plan                     full|#f2f2f2",
     "  · 1000 long-numbered-feature-n…  tasks      ▱▱▱▱▱▱▱▱▱   0/12   0%  full · plan.md ✓|#f2f2f2",
     "Done 1|#bdbdbd",
     "  ✓ 001  core-state                done       ▰▰▰▰▰▰▰▰▰  10/10 100%|#6bd3a8",
-    "002 band-hint · implement · 1/3 done|#bdbdbd",
-    "✓ 1 done · T009|#9a9a9a",
-    "▶ T010 Show an empty-cart message|#ffd166",
-    "  ○ T011 Add the checkout button|#f2f2f2"
+    "  ▶ T010 Show an empty-cart message|#ffd166",
+    "    ✓ 1 done · T009|#9a9a9a",
+    "    ○ T011 Add the checkout button|#f2f2f2"
   ]
 }

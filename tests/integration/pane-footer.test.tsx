@@ -46,7 +46,7 @@ describe('the footer in the pane (035)', () => {
     await settleStatus(session)
     expect(session.last()).toContain('ctx 61%')
   })
-  for (const tab of ['specs', 'tasks', 'session', 'prs', 'setup']) {
+  for (const tab of ['specs', 'session', 'prs', 'setup']) {
     test(`default: the ${tab} tab ends with the footer`, { options: { icons: 'ascii' } }, async ($, on) => {
       await setup($ as never, on as never)
       const ui = await mountPane($ as never, 'terminal', 100, 80)

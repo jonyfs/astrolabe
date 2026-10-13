@@ -25,9 +25,8 @@ describe('languages (019)', () => {
     await type($ as never, 'crie uma aba no astrolabe que mostre os prs abertos e faça o merge')
     expect(await help($ as never)).toContain('Comandos do Astrolabe:')
     const ui = await mountPane($ as never, 'terminal')
-    expect(await ui.tabs()).toContain('Tarefas')
-    await ui.press('tab-tasks')
-    expect(await ui.body()).toContain('9/20 feitas')
+    expect(await ui.tabs()).toContain('Sessão')
+    expect(await ui.body()).toContain('9/20')
     await ui.unmount()
   })
 

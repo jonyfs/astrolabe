@@ -81,12 +81,13 @@ export const nextFor = (f: Pick<Feature, 'phase' | 'done'>, isActive: boolean, i
 /** One line about the selected spec (061): what it needs, in the order the person decides. */
 export const specDetail = (
   f: Pick<Feature, 'id' | 'name' | 'phase' | 'done' | 'total' | 'track' | 'clarifications' | 'checklist' | 'warnings'>,
-  opts: { priority?: Priority; worktrees?: readonly string[]; next?: string; age?: string; lang?: Lang },
+  opts: { priority?: Priority; worktrees?: readonly string[]; next?: string; age?: string; /** What is left at the pace of the tasks done so far (078 FR-006). */ estimate?: string; lang?: Lang },
 ): string => {
   const lang = opts.lang ?? 'en'
   // The row above already says which spec and which phase; this line says what it needs (board 3).
   return [
     ...(f.total > 0 ? [tr(lang, 'detail.tasksLeft', { n: f.total - f.done })] : []),
+    ...(opts.estimate === undefined ? [] : [tr(lang, 'pane.estimate', { time: opts.estimate })]),
     ...((f.clarifications ?? 0) > 0 ? [tr(lang, f.clarifications === 1 ? 'detail.question' : 'detail.questions', { n: f.clarifications! })] : []),
     ...((f.checklist?.open ?? 0) > 0 ? [tr(lang, 'detail.checklist', { open: f.checklist!.open, total: f.checklist!.total })] : []),
     ...(opts.priority === undefined || opts.priority === 'normal' ? [] : [`${priorityMark(opts.priority)} ${opts.priority}`]),
@@ -122,7 +123,7 @@ export const configMark = (changed: boolean, value: unknown, defaults: Readonly<
 
 /** The Config tab's groups, in order (054 #64); an option not listed goes to the last one. */
 export const OPTION_GROUPS = {
-  display: ['preset', 'flavor', 'icons', 'language', 'accessible', 'footerIn', 'footerSource', 'footerLines', 'footerSeparator', 'bandDensity', 'liveRows', 'images'],
+  display: ['preset', 'flavor', 'icons', 'language', 'accessible', 'footerIn', 'footerSource', 'footerLines', 'footerSeparator', 'bandDensity', 'paneDensity', 'liveRows', 'images'],
   governor: ['governUsage', 'observeUsage', 'askOnLimit', 'governThresholds', 'quietHours'],
   claude: ['claudeContext', 'skillModels', 'humanize', 'terse', 'featureSummary'],
   integrations: ['checkUpdates', 'autoReload', 'pullRequest'],

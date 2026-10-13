@@ -118,7 +118,7 @@ describe('the session runs in a linked worktree (054 #54)', () => {
     await startSession($, worktree.cwd)
     await completeTurn($)
     const band = await drawBand($ as never, 'terminal', 200)
-    expect(band.text).toContain('⑂ proj-002')
+    expect(band.text).toContain('⎇ proj-002')
     const tree = JSON.stringify(band.tree)
     expect(band.text).toContain('+1')
     expect(tree).toContain('astrolabe-other-features')

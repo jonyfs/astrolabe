@@ -22,8 +22,8 @@ export type Segment = {
   bright?: true
   /** A path under the project root; the surface makes the segment a link. */
   href?: string
-  /** The surface draws a button for it: `lift` lifts the hold for one hour. */
-  action?: 'lift'
+  /** The surface draws a button for it: `lift` lifts the hold for one hour, `task` opens the pane at that task (078). */
+  action?: 'lift' | 'task'
 }
 
 const STEPS: readonly Step[] = ['constitution', 'specify', 'clarify', 'plan', 'tasks', 'implement']
@@ -124,7 +124,7 @@ const build = (state: SpeckitState, feature: Feature, extras: BandExtras, o: Opt
     out.push(gap('name', ' '), { key: 'name', text: active.name, role: 'text', bold: true })
     const others = inProgressOthers(state).length
     if (others > 0) out.push(gap('others'), { key: 'others', text: `+${others}`, role: 'muted' })
-    if (extras.worktree !== undefined) out.push(gap('worktree'), { key: 'worktree', text: `⑂ ${extras.worktree}`, role: 'muted' })
+    if (extras.worktree !== undefined) out.push(gap('worktree'), { key: 'worktree', text: `⎇ ${extras.worktree}`, role: 'muted' })
   }
   out.push(gap('rail', o.name ? (o.marks ? '  ' : ' ') : o.marks ? ' ' : ''))
   if (o.marks && !ratified) out.push({ key: 'mark-constitution', text: o.names ? '◐ constitution' : '◐', role: 'current', href: '.specify/memory/constitution.md' }, gap('constitution', o.names ? ' ' : ''))
@@ -150,7 +150,7 @@ const build = (state: SpeckitState, feature: Feature, extras: BandExtras, o: Opt
   } else if (o.task && governor !== undefined && governor.band === 'hold') {
     out.push(gap('task', taskGap), { key: 'bar-sep', text: '│', role: 'pending' }, gap('paused'), { key: 'paused', text: '‖ holding new subagents', role: 'blocked' })
   } else if (o.task && state.currentTask?.id !== undefined && feature.phase !== 'done') {
-    out.push(gap('task', taskGap), { key: 'bar-sep', text: '│', role: 'pending' }, gap('task-id'), { key: 'task-id', text: `▸ ${state.currentTask.id}`, role: 'current' })
+    out.push(gap('task', taskGap), { key: 'bar-sep', text: '│', role: 'pending' }, gap('task-id'), { key: 'task-id', text: `▸ ${state.currentTask.id}`, role: 'current', action: 'task' })
     if (o.title !== 'none' && state.currentTask.text !== '') {
       const full = ` ${state.currentTask.text}`
       const title = o.title === 'full' ? full : titleRoom >= 4 ? (full.length > titleRoom ? `${full.slice(0, Math.max(1, titleRoom - 1)).trimEnd()}…` : full) : ''

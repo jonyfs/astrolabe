@@ -13,9 +13,10 @@ import { bandPr, bandSegments, bandText, nextReason, otherFeaturesCard, stepCard
 import { hintTail } from './core/hint'
 import { phaseToasts } from './core/phase-toast'
 import { justFinished } from './core/next-command'
-import { filterChips, filterFeatures, helpRows, moveSpecSelection, nextSort, nextStatus, taskRows, windowUnits, wrappedRows, type PaneRow, sessionRows, specsRows } from './core/pane'
+import { filterChips, filterFeatures, helpRows, moveSpecSelection, nextSort, nextStatus, parseSpecFilter, windowUnits, wrappedRows, type PaneRow, sessionRows, specsRows } from './core/pane'
+import { allToggled, breadcrumb, doTaskSuggestion, isOpen, questionSuggestion, questionsIn, spaced, specChildren, tickSuggestion, toggled, withChildren, type Fold, type TreeTask } from './core/pane-tree'
 import { presetOf } from './core/presets'
-import { ticksIn } from './core/tasks-parser'
+import { parseTasks, ticksIn } from './core/tasks-parser'
 import { spinnerSuffix } from './core/spinner'
 import { bandUpdateLabel, astrolabeUpdate, firstLine, isDue, isStoredUpdates, localDay, parseCliVersion, parseGstackCheck, parseSelfCheck, skillsVersusCli, releaseNotesUrl, skillsUpdate, updateLabel } from './core/updates'
 import { fileUrl, joinPath } from './core/paths'
@@ -30,22 +31,22 @@ import { withThumb } from './core/thumb'
 import { displaySectionOf, isReadyToClose } from './core/sections'
 import { blockLabel, jumpLine, jumpMatches, jumpQuery, nextGroup } from './core/specs-scale'
 import { usageBarRows } from './core/usage-bars'
-import { deciderNote, governorBoxState, sessionChips, todayCounts, trend24h } from './core/session-usage'
-import { badgesOf, legacyTab, paneTitle } from './core/pane-tabs'
+import { deciderNote, governorBoxState, nextLevelText, projectHeader, sessionChips, todayCounts, trend24h } from './core/session-usage'
+import { badgesOf, escapeStep, legacyTab, paneTitle } from './core/pane-tabs'
+import { changedSettingsJson, LOOK_PRESETS, optionConflicts, OPTIONS_README, presetMatching } from './core/setup-extras'
 import { usageRamp } from './core/usage-ramp'
 import { ASK_MS, clockOf, decide, dropped, EXTEND_MS, HOLD_LIFT_MS, holdQuestion, labelOf, nextHeld, isPaused, isReadOnlyTool, parseAllow, pauseQuestion, RAISE_MS, refusal, resumePrompt, runPrompt, usageSegment, type Decision, type Question, usageRows } from './core/governor'
 import { ANSI_16, chipForeground, CHIPS, FLAVORS, flavorOf, isThemeKeys, lighten, STATUS_ROLE, themeOf, type ThemeRole } from './core/theme'
 import { capDiff, DIFF_FOLD_MS, foldedDiff, recapLine, recapOf, tasksDiff } from './core/summary'
 import { styleSections } from './core/style'
-import { ageOf, parsePullList, prOpened, pullAction, PR_LIST_FIELDS } from './core/pulls'
-import { modelForTask, skillModelFor } from './core/skill-models'
-import { getAllSkills } from './core/skill-model-map'
+import { ageOf, parsePullList, prOpened, pullAction, pullsBySpec, specOfBranch, PR_LIST_FIELDS } from './core/pulls'
+import { EFFORTS, familyOf, MODEL_FAMILIES, modelForTask, skillModelFor, skillNameOf, SKILL_MODELS, type SkillOverrides } from './core/skill-models'
 import { featureDirFor, mergedBranches, parseWorktrees, uncommittedCount, withWorktreeProgress, worktreeName, worktreeState } from './core/worktrees'
 import { readFeature } from './io/snapshot'
 import { deriveSpeckitState, snapshotFromMemo } from './core/speckit'
 import { deriveFeature } from './core/phase'
 import { chartImage, dialFrames, imagesFor } from './core/pixels'
-import { emptyMemo, type PaneState, type PaneTab, type PaneView, type UpdateId, type UpdateItem, type UpdatesState, type UsageState, type UsageReading, type QueuedAgent, type SessionStats, type SpeckitState, type FooterState } from './core/types'
+import { emptyMemo, type Feature, type PaneState, type PaneTab, type PaneView, type UpdateId, type UpdateItem, type UpdatesState, type UsageState, type UsageReading, type QueuedAgent, type SessionStats, type SpeckitState, type FooterState } from './core/types'
 import type { Preset } from './core/presets'
 import type { Fs } from './io/fs-port'
 import { findRoot } from './io/root'
@@ -58,7 +59,7 @@ import { dashboardSections, dashboardTree } from './surfaces/dashboard'
 import { burnRate, dial, kpiChips, kpisMarkdown, phaseBars, sparkline, usageChart, kpiRows, trendRows } from './core/dashboard'
 import { addDay, addWeek, dayKey, lastWeeks, pastReset, slowest, updateFeatureDurations, weekKey, weekdays, type Days, type FeatureDuration, type Weeks } from './core/history'
 import { footerChipLines, footerChips, footerText, linesChanged, type FooterInput } from './core/footer'
-import { detectGates, layoutLive, liveRows, parseProcesses, type LiveColumn, type LiveRowsOption } from './core/live-table'
+import { detectGates, layoutLive, liveRows, liveTextRows, parseProcesses, type LiveColumn, type LiveRowsOption } from './core/live-table'
 import { liveTable } from './surfaces/live-table'
 import { branchWebUrl, parseCiRun, parseGitStatus, parsePullRequest, plainText, remoteWebUrl } from './core/git-status'
 import { iconSet, iconsFor } from './core/icons'
@@ -130,6 +131,10 @@ const WELCOMED = 'welcomed'
 let sessionNumber = Number.POSITIVE_INFINITY
 const ASK = { plugin: 'astrolabe', key: 'ask' } as const
 const DEFAULT_PANE: PaneState = { tab: 'specs', autoOpened: false }
+
+/** The filters `m` cycles (078 FR-034), and the name each one shows. */
+const PRESET_FILTERS = ['', 'is:active', 'has:questions', 'is:ready'] as const
+const PRESET_OF: Readonly<Record<string, 'all' | 'mine' | 'blocked' | 'ready'>> = { '': 'all', 'is:active': 'mine', 'has:questions': 'blocked', 'is:ready': 'ready' }
 const UPDATES = { plugin: 'astrolabe', key: 'updates' } as const
 const UPDATES_STORE = 'updates'
 const RELEASES_URL = 'https://api.github.com/repos/jonyfs/astrolabe/releases/latest'
@@ -270,7 +275,7 @@ async function footerInput(
       ...((rate => (rate === undefined ? {} : { burn: rate }))(stats === undefined ? undefined : burnRate(stats.series))),
       ...(state.runningSkill === undefined
         ? {}
-        : { skill: { name: state.runningSkill.name, ...((m => (m === undefined ? {} : { model: m }))(skillModels === 'auto' ? skillModelFor(state.runningSkill.name)?.model : undefined)) } }),
+        : { skill: { name: state.runningSkill.name, ...((m => (m === undefined ? {} : { model: m }))(skillModels === 'auto' ? skillModelFor(state.runningSkill.name, skillOverrides)?.model : undefined)) } }),
       now,
       icons: iconSet(iconsFor(iconsOption, surfaceSeen as never)),
       columns: width,
@@ -330,6 +335,8 @@ const scheduleFresh = ($: EngineInterface, now: number): void => {
 // The options' defaults from plugin.json, read once at session start (052 #39).
 let defaultsSeen: Record<string, string | number | boolean> = {}
 let bandDensity: BandDensity = 'full'
+// How roomy the Specs list is (078 FR-096).
+let paneDensity: 'compact' | 'comfortable' = 'compact'
 let gitNeedsRefresh = true
 
 /** Writes what the session counted since the last write, merged with `change`, if anything moved. */
@@ -467,6 +474,8 @@ async function captureFeatureDurations($: EngineInterface, held: Held | undefine
 let skillModels: unknown = 'off'
 // The skill the main thread last started this turn, cleared when the turn ends (030).
 let skillRunning: string | undefined
+// What the person changed in the Setup table: the model family and effort of a skill (078 FR-079).
+let skillOverrides: SkillOverrides = {}
 
 /** Gets the currently running skill (030). */
 export function getSkillRunning(): string | undefined {
@@ -500,7 +509,10 @@ async function refreshPulls($: EngineInterface, force = false): Promise<void> {
     if (version !== undefined) {
       const tags = await $.process.run(['git', 'tag', '--list', 'v*', '--sort=-v:refname'], { cwd: root, timeoutMs: 3000 }).catch(() => undefined)
       const names = tags?.exitCode === 0 ? tags.stdout.split('\n').map(x => x.trim()).filter(x => x !== '') : []
-      release = { version, tagged: names.includes(`v${version}`), ...(names[0] === undefined ? {} : { latest: names[0] }) }
+      // How many commits the latest tag does not have (078 FR-068).
+      const since = names[0] === undefined ? undefined : await $.process.run(['git', 'rev-list', '--count', `${names[0]}..HEAD`], { cwd: root, timeoutMs: 3000 }).catch(() => undefined)
+      const unreleased = since?.exitCode === 0 ? Number(since.stdout.trim()) : undefined
+      release = { version, tagged: names.includes(`v${version}`), ...(names[0] === undefined ? {} : { latest: names[0] }), ...(unreleased === undefined || !Number.isFinite(unreleased) ? {} : { unreleased }) }
     }
     await flushStats($, s => ({ ...s, pulls: { at, rows }, ...(release === undefined ? {} : { release }) }))
   } catch (error) {
@@ -535,6 +547,7 @@ function pullsBody(
   e: Parameters<Hook<'ui.render'>>[1],
   pane: PaneState,
   stats: SessionStats | undefined,
+  speckit?: SpeckitState,
 ): Array<{ node: RenderNode; rows: number }> {
   const elements = $.ui.resolve(e)
   const branch = stats?.git?.branch
@@ -551,12 +564,12 @@ function pullsBody(
             rows: 1,
             node: (
               <elements.Text key="astrolabe-release-gate" color={release.tagged ? tokens0[STATUS_ROLE.warning] : tokens0[STATUS_ROLE.success]} wrap="truncate-end">
-                {t(currentLang(), release.tagged ? 'prs.release.tagged' : 'prs.release.ready', { version: release.version, latest: release.latest ?? '—' })}
+                {`${t(currentLang(), release.tagged ? 'prs.release.tagged' : 'prs.release.ready', { version: release.version, latest: release.latest ?? '—' })}${release.unreleased === undefined || release.latest === undefined ? '' : ` · ${t(currentLang(), 'prs.release.since', { n: release.unreleased, tag: release.latest })}`}`}
               </elements.Text>
             ),
           },
         ]
-  return [...ship, ...gate, ...pullsRows($, e, pane, stats)]
+  return [...ship, ...gate, ...pullsRows($, e, pane, stats, speckit)]
 }
 
 /** The PRs tab's rows (032): a link per pull request, its state, and the buttons GitHub allows. */
@@ -565,6 +578,7 @@ function pullsRows(
   e: Parameters<Hook<'ui.render'>>[1],
   pane: PaneState,
   stats: SessionStats | undefined,
+  speckit?: SpeckitState,
 ): Array<{ node: RenderNode; rows: number }> {
   const elements = $.ui.resolve(e)
   const { Box, Text, Button } = elements
@@ -594,15 +608,53 @@ function pullsRows(
   // Checks as cells: ✓ passed, ✖ failed, ◷ pending (066 #28).
   const mark = (c: string) => (c === 'pass' ? '✓' : c === 'fail' ? '✖' : c === 'pending' ? STATE_GLYPHS.elapsed : '·')
   const colour = (c: string) => (c === 'pass' ? tokens0[STATUS_ROLE.success] : c === 'fail' ? tokens0[STATUS_ROLE.error] : c === 'pending' ? tokens0[STATUS_ROLE.warning] : tokens0.muted)
+  const columns = (e.props as { bodyColumns?: number }).bodyColumns ?? 80
+  // The filter of the tab: `is:failing`, `is:draft`, `is:approved`, `is:behind`, `is:mine` (the branch you are on), words (078 FR-070).
+  const tokens = (pane.filter ?? '').trim().toLowerCase().split(/\s+/).filter(x => x !== '')
+  const words = tokens.filter(x => !x.startsWith('is:')).join(' ')
+  const is = new Set(tokens.filter(x => x.startsWith('is:')).map(x => x.slice(3)))
+  const mine = stats?.git?.branch
+  const wanted = rows.filter(pr =>
+    (words === '' || `#${pr.number} ${pr.title} ${pr.branch}`.toLowerCase().includes(words)) &&
+    (!is.has('failing') || pr.checks === 'fail') &&
+    (!is.has('draft') || pr.isDraft) &&
+    (!is.has('approved') || pr.review === 'approved') &&
+    (!is.has('behind') || pr.merge === 'BEHIND') &&
+    (!is.has('mine') || (mine !== undefined && pr.branch === mine)),
+  )
+  // The ones that need the person lead: failing checks, then requested changes, then the rest (078 FR-066).
+  const need = (pr: (typeof rows)[number]): number => (pr.checks === 'fail' ? 0 : pr.review === 'changes' ? 1 : pr.merge === 'BEHIND' ? 2 : pr.checks === 'pending' ? 3 : 4)
+  const ordered = [...wanted].sort((a, b) => need(a) - need(b) || b.number - a.number)
+  // The table's columns: the title takes what the checks, the review and the age leave (078 FR-061).
+  const reviewWidth = Math.max(...Object.values({ a: 'approved', b: 'changes requested', c: 'review required', d: 'no review' }).map(w => w.length))
+  const titleRoom = Math.max(12, columns - 2 - 8 - reviewWidth - 4 - 6)
+  const spec = (pr: (typeof rows)[number]) => specOfBranch(pr.branch, speckit?.features ?? [])
   const header = { rows: 1, node: <Text key="prs-header" color={tokens0.faint} wrap="truncate-end">{t(lang, 'prs.header')}</Text> }
-  return [header, ...rows.flatMap(pr => {
+  const noPr =
+    mine === undefined || mine === 'main' || mine === 'master' || rows.some(pr => pr.branch === mine) || is.size > 0 || words !== ''
+      ? []
+      : [
+          {
+            rows: 1,
+            node: (
+              <Box key="prs-no-pr" flexDirection="row">
+                <Text color={tokens0.muted}>{`${t(lang, 'prs.noPr', { branch: mine })}  `}</Text>
+                <Button key="prs-open-pr" label={t(lang, 'prs.openPr')} plain onPress={() => void $.prompt.suggest({ text: `Open a pull request for branch ${mine} with: gh pr create --fill` }).catch(() => undefined)} />
+              </Box>
+            ),
+          },
+        ]
+  if (ordered.length === 0) return [header, ...noPr, { rows: 1, node: <Text color={tokens0.muted}>{t(lang, 'pane.noMatch', { filter: (pane.filter ?? '').trim() })}</Text> }]
+  return [header, ...noPr, ...ordered.flatMap(pr => {
     const title = `#${pr.number} ${pr.title}`
-    const cells = [pr.isDraft ? t(lang, 'prs.draft') : '', pr.labels.join(','), t(lang, `prs.review.${pr.review}`), (pr.runs === undefined || pr.runs.length === 0 ? mark(pr.checks) : pr.runs.slice(0, 6).map(run => mark(run.result)).join(''))]
-      .filter(c => c !== '')
-      .join('  ')
+    const shownTitle = [...title].length > titleRoom ? `${[...title].slice(0, titleRoom - 1).join('')}…` : title
+    const cells = pr.runs === undefined || pr.runs.length === 0 ? mark(pr.checks) : pr.runs.slice(0, 6).map(run => mark(run.result)).join('')
     // Who opened it and how long ago, as of the last read (052 #40).
-    const opened = [pr.author === undefined ? '' : `@${pr.author}`, pr.createdAt === undefined || stats?.pulls === undefined ? '' : ageOf(pr.createdAt, stats.pulls.at)].filter(s => s !== '').join(' ')
-    const facts = [opened, pr.branch].filter(s => s !== '').join('  ')
+    const age = pr.createdAt === undefined || stats?.pulls === undefined ? '' : ageOf(pr.createdAt, stats.pulls.at)
+    const opened = [pr.author === undefined ? '' : `@${pr.author}`, age].filter(x => x !== '').join(' ')
+    const facts = [opened, pr.branch].filter(x => x !== '').join('  ')
+    // Draft and labels are small chips, dim for a draft (078 FR-065).
+    const chips = [pr.isDraft ? `[${t(lang, 'prs.draft')}]` : '', ...pr.labels.map(l => `[${l}]`)].filter(x => x !== '').join(' ')
     const buttons: RenderNode[] = []
     const add = (action: 'approve' | 'update' | 'merge') => {
       const key = `pr-${action}-${pr.number}`
@@ -611,13 +663,17 @@ function pullsRows(
     if (pr.review !== 'approved' && !pr.isDraft) add('approve')
     if (pr.merge === 'BEHIND') add('update')
     if (pr.merge === 'CLEAN' && !pr.isDraft) add('merge')
+    const dir = spec(pr)
+    const feature = speckit?.features.find(f => f.dir === dir)
     return [
       {
         rows: 1,
         node: (
           <Box flexDirection="row">
-            {Link !== undefined && pr.url !== '' ? <Link href={pr.url} label={title} /> : <Text color={colour(pr.checks)}>{title}</Text>}
-            <Text color={colour(pr.checks)} wrap="truncate-end">{`  ${cells}`}</Text>
+            {Link !== undefined && pr.url !== '' ? <Link href={pr.url} label={shownTitle} /> : <Text color={colour(pr.checks)}>{shownTitle}</Text>}
+            <Text>{' '.repeat(Math.max(2, titleRoom - [...shownTitle].length + 2))}</Text>
+            <Text color={colour(pr.checks)}>{cells.padEnd(8)}</Text>
+            <Text color={pr.isDraft ? tokens0.faint : tokens0.text} wrap="truncate-end">{`${t(lang, `prs.review.${pr.review}`).padEnd(reviewWidth)}  ${age}`}</Text>
           </Box>
         ),
       },
@@ -625,7 +681,13 @@ function pullsRows(
         rows: 1,
         node: (
           <Box flexDirection="row">
-            <Text color={tokens0.muted}>{`   ${facts}  `}</Text>
+            <Text color={pr.isDraft ? tokens0.faint : tokens0.muted}>{`   ${chips === '' ? '' : `${chips}  `}${facts}  `}</Text>
+            {feature === undefined ? null : <Button key={`pr-spec-${pr.number}`} label={`→ ${feature.id}`} plain onPress={async () => {
+              const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
+              const { help: _h, tasksOnly: _t, selectedTask: _s, ...rest } = held
+              await $.state.set(PANE_STATE, { ...rest, tab: 'specs', selectedFeature: feature.id })
+            }} />}
+            {feature === undefined ? null : <Text> </Text>}
             {buttons}
           </Box>
         ),
@@ -653,16 +715,18 @@ function pullsRows(
 // Astrolabe's own /config rows (028), read at session start and after a save.
 let configRows: ConfigRow[] = []
 
-/** The Config tab's rows (028): one per option, its control, and Save / Cancel. */
+/** The Config tab's rows (028): a heading per group that folds, an option per row, its control and card. */
 function configBody(
   $: Parameters<Hook<'ui.render'>>[0],
   e: Parameters<Hook<'ui.render'>>[1],
   pane: PaneState,
+  speckit?: SpeckitState,
 ): Array<{ node: RenderNode; rows: number }> {
   const elements = $.ui.resolve(e)
   const { Box, Text, Button } = elements
   const Select = 'Select' in elements ? elements.Select : undefined
   const Input = 'Input' in elements ? elements.Input : undefined
+  const Link = 'Link' in elements && e.surface === 'terminal' ? elements.Link : undefined
   const lang = currentLang()
   const draft = pane.draft ?? {}
   const setDraft = async (key: string, value: string | number | boolean) => {
@@ -671,14 +735,69 @@ function configBody(
   }
   const rows: Array<{ node: RenderNode; rows: number }> = []
   if (configRows.length === 0) return [{ rows: 1, node: <Text color={tokens0.muted}>{t(lang, 'config.none')}</Text> }]
-  // Under a heading per group (054 #64).
-  // `/` finds an option by name (board 4, 075 FR-017): the rows that match stay, and so do their headings.
+  // The values as they would be with the draft, for the conflicts between options (078 FR-082).
+  const values: Record<string, unknown> = {}
+  for (const row of configRows) values[row.key.replace(/^astrolabe\./, '')] = row.key in draft ? draft[row.key] : row.value
+  const conflicts = optionConflicts(values, lang)
+  // `/` finds an option by its name and by what it says (board 4, 075 FR-017, 078 FR-074).
   const needle = (pane.filter ?? '').trim().toLowerCase()
-  const wanted = (row: ConfigRow) => needle === '' || `${row.key} ${row.label}`.toLowerCase().includes(needle)
-  const ordered = (Object.keys(OPTION_GROUPS) as OptionGroup[]).flatMap(group => configRows.filter(row => optionGroup(row.key) === group && wanted(row)).map((row, i) => ({ row, heading: i === 0 ? group : undefined })))
+  const wanted = (row: ConfigRow) => needle === '' || `${row.key} ${row.label} ${row.description ?? ''}`.toLowerCase().includes(needle)
+  const groups = Object.keys(OPTION_GROUPS) as OptionGroup[]
+  const ordered = groups.flatMap(group => configRows.filter(row => optionGroup(row.key) === group && wanted(row)).map((row, i) => ({ row, group, heading: i === 0 ? group : undefined })))
   if (needle !== '' && ordered.length === 0) return [{ rows: 1, node: <Text color={tokens0.muted}>{t(lang, 'pane.noMatch', { filter: needle })}</Text> }]
-  for (const { row, heading } of ordered) {
-    if (heading !== undefined) rows.push({ rows: 1, node: <Text key={`config-group-${heading}`} color={tokens0.accent} bold>{t(lang, `config.group.${heading}` as TextKey)}</Text> })
+  const changedGroups = new Set(configRows.filter(r => r.key in draft && draft[r.key] !== r.value).map(r => optionGroup(r.key)))
+  // Only the group with a change is open, and the first one; a search opens every group it finds (078 FR-071).
+  const isOpen = (group: OptionGroup): boolean => needle !== '' || changedGroups.has(group) || (pane.groupsOpen === undefined ? group === groups[0] : pane.groupsOpen.includes(group))
+  const toggle = (group: OptionGroup) => async () => {
+    const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
+    const openNow = new Set(groups.filter(g => (held.groupsOpen === undefined ? g === groups[0] : held.groupsOpen.includes(g))))
+    if (openNow.has(group)) openNow.delete(group)
+    else openNow.add(group)
+    await $.state.set(PANE_STATE, { ...held, groupsOpen: [...openNow] })
+  }
+  // The look presets: one key each, set as a draft that Save applies (078 FR-075).
+  if (needle === '') {
+    const matching = presetMatching(values)
+    rows.push({
+      rows: 1,
+      node: (
+        <Box key="setup-presets" flexDirection="row">
+          <Text color={tokens0.muted}>{`${t(lang, 'setup.presets')}  `}</Text>
+          {(['minimal', 'balanced', 'full'] as const).map(name => (
+            <Button
+              key={`setup-preset-${name}`}
+              label={t(lang, `setup.preset.${name}` as TextKey)}
+              {...(matching === name ? { variant: 'primary' as const } : {})}
+              onPress={async () => {
+                const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
+                const next: Record<string, string | number | boolean> = { ...(held.draft ?? {}) }
+                for (const [field, value] of Object.entries(LOOK_PRESETS[name])) {
+                  const row = configRows.find(r => r.key === `astrolabe.${field}`)
+                  if (row !== undefined && !row.isLocked) next[row.key] = value
+                }
+                await $.state.set(PANE_STATE, { ...held, draft: next })
+              }}
+            />
+          ))}
+        </Box>
+      ),
+    })
+  }
+  // The band as the drafted density would draw it, under the presets (078 FR-076).
+  if (needle === '' && speckit !== undefined) {
+    const density = values['bandDensity'] === 'compact' || values['bandDensity'] === 'minimal' ? values['bandDensity'] : 'full'
+    const line = bandText(bandSegments(speckit, Math.min(100, (e.props as { bodyColumns?: number }).bodyColumns ?? 80), { density }))
+    if (line.trim() !== '') rows.push({ rows: 1, node: <Text key="setup-preview" color={tokens0.muted} wrap="truncate-end">{`${t(lang, 'setup.preview')}  ${line}`}</Text> })
+  }
+  for (const { row, group, heading } of ordered) {
+    if (heading !== undefined) {
+      const n = configRows.filter(r => optionGroup(r.key) === group).length
+      rows.push({
+        rows: 1,
+        node: <Button key={`config-group-${heading}`} label={`${isOpen(group) ? '▾' : '▸'} ${t(lang, `config.group.${heading}` as TextKey)} ${n}`} plain onPress={toggle(group)} />,
+      })
+    }
+    if (!isOpen(group)) continue
     const shown = row.key in draft ? draft[row.key] : row.value
     const changed = row.key in draft && draft[row.key] !== row.value
     // ● a change not saved yet; • a saved value that differs from the option's default (052 #39).
@@ -704,6 +823,10 @@ function configBody(
       control = <Input key={key} value={String(shown)} onInput={save} onSubmit={save} />
     } else control = <Text>{String(shown)}</Text>
     const defaultValue = defaultsSeen[row.key]
+    const field = row.key.replace(/^astrolabe\./, '')
+    const named = conflicts.filter(c => c.field === field)
+    // One option back to its default, as a draft (078 FR-077).
+    const offDefault = !row.isLocked && defaultValue !== undefined && shown !== defaultValue
     rows.push({
       rows: 1,
       node: (
@@ -713,55 +836,95 @@ function configBody(
           <Box flexDirection="row">
             <Text color={changed ? tokens0.current : tokens0.text}>{label}</Text>
             {control}
-            {row.key === 'icons' && String(shown) === 'auto' ? <Text color={tokens0.faint}>{`  (${t(lang, iconsFor('auto', e.surface) === 'nerd' ? 'config.iconsNerd' : iconsFor('auto', e.surface) === 'ascii' ? 'config.iconsAscii' : 'config.iconsEmoji')})`}</Text> : null}
+            {offDefault ? <Button key={`config-reset-${row.key}`} label={t(lang, 'setup.resetOne')} plain onPress={() => setDraft(row.key, defaultValue)} /> : null}
+            {row.key === 'astrolabe.icons' && String(shown) === 'auto' ? <Text color={tokens0.faint}>{`  (${t(lang, iconsFor('auto', e.surface) === 'nerd' ? 'config.iconsNerd' : iconsFor('auto', e.surface) === 'ascii' ? 'config.iconsAscii' : 'config.iconsEmoji')})`}</Text> : null}
           </Box>
+          {named.map((c, i) => (
+            <Text key={`config-conflict-${row.key}-${i}`} color={tokens0.current} wrap="truncate-end">{`  ▲ ${c.text}`}</Text>
+          ))}
           <Box display="none" paddingX={1} backgroundColor={tokens0.barEmpty} hover={{ display: 'flex' }} flexDirection="column">
             <Text color={tokens0.accent}>{`${t(lang, 'config.default')}: ${defaultValue === undefined ? t(lang, 'word.unknown') : String(defaultValue)}`}</Text>
             <Text color={tokens0.text} wrap="wrap">{row.description ?? t(lang, 'config.noDescription')}</Text>
+            {Link === undefined ? null : <Link href={OPTIONS_README} label={`${t(lang, 'setup.readme')} ↗`} />}
           </Box>
         </Box>
       ),
     })
   }
-  const pending = Object.keys(draft).filter(k => draft[k] !== configRows.find(r => r.key === k)?.value)
-  rows.push({
-    rows: 1,
-    node: (
-      <Box flexDirection="row">
-        <Button key="config-save" label={pending.length === 0 ? t(lang, 'config.saved') : t(lang, 'config.save', { n: pending.length })} variant="primary" onPress={() => saveConfig($)} />
-        <Text> </Text>
-        {/* Every option back to its default, as a draft Save applies (054 #63). */}
-        <Button key="config-reset" label={t(lang, 'config.reset')} onPress={() => draftDefaults($)} />
-        <Text> </Text>
-        <Button key="config-cancel" label={t(lang, 'config.cancel')} onPress={async () => {
-          const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
-          const { draft: _gone, ...rest } = held
-          await $.state.set(PANE_STATE, rest)
-        }} />
-      </Box>
-    ),
-  })
   return rows
 }
 
-/** The Models tab's rows (030), [ Skill · category · tier · model · effort ], auto mode's ▸ on the skill running now. */
+/** Save, Reset, Cancel and the copy button: one bar that stays in view above the options (078 FR-073). */
+function configBar(
+  $: Parameters<Hook<'ui.render'>>[0],
+  e: Parameters<Hook<'ui.render'>>[1],
+  pane: PaneState,
+): RenderNode[] {
+  const { Box, Text, Button } = $.ui.resolve(e)
+  const lang = currentLang()
+  const draft = pane.draft ?? {}
+  if (configRows.length === 0) return []
+  const pending = Object.keys(draft).filter(k => draft[k] !== configRows.find(r => r.key === k)?.value)
+  return [
+    <Box key="config-bar" flexDirection="row">
+      <Button key="config-save" label={pending.length === 0 ? t(lang, 'config.saved') : t(lang, 'config.save', { n: pending.length })} variant="primary" onPress={() => saveConfig($)} />
+      <Text> </Text>
+      {/* Every option back to its default, as a draft Save applies (054 #63). */}
+      <Button key="config-reset" label={t(lang, 'config.reset')} onPress={() => draftDefaults($)} />
+      <Text> </Text>
+      <Button key="config-cancel" label={t(lang, 'config.cancel')} onPress={async () => {
+        const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
+        const { draft: _gone, ...rest } = held
+        await $.state.set(PANE_STATE, rest)
+      }} />
+      {pending.length === 0 ? null : <Text> </Text>}
+      {pending.length === 0 ? null : <Button key="config-copy" label={t(lang, 'setup.copy')} plain onPress={() => void copyNext($, changedSettingsJson(Object.fromEntries(pending.map(k => [k, draft[k]!]))), e.surface)} />}
+    </Box>,
+  ]
+}
+
+/**
+ * The model table of Setup (030, 078 FR-079): each skill with the model family and effort auto mode
+ * sends it with, as two buttons that cycle; `▸` marks the skill running now. A choice is kept in the
+ * mod's store and laid over the built-in table.
+ */
 function modelSkillTabBody(
   $: Parameters<Hook<'ui.render'>>[0],
   e: Parameters<Hook<'ui.render'>>[1],
   _pane: PaneState,
 ): Array<{ node: RenderNode; rows: number }> {
-  const { Text } = $.ui.resolve(e)
+  const { Box, Text, Button } = $.ui.resolve(e)
   const lang = currentLang()
   const auto = skillModels === 'auto'
   const active = getSkillRunning()
-  const tierColour: Record<string, ThemeRole> = { 'deep-reasoning': 'faint', 'balanced-coding': 'accent', 'fast-lightweight': 'done' }
   const rows: Array<{ node: RenderNode; rows: number }> = []
+  const change = (name: string, patch: { model?: (typeof MODEL_FAMILIES)[number]; effort?: (typeof EFFORTS)[number] }) => async () => {
+    skillOverrides = { ...skillOverrides, [name]: { ...(skillOverrides[name] ?? {}), ...patch } }
+    await $.store.set('skillOverrides', skillOverrides).catch(() => undefined)
+    const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
+    await $.state.set(PANE_STATE, { ...held })
+  }
+  const names = Object.keys(SKILL_MODELS)
   for (const category of ['speckit', 'gstack'] as const) {
     rows.push({ rows: 1, node: <Text key={`models-${category}`} color={tokens0.accent} bold>{t(lang, `models.category.${category}`)}</Text> })
-    for (const skill of getAllSkills().filter(s => s.category === category)) {
-      const running = auto && active === skill.skill
-      const text = `${running ? '▸' : ' '} ${skill.skill}  ${skill.tier}  ${skill.model}  ${skill.effort}${running ? `  ← ${t(lang, 'models.running')}` : ''}`
-      rows.push({ rows: 1, node: <Text key={`skill-${skill.skill}`} color={running ? tokens0.current : tokens0[tierColour[skill.tier] ?? 'text']}>{text}</Text> })
+    for (const name of names.filter(n => (category === 'speckit') === n.startsWith('speckit-'))) {
+      const entry = skillModelFor(name, skillOverrides)!
+      const running = auto && active !== undefined && skillNameOf(active) === name
+      const family = familyOf(entry.model)
+      const nextFamily = MODEL_FAMILIES[(MODEL_FAMILIES.indexOf(family) + 1) % MODEL_FAMILIES.length]!
+      const nextEffort = EFFORTS[(EFFORTS.indexOf(entry.effort) + 1) % EFFORTS.length]!
+      rows.push({
+        rows: 1,
+        node: (
+          <Box key={`skill-${name}`} flexDirection="row">
+            <Text color={running ? tokens0.current : tokens0.text}>{`${running ? '▸' : ' '} ${name.padEnd(22)}`}</Text>
+            <Button key={`model-${name}`} label={`‹ ${family} ›`} plain onPress={change(name, { model: nextFamily })} />
+            <Text> </Text>
+            <Button key={`effort-${name}`} label={`‹ ${entry.effort} ›`} plain onPress={change(name, { effort: nextEffort })} />
+            <Text color={tokens0.faint}>{`  ${entry.why}${running ? `  ← ${t(lang, 'models.running')}` : ''}`}</Text>
+          </Box>
+        ),
+      })
     }
   }
   rows.push({ rows: 1, node: <Text color={tokens0.muted}>{auto ? t(lang, 'models.autoModeActive', { active: active ?? t(lang, 'models.idle') }) : t(lang, 'models.autoModeOff')}</Text> })
@@ -968,6 +1131,9 @@ async function kpisText($: EngineInterface): Promise<string | undefined> {
   return kpisMarkdown(t(currentLang(), 'kpis.title', { feature: feature === undefined ? '—' : `${feature.id} ${feature.name}` }), rows)
 }
 
+/** Tokens as `182k` or `1.2M`. */
+const tokensText = (n: number): string => (n >= 1_000_000 ? `${(n / 1_000_000).toFixed(1)}M` : n >= 1000 ? `${Math.round(n / 1000)}k` : String(n))
+
 /** A press that needs a second one within ten seconds (052 #41), for actions that cost a turn (061). */
 async function confirmPress($: EngineInterface, key: string, run: () => void): Promise<void> {
   const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
@@ -1102,6 +1268,8 @@ function paneHeader(
   now = 0,
   /** The rows in view of a list longer than the pane (067 #35): `rows 12–40 of 140`. */
   range?: { from: number; to: number; total: number },
+  /** Where the selected row sits: `Specs › 002 › US2 › T012` (078 FR-024). */
+  crumb?: string,
 ): RenderNode[] {
   const elements = $.ui.resolve(e)
   const Input = 'Input' in elements ? elements.Input : undefined
@@ -1109,8 +1277,8 @@ function paneHeader(
   const Code = 'Code' in elements ? elements.Code : undefined
   const Button = 'Button' in elements ? elements.Button : undefined
   const active = state.active
-  // One filter for Specs, Tasks and Help (043 #23).
-  if (viewOf(pane) === 'specs' || viewOf(pane) === 'tasks' || viewOf(pane) === 'help' || viewOf(pane) === 'setup') {
+  // One filter for Specs (and its tasks), Help and Setup (043 #23, 078).
+  if (viewOf(pane) === 'specs' || viewOf(pane) === 'help' || viewOf(pane) === 'setup' || viewOf(pane) === 'prs') {
     const out: RenderNode[] = []
     if (Input !== undefined) {
       // Each keystroke filters; Enter keeps the text the same way.
@@ -1119,7 +1287,7 @@ function paneHeader(
         await $.state.set(PANE_STATE, { ...held, filter: value })
       }
       out.push(
-        <Input key="astrolabe-filter" placeholder={t(currentLang(), viewOf(pane) === 'specs' ? 'pane.filter' : viewOf(pane) === 'setup' ? 'pane.findOption' : 'pane.filterRows')} value={pane.filter ?? ''} onInput={setFilter} onSubmit={setFilter} />,
+        <Input key="astrolabe-filter" placeholder={t(currentLang(), viewOf(pane) === 'specs' ? 'pane.filter' : viewOf(pane) === 'setup' ? 'pane.findOption' : viewOf(pane) === 'prs' ? 'prs.filter' : 'pane.filterRows')} value={pane.filter ?? ''} onInput={setFilter} onSubmit={setFilter} />,
       )
       // A `#` jump (067 #31): the ids the query completes to, live.
       const jump = viewOf(pane) === 'specs' ? jumpQuery(pane.filter) : undefined
@@ -1130,10 +1298,10 @@ function paneHeader(
         const count = range !== undefined && range.total > range.to - range.from + 1
           ? t(currentLang(), 'pane.range', range)
           : t(currentLang(), 'pane.filterCount', filterCount)
-        out.push(<elements.Text key="astrolabe-filter-count" color={tokens0.muted}>{chips.length === 0 ? count : `${chips.join(' · ')} ${count}`}</elements.Text>)
+        out.push(<elements.Text key="astrolabe-filter-count" color={tokens0.muted} wrap="truncate-end">{`${crumb === undefined ? '' : `${crumb} · `}${chips.length === 0 ? count : `${chips.join(' · ')} ${count}`}`}</elements.Text>)
       }
     }
-    if (viewOf(pane) === 'tasks' && Code !== undefined && stats?.tasksDiff !== undefined && stats.tasksDiff.dir === active?.dir) {
+    if (viewOf(pane) === 'specs' && pane.tasksOnly === true && Code !== undefined && stats?.tasksDiff !== undefined && stats.tasksDiff.dir === active?.dir) {
       const age = stats.tasksDiff.at === undefined ? 0 : now - stats.tasksDiff.at
       if (age > DIFF_FOLD_MS) out.push(<elements.Text key="astrolabe-diff-folded" color={tokens0.muted}>{foldedDiff(stats.tasksDiff.text, stats.tasksDiff.file, age, currentLang())}</elements.Text>)
       else out.push(<Code source={capDiff(stats.tasksDiff.text, currentLang())} format="diff" path={stats.tasksDiff.file} />)
@@ -1258,7 +1426,7 @@ async function* noteModel($: Parameters<Hook<'turn.step'>>[0], e: Parameters<Hoo
   // skillModels auto (030): while a skill with an entry runs, its model and effort.
   // A task's own kind wins while speckit-implement runs (054 #94); otherwise the skill's entry.
   const byTask = skillModels === 'auto' && e.agentId === undefined && /^speckit[-.]implement$/.test(skillRunning ?? '') ? modelForTask(currentTaskText) : undefined
-  const pick = byTask ?? (skillModels === 'auto' && e.agentId === undefined ? skillModelFor(skillRunning) : undefined)
+  const pick = byTask ?? (skillModels === 'auto' && e.agentId === undefined ? skillModelFor(skillRunning, skillOverrides) : undefined)
   const step = pick === undefined ? e : { ...e, model: pick.model, effort: pick.effort }
   if (e.agentId === undefined) {
     live.model = step.model
@@ -1631,6 +1799,8 @@ async function sessionTabRows(
   updates: readonly UpdateItem[],
   /** The update waiting for its second click (Spec Kit skills rewrite files). */
   confirming?: string,
+  /** The pane's columns, for the live table, and which folded blocks are open (078). */
+  layout: { columns: number; updatesOpen: boolean; logOpen: boolean; turnsOpen: boolean } = { columns: 80, updatesOpen: false, logOpen: false, turnsOpen: false },
 ): Promise<PaneRow[]> {
   const lang = currentLang()
   const labelWidth = paneLabelWidth(lang)
@@ -1651,7 +1821,7 @@ async function sessionTabRows(
   const branch = stats?.git?.branch
   const governorDecision = decisionOf(usage, now)
   const overrideActive = usage.override !== undefined && usage.override.until > now
-  const project = [
+  const project = projectHeader([
     ...sessionRows(state, now, lang, labelWidth).flatMap(row => {
       // The chips of the active feature sit under its row (board 4, 075 FR-013).
       if (row.key !== 'session-active') return [row]
@@ -1659,9 +1829,7 @@ async function sessionTabRows(
       const chips = feature === undefined ? [] : sessionChips({ done: feature.done, total: feature.total, taskTimes: (stats?.taskTimes ?? []).filter(x => x.dir === feature.dir), turns: stats?.turns ?? 0, ...(stats?.cost === undefined ? {} : { cost: stats.cost }) })
       return chips.length === 0 ? [row] : [row, { key: 'session-chips', text: `${''.padEnd(labelWidth)}${chips.map(c => `[ ${c} ]`).join(' ')}`, role: 'muted' as ThemeRole }]
     }),
-    // The branch, linked to its page on the remote (054 #79).
-    ...(branch === undefined ? [] : [valueRow('session-branch', t(lang, 'session.branch'), branch, 'text', stats?.git?.remote === undefined ? {} : { href: branchWebUrl(stats.git.remote, branch) })]),
-  ]
+  ], { now: t(lang, 'session.now'), labelWidth, ...(branch === undefined ? {} : { branch }), ...(branch === undefined || stats?.git?.remote === undefined ? {} : { branchHref: branchWebUrl(stats.git.remote, branch) }) })
   let queueIndex = 0
   const governor = [
     ...usageRows(usage, now, governThresholds).map(([name, text]) => {
@@ -1685,8 +1853,18 @@ async function sessionTabRows(
     ...(overrideActive
       ? [{ key: 'usage-revoke', text: '', role: 'text' as const, action: { id: 'usage-revoke', label: t(lang, 'governor.revoke'), hotkey: 'v', kind: 'revoke' as const } }]
       : []),
-    // Today's governor steps, at most 10 (054 #62).
-    ...(usage.log ?? []).filter(entry => new Date(entry.at).toDateString() === new Date(now).toDateString()).slice(-10).map((entry, i) => valueRow(`governor-log-${i}`, i === 0 ? t(lang, 'session.governor') : '', `${clockOf(new Date(entry.at).toISOString()) ?? ''} ${entry.text}`, 'muted')),
+    // Today's governor steps, at most 10 (054 #62), folded to one row until opened (078 FR-059).
+    ...((today: Array<{ at: number; text: string }>) =>
+      today.length === 0
+        ? []
+        : layout.logOpen
+          ? [
+              valueRow('governor-log-fold', t(lang, 'session.governor'), t(lang, 'session.log.hide', { n: today.length }), 'muted', { action: { id: 'log', label: t(lang, 'session.fold'), kind: 'fold' as const } }),
+              ...today.map((entry, i) => valueRow(`governor-log-${i}`, '', `${clockOf(new Date(entry.at).toISOString()) ?? ''} ${entry.text}`, 'muted')),
+            ]
+          : [valueRow('governor-log-fold', t(lang, 'session.governor'), t(lang, 'session.log.show', { n: today.length }), 'muted', { action: { id: 'log', label: t(lang, 'session.unfold'), kind: 'fold' as const } })])(
+      (usage.log ?? []).filter(entry => new Date(entry.at).toDateString() === new Date(now).toDateString()).slice(-10),
+    ),
   ]
   const summary = stats?.lastSummary
   const review = stats?.lastReview
@@ -1700,23 +1878,39 @@ async function sessionTabRows(
     ...(review === undefined ? [] : [
       // `review 002 · 6 findings (opus xhigh) · 5m ago`: the findings are the lines under it (board 4, 075 FR-015).
       { key: 'review-heading', text: `${t(lang, 'session.review')} ${review.id} · ${t(lang, 'session.findings', { n: review.text.split('\n').filter(line => line.trim() !== '').length })} (${REVIEW_MODEL.model} ${REVIEW_MODEL.effort}) · ${now - review.at < 60_000 ? t(lang, 'time.justNow') : t(lang, 'time.ago', { age: minutes(now - review.at) })}`, role: 'text' as ThemeRole },
-      ...review.text.split('\n').map((line, i) => valueRow(`review-${i}`, '', line)),
+      ...review.text.split('\n').map((line, i) => valueRow(`review-${i}`, '', line, 'text', line.trim() === '' ? {} : { action: { id: `${review.id}\n${line}`, label: t(lang, 'tree.ask'), kind: 'finding' as const } })),
     ]),
   ]
   // Every live row, past the three per kind the table above the prompt keeps (069 #43).
-  const liveList = liveRows({
-    agents: stats?.liveAgents ?? [],
-    gates: stats?.liveGates ?? [],
-    cache: stats?.cache,
-    readings: usage.readings,
-    thresholds: governThresholds,
-    band,
-    now,
-    option: liveRowsOption,
-    lang,
-  }).map((r, i) => valueRow(`live-${i}`, `${r.kind}`, [r.who, r.where, r.what, r.now, r.level === undefined ? '' : `${r.level.percent}%${r.level.mark ?? ''}`, r.size, r.time].filter(part => part !== '').join(' · ').replace(/[\u0000-\u001f\u007f-\u009f]/g, ''), r.nowWarn === true ? 'current' : 'text'))
+  // The same columns as the table above the prompt, aligned (078 FR-053).
+  const liveList: PaneRow[] = liveTextRows(
+    layoutLive({
+      rows: liveRows({
+        agents: stats?.liveAgents ?? [],
+        gates: stats?.liveGates ?? [],
+        cache: stats?.cache,
+        readings: usage.readings,
+        thresholds: governThresholds,
+        band,
+        now,
+        option: liveRowsOption,
+        lang,
+      }),
+      columns: Math.max(30, layout.columns - 2),
+      reservation: {},
+      all: true,
+    }),
+  )
   // Each with a link to the new version's release notes when there is one (054 #82).
-  const updateRows = updates.map(item => ((url => valueRow(`update-${item.id}`, 'update', `${updateLabel(item, confirming === item.id)} (installed ${item.installed})`, 'current', { action: { id: item.id, label: t(lang, 'updates.install'), kind: 'update' as const }, ...(url === undefined ? {} : { href: url }) }))(releaseNotesUrl(item))))
+  const allUpdateRows = updates.map(item => ((url => valueRow(`update-${item.id}`, 'update', `${updateLabel(item, confirming === item.id)} (installed ${item.installed})`, 'current', { action: { id: item.id, label: t(lang, 'updates.install'), kind: 'update' as const }, ...(url === undefined ? {} : { href: url }) }))(releaseNotesUrl(item))))
+  // Two or more updates fold behind one row, `⬆ 2 updates`, until it is opened (078 FR-054).
+  const updateRows: PaneRow[] =
+    allUpdateRows.length < 2
+      ? allUpdateRows
+      : [
+          valueRow('updates-fold', 'update', t(lang, 'updates.many', { n: allUpdateRows.length, names: updates.map(u => u.id).join(', ') }), 'current', { action: { id: 'updates', label: layout.updatesOpen ? t(lang, 'session.fold') : t(lang, 'updates.review'), kind: 'fold' as const } }),
+          ...(layout.updatesOpen ? allUpdateRows : []),
+        ]
   // Without Spec Kit the project rows say so on their own; no headings then.
   // The usage bars with governor ticks lead the tab (066, board 4).
   const liveReadings = usage.readings.filter(r => !isRenewedReading(r, now))
@@ -1760,14 +1954,42 @@ async function sessionTabRows(
     : [
         { key: 'governor-box-top', text: `╭─ ${t(lang, 'session.box.title')} ${'─'.repeat(28)}╮`, role: 'current' as ThemeRole },
         { key: 'governor-box-state', text: `│ ${stateLine}`, role: bandRole },
+        // What the deciding window reaches next (078 FR-049).
+        ...((next => (next === undefined ? [] : [{ key: 'governor-box-next', text: `│ ${t(lang, 'session.box.next', { next })}`, role: 'muted' as ThemeRole }]))(decider === undefined ? undefined : nextLevelText(decider.percent))),
         ...boxButtons,
         { key: 'governor-box-today', text: `│ ${t(lang, 'session.box.today', { holds: counts.holds, pauses: counts.pauses })}`, role: 'muted' as ThemeRole },
         { key: 'governor-box-bottom', text: `╰${'─'.repeat(t(lang, 'session.box.title').length + 31)}╯`, role: 'current' as ThemeRole },
       ]
-  if (!state.present) return [...bars, ...trendRow, ...boxRows, ...project, ...governorRest, ...liveList, ...activity, ...updateRows]
+  // Tokens per turn as a sparkline with the turn that used most marked, and a folded timeline of turns (078 FR-052, FR-056).
+  const turnLog = stats?.turnLog ?? []
+  const spent = turnLog.flatMap(x => (x.tokens === undefined ? [] : [x.tokens]))
+  const peak = spent.length === 0 ? undefined : turnLog.reduce((best, x) => ((x.tokens ?? 0) > (best.tokens ?? 0) ? x : best), turnLog[0]!)
+  const perTurn: PaneRow[] =
+    spent.length < 2 || peak === undefined
+      ? []
+      : [valueRow('turn-tokens', t(lang, 'session.perTurn'), `${sparkline(spent.slice(-20))}  ${t(lang, 'session.peak', { at: clockOf(new Date(peak.at).toISOString()) ?? '', n: tokensText(peak.tokens ?? 0) })}`, 'muted')]
+  const timeline: PaneRow[] =
+    turnLog.length === 0
+      ? []
+      : layout.turnsOpen
+        ? [
+            valueRow('turn-log-fold', t(lang, 'session.turns'), t(lang, 'session.log.hide', { n: turnLog.length }), 'muted', { action: { id: 'turns', label: t(lang, 'session.fold'), kind: 'fold' as const } }),
+            ...turnLog.slice().reverse().slice(0, 12).map((x, i) => valueRow(`turn-log-${i}`, '', [clockOf(new Date(x.at).toISOString()) ?? '', x.id, x.task, x.tokens === undefined ? undefined : tokensText(x.tokens), x.text].filter((p): p is string => p !== undefined && p !== '').join(' · '), 'muted')),
+          ]
+        : [valueRow('turn-log-fold', t(lang, 'session.turns'), t(lang, 'session.turnCount', { n: turnLog.length }), 'muted', { action: { id: 'turns', label: t(lang, 'session.unfold'), kind: 'fold' as const } })]
+  // What the doctor found that is wrong, each with its fix (078 FR-058); the passed checks stay in Help.
+  const health: PaneRow[] = (stats?.health?.lines ?? [])
+    .filter(line => line.trimStart().startsWith('✗'))
+    .map((line, i) => {
+      const text = line.trim().replace(/^✗/, '✖')
+      const fix = /(?:run |: )((?:gh|uv|specify|claude|npm|git|brew)\b[^]*)$/.exec(text)?.[1]
+      return { key: `health-${i}`, text, role: 'current' as ThemeRole, ...(fix === undefined ? {} : { copy: fix }) }
+    })
+  if (!state.present) return [...bars, ...trendRow, ...boxRows, ...project, ...governorRest, ...liveList, ...activity, ...updateRows, ...health]
+  const activityRows = [...activity, ...perTurn, ...timeline]
   const block = (key: string, rows: Array<{ key: string; text: string; role: ThemeRole; bold?: boolean }>) =>
     rows.length === 0 ? [] : [{ key: `block-${key}`, text: t(lang, `session.block.${key}` as TextKey), role: 'accent' as ThemeRole, bold: true }, ...rows]
-  return [...bars, ...trendRow, ...boxRows, ...block('project', project), ...block('governor', governorRest), ...block('live', liveList), ...block('activity', activity), ...block('updates', updateRows)]
+  return [...bars, ...trendRow, ...boxRows, ...block('project', project), ...block('governor', governorRest), ...block('live', liveList), ...block('activity', activityRows), ...block('updates', updateRows), ...block('health', health)]
 }
 
 /** Brings the Spec Kit state up to date mid-turn (053); writes only when something moved. */
@@ -2300,6 +2522,102 @@ async function pastResetRows(
   return [{ key: 'past-reset', text: t(currentLang(), 'tasks.pastReset', { time: minutes(left), n: feature.total - feature.done, at: clockOf(window.resetsAt) ?? '' }), role: 'current' }]
 }
 
+// The tasks of the specs the tree shows (078): the active spec's come with the state; the others
+// are read from their tasks.md once per memo version.
+const specFilesCache = new Map<string, { key: string; tasks: TreeTask[]; spec?: string }>()
+
+/** One spec's tasks, and its spec.md when it has open questions to list (078 FR-045). */
+async function specFilesOf($: EngineInterface, state: SpeckitState, f: Feature, wantSpec: boolean): Promise<{ tasks: TreeTask[]; spec?: string }> {
+  if (state.root === undefined) return { tasks: [] }
+  const key = `${state.root}|${state.memoVersion ?? 'x'}|${f.done}/${f.total}|${wantSpec}`
+  const hit = specFilesCache.get(f.dir)
+  if (hit !== undefined && hit.key === key && state.memoVersion !== undefined) return { tasks: hit.tasks, ...(hit.spec === undefined ? {} : { spec: hit.spec }) }
+  const text = await $.fs.read(`${state.root}/specs/${f.dir}/${f.track === 'quick' ? 'spec.md' : 'tasks.md'}`).catch(() => '')
+  const spec = wantSpec ? await $.fs.read(`${state.root}/specs/${f.dir}/spec.md`).catch(() => '') : undefined
+  const tasks = parseTasks(text)
+  specFilesCache.set(f.dir, { key, tasks, ...(spec === undefined ? {} : { spec }) })
+  return { tasks, ...(spec === undefined ? {} : { spec }) }
+}
+
+/**
+ * The Specs tab as a tree (078): each spec row, and under an open one its questions, its current
+ * task and its stories with their tasks. `past` rows (the 5h reset warning) sit under the active spec.
+ */
+async function specsTreeRows(
+  $: EngineInterface,
+  e: Parameters<Hook<'ui.render'>>[1],
+  state: SpeckitState,
+  stats: SessionStats | undefined,
+  pane: PaneState,
+  filter: string | undefined,
+  columns: number,
+  past: PaneRow[],
+): Promise<{ rows: PaneRow[]; kept: number }> {
+  const lang = currentLang()
+  const activeDir = state.active?.dir
+  const words = parseSpecFilter(filter).words
+  const now = await $.clock.now()
+  const baseFold: Fold = { ...(pane.opened === undefined ? {} : { opened: pane.opened }), ...(pane.closed === undefined ? {} : { closed: pane.closed }) }
+  // With words in the filter every spec's tasks are read (capped), so a task match keeps its spec (078 FR-007).
+  const wanted = words === '' ? state.features.filter(f => f.total > 0 && isOpen(f.dir, activeDir, baseFold)) : state.features.filter(f => f.total > 0).slice(0, 40)
+  const files = new Map<string, { tasks: TreeTask[]; spec?: string }>()
+  await Promise.all(wanted.map(async f => {
+    const wantSpec = (f.clarifications ?? 0) > 0 && isOpen(f.dir, activeDir, baseFold)
+    const read = f.dir === activeDir && state.activeTasks !== undefined && !wantSpec ? { tasks: [...state.activeTasks] } : await specFilesOf($, state, f, wantSpec)
+    files.set(f.dir, read)
+  }))
+  const taskDirs = new Set<string>()
+  if (words !== '') for (const [dir, got] of files) if (got.tasks.some(t => t.text.toLowerCase().includes(words) || (/^t\d+$/.test(words) && (t.id ?? '').toLowerCase().includes(words)))) taskDirs.add(dir)
+  const fold: Fold = {
+    opened: [...new Set([...(baseFold.opened ?? []), ...taskDirs])],
+    closed: (baseFold.closed ?? []).filter(d => !taskDirs.has(d)),
+  }
+  const context = { ...specFilterContext(stats), taskDirs }
+  const visible = filtered(state, filter, pane.status, context)
+  const features = withWorktreeProgress(visible.features, stats?.worktrees)
+  const base = specsRows(
+    { ...visible, features },
+    columns,
+    lang,
+    stats?.priorities ?? {},
+    worktreesById(stats?.worktrees),
+    (filter ?? '').trim() === '' && (pane.status ?? 'all') === 'all',
+    stats?.worktrees?.map(w => ({ name: w.name, id: w.id, featureName: w.featureName, phase: w.phase, done: w.done, total: w.total, status: worktreeState(w) })) ?? [],
+    e.surface === 'desktop',
+    pane.sort ?? 'status',
+    state.root === undefined ? undefined : roadmapCache.has(state.root) ? roadmapCache.get(state.root) : await $.fs.read(`${state.root}/docs/roadmap.md`).then(text => { roadmapCache.set(state.root!, text); return text }).catch(() => { roadmapCache.set(state.root!, undefined); return undefined }),
+    { ...(pane.view === undefined ? {} : { view: pane.view }), filtered: !((filter ?? '').trim() === '' && (pane.status ?? 'all') === 'all'), open: pane.open ?? [], group: pane.group ?? 'status', touched: stats?.touchedSpecs ?? [], planMissing: stats?.planMissing ?? {}, tree: fold, pulls: pullsBySpec(stats?.pulls?.rows, state.features) },
+  )
+  const tasksOnly = pane.tasksOnly === true
+  const childrenOf = (f: Feature): PaneRow[] => {
+    const got = files.get(f.dir)
+    const isActive = f.dir === activeDir
+    const tasks = isActive ? [...(state.activeTasks ?? got?.tasks ?? [])] : got?.tasks ?? []
+    const rows = specChildren(f, tasks, {
+      columns,
+      lang,
+      now,
+      isActive,
+      tasksOnly,
+      ...(state.root === undefined ? {} : { root: state.root }),
+      ...(isActive && state.currentTask !== undefined ? { currentTask: state.currentTask } : {}),
+      times: stats?.taskTimes ?? [],
+      ...(words === '' ? {} : { words }),
+      questions: questionsIn(got?.spec),
+      ...(f.checklist === undefined ? {} : { checklist: f.checklist }),
+      wrap: e.surface === 'desktop' || columns >= 100,
+    })
+    return isActive ? [...past, ...rows] : rows
+  }
+  const active = state.features.find(f => f.dir === activeDir)
+  if (tasksOnly && active !== undefined) {
+    const head = base.find(r => r.key === `feature-${active.id}`)
+    if (head !== undefined) return { rows: [head, ...childrenOf(active)], kept: visible.features.length }
+  }
+  const tree = withChildren(base, features, f => isOpen(f.dir, activeDir, fold) && f.total + (f.clarifications ?? 0) > 0, childrenOf)
+  return { rows: paneDensity === 'comfortable' ? spaced(tree) : tree, kept: visible.features.length }
+}
+
 /** One line of the governor's history (021): what it asked, what was answered, when it resumed. */
 async function logGovernor($: EngineInterface, text: string): Promise<void> {
   const at = await $.clock.now()
@@ -2670,6 +2988,7 @@ export const register: Register = (on, options) => {
   liveRowsOption = options['liveRows'] === 'agents' || options['liveRows'] === 'gates' || options['liveRows'] === 'off' ? options['liveRows'] : 'both'
   footerSeparator = options['footerSeparator'] === 'thin' || options['footerSeparator'] === 'none' ? options['footerSeparator'] : 'solid'
   bandDensity = options['bandDensity'] === 'compact' || options['bandDensity'] === 'minimal' ? options['bandDensity'] : 'full'
+  paneDensity = options['paneDensity'] === 'comfortable' ? 'comfortable' : 'compact'
   autoReload = options['autoReload'] !== false
   imagesOption = options['images']
   languageOption = options['language']
@@ -2820,6 +3139,13 @@ export const register: Register = (on, options) => {
     } catch {
       // No priorities, no gstack row.
     }
+    // What the person set in the Setup model table (078 FR-079).
+    try {
+      const saved = await $.store.get('skillOverrides')
+      if (typeof saved === 'object' && saved !== null && !Array.isArray(saved)) skillOverrides = saved as SkillOverrides
+    } catch {
+      // No overrides: the built-in table.
+    }
     // The tab this project had last (043 #22).
     try {
       const root = started?.state.root
@@ -2833,6 +3159,30 @@ export const register: Register = (on, options) => {
       }
     } catch {
       // No saved tab: Specs.
+    }
+    // The row this project had selected (078 FR-021).
+    try {
+      const root = started?.state.root
+      const saved = root === undefined ? undefined : await $.store.get(`selection:${root}`)
+      if (typeof saved === 'string') {
+        const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
+        await $.state.set(PANE_STATE, saved.startsWith('task-') ? { ...held, selectedTask: saved } : { ...held, selectedFeature: saved.slice('feature-'.length) })
+      }
+    } catch {
+      // No selection kept: the active spec.
+    }
+    // The specs this project had open and folded (078 FR-010).
+    try {
+      const root = started?.state.root
+      const saved = root === undefined ? undefined : await $.store.get(`folds:${root}`)
+      if (typeof saved === 'object' && saved !== null && !Array.isArray(saved)) {
+        const { opened, closed } = saved as { opened?: unknown; closed?: unknown }
+        const list = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [])
+        const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
+        await $.state.set(PANE_STATE, { ...held, opened: list(opened), closed: list(closed) })
+      }
+    } catch {
+      // No saved folds: the active spec is open.
     }
     // A large project reads its other features in batches after the band draws (040).
     if (started?.state.features.some(f => f.warnings.includes('loading')) === true) $.clock.after(0, () => void loadDeferred($))
@@ -2928,7 +3278,12 @@ export const register: Register = (on, options) => {
         const line = recapLine(e.answer)
         const id = held?.state.active?.id
         const recap = line === '' ? s.recap : [...(s.recap ?? []), { at: now, ...(id === undefined ? {} : { id }), text: line }].slice(-20)
-        return { ...s, turns: s.turns + 1, ...(turnGit === undefined ? {} : { git: { ...withPr(turnGit, cached), ...(ci === undefined ? {} : { ci }), ...(origin === undefined ? {} : { origin }) } }), ...(recap === undefined ? {} : { recap }) }
+        // The turn log: the spec and task it ended on and the tokens it used (078 FR-052, FR-056).
+        const u = e.usage
+        const tokens = u === undefined ? undefined : u.input_tokens + u.output_tokens + u.cache_read_input_tokens + u.cache_creation_input_tokens
+        const task = held?.state.currentTask?.id
+        const turnLog = [...(s.turnLog ?? []), { at: now, ...(id === undefined ? {} : { id }), ...(task === undefined ? {} : { task }), ...(tokens === undefined ? {} : { tokens }), ...(line === '' ? {} : { text: line }) }].slice(-30)
+        return { ...s, turns: s.turns + 1, turnLog, ...(turnGit === undefined ? {} : { git: { ...withPr(turnGit, cached), ...(ci === undefined ? {} : { ci }), ...(origin === undefined ? {} : { origin }) } }), ...(recap === undefined ? {} : { recap }) }
       })
       if (root !== undefined && turnGit?.branch !== undefined) {
         const repoRoot = root
@@ -3056,6 +3411,21 @@ export const register: Register = (on, options) => {
 
   // The usage question's pane: Esc (or any close but our own) takes the default at once.
   on('ui.close', async ($, e, next) => {
+    // Esc is layered (078 FR-018): it clears the filter, then drops the help overlay, then closes the pane.
+    if (e.id === PANE_ID && e.origin.kind === 'person') {
+      const held = (await $.state.get(PANE_STATE)).value
+      const step = held === undefined ? 'close' : escapeStep(held)
+      if (held !== undefined && step === 'help') {
+        const { help: _off, ...rest } = held
+        await $.state.set(PANE_STATE, rest)
+        return { value: undefined }
+      }
+      if (held !== undefined && step === 'filter') {
+        const { filter: _gone, ...rest } = held
+        await $.state.set(PANE_STATE, rest)
+        return { value: undefined }
+      }
+    }
     if (e.id === ASK_ID && e.origin.kind !== 'plugin') {
       const { value } = await $.state.get(ASK)
       if (value?.question !== undefined) pick?.(value.question.fallback)
@@ -3280,6 +3650,17 @@ export const register: Register = (on, options) => {
             hide: { label: t(currentLang(), 'updates.hide'), onPress: () => hideUpdates($) },
           }),
       onLift: () => liftBand($),
+      // The task in the band opens the pane with that task selected, under its spec (078 FR-013).
+      ...(value?.currentTask?.id === undefined || value.active === undefined
+        ? {}
+        : {
+            onTask: async () => {
+              const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
+              const { tasksOnly: _off, help: _help, ...rest } = held
+              await $.state.set(PANE_STATE, { ...rest, tab: 'specs', selectedTask: `task-${value.active!.dir}-${value.currentTask!.id}` })
+              await openPane($)
+            },
+          }),
       ...(pr === undefined ? {} : { pr: { ...pr, ...(sessionStats?.git?.pr?.url === undefined ? {} : { href: sessionStats.git.pr.url }) } }),
       // `a` opens the pane once the band has the focus (025 #41); from 100 columns.
       ...(e.props.bodyColumns >= 100 ? { open: { label: t(currentLang(), 'next.paneShort'), onPress: () => openPane($) } } : {}),
@@ -3445,7 +3826,7 @@ export const register: Register = (on, options) => {
     if (args === 'worktrees') {
       const list = (await $.state.get(SESSION)).value?.worktrees ?? []
       if (list.length === 0) return { text: t(currentLang(), 'worktrees.none') }
-      return { text: list.map(w => `⑂ ${w.name}  ${w.id} ${w.featureName}  ${w.phase}${w.total === 0 ? '' : ` ${w.done}/${w.total}`}${w.branch === undefined ? '' : `  (${w.branch})`}${worktreeState(w)}`).join('\n') }
+      return { text: list.map(w => `⎇ ${w.name}  ${w.id} ${w.featureName}  ${w.phase}${w.total === 0 ? '' : ` ${w.done}/${w.total}`}${w.branch === undefined ? '' : `  (${w.branch})`}${worktreeState(w)}`).join('\n') }
     }
     if (args === 'config reset') {
       if (e.origin?.kind !== 'composer') return { text: t(currentLang(), 'config.resetOnlyYou') }
@@ -3505,11 +3886,19 @@ export const register: Register = (on, options) => {
       if (row !== undefined) {
         const heldOffset = held.scroll?.tab === 'specs' ? held.scroll.offset : 0
         const offset = row.index < specSelectionWindow.start || row.index >= specSelectionWindow.end ? row.index : heldOffset
+        // A task row of the tree is selected the same way a spec row is (078).
+        const picked = row.key.startsWith('task-')
+          ? { selectedTask: row.key }
+          : { selectedFeature: row.key.slice('feature-'.length) }
+        const { selectedTask: _prev, ...kept } = held
         await $.state.set(PANE_STATE, {
-          ...held,
-          selectedFeature: row.key.slice('feature-'.length),
+          ...kept,
+          ...picked,
           ...(offset === heldOffset ? {} : { scroll: { tab: 'specs', offset } }),
         })
+        // The selection is kept per project (078 FR-021).
+        const root = (await $.state.get(SPECKIT)).value?.root
+        if (root !== undefined) await $.store.set(`selection:${root}`, row.key).catch(() => undefined)
         if (specLinksEnabled) await $.ui.focus({ requestId: PANE_ID, key: `${row.key}-spec-link` })
       }
       return {}
@@ -3546,76 +3935,24 @@ export const register: Register = (on, options) => {
     return e
   })
 
-  // Two-step Enter confirmation for spec selection (044 #38): first Enter selects, second Enter confirms and writes feature.json.
+  // Enter on the selected row of the Specs tree opens or folds it (078 FR-004). Making a spec the
+  // active one is the `u` key; ticking a task is `x`, which hands the tick to Claude (spec 051).
   on('ui.input', { component: 'Pane', requestId: PANE_ID }, async ($, e, next) => {
     const pane = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
-    if (e.element === 'astrolabe-filter' || e.kind !== 'submit' || pane.tab !== 'specs' || specSelectionRows.length === 0) return next(e)
-    const held = pane
+    if (e.element === 'astrolabe-filter' || e.kind !== 'submit' || pane.tab !== 'specs' || pane.help === true || specSelectionRows.length === 0) return next(e)
     const state = (await $.state.get(SPECKIT)).value
     if (state === undefined) return next(e)
-    const activeSpecFeature = state.features.find(feature => feature.dir === state.active?.dir)
-    const preferredSelection = pane.selectedFeature === undefined
-      ? activeSpecFeature === undefined ? undefined : `feature-${activeSpecFeature.id}`
-      : `feature-${pane.selectedFeature}`
-    const currentSelected = specSelectionRows.some(row => row.key === preferredSelection)
-      ? preferredSelection
-      : specSelectionRows[0]?.key
-    if (currentSelected === undefined) return next(e)
-    // First Enter: select the spec (show confirm prompt)
-    if (held.confirmSelecting !== currentSelected) {
-      await $.state.set(PANE_STATE, { ...held, confirmSelecting: currentSelected })
-      await showToast($, t(currentLang(), 'specs.confirmSelect', { id: currentSelected.slice('feature-'.length) }))
-      return e
-    }
-    // Second Enter: confirm and write feature.json
-    await $.state.set(PANE_STATE, { ...held, confirmSelecting: undefined })
-    const dir = currentSelected.slice('feature-'.length)
-    const feature = state.features.find(f => f.id === dir)
-    if (feature !== undefined && state.root !== undefined) {
-      await $.store.set(`feature:${state.root}`, dir).catch(() => undefined)
-      await showToast($, t(currentLang(), 'specs.selected', { id: dir, name: feature.name }))
-    }
-    return e
-  })
-
-  // Two-step Enter confirmation for task tick (045 #46): first Enter selects task, second confirms tick.
-  on('ui.input', { component: 'Pane', requestId: PANE_ID }, async ($, e, next) => {
-    const pane = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
-    if (e.element === 'astrolabe-filter' || e.kind !== 'submit' || pane.tab !== 'tasks') return next(e)
-    const state = (await $.state.get(SPECKIT)).value
-    if (state?.active === undefined) return next(e)
-    const held = pane
-    const tasks = state.activeTasks ?? []
-    const openTasks = tasks.filter(t => !t.isDone && t.id !== undefined)
-    if (openTasks.length === 0) return next(e)
-    // Find the currently selected task row (highlighted)
-    const currentTask = state.currentTask
-    const currentTaskId = currentTask?.id
-    if (currentTaskId === undefined) return next(e)
-    // First Enter: select the task (show confirm prompt)
-    if (held.confirmSelecting !== `task-${currentTaskId}`) {
-      await $.state.set(PANE_STATE, { ...held, confirmSelecting: `task-${currentTaskId}` })
-      await showToast($, t(currentLang(), 'tasks.confirmTick', { id: currentTaskId }))
-      return e
-    }
-    // Second Enter: confirm and tick the task
-    await $.state.set(PANE_STATE, { ...held, confirmSelecting: undefined })
-    // Tick the task by editing tasks.md
-    const task = openTasks.find(t => t.id === currentTaskId)
-    if (task !== undefined && task.line !== undefined && state.root !== undefined) {
-      const fs = fsOf($)
-      const taskFile = `${state.root}/specs/${state.active.dir}/${state.features.find(f => f.dir === state.active?.dir)?.track === 'quick' ? 'spec.md' : 'tasks.md'}`
-      const content = await fs.read(taskFile).catch(() => '')
-      const lines = content.split('\n')
-      if (task.line > 0 && task.line <= lines.length) {
-        const line = lines[task.line - 1]
-        if (line !== undefined && line.includes('[ ]')) {
-          lines[task.line - 1] = line.replace('[ ]', '[x]')
-          await fs.write?.(taskFile, lines.join('\n'))
-          await showToast($, t(currentLang(), 'tasks.ticked', { id: currentTaskId }))
-        }
-      }
-    }
+    const key = selectedSpecRow
+    if (key === undefined) return next(e)
+    // A task row: its spec folds, the way ← does in a file tree.
+    const taskMatch = /^task-(.+)-(?:T\d+|\d+)$/.exec(key)
+    const dir = taskMatch !== null ? taskMatch[1] : state.features.find(f => `feature-${f.id}` === key)?.dir
+    if (dir === undefined) return next(e)
+    const fold = toggled(dir, state.active?.dir, { ...(pane.opened === undefined ? {} : { opened: pane.opened }), ...(pane.closed === undefined ? {} : { closed: pane.closed }) })
+    const feature = state.features.find(f => f.dir === dir)
+    const { selectedTask: _gone, ...kept } = pane
+    await $.state.set(PANE_STATE, { ...kept, ...fold, ...(taskMatch !== null && feature !== undefined ? { selectedFeature: feature.id } : {}) })
+    if (state.root !== undefined) await $.store.set(`folds:${state.root}`, fold).catch(() => undefined)
     return e
   })
 
@@ -3656,45 +3993,39 @@ export const register: Register = (on, options) => {
     const needle = (specFilter ?? '').trim().toLowerCase()
     const keep = <R extends { key: string; text: string }>(list: R[]): R[] =>
       needle === '' ? list : list.filter(r => r.key === 'count' || r.text.toLowerCase().includes(needle))
-    const rows =
+    // The Specs tab is the tree of specs and their tasks (078); the 5h reset warning sits under the active spec.
+    let keptSpecs = 0
+    const rows: PaneRow[] =
       view === 'help'
         ? helpRows(helpText(currentLang(), optionsSeen, stats?.health?.lines ?? []), pane.filter, currentLang())
-        : view === 'tasks'
-        ? ((list, past) => [...list.slice(0, 1), ...past, ...list.slice(1)])(keep(taskRows(state, emptyMemo(), 1000, columns, currentLang(), await $.clock.now(), stats?.taskTimes ?? [])), await pastResetRows($, state, stats, usage))
         : view === 'session'
-          ? await sessionTabRows($, state, usage, stats, updates, updatesRead.value?.confirming)
-          : [
-              ...specsRows(
-                { ...filtered(state, specFilter, pane.status, specFilterContext(stats)), features: withWorktreeProgress(filtered(state, specFilter, pane.status, specFilterContext(stats)).features, stats?.worktrees) },
-                columns,
-                currentLang(),
-                stats?.priorities ?? {},
-                worktreesById(stats?.worktrees),
-                (specFilter ?? '').trim() === '' && (pane.status ?? 'all') === 'all',
-                stats?.worktrees?.map(w => ({ name: w.name, id: w.id, featureName: w.featureName, phase: w.phase, done: w.done, total: w.total, status: worktreeState(w) })) ?? [],
-                e.surface === 'desktop',
-                pane.sort ?? 'status',
-                // Roadmap view (044 #40): read here, the core stays pure.
-                state.root === undefined ? undefined : roadmapCache.has(state.root) ? roadmapCache.get(state.root) : await $.fs.read(`${state.root}/docs/roadmap.md`).then(text => { roadmapCache.set(state.root!, text); return text }).catch(() => { roadmapCache.set(state.root!, undefined); return undefined }),
-                // Specs at scale (067): the view, the open blocks, the grouping and what Claude touched.
-                { ...(pane.view === undefined ? {} : { view: pane.view }), filtered: !((specFilter ?? '').trim() === '' && (pane.status ?? 'all') === 'all'), open: pane.open ?? [], group: pane.group ?? 'status', touched: stats?.touchedSpecs ?? [], planMissing: stats?.planMissing ?? {} },
-              ),
-            ]
+          ? await sessionTabRows($, state, usage, stats, updates, updatesRead.value?.confirming, { columns, updatesOpen: pane.updatesOpen === true, logOpen: pane.logOpen === true, turnsOpen: pane.turnsOpen === true })
+          : view === 'specs'
+            ? await (async () => {
+                const tree = await specsTreeRows($, e, state, stats, pane, specFilter, columns, await pastResetRows($, state, stats, usage))
+                keptSpecs = tree.kept
+                return tree.rows
+              })()
+            : []
     // A filter that keeps nothing says so (052 #7).
     const matchesNone =
       (needle !== '' || (view === 'specs' && (pane.status ?? 'all') !== 'all')) &&
-      (view === 'specs' ? filtered(state, specFilter, pane.status, specFilterContext(stats)).features.length === 0 && state.features.length > 0 : (view === 'tasks' || view === 'help') && rows.every(r => r.key === 'count'))
+      (view === 'specs' ? keptSpecs === 0 && state.features.length > 0 : view === 'help' && rows.length === 0)
     if (matchesNone && view === 'specs') rows.splice(0, rows.length, ...rows.filter(r => r.key !== 'empty'))
-    if (matchesNone) rows.push({ key: 'no-match', text: t(currentLang(), 'pane.noMatch', { filter: pane.filter?.trim() ?? '' }), role: 'muted' } as never)
+    if (matchesNone) rows.push({ key: 'no-match', text: t(currentLang(), 'pane.noMatch', { filter: pane.filter?.trim() ?? '' }), role: 'muted' })
     const { Box, Text, Button } = $.ui.resolve(e)
     const featureRowKeys = new Set(state.features.map(feature => `feature-${feature.id}`))
+    // The tree's selectable rows: each spec and each task (078).
     specSelectionRows = view === 'specs'
-      ? rows.flatMap((row, index) => featureRowKeys.has(row.key) && 'href' in row && row.href !== undefined ? [{ key: row.key, index }] : [])
+      ? rows.flatMap((row, index) => ((featureRowKeys.has(row.key) || row.task !== undefined) && row.href !== undefined ? [{ key: row.key, index }] : []))
       : []
     const activeSpecFeature = state.features.find(feature => feature.dir === state.active?.dir)
-    const preferredSelection = pane.selectedFeature === undefined
-      ? activeSpecFeature === undefined ? undefined : `feature-${activeSpecFeature.id}`
-      : `feature-${pane.selectedFeature}`
+    const preferredSelection =
+      pane.selectedTask !== undefined && specSelectionRows.some(row => row.key === pane.selectedTask)
+        ? pane.selectedTask
+        : pane.selectedFeature === undefined
+          ? activeSpecFeature === undefined ? undefined : `feature-${activeSpecFeature.id}`
+          : `feature-${pane.selectedFeature}`
     selectedSpecRow = specSelectionRows.some(row => row.key === preferredSelection)
       ? preferredSelection
       : specSelectionRows[0]?.key
@@ -3708,10 +4039,25 @@ export const register: Register = (on, options) => {
     const inProgress = state.features.filter(f => f.phase !== 'done' && f.phase !== 'abandoned').length
     const pullCount = stats?.pulls?.rows.length
     // The advisor review and gstack's skills that fit the selected spec's phase, under its row (051, 055, 061).
-    const reviewed = state.features.find(f => `feature-${f.id}` === selectedSpecRow)
+    const selectedTaskRow = rows.find(r => r.key === selectedSpecRow && r.task !== undefined)
+    const reviewed = selectedTaskRow?.task === undefined
+      ? state.features.find(f => `feature-${f.id}` === selectedSpecRow)
+      : state.features.find(f => f.dir === selectedTaskRow.task!.dir)
     const reviewedNext = reviewed === undefined ? undefined : nextFor(reviewed, reviewed.dir === state.active?.dir, state.isAnalyzed === true)
+    const taskRow = selectedTaskRow?.task
+    const taskButtons: Array<{ key: string; label: string; hotkey?: string; onPress: () => void }> =
+      view === 'specs' && reviewed !== undefined && taskRow !== undefined && 'Button' in $.ui.resolve(e)
+        ? [
+            // Astrolabe writes nothing to the project (spec 051): the tick goes to the prompt box for Claude.
+            { key: 'task-tick', label: t(currentLang(), 'task.tick'), hotkey: 'x', onPress: () => void $.prompt.suggest({ text: tickSuggestion(reviewed, taskRow) }).catch(() => undefined) },
+            { key: 'task-do', label: t(currentLang(), 'task.do'), onPress: () => void $.prompt.suggest({ text: doTaskSuggestion(reviewed, taskRow) }).catch(() => undefined) },
+            ...(taskRow.id === undefined ? [] : [{ key: 'task-copy', label: `⧉ ${taskRow.id}`, onPress: () => void copyNext($, taskRow.id!, e.surface) }]),
+          ]
+        : []
     const rowButtons: Array<{ key: string; label: string; hotkey?: string; onPress: () => void }> =
-      view === 'specs' && reviewed !== undefined && 'Button' in $.ui.resolve(e)
+      taskButtons.length > 0
+        ? taskButtons
+        : view === 'specs' && reviewed !== undefined && 'Button' in $.ui.resolve(e)
         ? [
             {
               key: 'advisor-review',
@@ -3729,6 +4075,21 @@ export const register: Register = (on, options) => {
             ...(reviewedNext === undefined
               ? []
               : [{ key: 'copy-next', label: `⧉ ${reviewedNext}`, onPress: () => void copyNext($, reviewedNext, e.surface) }]),
+            // Making this spec the active one asks twice, as before (044 #38, 078 FR-004).
+            ...(reviewed.dir !== state.active?.dir && state.root !== undefined
+              ? [{
+                  key: 'use-spec',
+                  label: pane.confirm === `use-${reviewed.id}` ? t(currentLang(), 'specs.confirmSelect', { id: reviewed.id }) : t(currentLang(), 'detail.use'),
+                  hotkey: 'u',
+                  onPress: () => void confirmPress($, `use-${reviewed.id}`, () => void (async () => {
+                    await $.store.set(`feature:${state.root}`, reviewed.dir).catch(() => undefined)
+                    await showToast($, t(currentLang(), 'specs.selected', { id: reviewed.id, name: reviewed.name }))
+                  })()),
+                }]
+              : []),
+            // The id copies on a press; the toast names what was copied (078 FR-023).
+            { key: 'copy-id', label: `⧉ ${reviewed.id}`, onPress: () => void copyNext($, reviewed.id, e.surface) },
+            { key: 'priority', label: t(currentLang(), 'detail.priority'), hotkey: 'p', onPress: () => void setPriority($, reviewed.id, nextPriority(stats?.priorities?.[reviewed.id])).catch(() => undefined) },
             // Ready to close (067 #32): the edit is Claude's, offered in the prompt box.
             ...(isReadyToClose(reviewed)
               ? [{ key: 'close-spec', label: t(currentLang(), 'detail.close'), onPress: () => void $.prompt.suggest({ text: closeSuggestion(reviewed) }).catch(() => undefined) }]
@@ -3737,30 +4098,27 @@ export const register: Register = (on, options) => {
         : []
     // The line above those buttons: what the spec needs, at a glance (061).
     const rowDetail =
-      reviewed === undefined || view !== 'specs'
+      reviewed === undefined || view !== 'specs' || taskRow !== undefined
         ? undefined
         : specDetail(reviewed, {
             ...(stats?.priorities?.[reviewed.id] === undefined ? {} : { priority: stats.priorities[reviewed.id]! }),
             worktrees: worktreesById(stats?.worktrees)[reviewed.id] ?? [],
             ...(reviewedNext === undefined ? {} : { next: reviewedNext }),
             ...(reviewed.updatedAt === undefined ? {} : { age: ageOf(Date.parse(reviewed.updatedAt), await $.clock.now()) }),
+            // What is left at the pace of the tasks done so far: two samples at least (078 FR-006).
+            ...((samples => (samples.length >= 2 && reviewed.total > reviewed.done ? { estimate: duration(Math.round(samples.reduce((n, x) => n + x.ms, 0) / samples.length) * (reviewed.total - reviewed.done)) } : {}))((stats?.taskTimes ?? []).filter(x => x.dir === reviewed.dir && x.ms > 0))),
             lang: currentLang(),
           })
     // The selected spec's first line of summary, one dim row under its detail (board 3).
     const rowDescription =
-      reviewed === undefined || view !== 'specs' || reviewed.dir !== state.active?.dir || state.activeSummary === undefined
+      reviewed === undefined || view !== 'specs' || taskRow !== undefined || reviewed.dir !== state.active?.dir || state.activeSummary === undefined
         ? undefined
         : state.activeSummary.split('\n').map(l => l.replace(/^#+\s*/, '').trim()).find(l => l !== '' && !/^[-*>|`]/.test(l))
-    // Under the Tasks list: the [P] run as one prompt (054 #89) and the open tasks as issues (050 #96).
+    // Under the tasks-only list: the open tasks as issues (050 #96). The [P] run is an action row in the tree.
     const taskActions: Array<{ key: string; label: string; onPress: () => void }> = []
-    if (view === 'tasks' && state.active !== undefined && 'Button' in $.ui.resolve(e)) {
+    if (view === 'specs' && pane.tasksOnly === true && state.active !== undefined && 'Button' in $.ui.resolve(e)) {
       const open = (state.activeTasks ?? []).filter(task => !task.isDone)
       const feature = state.features.find(f => f.dir === state.active?.dir)
-      const run = parallelTasks(open)
-      if (feature !== undefined && run.length >= 2) {
-        const picked = open.filter(task => task.id !== undefined && run.includes(task.id))
-        taskActions.push({ key: 'parallel-dispatch', label: t(currentLang(), 'parallel.button', { ids: run.join(', ') }), onPress: () => void $.clock.after(0, () => void $.prompt.submit({ text: parallelPrompt(feature, picked) }).catch(() => undefined)) })
-      }
       if (feature !== undefined && open.length > 0) {
         const confirmKey = `issues-${feature.id}`
         const n = Math.min(open.length, 20)
@@ -3805,6 +4163,22 @@ export const register: Register = (on, options) => {
           }
         : {}),
       ...(view === 'session' ? { onUpdate: async (id: string) => runUpdate($, id as UpdateId) } : {}),
+      // The folded blocks of the Session tab: the updates and today's governor log (078).
+      ...(view === 'session'
+        ? {
+            onFold: async (id: string) => {
+              const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
+              const { updatesOpen: u, logOpen: l, turnsOpen: n, ...rest } = held
+              const open = { updates: u === true, log: l === true, turns: n === true }
+              open[id as keyof typeof open] = !open[id as keyof typeof open]
+              await $.state.set(PANE_STATE, { ...rest, ...(open.updates ? { updatesOpen: true as const } : {}), ...(open.log ? { logOpen: true as const } : {}), ...(open.turns ? { turnsOpen: true as const } : {}) })
+            },
+            onFinding: (id: string) => {
+              const [spec = '', ...rest] = id.split('\n')
+              void $.prompt.suggest({ text: `Address this review finding of spec ${spec}: ${rest.join(' ')}` }).catch(() => undefined)
+            },
+          }
+        : {}),
       ...(view === 'session'
         ? {
             onLiftBand: async () => {
@@ -3817,7 +4191,8 @@ export const register: Register = (on, options) => {
         : {}),
       colorblind: optionsSeen['flavor'] === 'colorblind',
       wrapLongNames: e.surface === 'desktop',
-      marks: accessible ? ('words' as const) : iconsFor(iconsOption, e.surface) === 'ascii' ? ('ascii' as const) : ('unicode' as const),
+      // The accessible mode takes effect in the pane as soon as it is drafted (078 FR-080).
+      marks: accessible || pane.draft?.['astrolabe.accessible'] === true ? ('words' as const) : iconsFor(iconsOption, e.surface) === 'ascii' ? ('ascii' as const) : ('unicode' as const),
       // s cycles the Specs tab's status filter (054 #21).
       ...(view === 'specs'
         ? {
@@ -3825,14 +4200,6 @@ export const register: Register = (on, options) => {
               const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
               await $.state.set(PANE_STATE, { ...held, status: nextStatus(held.status) })
             } },
-          }
-        : {}),
-      ...(view === 'specs' && state.active !== undefined
-        ? {
-            onPriority: async () => {
-              const id = state.active!.id
-              await setPriority($, id, nextPriority((await $.state.get(SESSION)).value?.priorities?.[id]))
-            },
           }
         : {}),
       // file: links open only from the terminal; the desktop draws them as plain text, so none there.
@@ -3847,13 +4214,13 @@ export const register: Register = (on, options) => {
       // v toggles Focus and All, g cycles the grouping, a block header opens and folds (067 #31, #39).
       ...(view === 'specs'
         ? {
-            view: {
+            ...(state.features.length > 12 || pane.view !== undefined ? { view: {
               label: t(currentLang(), pane.view === 'all' ? 'pane.view.all' : state.features.length > 12 || pane.view === 'focus' ? 'pane.view.focus' : 'pane.view.list'),
               onPress: async () => {
                 const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
                 await $.state.set(PANE_STATE, { ...held, view: held.view === 'all' ? 'focus' : 'all' })
               },
-            },
+            } } : {}),
             ...(pane.view === 'all'
               ? {
                   group: {
@@ -3871,6 +4238,47 @@ export const register: Register = (on, options) => {
               if (open.has(key)) open.delete(key)
               else open.add(key)
               await $.state.set(PANE_STATE, { ...held, open: [...open] })
+            },
+          }
+        : {}),
+      // t shows only the active spec's tasks, e opens or folds every spec (078 FR-005, FR-009).
+      ...(view === 'specs'
+        ? {
+            tasksOnly: {
+              label: t(currentLang(), pane.tasksOnly === true ? 'tree.allSpecs' : 'tree.tasksOnly'),
+              onPress: async () => {
+                const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
+                const { tasksOnly: _was, ...rest } = held
+                await $.state.set(PANE_STATE, held.tasksOnly === true ? rest : { ...rest, tasksOnly: true })
+              },
+            },
+            openAll: {
+              label: t(currentLang(), 'tree.openAll'),
+              onPress: async () => {
+                const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
+                const fold = allToggled(state.features.filter(f => f.total > 0).map(f => f.dir), state.active?.dir, { ...(held.opened === undefined ? {} : { opened: held.opened }), ...(held.closed === undefined ? {} : { closed: held.closed }) })
+                await $.state.set(PANE_STATE, { ...held, ...fold })
+                if (state.root !== undefined) await $.store.set(`folds:${state.root}`, fold).catch(() => undefined)
+              },
+            },
+            onAsk: (id: string) => void $.prompt.suggest({ text: questionSuggestion(id) }).catch(() => undefined),
+            onSpecify: (id: string) => void $.prompt.suggest({ text: `/speckit-specify ${id}` }).catch(() => undefined),
+            // m cycles what the list shows: all, mine (the active spec), blocked, ready to close (078 FR-034).
+            preset: {
+              label: t(currentLang(), 'tree.preset', { name: t(currentLang(), `tree.preset.${PRESET_OF[(pane.filter ?? '').trim()] ?? 'all'}` as TextKey) }),
+              onPress: async () => {
+                const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
+                const at = (PRESET_FILTERS as readonly string[]).indexOf((held.filter ?? '').trim())
+                const next = PRESET_FILTERS[(at + 1) % PRESET_FILTERS.length]!
+                const { filter: _old, ...rest } = held
+                await $.state.set(PANE_STATE, next === '' ? rest : { ...rest, filter: next })
+              },
+            },
+            onParallel: (id: string) => {
+              const [dir, ...ids] = id.split('\n')
+              const feature = state.features.find(f => f.dir === dir)
+              const picked = (dir === state.active?.dir ? state.activeTasks ?? [] : []).filter(task => task.id !== undefined && ids.includes(task.id))
+              if (feature !== undefined && picked.length > 0) void $.clock.after(0, () => void $.prompt.submit({ text: parallelPrompt(feature, picked) }).catch(() => undefined))
             },
           }
         : {}),
@@ -3896,10 +4304,10 @@ export const register: Register = (on, options) => {
           }
         : {}),
       onCopy: (text: string) => copyNext($, text, e.surface),
-      onFind: view === 'specs' || view === 'tasks' || view === 'help' || view === 'setup' ? () => $.ui.focus({ requestId: PANE_ID, key: 'astrolabe-filter' }).then(() => undefined) : undefined,
+      onFind: view === 'specs' || view === 'help' || view === 'setup' || view === 'prs' ? () => $.ui.focus({ requestId: PANE_ID, key: 'astrolabe-filter' }).then(() => undefined) : undefined,
       // What the tab is for, then its keys; a narrow pane keeps the keys whole (052 #3).
       // Nothing under the Tasks list but its actions: the key row names the keys (board 3, 075 FR-012).
-      ...(view === 'tasks'
+      ...(view === 'specs' && pane.tasksOnly === true
         ? {}
         : {
             legend: ((about: string, keys: string) => ([...`${about} · ${keys}`].length <= columns ? `${about} · ${keys}` : keys))(
@@ -3918,6 +4326,8 @@ export const register: Register = (on, options) => {
       // The last tab, per project, for the next session (043 #22).
       if (state.root !== undefined) await $.store.set(`tab:${state.root}`, tab).catch(() => undefined)
       if (tab === 'prs') $.clock.after(0, () => void refreshPulls($))
+      // The doctor's checks, at most once a minute, for the Session tab's health block (078 FR-058).
+      if (tab === 'session') $.clock.after(0, () => void refreshHealth($))
     }
     // The footer under every tab (035), held at the bottom when the tab is shorter than the pane.
     const shortPaneRule = (e.props.scroll?.bodyRows ?? 24) < 12
@@ -3998,24 +4408,26 @@ export const register: Register = (on, options) => {
       return {
         win,
         pad: room - shownRows - arrows,
-        nav: { above: win.start, below: heights.length - win.end, up: () => scrollBy(-step), down: () => scrollBy(step), labels: { more: t(currentLang(), 'pane.scrollMore') } },
+        nav: { above: win.start, below: heights.length - win.end, up: () => scrollBy(-step), down: () => scrollBy(step), top: () => scrollBy(-heights.length), labels: { more: t(currentLang(), 'pane.scrollMore') } },
       }
     }
     if (view === 'prs') {
-      const units = pullsBody($, e, pane, stats)
-      const { win, pad, nav } = navFor(units.map(u => u.rows), bodyRows - 1 - footerReserve)
+      const units = pullsBody($, e, pane, stats, state)
+      // The filter box leads the table: `is:failing`, `is:draft`, `is:mine` (078 FR-070).
+      const prsHeader = paneHeader($, e, pane, state, stats, undefined, await $.clock.now())
+      const { win, pad, nav } = navFor(units.map(u => u.rows), bodyRows - 1 - footerReserve - prsHeader.length)
       const body = (
         <Box key="astrolabe-prs" flexDirection="column">
           {units.slice(win.start, win.end).map(u => u.node)}
         </Box>
       )
-      return paneTree({ Box, Text, Button }, pane.tab, [], tokens, select, body, currentLang(), [], await footerFor(pad), nav, extras)
+      return paneTree({ Box, Text, Button }, pane.tab, [], tokens, select, body, currentLang(), prsHeader, await footerFor(pad), nav, extras)
     }
     if (view === 'setup') {
       // Setup (066 #21): the options, then the model per skill.
       const { Text: SetupText } = $.ui.resolve(e)
       const setupUnits = [
-        ...configBody($, e, pane),
+        ...configBody($, e, pane, state),
         { rows: 1, node: <SetupText key="setup-footer-title" color={tokens.accent} bold>{t(currentLang(), 'footer.setup.title')}</SetupText> },
         ...footerSetupRows(footerNow, currentLang()).map((text, i) => ({
           rows: 1,
@@ -4026,35 +4438,32 @@ export const register: Register = (on, options) => {
         ...modelSkillTabBody($, e, pane),
       ]
       const units = setupUnits
-      const { win, pad, nav } = navFor(units.map(u => u.rows), bodyRows - 1 - footerReserve)
+      const bar = configBar($, e, pane)
+      const { win, pad, nav } = navFor(units.map(u => u.rows), bodyRows - 1 - footerReserve - 1 - bar.length)
       const body = (
         <Box key="astrolabe-setup" flexDirection="column">
           {units.slice(win.start, win.end).map(u => u.node)}
         </Box>
       )
-      return paneTree({ Box, Text, Button }, pane.tab, [], tokens, select, body, currentLang(), [], await footerFor(pad), nav, extras)
+      const setupHeader = [...paneHeader($, e, pane, state, stats, undefined, await $.clock.now()), ...bar]
+      return paneTree({ Box, Text, Button }, pane.tab, [], tokens, select, body, currentLang(), setupHeader, await footerFor(pad), nav, extras)
     }
     if (view !== 'session') {
-      const allTaskRows = view === 'tasks'
-        ? taskRows(state, emptyMemo(), Number.MAX_SAFE_INTEGER, columns, currentLang())
-        : []
-      const taskFilterRows = allTaskRows.filter(row => row.key.startsWith('task-') && (needle === '' || row.text.toLowerCase().includes(needle)))
       const filterCount =
         view === 'specs'
-          ? { kept: filtered(state, specFilter, pane.status, specFilterContext(stats)).features.length, total: state.features.length }
-          : view === 'tasks'
+          ? { kept: keptSpecs, total: state.features.length }
+          : view === 'help'
             ? {
-                kept: taskFilterRows.length,
-                total: allTaskRows.filter(row => row.key.startsWith('task-')).length,
+                kept: rows.filter(row => row.key !== 'no-match').length,
+                total: helpRows(helpText(currentLang(), optionsSeen, stats?.health?.lines ?? []), undefined, currentLang()).length,
               }
-            : view === 'help'
-              ? {
-                  kept: rows.filter(row => row.key !== 'no-match').length,
-                  total: helpRows(helpText(currentLang(), optionsSeen, stats?.health?.lines ?? []), undefined, currentLang()).length,
-                }
-              : undefined
+            : undefined
       const nowForHeader = await $.clock.now()
-      const header = paneHeader($, e, pane, state, stats, filterCount, nowForHeader)
+      const crumb =
+        view !== 'specs' || reviewed === undefined
+          ? undefined
+          : breadcrumb({ spec: reviewed.id, ...(taskRow?.story === undefined ? {} : { story: taskRow.story }), ...(taskRow?.id === undefined ? {} : { task: taskRow.id }) })
+      const header = paneHeader($, e, pane, state, stats, filterCount, nowForHeader, undefined, crumb)
       // Rows the header takes: the filter, the summary's lines and links, the diff's lines.
       const headerRows =
         ('Input' in $.ui.resolve(e) ? 1 + (filterCount === undefined ? 0 : 1) : 0) +
@@ -4062,19 +4471,17 @@ export const register: Register = (on, options) => {
         (rowDetail === undefined ? 0 : 1) +
         (rowDescription === undefined ? 0 : 1) +
         (taskActions.length > 0 ? taskActions.length : 0) +
-        (view === 'specs'
-          ? 0
-          : view === 'tasks' && stats?.tasksDiff !== undefined && stats.tasksDiff.dir === state.active?.dir
-            ? stats.tasksDiff.at !== undefined && nowForHeader - stats.tasksDiff.at > DIFF_FOLD_MS
-              ? 1
-              : wrappedRows(capDiff(stats.tasksDiff.text, currentLang()), columns - 2)
-            : 0)
+        (view === 'specs' && pane.tasksOnly === true && stats?.tasksDiff !== undefined && stats.tasksDiff.dir === state.active?.dir
+          ? stats.tasksDiff.at !== undefined && nowForHeader - stats.tasksDiff.at > DIFF_FOLD_MS
+            ? 1
+            : wrappedRows(capDiff(stats.tasksDiff.text, currentLang()), columns - 2)
+          : 0)
       const room = bodyRows - 1 - headerRows - footerReserve
       const { win, pad, nav } = navFor(rows.map(() => 1), room)
       const footer = await footerFor(pad)
       // A list longer than the pane says which rows are in view and draws a thumb (067 #35).
       const windowed = win.start > 0 || win.end < rows.length
-      const shownHeader = windowed ? paneHeader($, e, pane, state, stats, filterCount, nowForHeader, { from: win.start + 1, to: win.end, total: rows.length }) : header
+      const shownHeader = windowed ? paneHeader($, e, pane, state, stats, filterCount, nowForHeader, { from: win.start + 1, to: win.end, total: rows.length }, crumb) : header
       const shown = windowed ? withThumb(rows.slice(win.start, win.end), win.start, rows.length, columns) : rows.slice(win.start, win.end)
       return paneTree({ Box, Text, Button }, pane.tab, shown, tokens, select, undefined, currentLang(), shownHeader, footer, nav, extras)
     }

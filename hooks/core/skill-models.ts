@@ -40,9 +40,30 @@ export const modelForTask = (text: string | undefined): SkillModel | undefined =
   return undefined
 }
 
+/** The three model families the Setup table cycles (078 FR-079), and the ids they stand for. */
+export const MODEL_FAMILIES = ['opus', 'sonnet', 'haiku'] as const
+export const EFFORTS = ['low', 'medium', 'high'] as const
+export type ModelFamily = (typeof MODEL_FAMILIES)[number]
+const FAMILY_ID: Readonly<Record<ModelFamily, string>> = { opus: OPUS, sonnet: SONNET, haiku: HAIKU }
+export const familyOf = (model: string): ModelFamily => (MODEL_FAMILIES.find(f => model.includes(f)) ?? 'sonnet')
+
+/** What the person changed in the Setup table, by skill name. */
+export type SkillOverrides = Readonly<Record<string, { model?: ModelFamily; effort?: SkillModel['effort'] }>>
+
+/** The skill's entry with the person's choices laid over it. */
+export const withOverride = (name: string, entry: SkillModel | undefined, overrides: SkillOverrides): SkillModel | undefined => {
+  if (entry === undefined) return undefined
+  const own = overrides[name]
+  if (own === undefined) return entry
+  return { ...entry, ...(own.model === undefined ? {} : { model: FAMILY_ID[own.model] }), ...(own.effort === undefined ? {} : { effort: own.effort }) }
+}
+
+/** The skill name without a plugin prefix: `gstack:review` is `review`, `speckit.plan` is `speckit-plan`. */
+export const skillNameOf = (skill: string): string => skill.replace(/^[a-z0-9-]+:/, '').replace(/^speckit\./, 'speckit-')
+
 /** The entry for a skill name, with or without a plugin prefix (`gstack:review`, `speckit.plan`). */
-export const skillModelFor = (skill: string | undefined): SkillModel | undefined => {
+export const skillModelFor = (skill: string | undefined, overrides: SkillOverrides = {}): SkillModel | undefined => {
   if (skill === undefined) return undefined
-  const name = skill.replace(/^[a-z0-9-]+:/, '').replace(/^speckit\./, 'speckit-')
-  return SKILL_MODELS[name]
+  const name = skillNameOf(skill)
+  return withOverride(name, SKILL_MODELS[name], overrides)
 }
