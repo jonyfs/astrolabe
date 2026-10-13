@@ -42,7 +42,7 @@ describe('worktree specs (037)', () => {
     expect(session.processes).toContain(WORKTREES)
     const ui = await mountPane($ as never, 'terminal', 100, 40)
     const body = await ui.body()
-    const featureRow = body.match(/▸ ● 025 a\s+done/)?.[0] ?? ''
+    const featureRow = body.match(/▸ ◆ 025 a\s+done/)?.[0] ?? ''
     const worktreeRow = body.match(/⑂026 claude-context\s+implement/)?.[0] ?? ''
     expect(worktreeRow).not.toBe('')
     expect(featureRow.indexOf('025') + 4).toBe(featureRow.indexOf('a'))
