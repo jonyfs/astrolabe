@@ -1184,23 +1184,23 @@ between the answers, Enter picks one, and the first answer, the cautious one, is
 selected:
 
 ```text
-🧭 usage 7d 83% (hold): a new subagent, "Full review". What now?
-❯ Queue it until Mon 07:00
-  Run this one now
-  Allow subagents for 1 hour, one at a time
+‖ 7d at 83%▴ · "Full review" is queued until Mon 07:00
+❯ Keep it queued (applied)
+  Run it now
+  Lift holds for 1 hour
   Drop this request
-↑↓ to choose, Enter to pick. Esc or no answer: the default goes ahead at 12:01:00.
+The cautious default is already applied. ↑↓ to choose, Enter to pick; Esc or no answer keeps it.
 ```
 
 What each answer does:
 
 | Answer | What happens |
 |---|---|
-| `Queue it until <reset>` | The subagent stays queued until the window resets. |
-| `Run this one now` | It leaves the queue, and a prompt tells Claude to send it again; that one call goes through. |
-| `Allow subagents for 1 hour, one at a time` | The queue is sent again, and new subagents run one at a time for the hour. |
+| `Keep it queued (applied)` | The subagent stays queued until the window resets. |
+| `Run it now` | It leaves the queue, and a prompt tells Claude to send it again; that one call goes through. |
+| `Lift holds for 1 hour` | The queue is sent again, and new subagents run one at a time for the hour. |
 | `Drop this request` | It leaves the queue; later subagents are dropped too while the band lasts. |
-| `Pause until <reset>` | Claude stays paused until the window resets. |
+| `Keep it paused until <reset> (applied)` | Claude stays paused until the window resets. |
 | `Continue for 30 more minutes (ceiling 91%)` | The ceiling is raised for 30 minutes, and a prompt tells Claude to continue. |
 | `Raise the ceiling to 95% for 2 hours` | The same, for 2 hours. |
 

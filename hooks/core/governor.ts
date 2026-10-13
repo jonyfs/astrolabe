@@ -190,6 +190,12 @@ const usageText = (d: Decision): string =>
       ? `usage ${labelOf(d.highest.kind)} renewed`
       : `usage ${labelOf(d.highest.kind)} ${Math.round(d.highest.percent)}%`
 
+/** The window, its percent and the ramp mark, for a question's first line (board 5). */
+const usageParts = (d: Decision): { window: string; p: number | string; mark: string } =>
+  d.highest === undefined
+    ? { window: 'usage', p: '?', mark: '' }
+    : { window: labelOf(d.highest.kind), p: Math.round(d.highest.percent), mark: usageRamp(d.highest.percent).mark }
+
 /** A ceiling at least `floor`, two points above usage, at most 99; undefined when that is not above usage. */
 const ceilingFor = (percent: number, floor: number): number | undefined => {
   const target = Math.min(99, Math.max(floor, Math.floor(percent) + 2))
@@ -198,7 +204,7 @@ const ceilingFor = (percent: number, floor: number): number | undefined => {
 
 export const holdQuestion = (d: Decision, description: string, resetClock?: string, lang: Lang = 'en'): Question => ({
   kind: 'hold',
-  text: t(lang, 'ask.hold', { usage: usageText(d), band: d.band, description }),
+  text: t(lang, 'ask.hold', { ...usageParts(d), description, at: resetClock ?? t(lang, 'ask.theReset') }),
   options: [
     { value: 'queue', label: t(lang, 'ask.queue', { at: resetClock ?? t(lang, 'ask.theReset') }) },
     { value: 'run', label: t(lang, 'ask.run') },
@@ -214,7 +220,7 @@ export const pauseQuestion = (d: Decision, tool: string, resetClock?: string, la
   const raise = ceilingFor(percent, 95)
   return {
     kind: 'pause',
-    text: t(lang, 'ask.pause', { usage: usageText(d), band: d.band, tool }),
+    text: t(lang, 'ask.pause', { ...usageParts(d), tool, at: resetClock ?? t(lang, 'ask.theReset') }),
     options: [
       { value: 'pause', label: t(lang, 'ask.pauseUntil', { at: resetClock ?? t(lang, 'ask.theReset') }) },
       ...(extend === undefined ? [] : [{ value: 'extend', label: t(lang, 'ask.extend', { n: extend }), target: extend }]),
