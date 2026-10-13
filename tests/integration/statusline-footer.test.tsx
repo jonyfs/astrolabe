@@ -169,11 +169,12 @@ describe('the pane footer from statusline (070)', () => {
 describe('the embedding options (081)', () => {
   // The renderer's environment, as the mod gave it, once a render answered.
   const renderEnv = async ($: never, on: never, script?: (s: Session) => void) => {
-    const { session, cli } = await setup($, on)
+    const { session } = await setup($, on)
     script?.(session)
     await turn($, session)
     await answerCli($, session, GOOD)
-    return { session, cli, env: session.envs[`node ${cli}`] ?? {} }
+    const line = session.processes.find(p => p.startsWith('node ') && p.replace(/\\/g, '/').endsWith('/vendor/statusline/bin/cli.js'))
+    return { session, env: (line === undefined ? undefined : session.envs[line]) ?? {} }
   }
 
   test('by default the environment has no passive switch, cache directory or omit list', async ($, on) => {
@@ -200,8 +201,8 @@ describe('the embedding options (081)', () => {
   })
 
   test('the Setup tab shows the mode, the omit list and what the copy resolved', { options: { footerStatuslineMode: 'passive', footerOmit: 'dir' } }, async ($, on) => {
-    const { session, cli } = await setup($ as never, on as never)
-    session.script.processes[`node ${cli} --print-config`] = { stdout: JSON.stringify({ contract: 1, flavor: 'mocha', glyphs: 'nerd', separator: 'arrow', passive: true, layout: { omitted: ['dir'] } }) }
+    const { session } = await setup($ as never, on as never)
+    session.script.printConfig = JSON.stringify({ contract: 1, flavor: 'mocha', glyphs: 'nerd', separator: 'arrow', passive: true, layout: { omitted: ['dir'] } })
     await turn($ as never, session)
     await answerCli($ as never, session, GOOD)
     const ui = await mountPane($ as never, 'terminal', 100, 80)
@@ -214,8 +215,8 @@ describe('the embedding options (081)', () => {
   })
 
   test('the Setup tab names a flavor that was asked for and not drawn', { options: { flavor: 'latte' } }, async ($, on) => {
-    const { session, cli } = await setup($ as never, on as never)
-    session.script.processes[`node ${cli} --print-config`] = { stdout: JSON.stringify({ contract: 1, flavor: 'mocha', glyphs: 'nerd', separator: 'arrow', layout: { omitted: [] } }) }
+    const { session } = await setup($ as never, on as never)
+    session.script.printConfig = JSON.stringify({ contract: 1, flavor: 'mocha', glyphs: 'nerd', separator: 'arrow', layout: { omitted: [] } })
     await turn($ as never, session)
     await answerCli($ as never, session, GOOD)
     const ui = await mountPane($ as never, 'terminal', 100, 80)
@@ -237,8 +238,8 @@ describe('the embedding options (081)', () => {
   })
 
   test('the resolved configuration is read at most once a minute, never while drawing', async ($, on) => {
-    const { session, cli } = await setup($ as never, on as never)
-    session.script.processes[`node ${cli} --print-config`] = { stdout: JSON.stringify({ contract: 1, flavor: 'mocha', layout: { omitted: [] } }) }
+    const { session } = await setup($ as never, on as never)
+    session.script.printConfig = JSON.stringify({ contract: 1, flavor: 'mocha', layout: { omitted: [] } })
     await turn($ as never, session)
     await answerCli($ as never, session, GOOD)
     const reads = () => session.processes.filter(p => p.endsWith('--print-config')).length

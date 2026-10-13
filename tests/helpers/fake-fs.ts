@@ -149,6 +149,8 @@ export type Session = {
     processes: ProcessScript
     http: Record<string, { status: number; text: string }>
     env: Record<string, string>
+    /** The stdout of any `node <cli> --print-config` (081). */
+    printConfig?: string
     /** What `$.session.id()` answers; without it the call is refused, as before (077). */
     sessionId?: string
     /** What `$.session.usage()` answers; without it the call is refused, as before (077). */
@@ -254,7 +256,8 @@ export const installTree = (on: On, tree: Tree, cwd: string, seed: Record<string
     // A path in the argv may be spelled with backslashes on Windows; a test keys it with slashes (081).
     const slashed = line.replace(/\\/g, '/')
     if (givenEnv !== undefined) envs[line] = envs[slashed] = { ...givenEnv }
-    const answer = script.processes[line] ?? script.processes[slashed]
+    // What `--print-config` answers for any copy path, so a test need not know how the engine spells it (081).
+    const answer = script.processes[line] ?? script.processes[slashed] ?? (slashed.endsWith(' --print-config') && script.printConfig !== undefined ? { stdout: script.printConfig } : undefined)
     if (answer === undefined || answer === 'missing') return { deny: `ENOENT: ${e.argv[0]}` }
     return { value: { exitCode: answer.exitCode ?? 0, stdout: answer.stdout ?? '', stderr: answer.stderr ?? '', isStdoutTruncated: false, isStderrTruncated: false } } as never
   })
