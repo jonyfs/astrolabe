@@ -452,7 +452,7 @@ export const PT_BR: Dictionary = {
   'help.filterSyntax': "Filtro de Specs: palavras, phase:plan, has:questions|checklist|warning|worktree, track:quick, prio:high, is:active|progress|done. c limpa, o muda a ordem.",
   'help.keys.pane': "Painel: 1-4 abas · ? ajuda (tecla h) · j/k rola · b volta uma janela · r atualiza · Esc limpa o filtro, depois a ajuda, depois fecha",
   'help.keys.specs': "Specs: / filtra (f) · t só tarefas · s status · o ordem · e abre ou dobra todas · a advisor · p prioridade · u usa a spec · c limpa o filtro",
-  'help.keys.tasks': "Árvore: Enter abre ou dobra a spec selecionada · x põe o tique da tarefa selecionada na caixa do prompt para o Claude",
+  'help.keys.tasks': "Árvore: Enter abre ou dobra a spec selecionada · x põe o tique da tarefa selecionada na caixa do prompt para o Claude · depois de um clique na lista: → abre, ← dobra, PageUp, PageDown, Home, End andam, Tab muda de aba, Esc devolve as teclas",
   'help.keys.session': 'Sessão: l permite, v revoga, q roda um subagente na fila · m copia os números',
   'help.keys.prs': "PRs: setas escolhem um pull request · Enter roda a primeira ação, pedindo duas vezes · aprovar, atualizar e mesclar pedem um segundo toque",
   'help.keys.setup': "Ajustes: setas escolhem uma opção · Enter muda o valor · Salvar, Redefinir, Cancelar · as mudanças vão para o armazém do mod",

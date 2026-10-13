@@ -8,6 +8,7 @@ import { markText } from '../core/icons'
 import { hotkeyOf } from '../core/keys'
 import { COLORBLIND_MARKS, type Tokens } from '../core/theme'
 import { isLinkable } from '../core/statusline-dep'
+import { clientRows } from '../core/pane-client'
 import { legendOf } from '../core/pane-tabs'
 import { TABS } from '../core/pane-tabs'
 import type { PaneTab } from '../core/types'
@@ -43,7 +44,7 @@ export const paneTree = (
   /** What is above and below the rows shown, with the presses that scroll (038). */
   nav?: { above: number; below: number; up: () => Promise<void>; down: () => Promise<void>; /** `g`: back to the first row (078 FR-017). */ top?: () => Promise<void>; labels: { more: string } },
   /** Counts beside the tab labels (043 #21) and the keys of the tab shown (043 #25). */
-  extras: { view?: { label: string; onPress: () => Promise<void> }; group?: { label: string; onPress: () => Promise<void> }; onToggleBlock?: (key: string) => Promise<void>; help?: boolean; onHelp?: () => Promise<void>; onUpdate?: (id: string) => Promise<void>; badges?: Partial<Record<PaneTab, string>>; legend?: string; onClose?: () => Promise<void>; onFind?: () => Promise<void>; onCopy?: (text: string) => Promise<void>; onRefresh?: () => Promise<void>; onCopyKpis?: () => Promise<void>; showKeys?: boolean; sort?: { label: string; onPress: () => Promise<void> }; onClear?: () => Promise<void>; onPriority?: () => Promise<void>; onRunQueued?: (id: string) => Promise<void>; rowButtons?: ReadonlyArray<{ key: string; label: string; hotkey?: string; onPress: () => void }>; rowDetail?: string; onLiftBand?: () => Promise<void>; taskActions?: ReadonlyArray<{ key: string; label: string; onPress: () => void }>; rowDescription?: string; onCloseReady?: (dirs: string[]) => void; onReconcile?: (id: string) => void; onAsk?: (id: string) => void; onFold?: (id: string) => void; onFinding?: (id: string) => void; onSpecify?: (id: string) => void; preset?: { label: string; onPress: () => Promise<void> }; onParallel?: (id: string) => void; tasksOnly?: { label: string; onPress: () => Promise<void> }; openAll?: { label: string; onPress: () => Promise<void> }; onAllowUsage?: () => Promise<void>; onRevokeUsage?: () => Promise<void>; status?: { label: string; onPress: () => Promise<void> }; columns?: number; marks?: 'unicode' | 'ascii' | 'words'; colorblind?: boolean; wrapLongNames?: boolean; Link?: ElementTable<'terminal'>['Link'] } = {},
+  extras: { view?: { label: string; onPress: () => Promise<void> }; group?: { label: string; onPress: () => Promise<void> }; onToggleBlock?: (key: string) => Promise<void>; help?: boolean; onHelp?: () => Promise<void>; onUpdate?: (id: string) => Promise<void>; badges?: Partial<Record<PaneTab, string>>; legend?: string; onClose?: () => Promise<void>; onFind?: () => Promise<void>; onCopy?: (text: string) => Promise<void>; onRefresh?: () => Promise<void>; onCopyKpis?: () => Promise<void>; showKeys?: boolean; sort?: { label: string; onPress: () => Promise<void> }; onClear?: () => Promise<void>; onPriority?: () => Promise<void>; onRunQueued?: (id: string) => Promise<void>; rowButtons?: ReadonlyArray<{ key: string; label: string; hotkey?: string; onPress: () => void }>; rowDetail?: string; onLiftBand?: () => Promise<void>; taskActions?: ReadonlyArray<{ key: string; label: string; onPress: () => void }>; rowDescription?: string; onCloseReady?: (dirs: string[]) => void; onReconcile?: (id: string) => void; onAsk?: (id: string) => void; onFold?: (id: string) => void; onFinding?: (id: string) => void; onSpecify?: (id: string) => void; preset?: { label: string; onPress: () => Promise<void> }; onParallel?: (id: string) => void; tasksOnly?: { label: string; onPress: () => Promise<void> }; openAll?: { label: string; onPress: () => Promise<void> }; onAllowUsage?: () => Promise<void>; onRevokeUsage?: () => Promise<void>; status?: { label: string; onPress: () => Promise<void> }; columns?: number; marks?: 'unicode' | 'ascii' | 'words'; colorblind?: boolean; wrapLongNames?: boolean; Link?: ElementTable<'terminal'>['Link']; /** The Specs list is drawn by a surface module when this is set and the rows fit (080). */ Client?: ElementTable<'terminal'>['Client'] } = {},
 ) => {
   const Link = extras.Link
   // The pane's own marks in the set the icons option and the accessible mode pick (052 #49, #47).
@@ -88,6 +89,36 @@ export const paneTree = (
     if (Link === undefined) return []
     return [<Link key={key} href={href} label={label} />]
   }
+  /** The detail, the description and the buttons of the selected row: under it in the list, under the list for a Client (080). */
+  const selectedBlock = (row: PaneRow) => {
+    if (extras.rowButtons === undefined || extras.rowButtons.length === 0) return []
+    return [
+      ...(extras.rowDetail === undefined ? [] : [<Text key={`${row.key}-detail`} color={tokens.text} backgroundColor={tokens.barEmpty} wrap="truncate-end">{`    ${m(extras.rowDetail)}`}</Text>]),
+      ...(extras.rowDescription === undefined ? [] : [<Text key={`${row.key}-description`} color={tokens.faint} wrap="truncate-end">{`    ${m(extras.rowDescription)}`}</Text>]),
+      <Box key={`${row.key}-buttons`} flexDirection="row">
+        <Text>{'  '}</Text>
+        {extras.rowButtons.map(button => (
+          <Button key={button.key} label={button.label} {...(button.hotkey === undefined ? {} : { hotkey: button.hotkey })} plain onPress={() => button.onPress()} />
+        ))}
+      </Box>,
+    ]
+  }
+  // The Specs list as a Client: the rows as plain data, or the tree's own rows when they do not fit (080 FR-005).
+  const Client = extras.Client
+  const listRows =
+    Client !== undefined && tab === 'specs' && body === undefined
+      ? clientRows(
+          rows,
+          {
+            color: row => tokens[row.role],
+            text: row => m(colorblindText(row, extras.colorblind)),
+            part: text => m(text),
+            segColor: role => tokens[role],
+          },
+          new Set(rows.filter(row => row.key.startsWith('feature-') || row.task !== undefined).map(row => row.key)),
+        )
+      : undefined
+  const selectedRow = rows.find(row => row.selected === true)
   return (
   <Box flexDirection="column">
     <Box key="astrolabe-pane-tabs" flexDirection="row">
@@ -146,7 +177,16 @@ export const paneTree = (
       {nav !== undefined && nav.above > 0 && <Button key="scroll-up" label={`▲ ${nav.above} ${nav.labels.more} (k)`} hotkey="k" plain onPress={() => nav.up()} />}
       {nav !== undefined && nav.above > 0 && <Button key="page-back" label="⇞ b" hotkey="b" plain onPress={() => nav.up()} />}
       {nav !== undefined && nav.above > 0 && nav.top !== undefined && extras.group === undefined && <Button key="to-top" label="⤒" hotkey="g" plain onPress={() => nav.top!()} />}
-      {rows.flatMap(row => {
+      {listRows !== undefined && Client !== undefined ? (
+        <Box key="astrolabe-specs-list" flexDirection="column">
+          <Client
+            key="astrolabe-specs"
+            module="./specs-client.tsx"
+            props={{ rows: listRows, ...(selectedRow === undefined ? {} : { sel: selectedRow.key }), accent: tokens.accent, bg: tokens.barEmpty, faint: tokens.faint }}
+          />
+          {selectedRow === undefined ? null : selectedBlock(selectedRow)}
+        </Box>
+      ) : rows.flatMap(row => {
           const node = (
           row.fileLinks !== undefined && Link !== undefined ? (
             // The files a task names, each its own link (078 FR-042).
@@ -271,18 +311,9 @@ export const paneTree = (
           )
           )
           // The review buttons sit under the spec they act on (the selected one).
-          if (tab !== 'specs' || row.selected !== true || extras.rowButtons === undefined || extras.rowButtons.length === 0) return [node]
-          return [
-            node,
-            ...(extras.rowDetail === undefined ? [] : [<Text key={`${row.key}-detail`} color={tokens.text} backgroundColor={tokens.barEmpty} wrap="truncate-end">{`    ${m(extras.rowDetail)}`}</Text>]),
-            ...(extras.rowDescription === undefined ? [] : [<Text key={`${row.key}-description`} color={tokens.faint} wrap="truncate-end">{`    ${m(extras.rowDescription)}`}</Text>]),
-            <Box key={`${row.key}-buttons`} flexDirection="row">
-              <Text>{'  '}</Text>
-              {extras.rowButtons.map(button => (
-                <Button key={button.key} label={button.label} {...(button.hotkey === undefined ? {} : { hotkey: button.hotkey })} plain onPress={() => button.onPress()} />
-              ))}
-            </Box>,
-          ]
+          if (tab !== 'specs' || row.selected !== true) return [node]
+          const under = selectedBlock(row)
+          return under.length === 0 ? [node] : [node, ...under]
         })}
       {body}
       {(extras.taskActions ?? []).map(action => (

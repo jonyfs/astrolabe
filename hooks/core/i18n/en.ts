@@ -450,7 +450,7 @@ export const EN = {
   'help.filterSyntax': "Specs filter: words, phase:plan, has:questions|checklist|warning|worktree, track:quick, prio:high, is:active|progress|done. c clears it, o changes the order.",
   'help.keys.pane': "Pane: 1-4 tabs · ? help (press h) · j/k scroll · b pages back · r refresh · Esc clears the filter, then the help, then closes",
   'help.keys.specs': "Specs: / filter (f) · t tasks only · s status · o order · e opens or folds all · a advisor · p priority · u uses the spec · c clears the filter",
-  'help.keys.tasks': "Tree: Enter opens or folds the selected spec · x puts the tick of the selected task in the prompt box for Claude",
+  'help.keys.tasks': "Tree: Enter opens or folds the selected spec · x puts the tick of the selected task in the prompt box for Claude · after a click on the list: → opens, ← folds, PageUp, PageDown, Home, End move, Tab changes tab, Esc gives the keys back",
   'help.keys.session': 'Session: l allow, v revoke, q run a queued subagent · m copies the numbers',
   'help.keys.prs': "PRs: arrows pick a pull request · Enter runs its first action, asking twice · approve, update and merge ask for a second press",
   'help.keys.setup': "Setup: arrows pick an option · Enter changes its value · Save, Reset, Cancel · changes save to the mod store",

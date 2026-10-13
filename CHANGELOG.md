@@ -6,6 +6,21 @@ tags `vX.Y.Z` equal to `plugin.json`'s `version`.
 
 ## [Unreleased]
 
+## [0.139.0] - 2026-10-13
+
+### Added
+
+- Spec 080: in the terminal the Specs list is a surface module (`specs-client.tsx`). After a click on
+  the list it takes `→` (open a spec), `←` (fold it, or select the spec of a task), PageUp, PageDown,
+  Home, End, Tab and Shift+Tab (the tabs), Enter, and the letters `t`, `e`, `x`, `u`, `p`, `a`, `s`,
+  `o`, `c`, `r`. The engine gives a surface module the keys only after a click, so none of this works
+  before one; Esc gives the keys back. The selection moves at once, without a round trip to the hooks.
+  The desktop, the accessible mode and a list too long for a module keep drawing the rows as before.
+
+### Changed
+
+- The selected row's detail, description and buttons sit under the list when the list is the module.
+
 ## [0.138.1] - 2026-10-13
 
 ### Fixed
