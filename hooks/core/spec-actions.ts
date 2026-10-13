@@ -167,6 +167,10 @@ export const focusNote = (task: { id?: string; text: string } | undefined): stri
 export const closeSuggestion = (f: Pick<Feature, 'dir' | 'id'>): string =>
   `Set \`status: done\` in the front matter of specs/${f.dir}/spec.md (every task of ${f.id} is ticked).`
 
+/** The prompt that closes every spec of a Ready to close group (073): one edit per folder, made by Claude. */
+export const closeAllSuggestion = (dirs: readonly string[]): string =>
+  `Set \`status: done\` in the front matter of each of these specs (every task of each is ticked): ${dirs.map(d => `specs/${d}/spec.md`).join(', ')}.`
+
 /** The file paths a plan.md names in backticks, for the drift check (067 #33): `src/orders/api.ts`, not commands or words. */
 export const planFiles = (plan: string): string[] => {
   const out = new Set<string>()

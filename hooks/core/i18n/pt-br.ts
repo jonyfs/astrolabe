@@ -5,6 +5,10 @@ import type { Dictionary } from './en'
 export const PT_BR: Dictionary = {
   'pane.section.active': 'Ativa',
   'pane.section.early': 'Cedo',
+  'pane.closeAll': "⧉ pedir ao Claude para fechar",
+  'pane.activeWhy.featureJson': "ativa: escolhida por .specify/feature.json",
+  'pane.activeWhy.branch': "ativa: nomeada pela branch",
+  'pane.activeWhy.latest': "ativa: a spec aberta mais alta (sem feature.json, sem branch)",
   'pane.section.close': 'Pronta para fechar',
   'pane.section.progress': 'Em andamento',
   'pane.section.touched': 'Tocadas nesta sessão',

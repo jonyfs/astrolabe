@@ -3,6 +3,10 @@
 export const EN = {
   'pane.section.active': 'Active',
   'pane.section.early': 'Early',
+  'pane.closeAll': "⧉ ask Claude to close",
+  'pane.activeWhy.featureJson': "active: chosen by .specify/feature.json",
+  'pane.activeWhy.branch': "active: named by the branch",
+  'pane.activeWhy.latest': "active: highest open spec (no feature.json, no branch match)",
   'pane.section.close': 'Ready to close',
   'pane.section.progress': 'In progress',
   'pane.section.touched': 'Touched this session',

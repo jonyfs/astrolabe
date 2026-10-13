@@ -19,7 +19,7 @@ import { ticksIn } from './core/tasks-parser'
 import { spinnerSuffix } from './core/spinner'
 import { bandUpdateLabel, astrolabeUpdate, firstLine, isDue, isStoredUpdates, localDay, parseCliVersion, parseGstackCheck, parseSelfCheck, skillsVersusCli, releaseNotesUrl, skillsUpdate, updateLabel } from './core/updates'
 import { fileUrl, joinPath } from './core/paths'
-import { closeSuggestion, configMark, nextFor, planFiles, nextPriority, skillsForPhase, specDetail, OPTION_GROUPS, optionDefaults, optionGroup, parallelPrompt, parsePriority, REVIEW_MODEL, reviewPrompt, withPriority, type OptionGroup, type Priority } from './core/spec-actions'
+import { closeAllSuggestion, closeSuggestion, configMark, nextFor, planFiles, nextPriority, skillsForPhase, specDetail, OPTION_GROUPS, optionDefaults, optionGroup, parallelPrompt, parsePriority, REVIEW_MODEL, reviewPrompt, withPriority, type OptionGroup, type Priority } from './core/spec-actions'
 import { parallelTasks } from './core/extensions'
 import { VERSION } from './core/version'
 import { QUEUE_HOTKEYS } from './core/keys'
@@ -3757,6 +3757,7 @@ export const register: Register = (on, options) => {
       },
       // What the tab is for, then its keys (048 #72).
       onClose: () => $.ui.close({ id: PANE_ID }).then(() => undefined),
+      ...(view === 'specs' ? { onCloseReady: (dirs: string[]) => void $.prompt.suggest({ text: closeAllSuggestion(dirs) }).catch(() => undefined) } : {}),
       columns,
       ...(view === 'session' && e.surface === 'terminal'
         ? {

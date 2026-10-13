@@ -503,6 +503,21 @@ describe('the Specs tab at scale (067)', () => {
   const rowsOf = (state: SpeckitState, view: 'focus' | 'all' = 'focus', extra: Record<string, unknown> = {}) =>
     specsRows(state, 100, 'en', {}, {}, false, [], false, 'status', undefined, scaleOf(view, extra) as never)
 
+  test('Ready to close: one row with the ids and one button that asks Claude, with the folders (073)', () => {
+    const ready = mk(20, i => (i === 3 || i === 5 ? { phase: 'implement' as const, done: 4, total: 4 } : {}))
+    const rows = rowsOf(st(ready), 'focus')
+    const row = rows.find(r => r.key === 'close-all')
+    expect(row?.text).toContain('003 005')
+    expect(row?.action).toMatchObject({ kind: 'close', id: '003-n003\n005-n005' })
+    // A single ready spec keeps the per-spec button only.
+    expect(rowsOf(st(mk(20, i => (i === 3 ? { phase: 'implement' as const, done: 4, total: 4 } : {}))), 'focus').some(r => r.key === 'close-all')).toBe(false)
+  })
+  test('the active spec says why it is active, under its row (073)', () => {
+    const features = mk(14)
+    const state = st(features, { active: { dir: features[9]!.dir, id: features[9]!.id, name: 'n010', source: 'latest' } })
+    const rows = rowsOf(state, 'focus')
+    expect(rows.find(r => r.key === 'active-why')?.text).toContain('highest open spec')
+  })
   test('a filter keeps the rows it asked for: Focus gives way to All (067 review)', () => {
     const state = st(mk(60))
     const withFilter = rowsOf(state, 'focus', { filtered: true })
