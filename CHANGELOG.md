@@ -6,6 +6,14 @@ tags `vX.Y.Z` equal to `plugin.json`'s `version`.
 
 ## [Unreleased]
 
+## [0.140.0] - 2026-10-13
+
+### Changed
+
+- The Specs tab starts on **not done**: specs that are done or abandoned are left out and counted in
+  one dim row (`✓ 57 done hidden · s shows them`). `s` cycles not done, all, in progress, next up,
+  done, abandoned. A text typed in the filter box and a `#` jump still look at every spec.
+
 ## [0.139.0] - 2026-10-13
 
 ### Added

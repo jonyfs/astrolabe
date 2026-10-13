@@ -32,9 +32,20 @@ const open = async ($: never, on: never, tree = big()) => {
 }
 
 describe('the Specs tab at 60 specs (067)', () => {
-  test('Focus is the default: a summary, the specs that need you, Done counted per block', async ($, on) => {
+  test('the default leaves the done specs out and counts them (081)', async ($, on) => {
     await open($ as never, on as never)
     const ui = await mountPane($ as never, 'terminal', 80, 40, 60)
+    const body = await ui.body()
+    expect(body).toContain('57 done hidden')
+    expect(body).not.toContain('Done 57')
+    expect(body).toContain('055')
+    await ui.unmount()
+  })
+
+  test('with all statuses, Focus is a summary, the specs that need you, Done counted per block', async ($, on) => {
+    await open($ as never, on as never)
+    const ui = await mountPane($ as never, 'terminal', 80, 40, 60)
+    await ui.press('status-filter')
     const body = await ui.body()
     expect(body).toContain('60 specs')
     expect(body).toContain('to close')
@@ -50,6 +61,7 @@ describe('the Specs tab at 60 specs (067)', () => {
   test('v shows every spec in blocks of 50, folded; the active spec opens its block', async ($, on) => {
     await open($ as never, on as never)
     const ui = await mountPane($ as never, 'terminal', 80, 40, 60)
+    await ui.press('status-filter')
     await ui.press('view')
     const body = await ui.body()
     expect(body).toContain('001–050')
@@ -65,6 +77,7 @@ describe('the Specs tab at 60 specs (067)', () => {
     const tree = big({ '029-twin': { spec: spec('status: done'), plan: true, tasks: tasks(3, 0) }, '028-late': { spec: spec('status: done'), plan: true, tasks: tasks(1, 29) } })
     await open($ as never, on as never, tree)
     const ui = await mountPane($ as never, 'terminal', 100, 40, 400)
+    await ui.press('status-filter')
     await ui.press('view')
     await ui.press('block-001–050')
     const body = await ui.body()
