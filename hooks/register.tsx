@@ -707,25 +707,15 @@ function configBody(
     rows.push({
       rows: 1,
       node: (
-        <Box key={`config-row-${row.key}`} position="relative">
+        // The card is in the flow, right under its row: an absolute card is painted under the rows
+        // that follow it, so the settings below hid it.
+        <Box key={`config-row-${row.key}`} flexDirection="column">
           <Box flexDirection="row">
             <Text color={changed ? tokens0.current : tokens0.text}>{label}</Text>
             {control}
             {row.key === 'icons' && String(shown) === 'auto' ? <Text color={tokens0.faint}>{`  (${t(lang, iconsFor('auto', e.surface) === 'nerd' ? 'config.iconsNerd' : iconsFor('auto', e.surface) === 'ascii' ? 'config.iconsAscii' : 'config.iconsEmoji')})`}</Text> : null}
           </Box>
-          <Box
-            display="none"
-            position="absolute"
-            top={1}
-            left={0}
-            right={0}
-            paddingX={1}
-            backgroundColor={tokens0.barEmpty}
-            borderStyle="round"
-            borderColor={tokens0.accent}
-            hover={{ display: 'flex' }}
-            flexDirection="column"
-          >
+          <Box display="none" paddingX={1} backgroundColor={tokens0.barEmpty} hover={{ display: 'flex' }} flexDirection="column">
             <Text color={tokens0.accent}>{`${t(lang, 'config.default')}: ${defaultValue === undefined ? t(lang, 'word.unknown') : String(defaultValue)}`}</Text>
             <Text color={tokens0.text} wrap="wrap">{row.description ?? t(lang, 'config.noDescription')}</Text>
           </Box>

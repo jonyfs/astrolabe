@@ -6,6 +6,13 @@ tags `vX.Y.Z` equal to `plugin.json`'s `version`.
 
 ## [Unreleased]
 
+## [0.137.2] - 2026-10-13
+
+### Fixed
+
+- In the Setup tab, the card with an option's default and description opened under the settings
+  that follow it and was hidden by them. It is in the flow now, right under the hovered row.
+
 ## [0.137.1] - 2026-10-13
 
 ### Fixed
