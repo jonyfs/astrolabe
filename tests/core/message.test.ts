@@ -4,6 +4,10 @@ import { message, withoutPrefix } from '../../hooks/core/message'
 import { formatToast } from '../../hooks/core/toasts'
 
 describe('one message prefix (064 #8)', () => {
+  test('a new version reads astrolabe ⬆ (board 5), and the prefix is stripped again', () => {
+    expect(message('update', '0.124.0 on disk · reloading plugins')).toBe('astrolabe ⬆ 0.124.0 on disk · reloading plugins')
+    expect(message('ok', 'astrolabe ⬆ x')).toBe('astrolabe ✓ x')
+  })
   test('success reads astrolabe ✓ and a warning astrolabe ▲', () => {
     expect(message('ok', '002 tasks done · next /speckit-implement')).toBe('astrolabe ✓ 002 tasks done · next /speckit-implement')
     expect(message('warn', 'T010 ticked, no code edited this turn')).toBe('astrolabe ▲ T010 ticked, no code edited this turn')

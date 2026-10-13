@@ -18,11 +18,15 @@ const bar = (percent: number, ticks: readonly number[]): string => {
   return cells.join('')
 }
 
+const tokensOf = (n: number): string => (n >= 1_000_000 ? `${(n / 1_000_000).toFixed(1)}M` : n >= 1000 ? `${Math.round(n / 1000)}k` : String(Math.round(n)))
+
 export const usageBarRows = (input: {
   readings: readonly UsageReading[]
-  context?: { percent: number }
+  context?: { percent: number; tokens?: number; window?: number }
   thresholds?: Record<string, { hold?: number; stop?: number }>
   now: number
+  /** A note for the window that decides, after its reset: `stop 88% in ≈3h` (071). */
+  note?: { kind: string; text: string }
 }): PaneRow[] => {
   const { readings, context, thresholds, now } = input
   if (readings.length === 0 && context === undefined) return []
@@ -30,7 +34,8 @@ export const usageBarRows = (input: {
   const label = (text: string) => text.padEnd(4)
   if (context !== undefined) {
     const ramp = usageRamp(context.percent)
-    rows.push({ key: 'usage-bar-ctx', text: `${label('ctx')} ${bar(context.percent, [DEFAULT.cap, DEFAULT.hold, DEFAULT.stop])}  ${Math.round(context.percent)}%`, role: ramp.role })
+    const size = context.tokens !== undefined && context.window !== undefined ? `  ${tokensOf(context.tokens)}/${tokensOf(context.window)}` : ''
+    rows.push({ key: 'usage-bar-ctx', text: `${label('ctx')} ${bar(context.percent, [DEFAULT.cap, DEFAULT.hold, DEFAULT.stop])}  ${Math.round(context.percent)}%${size}`, role: ramp.role })
   }
   for (const r of readings) {
     const own = thresholds?.[r.kind]
@@ -42,7 +47,7 @@ export const usageBarRows = (input: {
     const figure = ramp.full ? 'full' : `${Math.round(r.percentUsed)}%`
     rows.push({
       key: `usage-bar-${r.kind}`,
-      text: `${label(labelOf(r.kind))} ${bar(r.percentUsed, [DEFAULT.cap, hold, stop])}  ${figure}${ramp.mark}${at}`,
+      text: `${label(labelOf(r.kind))} ${bar(r.percentUsed, [DEFAULT.cap, hold, stop])}  ${figure}${ramp.mark}${at}${input.note?.kind === r.kind ? `  ${input.note.text}` : ''}`,
       role: ramp.role,
     })
   }

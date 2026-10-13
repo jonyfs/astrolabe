@@ -691,7 +691,7 @@ Type `/astrolabe` to open a pane with five tabs (`/astrolabe help` lists every c
 |---|---|
 | 1 Specs | Every feature in sections: Active, In progress, Early, Ready to close, Next up, Done and Abandoned (the last two fold). The selected spec is a block: its row, what it needs (`11 left · ? 1 question · checklist 2 open`), the next command, copy, advisor, and gstack's skills for its phase. |
 | 2 Tasks | The active feature's open tasks: a header with what is left (`002 shopping-cart · implement · 9/20 · ≈1h20m left`), a warning when open tasks pass the 5h reset, the current task bold with `◷ 4m12s` at the right edge and its files under it, each user story with its count (`US3 Cart page 0/5`), `[P]` runs as a `┐ ┤ ┘` bracket, done tasks folded. |
-| 3 Session | Usage as 20-cell bars with `┊` ticks at the governor levels, the governor (state, queue with run buttons, `l` allow, `v` revoke), the project and activity rows, the updates with an install button each, then the Dashboard: dial, phases, the usage chart and the numbers. |
+| 3 Session | Usage as 20-cell bars with `┊` ticks at the governor levels (the context bar adds `82k/200k`, the deciding window ends with the next level it will reach, `stop 88% in ≈3h`), a 24 hour trend with its projection (`7d · 24h ▁▂▃…┄┄  now → reset`), the governor box while it acts or work is queued (`‖ holding new subagents · 7d decides · until Mon 07:00`, the queue with run buttons, `l` lift 1h at a hold or allow at a pause, `v` revoke, `today: 2 holds · 0 pauses`), the project and activity rows, the updates with an install button each, then the Dashboard: dial, phases, the usage chart and the numbers. |
 | 4 PRs | The open pull requests as a table: number and title (a link), draft, labels, review state and checks as `✓ ✖ ◷` cells, with approve, update and merge buttons that ask for a second press. |
 | 5 Setup | Every Astrolabe option under Look, Usage governor, Claude and Integrations, then the model per skill. A value that differs from its default carries `•`, and its default shows on hover. Changes save to the mod store; nothing writes `settings.json`. |
 
@@ -1184,23 +1184,23 @@ between the answers, Enter picks one, and the first answer, the cautious one, is
 selected:
 
 ```text
-🧭 usage 7d 83% (hold): a new subagent, "Full review". What now?
-❯ Queue it until Mon 07:00
-  Run this one now
-  Allow subagents for 1 hour, one at a time
+‖ 7d at 83%▴ · "Full review" is queued until Mon 07:00
+❯ Keep it queued (applied)
+  Run it now
+  Lift holds for 1 hour
   Drop this request
-↑↓ to choose, Enter to pick. Esc or no answer: the default goes ahead at 12:01:00.
+The cautious default is already applied. ↑↓ to choose, Enter to pick; Esc or no answer keeps it.
 ```
 
 What each answer does:
 
 | Answer | What happens |
 |---|---|
-| `Queue it until <reset>` | The subagent stays queued until the window resets. |
-| `Run this one now` | It leaves the queue, and a prompt tells Claude to send it again; that one call goes through. |
-| `Allow subagents for 1 hour, one at a time` | The queue is sent again, and new subagents run one at a time for the hour. |
+| `Keep it queued (applied)` | The subagent stays queued until the window resets. |
+| `Run it now` | It leaves the queue, and a prompt tells Claude to send it again; that one call goes through. |
+| `Lift holds for 1 hour` | The queue is sent again, and new subagents run one at a time for the hour. |
 | `Drop this request` | It leaves the queue; later subagents are dropped too while the band lasts. |
-| `Pause until <reset>` | Claude stays paused until the window resets. |
+| `Keep it paused until <reset> (applied)` | Claude stays paused until the window resets. |
 | `Continue for 30 more minutes (ceiling 91%)` | The ceiling is raised for 30 minutes, and a prompt tells Claude to continue. |
 | `Raise the ceiling to 95% for 2 hours` | The same, for 2 hours. |
 

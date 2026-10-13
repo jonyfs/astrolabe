@@ -72,6 +72,28 @@ describe('fan-out under the cap (US2)', () => {
     await ui.unmount()
   })
 
+  test('071: a hold draws the governor box with the queue, lift and today', async ($, on) => {
+    const session = installTree(on, halfDone.tree, '/proj')
+    installEngine(on)
+    installRenderEngine(on)
+    installPaneEngine(on)
+    await session.clock.set(NOW)
+    await startSession($ as never, '/proj')
+    await measure($ as never, reading(83))
+    await $.tool.call(agent('a1'))
+    const ui = await mountPane($ as never, 'terminal')
+    await ui.press('tab-session')
+    const body = await ui.body()
+    expect(body).toContain('╭─ governor')
+    expect(body).toContain('‖ holding new subagents')
+    expect(body).toContain('today:')
+    expect(await ui.find({ key: 'queue-run-q1' })).toBeDefined()
+    expect(await ui.find({ key: 'usage-lift' })).toBeDefined()
+    // The run button appears once: inside the box, not again in the Governor block.
+    expect(body.match(/q1 job a1/g)?.length).toBe(1)
+    await ui.unmount()
+  })
+
   test('throttle at 72% lets one foreground subagent run, queues the second', async ($, on) => {
     const { engine } = await setup($ as never, on as never)
     await measure($ as never, reading(72))
