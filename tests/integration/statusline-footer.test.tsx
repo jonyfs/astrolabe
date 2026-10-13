@@ -243,12 +243,40 @@ describe('the embedding options (081)', () => {
     await turn($ as never, session)
     await answerCli($ as never, session, GOOD)
     const reads = () => session.processes.filter(p => p.endsWith('--print-config')).length
-    const first = reads()
-    expect(first).toBeGreaterThan(0)
+    const renders = () => session.processes.filter(p => p.startsWith('node ') && p.endsWith('cli.js')).length
+    expect(reads()).toBeGreaterThan(0)
+    // About two minutes of turns: the renderer runs on each, the configuration at most once a minute.
+    const readsBefore = reads()
+    const rendersBefore = renders()
+    for (let i = 0; i < 8; i += 1) {
+      await session.clock.advance(8000)
+      await completeTurn($ as never)
+      await session.clock.advance(6000)
+      await session.clock.settle()
+    }
+    expect(renders() - rendersBefore).toBeGreaterThanOrEqual(5)
+    expect(reads() - readsBefore).toBeLessThanOrEqual(2)
+    expect(reads() - readsBefore).toBeLessThan(renders() - rendersBefore)
+    // Drawing the Setup tab runs nothing.
+    const total = session.processes.length
     const ui = await mountPane($ as never, 'terminal', 100, 80)
     await ui.press('tab-setup')
     await ui.body()
     await ui.unmount()
-    expect(reads()).toBe(first)
+    expect(session.processes.length).toBe(total)
+  })
+
+  test('what the copy resolved is shown, not only what was asked for', { options: { footerStatuslineMode: 'passive', footerOmit: 'dir' } }, async ($, on) => {
+    const { session } = await setup($ as never, on as never)
+    // An older copy that ignored both switches: it says it is not passive and omits nothing.
+    session.script.printConfig = JSON.stringify({ contract: 1, flavor: 'mocha', passive: false, layout: { omitted: [] } })
+    await turn($ as never, session)
+    await answerCli($ as never, session, GOOD)
+    const ui = await mountPane($ as never, 'terminal', 100, 80)
+    await ui.press('tab-setup')
+    const body = await ui.body()
+    expect(body).toContain('live (the pull request')
+    expect(body).not.toContain('omitted segments')
+    await ui.unmount()
   })
 })

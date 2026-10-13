@@ -2094,6 +2094,7 @@ let footerStatuslineMode: 'live' | 'passive' = 'live'
 let footerOmit = ''
 let footerResolved: ResolvedConfig | undefined
 let footerResolvedAt = Number.NEGATIVE_INFINITY
+let footerResolvedKey = ''
 let nodeState: 'ok' | 'missing' | 'old' | undefined
 let nodeCheckedAt = Number.NEGATIVE_INFINITY
 let footerRefreshing = false
@@ -2207,9 +2208,15 @@ async function refreshStatusline($: EngineInterface, onlyWhileShown = false): Pr
       footerBackoffUntil = 0
       footerGoodAt = now
       // What the copy resolved, at most once a minute and after a render that worked, never on the draw path (081).
-      if (now - footerResolvedAt >= FOOTER_CONFIG_MS) {
+      // The answer depends on the environment (flavor, glyph set, mode, omit list), not on the size.
+      const configKey = JSON.stringify({ ...env, COLUMNS: undefined, LINES: undefined, cwd })
+      if (configKey !== footerResolvedKey || now - footerResolvedAt >= FOOTER_CONFIG_MS) {
+        const changed = configKey !== footerResolvedKey
         footerResolvedAt = now
-        footerResolved = await readResolvedConfig({ run: procOf($), cli: bundled.cli, env, cwd: cwd ?? '.' })
+        footerResolvedKey = configKey
+        const read = await readResolvedConfig({ run: procOf($), cli: bundled.cli, env, cwd: cwd ?? '.' })
+        // A read that failed keeps the last good answer, unless it was for other settings.
+        if (read !== undefined || changed) footerResolved = read
       }
       const embed = { mode: footerStatuslineMode, omit: footerOmit, asked: flavor, ...(footerResolved === undefined ? {} : { config: footerResolved }) }
       await setFooterState($, { at: now, columns: width, lines: result.lines.map(l => l.map(run => ({ ...run }))) }, { source: 'statusline', version: bundled.version, commit: bundled.commit, format: result.format, ...(result.format === 'runs' ? { contract: SUPPORTED_CONTRACT } : {}), embed })
@@ -2254,10 +2261,12 @@ function footerSetupRows(state: FooterState | undefined, lang: Lang): string[] {
     rows.push(`${t(lang, 'footer.setup.format')}: ${health.format === 'runs' ? t(lang, 'footer.setup.formatRuns', { contract: String(health.contract ?? SUPPORTED_CONTRACT) }) : t(lang, 'footer.setup.formatAnsi')}`)
   }
   const embed = health?.embed
-  rows.push(`${t(lang, 'footer.setup.mode')}: ${t(lang, (embed?.mode ?? footerStatuslineMode) === 'passive' ? 'footer.setup.modePassive' : 'footer.setup.modeLive')}`)
-  const omitted = embed?.omit ?? footerOmit
-  if (omitted !== '') rows.push(`${t(lang, 'footer.setup.omit')}: ${omitted}`)
+  // What the copy resolved wins over what was asked for: an older copy that ignores a switch says so.
   const config = embed?.config
+  const passive = config?.passive ?? (embed?.mode ?? footerStatuslineMode) === 'passive'
+  rows.push(`${t(lang, 'footer.setup.mode')}: ${t(lang, passive ? 'footer.setup.modePassive' : 'footer.setup.modeLive')}`)
+  const omitted = config === undefined ? (embed?.omit ?? footerOmit) : config.omitted.join(',')
+  if (omitted !== '') rows.push(`${t(lang, 'footer.setup.omit')}: ${omitted}`)
   if (config !== undefined) {
     rows.push(`${t(lang, 'footer.setup.resolved')}: ${t(lang, 'footer.setup.resolvedLine', { flavor: config.flavor, glyphs: config.glyphs ?? '?', separator: config.separator ?? '?' })}`)
     if (embed !== undefined && flavorMismatch(embed.asked, config)) rows.push(t(lang, 'footer.setup.flavorMismatch', { asked: embed.asked, drawn: config.flavor }))
@@ -3178,8 +3187,6 @@ export const register: Register = (on, options) => {
   footerSource = options['footerSource'] === 'native' ? 'native' : 'statusline'
   const embedMode = options['footerStatuslineMode'] === 'passive' ? 'passive' : 'live'
   const embedOmit = parseOmit(options['footerOmit'])
-  // A changed option makes the resolved configuration stale at once, not a minute later.
-  if (embedMode !== footerStatuslineMode || embedOmit !== footerOmit) footerResolvedAt = Number.NEGATIVE_INFINITY
   footerStatuslineMode = embedMode
   footerOmit = embedOmit
   liveRowsOption = options['liveRows'] === 'agents' || options['liveRows'] === 'gates' || options['liveRows'] === 'off' ? options['liveRows'] : 'both'
