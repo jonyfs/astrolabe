@@ -121,15 +121,17 @@ export const bandRow = (
     <Box flexDirection="column">
       {row}
       {shown.map(card => (
-        <Box display="none" hover={{ scope: `astrolabe-step-${card.step}`, display: 'flex' }}>
-          <Text color={tokens.muted} wrap="truncate-end">
+        // Over the band row itself, absolute and full width: the band's region ends at its rows, so a
+        // card below or above would be clipped, and one in the flow pushed the prompt down (079).
+        <Box key={`astrolabe-card-${card.step}`} position="absolute" top={0} left={0} right={0} backgroundColor={tokens.barEmpty} display="none" hover={{ scope: `astrolabe-step-${card.step}`, display: 'flex' }}>
+          <Text color={tokens.muted} backgroundColor={tokens.barEmpty} wrap="truncate-end">
             {card.text}
           </Text>
         </Box>
       ))}
       {showOthers && (
-        <Box display="none" hover={{ scope: 'astrolabe-other-features', display: 'flex' }}>
-          <Text color={tokens.muted} wrap="wrap">
+        <Box key="astrolabe-others-card" position="absolute" top={0} left={0} right={0} backgroundColor={tokens.barEmpty} display="none" hover={{ scope: 'astrolabe-other-features', display: 'flex' }}>
+          <Text color={tokens.muted} backgroundColor={tokens.barEmpty} wrap="truncate-end">
             {otherFeatures}
           </Text>
         </Box>

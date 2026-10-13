@@ -33,13 +33,13 @@ import { blockLabel, jumpLine, jumpMatches, jumpQuery, nextGroup } from './core/
 import { usageBarRows } from './core/usage-bars'
 import { deciderNote, governorBoxState, nextLevelText, projectHeader, sessionChips, todayCounts, trend24h } from './core/session-usage'
 import { badgesOf, escapeStep, legacyTab, paneTitle } from './core/pane-tabs'
-import { changedSettingsJson, LOOK_PRESETS, optionConflicts, OPTIONS_README, presetMatching } from './core/setup-extras'
+import { changedSettingsJson, LOOK_PRESETS, nextOptionValue, optionConflicts, OPTIONS_README, presetMatching } from './core/setup-extras'
 import { usageRamp } from './core/usage-ramp'
 import { ASK_MS, clockOf, decide, dropped, EXTEND_MS, HOLD_LIFT_MS, holdQuestion, labelOf, nextHeld, isPaused, isReadOnlyTool, parseAllow, pauseQuestion, RAISE_MS, refusal, resumePrompt, runPrompt, usageSegment, type Decision, type Question, usageRows } from './core/governor'
 import { ANSI_16, chipForeground, CHIPS, FLAVORS, flavorOf, isThemeKeys, lighten, STATUS_ROLE, themeOf, type ThemeRole } from './core/theme'
 import { capDiff, DIFF_FOLD_MS, foldedDiff, recapLine, recapOf, tasksDiff } from './core/summary'
 import { styleSections } from './core/style'
-import { ageOf, parsePullList, prOpened, pullAction, pullsBySpec, specOfBranch, PR_LIST_FIELDS } from './core/pulls'
+import { ageOf, parsePullList, primaryPullAction, prOpened, pullAction, pullsBySpec, specOfBranch, PR_LIST_FIELDS } from './core/pulls'
 import { EFFORTS, familyOf, MODEL_FAMILIES, modelForTask, skillModelFor, skillNameOf, SKILL_MODELS, type SkillOverrides } from './core/skill-models'
 import { featureDirFor, mergedBranches, parseWorktrees, uncommittedCount, withWorktreeProgress, worktreeName, worktreeState } from './core/worktrees'
 import { readFeature } from './io/snapshot'
@@ -548,7 +548,7 @@ function pullsBody(
   pane: PaneState,
   stats: SessionStats | undefined,
   speckit?: SpeckitState,
-): Array<{ node: RenderNode; rows: number }> {
+): Array<{ node: RenderNode; rows: number; select?: string }> {
   const elements = $.ui.resolve(e)
   const branch = stats?.git?.branch
   const ship =
@@ -579,7 +579,7 @@ function pullsRows(
   pane: PaneState,
   stats: SessionStats | undefined,
   speckit?: SpeckitState,
-): Array<{ node: RenderNode; rows: number }> {
+): Array<{ node: RenderNode; rows: number; select?: string }> {
   const elements = $.ui.resolve(e)
   const { Box, Text, Button } = elements
   const Link = 'Link' in elements ? elements.Link : undefined
@@ -627,7 +627,7 @@ function pullsRows(
   const ordered = [...wanted].sort((a, b) => need(a) - need(b) || b.number - a.number)
   // The table's columns: the title takes what the checks, the review and the age leave (078 FR-061).
   const reviewWidth = Math.max(...Object.values({ a: 'approved', b: 'changes requested', c: 'review required', d: 'no review' }).map(w => w.length))
-  const titleRoom = Math.max(12, columns - 2 - 8 - reviewWidth - 4 - 6)
+  const titleRoom = Math.max(12, columns - 4 - 8 - reviewWidth - 4 - 6)
   const spec = (pr: (typeof rows)[number]) => specOfBranch(pr.branch, speckit?.features ?? [])
   const header = { rows: 1, node: <Text key="prs-header" color={tokens0.faint} wrap="truncate-end">{t(lang, 'prs.header')}</Text> }
   const noPr =
@@ -644,6 +644,7 @@ function pullsRows(
             ),
           },
         ]
+  const standing = pane.selectedPr !== undefined && ordered.some(pr => `pr-${pr.number}` === pane.selectedPr) ? pane.selectedPr : ordered[0] === undefined ? undefined : `pr-${ordered[0].number}`
   if (ordered.length === 0) return [header, ...noPr, { rows: 1, node: <Text color={tokens0.muted}>{t(lang, 'pane.noMatch', { filter: (pane.filter ?? '').trim() })}</Text> }]
   return [header, ...noPr, ...ordered.flatMap(pr => {
     const title = `#${pr.number} ${pr.title}`
@@ -668,8 +669,10 @@ function pullsRows(
     return [
       {
         rows: 1,
+        select: `pr-${pr.number}`,
         node: (
           <Box flexDirection="row">
+            <Text color={tokens0.accent} bold>{standing === `pr-${pr.number}` ? '❯ ' : '  '}</Text>
             {Link !== undefined && pr.url !== '' ? <Link href={pr.url} label={shownTitle} /> : <Text color={colour(pr.checks)}>{shownTitle}</Text>}
             <Text>{' '.repeat(Math.max(2, titleRoom - [...shownTitle].length + 2))}</Text>
             <Text color={colour(pr.checks)}>{cells.padEnd(8)}</Text>
@@ -721,7 +724,7 @@ function configBody(
   e: Parameters<Hook<'ui.render'>>[1],
   pane: PaneState,
   speckit?: SpeckitState,
-): Array<{ node: RenderNode; rows: number }> {
+): Array<{ node: RenderNode; rows: number; /** The key the arrow keys stand on when the unit is an option (079). */ select?: string; /** Drawn over the rows below the option while it is hovered, out of the flow (079). */ card?: { scope: string; node: RenderNode } }> {
   const elements = $.ui.resolve(e)
   const { Box, Text, Button } = elements
   const Select = 'Select' in elements ? elements.Select : undefined
@@ -733,7 +736,7 @@ function configBody(
     const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
     await $.state.set(PANE_STATE, { ...held, draft: { ...(held.draft ?? {}), [key]: value } })
   }
-  const rows: Array<{ node: RenderNode; rows: number }> = []
+  const rows: Array<{ node: RenderNode; rows: number; select?: string; card?: { scope: string; node: RenderNode } }> = []
   if (configRows.length === 0) return [{ rows: 1, node: <Text color={tokens0.muted}>{t(lang, 'config.none')}</Text> }]
   // The values as they would be with the draft, for the conflicts between options (078 FR-082).
   const values: Record<string, unknown> = {}
@@ -801,7 +804,9 @@ function configBody(
     const shown = row.key in draft ? draft[row.key] : row.value
     const changed = row.key in draft && draft[row.key] !== row.value
     // ● a change not saved yet; • a saved value that differs from the option's default (052 #39).
-    const label = `${configMark(changed, row.value, defaultsSeen, row.key)}${row.label}`.padEnd(30)
+    // The option the arrow keys stand on has `❯` in a gutter every row keeps (079).
+    const stood = (pane.selectedOption ?? ordered.find(o => isOpen(o.group))?.row.key) === row.key
+    const label = `${stood ? '❯ ' : '  '}${configMark(changed, row.value, defaultsSeen, row.key)}${row.label}`.padEnd(32)
     const key = `config-${row.key}`
     let control: RenderNode
     if (row.isLocked) control = <Text color={tokens0.muted}>{`${String(shown)} (${t(lang, 'config.locked')})`}</Text>
@@ -828,13 +833,25 @@ function configBody(
     // One option back to its default, as a draft (078 FR-077).
     const offDefault = !row.isLocked && defaultValue !== undefined && shown !== defaultValue
     rows.push({
-      rows: 1,
+      // The option and the conflicts named under it; the card is not part of the height (079).
+      rows: 1 + named.length,
+      select: row.key,
+      // The card is an absolute box drawn after every row, so it paints over them and moves none: in
+      // the flow it pushed the settings below down on every hover (079).
+      card: {
+        scope: `config-row-${row.key}`,
+        node: (
+          <Box flexDirection="column" paddingX={1} backgroundColor={tokens0.barEmpty}>
+            <Text color={tokens0.accent}>{`${t(lang, 'config.default')}: ${defaultValue === undefined ? t(lang, 'word.unknown') : String(defaultValue)}`}</Text>
+            <Text color={tokens0.text} wrap="wrap">{row.description ?? t(lang, 'config.noDescription')}</Text>
+            {Link === undefined ? null : <Link href={OPTIONS_README} label={`${t(lang, 'setup.readme')} ↗`} />}
+          </Box>
+        ),
+      },
       node: (
-        // The card is in the flow, right under its row: an absolute card is painted under the rows
-        // that follow it, so the settings below hid it.
-        <Box key={`config-row-${row.key}`} flexDirection="column">
+        <Box key={`config-row-${row.key}`} flexDirection="column" hover={{ scope: `config-row-${row.key}` }}>
           <Box flexDirection="row">
-            <Text color={changed ? tokens0.current : tokens0.text}>{label}</Text>
+            <Text color={stood ? tokens0.accent : changed ? tokens0.current : tokens0.text} bold={stood}>{label}</Text>
             {control}
             {offDefault ? <Button key={`config-reset-${row.key}`} label={t(lang, 'setup.resetOne')} plain onPress={() => setDraft(row.key, defaultValue)} /> : null}
             {row.key === 'astrolabe.icons' && String(shown) === 'auto' ? <Text color={tokens0.faint}>{`  (${t(lang, iconsFor('auto', e.surface) === 'nerd' ? 'config.iconsNerd' : iconsFor('auto', e.surface) === 'ascii' ? 'config.iconsAscii' : 'config.iconsEmoji')})`}</Text> : null}
@@ -842,11 +859,6 @@ function configBody(
           {named.map((c, i) => (
             <Text key={`config-conflict-${row.key}-${i}`} color={tokens0.current} wrap="truncate-end">{`  ▲ ${c.text}`}</Text>
           ))}
-          <Box display="none" paddingX={1} backgroundColor={tokens0.barEmpty} hover={{ display: 'flex' }} flexDirection="column">
-            <Text color={tokens0.accent}>{`${t(lang, 'config.default')}: ${defaultValue === undefined ? t(lang, 'word.unknown') : String(defaultValue)}`}</Text>
-            <Text color={tokens0.text} wrap="wrap">{row.description ?? t(lang, 'config.noDescription')}</Text>
-            {Link === undefined ? null : <Link href={OPTIONS_README} label={`${t(lang, 'setup.readme')} ↗`} />}
-          </Box>
         </Box>
       ),
     })
@@ -988,6 +1000,8 @@ const unitsShown: Partial<Record<string, number>> = {}
 const viewOf = (pane: Pick<PaneState, 'tab' | 'help'>): PaneView => (pane.help === true ? 'help' : pane.tab)
 const featureDurationsByRoot = new Map<string, FeatureDuration[]>()
 let specSelectionRows: Array<{ key: string; index: number }> = []
+// The rows the arrow keys stand on in Setup and PRs, with the window drawn (079).
+let listSelection: { tab: 'setup' | 'prs'; rows: Array<{ key: string; index: number }>; window: { start: number; end: number }; selected: string | undefined } | undefined
 let selectedSpecRow: string | undefined
 let specSelectionWindow = { start: 0, end: 0 }
 let specLinksEnabled = false
@@ -3903,6 +3917,22 @@ export const register: Register = (on, options) => {
       }
       return {}
     }
+    // The arrow keys stand on an option in Setup and on a pull request in PRs (079).
+    if ((held.tab === 'setup' || held.tab === 'prs') && held.help !== true && e.by !== 0 && listSelection !== undefined && listSelection.tab === held.tab && listSelection.rows.length > 0) {
+      const current = listSelection.selected !== undefined && listSelection.rows.some(r => r.key === listSelection!.selected) ? listSelection.selected : listSelection.rows[0]!.key
+      const nextKey = moveSpecSelection(listSelection.rows, current, e.by)
+      const row = nextKey === undefined ? undefined : listSelection.rows.find(item => item.key === nextKey)
+      if (row !== undefined) {
+        const heldOffset = held.scroll?.tab === held.tab ? held.scroll.offset : 0
+        const offset = row.index < listSelection.window.start || row.index >= listSelection.window.end ? row.index : heldOffset
+        await $.state.set(PANE_STATE, {
+          ...held,
+          ...(held.tab === 'setup' ? { selectedOption: row.key } : { selectedPr: row.key }),
+          ...(offset === heldOffset ? {} : { scroll: { tab: held.tab, offset } }),
+        })
+        return {}
+      }
+    }
     const at = viewOf(held)
     const from = held.scroll?.tab === at ? held.scroll.offset : 0
     const by = e.by === 0 ? 0 : Math.sign(e.by) * Math.max(1, Math.round(Math.abs(e.by)))
@@ -3933,6 +3963,41 @@ export const register: Register = (on, options) => {
     // The jump names a block of the status grouping: other groupings have their own headings.
     await $.state.set(PANE_STATE, { ...rest, view: 'all', group: 'status', open: [...open], selectedFeature: hit.id })
     return e
+  })
+
+  // Enter in Setup changes the option the arrows stand on; in PRs it runs the pull request's first
+  // action, asking twice as the buttons do (079).
+  on('ui.input', { component: 'Pane', requestId: PANE_ID }, async ($, e, next) => {
+    const pane = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
+    if (e.element === 'astrolabe-filter' || e.kind !== 'submit' || pane.help === true || listSelection === undefined || listSelection.tab !== pane.tab) return next(e)
+    if (pane.tab === 'setup') {
+      const key = pane.selectedOption !== undefined && listSelection.rows.some(r => r.key === pane.selectedOption) ? pane.selectedOption : listSelection.rows[0]?.key
+      const row = configRows.find(r => r.key === key)
+      if (row === undefined) return next(e)
+      const draft = pane.draft ?? {}
+      const shown = row.key in draft ? draft[row.key]! : row.value
+      const value = typeof shown === 'object' ? undefined : nextOptionValue({ kind: row.kind, options: row.options, isLocked: row.isLocked }, shown)
+      if (value === undefined) return next(e)
+      await $.state.set(PANE_STATE, { ...pane, selectedOption: row.key, draft: { ...draft, [row.key]: value } })
+      return e
+    }
+    if (pane.tab === 'prs') {
+      const key = pane.selectedPr !== undefined && listSelection.rows.some(r => r.key === pane.selectedPr) ? pane.selectedPr : listSelection.rows[0]?.key
+      const n = key === undefined ? undefined : Number(key.slice('pr-'.length))
+      const pr = (await $.state.get(SESSION)).value?.pulls?.rows.find(r => r.number === n)
+      const action = pr === undefined ? undefined : primaryPullAction(pr)
+      if (pr === undefined || action === undefined) return next(e)
+      const confirm = `pr-${action}-${pr.number}`
+      if (pane.confirm === confirm) {
+        const { confirm: _gone, ...rest } = pane
+        await $.state.set(PANE_STATE, rest)
+        $.clock.after(0, () => void runPullAction($, action, pr.number, pr.head))
+      } else {
+        await $.state.set(PANE_STATE, { ...pane, selectedPr: key!, confirm })
+      }
+      return e
+    }
+    return next(e)
   })
 
   // Enter on the selected row of the Specs tree opens or folds it (078 FR-004). Making a spec the
@@ -4416,6 +4481,12 @@ export const register: Register = (on, options) => {
       // The filter box leads the table: `is:failing`, `is:draft`, `is:mine` (078 FR-070).
       const prsHeader = paneHeader($, e, pane, state, stats, undefined, await $.clock.now())
       const { win, pad, nav } = navFor(units.map(u => u.rows), bodyRows - 1 - footerReserve - prsHeader.length)
+      listSelection = {
+        tab: 'prs',
+        rows: units.flatMap((u, index) => (u.select === undefined ? [] : [{ key: u.select, index }])),
+        window: win,
+        selected: pane.selectedPr,
+      }
       const body = (
         <Box key="astrolabe-prs" flexDirection="column">
           {units.slice(win.start, win.end).map(u => u.node)}
@@ -4440,9 +4511,34 @@ export const register: Register = (on, options) => {
       const units = setupUnits
       const bar = configBar($, e, pane)
       const { win, pad, nav } = navFor(units.map(u => u.rows), bodyRows - 1 - footerReserve - 1 - bar.length)
+      listSelection = {
+        tab: 'setup',
+        rows: units.flatMap((u, index) => {
+          const key = (u as { select?: string }).select
+          return key === undefined ? [] : [{ key, index }]
+        }),
+        window: win,
+        selected: pane.selectedOption,
+      }
+      // The hover cards sit after the rows, absolute, each against the row it belongs to (079).
+      const visible = units.slice(win.start, win.end)
+      let offset = 0
+      const cards: RenderNode[] = []
+      for (const u of visible) {
+        const card = (u as { card?: { scope: string; node: RenderNode } }).card
+        if (card !== undefined) {
+          cards.push(
+            <Box key={`card-${card.scope}`} position="absolute" top={offset + 1} left={2} width={Math.max(20, columns - 4)} display="none" hover={{ scope: card.scope, display: 'flex' }}>
+              {card.node}
+            </Box>,
+          )
+        }
+        offset += u.rows
+      }
       const body = (
         <Box key="astrolabe-setup" flexDirection="column">
-          {units.slice(win.start, win.end).map(u => u.node)}
+          {visible.map(u => u.node)}
+          {cards}
         </Box>
       )
       const setupHeader = [...paneHeader($, e, pane, state, stats, undefined, await $.clock.now()), ...bar]

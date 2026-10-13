@@ -46,8 +46,10 @@ describe('the Config tab (028)', () => {
     const drawn = JSON.stringify(await ui.drawn())
     expect(drawn).toContain('Default: compact')
     expect(drawn).toContain('Where Astrolabe draws.')
+    // The card is absolute and in its row's hover group, so showing it moves no row (079).
     expect(drawn).toContain('"display":"none"')
-    expect(drawn).toContain('"hover":{"display":"flex"}')
+    expect(drawn).toContain('"position":"absolute"')
+    expect(drawn).toMatch(/"hover":\{"scope":"config-row-astrolabe\.preset","display":"flex"\}/)
     await ui.unmount()
   })
 

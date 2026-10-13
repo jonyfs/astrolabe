@@ -34,3 +34,17 @@ export const changedSettingsJson = (draft: Readonly<Record<string, string | numb
 
 /** Where an option is described (078 FR-078). */
 export const OPTIONS_README = 'https://github.com/jonyfs/astrolabe#options'
+
+/** What Enter does on a selected option (079): a boolean flips, a choice takes the next one, the rest stays. */
+export const nextOptionValue = (
+  row: { kind: string; options?: readonly string[] | undefined; isLocked?: boolean | undefined },
+  current: string | number | boolean,
+): string | number | boolean | undefined => {
+  if (row.isLocked === true) return undefined
+  if (row.kind === 'boolean') return current !== true
+  if (row.kind === 'choice' && row.options !== undefined && row.options.length > 0) {
+    const at = row.options.indexOf(String(current))
+    return row.options[(at + 1) % row.options.length]
+  }
+  return undefined
+}

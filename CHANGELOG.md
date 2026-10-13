@@ -6,6 +6,22 @@ tags `vX.Y.Z` equal to `plugin.json`'s `version`.
 
 ## [Unreleased]
 
+## [0.138.1] - 2026-10-13
+
+### Fixed
+
+- Hovering moved the screen. Four reveals sat in the flow of the layout, so showing them pushed
+  everything below them: the card of a Setup option, the `↗ plan↗ tasks↗` links of a spec row, the
+  step cards of the band and the sentence under a footer chip. They are absolute now (a group at
+  the right edge of the row, a card over the rows, a card over the band row, a slot of one row that
+  is always there), so a hover moves nothing.
+
+### Added
+
+- Setup and PRs have a selection. The arrow keys pick an option or a pull request (`❯`), and Enter
+  changes the option's value, or runs the pull request's first action (approve, update branch,
+  merge), asking twice as its buttons do.
+
 ## [0.138.0] - 2026-10-13
 
 ### Added

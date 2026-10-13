@@ -44,6 +44,13 @@ export const pullsBySpec = (
   return out
 }
 
+/**
+ * What Enter does on a selected pull request (079): approve it, else update its branch, else
+ * merge it, the first the row would offer; undefined when it offers none.
+ */
+export const primaryPullAction = (pr: Pick<PullRow, 'review' | 'isDraft' | 'merge'>): 'approve' | 'update' | 'merge' | undefined =>
+  pr.review !== 'approved' && !pr.isDraft ? 'approve' : pr.merge === 'BEHIND' ? 'update' : pr.merge === 'CLEAN' && !pr.isDraft ? 'merge' : undefined
+
 /** How long ago, in the largest whole unit: `12m`, `5h`, `3d` (052 #40). */
 export const ageOf = (at: number, now: number): string => {
   const minutes = Math.max(0, Math.floor((now - at) / 60_000))

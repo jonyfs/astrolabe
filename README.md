@@ -7,7 +7,7 @@ updates, and a status entry with your fullest usage window.
 
 ![Astrolabe in a 180-column terminal](docs/images/overview-180.svg)
 
-> **Version 0.138.0.** Every image in this README is a capture of the real mod running in Claude
+> **Version 0.138.1.** Every image in this README is a capture of the real mod running in Claude
 > Code 2.1.292, made with `scripts/capture/scene.sh` in the demo project
 > [docs/demo/](docs/demo/) (see [How the images are made](#how-the-images-are-made)).
 
@@ -169,7 +169,7 @@ on the first row (the Spec Kit part, the window that decides, the advisor, the h
 statusline's lines go below it, with its segments, ranks, colours, shedding and links:
 
 ```text
-◆ 002 · implement 45% │ astrolabe 0.138.0 │ /astrolabe help
+◆ 002 · implement 45% │ astrolabe 0.138.1 │ /astrolabe help
  ⌂ astrolabe  jonyfs/astrolabe  ⎇ 070-statusline-dependency  ●3 +7  PR #160 draft  ✓ CI
  ◆ 059 specify  ❖ humanizer, dataviz  ▸ Fix authentication (1/3)  ● working
  opus 5.5 · high  ctx 41%  5h 72%▵ · 2h09m  7d 84%▴ · Thu 18:00  cache warm · 1m  1h12m
@@ -711,6 +711,11 @@ Type `/astrolabe` to open a pane with four tabs (`/astrolabe help` lists every c
 | 3 PRs | The open pull requests as a table: number and title (a link), checks as `✓ ✖ ◷` cells, review state and age, the spec of the branch (`→ 002`), with approve, update and merge buttons that ask for a second press. The ones that need you (failing checks, requested changes, a branch behind) come first; `is:failing`, `is:draft`, `is:approved`, `is:behind` and `is:mine` filter. |
 | 4 Setup | Every Astrolabe option under Look, Usage governor, Claude and Integrations, as groups that fold (the group with a change is open), the look presets Minimal, Balanced and Full, then the model and effort per skill as two buttons each. A value that differs from its default carries `•`, a `↺ default` button and, on hover, its default and a link to the Options section. Options that cancel each other are named on the row they do nothing for. Changes save to the mod store; nothing writes `settings.json`. |
 
+In Setup and PRs the arrow keys pick a row (`❯`): Enter changes the option's value, or runs the
+pull request's first action (approve, then update branch, then merge) after a second press. What a
+hover shows (a Setup option's card, a spec's links, a band step's card, a footer chip's sentence)
+is drawn over the rows, never in their flow, so a hover moves nothing.
+
 Help is not a tab. `?` (pressed as `h`) opens it over the tab you are on, and a tab key or `h`
 again closes it. A tab stored by an earlier version maps to its new tab: `dashboard` opens
 Session, `config` and `models` open Setup.
@@ -790,7 +795,7 @@ turn ends.
 
 The footer carries the advisor and Astrolabe's own details, so a separate statusline does not have to.
 An `adv N` chip counts the times the advisor ran this session and shows once it has run. The last chip,
-`astrolabe 0.138.0`, names the running version; it is the first one a narrow footer drops.
+`astrolabe 0.138.1`, names the running version; it is the first one a narrow footer drops.
 
 The footer's chips take their order and colour from one table in `hooks/core/footer.ts`, and the Help tab prints it: each chip's rank (a narrow footer drops the highest rank first) and its colour.
 
