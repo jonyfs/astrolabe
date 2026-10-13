@@ -109,10 +109,10 @@ describe('hold: refused at once, then the person is asked (015, 017)', () => {
     expect(asks.opened.find(o => o.id === ASK_ID)?.focus).toBe(true)
     const ui = await mountAsk($ as never)
     const body = (await ui.find({ key: 'astrolabe-usage-body' }))?.text ?? ''
-    expect(body).toContain('🧭 usage 5h 83% (hold): a new subagent, "job a1". What now?')
-    expect(body).toContain('the default goes ahead at')
+    expect(body).toContain('5h at 83%▴ · "job a1" is queued until')
+    expect(body).toContain('The cautious default is already applied')
     const drawn = JSON.stringify(await ui.drawn())
-    for (const label of ['Queue it until', 'Run this one now', 'Allow subagents for 1 hour, one at a time', 'Drop this request']) {
+    for (const label of ['Keep it queued (applied)', 'Run it now', 'Lift holds for 1 hour', 'Drop this request']) {
       expect(drawn).toContain(label)
     }
     await ui.unmount()
@@ -206,7 +206,7 @@ describe('stop and ceiling: refused at once, then the person is asked (015, 017)
     expect(textOf(refused)).toContain('(stop): paused until')
     await questionOpens(session, asks)
     const ui = await mountAsk($ as never)
-    expect((await ui.find({ key: 'astrolabe-usage-body' }))?.text).toContain('Claude wants to run Bash. What now?')
+    expect((await ui.find({ key: 'astrolabe-usage-body' }))?.text).toContain('Claude wants to run Bash; paused until')
     await ui.select({ key: 'astrolabe-usage-choice', value: 'extend' })
     await ui.unmount()
     await flush()
@@ -247,10 +247,10 @@ describe('narrow terminal: the engine dialog asks instead (015, 017)', () => {
       await session.clock.advance(0)
       await flush()
     }
-    expect(asks.asked[0]).toContain('(hold): a new subagent, "job a1". What now?')
+    expect(asks.asked[0]).toContain('"job a1" is queued until')
     await session.clock.advance(60_000)
     await flush()
-    asks.answer('Allow subagents for 1 hour, one at a time')
+    asks.answer('Lift holds for 1 hour')
     await flush()
     await settleStatus(session)
     await until(() => session.last()?.includes('throttle') === true)

@@ -81,11 +81,11 @@ describe('questions before a hold or a pause (015)', () => {
   test('hold: queue first (the default), then run, lift for an hour, drop', () => {
     const q = holdQuestion(decide([r(83, 'seven_day')], [], undefined, NOW), 'Full review', 'Mon 07:00')
     expect(q.kind).toBe('hold')
-    expect(q.text).toBe('🧭 usage 7d 83% (hold): a new subagent, "Full review". What now?')
+    expect(q.text).toBe('‖ 7d at 83%▴ · "Full review" is queued until Mon 07:00')
     expect(q.options).toEqual([
-      { value: 'queue', label: 'Queue it until Mon 07:00' },
-      { value: 'run', label: 'Run this one now' },
-      { value: 'lift', label: 'Allow subagents for 1 hour, one at a time' },
+      { value: 'queue', label: 'Keep it queued (applied)' },
+      { value: 'run', label: 'Run it now' },
+      { value: 'lift', label: 'Lift holds for 1 hour' },
       { value: 'drop', label: 'Drop this request' },
     ])
     expect(q.fallback).toBe('queue')
@@ -93,9 +93,9 @@ describe('questions before a hold or a pause (015)', () => {
 
   test('pause: pause first (the default), then 30 minutes and 2 hours with their ceilings', () => {
     const q = pauseQuestion(decide([r(89)], [], undefined, NOW), 'Bash', '14:00')
-    expect(q.text).toBe('🧭 usage 5h 89% (stop): Claude wants to run Bash. What now?')
+    expect(q.text).toBe('‖ 5h at 89%▴ · Claude wants to run Bash; paused until 14:00')
     expect(q.options).toEqual([
-      { value: 'pause', label: 'Pause until 14:00' },
+      { value: 'pause', label: 'Keep it paused until 14:00 (applied)' },
       { value: 'extend', label: 'Continue for 30 more minutes (ceiling 91%)', target: 91 },
       { value: 'raise', label: 'Raise the ceiling to 95% for 2 hours', target: 95 },
     ])
@@ -108,7 +108,7 @@ describe('questions before a hold or a pause (015)', () => {
     expect(at(94.5)).toEqual([undefined, 96, 96])
     expect(at(98)).toEqual([undefined, 99, 99])
     expect(at(99)).toEqual([undefined])
-    expect(pauseQuestion(decide([r(91)], [], undefined, NOW), 'Edit').options[0]?.label).toBe('Pause until the reset')
+    expect(pauseQuestion(decide([r(91)], [], undefined, NOW), 'Edit').options[0]?.label).toBe('Keep it paused until the reset (applied)')
   })
 
   test('a hold lift turns hold into throttle with cap 1 until it ends; stop is untouched', () => {
