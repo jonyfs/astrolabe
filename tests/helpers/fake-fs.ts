@@ -251,8 +251,10 @@ export const installTree = (on: On, tree: Tree, cwd: string, seed: Record<string
     const given = (e as { init?: { stdin?: unknown } }).init?.stdin
     if (typeof given === 'string') stdins[line] = given
     const givenEnv = (e as { init?: { env?: Record<string, string> } }).init?.env
-    if (givenEnv !== undefined) envs[line] = { ...givenEnv }
-    const answer = script.processes[line]
+    // A path in the argv may be spelled with backslashes on Windows; a test keys it with slashes (081).
+    const slashed = line.replace(/\\/g, '/')
+    if (givenEnv !== undefined) envs[line] = envs[slashed] = { ...givenEnv }
+    const answer = script.processes[line] ?? script.processes[slashed]
     if (answer === undefined || answer === 'missing') return { deny: `ENOENT: ${e.argv[0]}` }
     return { value: { exitCode: answer.exitCode ?? 0, stdout: answer.stdout ?? '', stderr: answer.stderr ?? '', isStdoutTruncated: false, isStderrTruncated: false } } as never
   })

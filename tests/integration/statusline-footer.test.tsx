@@ -29,7 +29,7 @@ const setup = async ($: never, on: never, node: { stdout: string } | 'missing' =
   const root = manifest!.replace(/\/\.claude-plugin\/plugin\.json$/, '')
   tree[`${root}/vendor/statusline/VERSION`] = JSON.stringify({ commit: 'b703d7be7e15467836ceaa610563171a9656fa65', version: '1.46.0' })
   tree[`${root}/vendor/statusline/bin/cli.js`] = '// bundled'
-  return { session, cli: `${root}/vendor/statusline/bin/cli.js` }
+  return { session, cli: `${root}/vendor/statusline/bin/cli.js`.replace(/\\/g, '/') }
 }
 
 // The pane is on screen first: the footer is drawn and refreshed only for a pane someone sees.
