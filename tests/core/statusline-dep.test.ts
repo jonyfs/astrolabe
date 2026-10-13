@@ -185,6 +185,11 @@ describe('parseRunsOutput (076, statusline spec 056 FR-001 and FR-003)', () => {
     const out = parseRunsOutput(obj({ contract: 1, lines: [[{ text: 'a\u001b[31mb', href: 'javascript:alert(1)' }]] }))
     expect(out).toEqual({ kind: 'runs', contract: 1, lines: [[{ text: 'a[31mb' }]] })
   })
+  test('a link that holds a control character or a space is dropped whole, so it cannot end the OSC 8 sequence', () => {
+    for (const href of ['https://x.test/\u001b]8;;\u0007evil', 'https://x.test/a\u0007b', 'https://x.test/a b', 'https://x.test/\u009bx', `https://x.test/${'a'.repeat(3000)}`]) {
+      expect(parseRunsOutput(JSON.stringify({ contract: 1, lines: [[{ text: 'x', href }]] }))).toEqual({ kind: 'runs', contract: 1, lines: [[{ text: 'x' }]] })
+    }
+  })
   test('a colour that is not #rrggbb is left out; a style that is not true is off', () => {
     const out = parseRunsOutput(obj({ contract: 1, lines: [[{ text: 'x', fg: 'red', bg: '#12', bold: 'yes', dim: false }]] }))
     expect(out).toEqual({ kind: 'runs', contract: 1, lines: [[{ text: 'x' }]] })

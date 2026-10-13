@@ -194,7 +194,9 @@ const asRun = (value: unknown): Run | undefined => {
   if (v['bold'] === true) run.bold = true
   if (v['dim'] === true) run.dim = true
   if (v['underline'] === true) run.underline = true
-  if (typeof v['href'] === 'string' && LINK_SCHEMES.test(v['href'])) run.href = v['href']
+  // A link is drawn inside an OSC 8 sequence: a control character or a space in it could end that
+  // sequence and start another, so any href that holds one is dropped, not cleaned.
+  if (typeof v['href'] === 'string' && v['href'].length <= 2048 && LINK_SCHEMES.test(v['href']) && !/[\u0000-\u0020\u007f-\u009f]/.test(v['href'])) run.href = v['href']
   return run
 }
 
