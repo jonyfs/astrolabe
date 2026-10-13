@@ -112,10 +112,14 @@ const runsSupported = (() => {
 
 describe.skipIf(!runsSupported)('the runs form (076, statusline 056)', () => {
   test('one object with contract 1 and lines; the runs join to the ANSI text', () => {
+    // A directory that is not a repository: the git chips come from a live `git` call with a budget,
+    // so in a repository two back-to-back renders can differ by one chip on a slow runner.
+    const dir = mkdtempSync(join(tmpdir(), 'astrolabe-statusline-cwd-'))
+    const input = payload({ cwd: dir, workspace: { current_dir: dir, project_dir: dir } })
     for (const columns of [80, 100, 144, 200]) {
-      const data = JSON.parse(run(payload(), columns, { CLAUDE_STATUSLINE_OUTPUT: 'runs' }).out) as { contract: number; lines: Array<Array<{ text: string }>> }
+      const data = JSON.parse(run(input, columns, { CLAUDE_STATUSLINE_OUTPUT: 'runs' }).out) as { contract: number; lines: Array<Array<{ text: string }>> }
       expect(data.contract).toBe(1)
-      const ansi = run(payload(), columns).out.split('\n').map(plain).filter(l => l.trim() !== '')
+      const ansi = run(input, columns).out.split('\n').map(plain).filter(l => l.trim() !== '')
       expect(data.lines.map(l => l.map(r => r.text).join(''))).toEqual(ansi)
     }
   })

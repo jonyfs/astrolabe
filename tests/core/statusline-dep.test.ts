@@ -7,7 +7,11 @@ import {
   cutRuns,
   isLinkable,
   isFallback,
+  flavorMismatch,
+  joinDir,
   parseAnsiLines,
+  parseOmit,
+  parseResolvedConfig,
   parseRunsOutput,
   plainOf,
   statuslineEnv,
@@ -134,8 +138,65 @@ describe('statuslineEnv (070 FR-006)', () => {
   })
 })
 
+describe('the embedding options (082)', () => {
+  const base = { columns: 80, lines: 3, flavor: 'mocha', ascii: false }
+  test('with no option the environment is the one of spec 070', () => {
+    const env = statuslineEnv(base)
+    expect(Object.keys(env).sort()).toEqual(['COLORTERM', 'COLUMNS', 'CLAUDE_STATUSLINE_DEBUG', 'CLAUDE_STATUSLINE_FLAVOR', 'CLAUDE_STATUSLINE_OUTPUT', 'CLAUDE_STATUSLINE_UPDATES', 'LINES'].sort())
+    expect(statuslineEnv({ ...base, mode: 'live', omit: '' })).toEqual(env)
+  })
+  test('passive sets the switch and the cache directory; with no directory it sets only the switch', () => {
+    const env = statuslineEnv({ ...base, mode: 'passive', cacheDir: '/data/statusline-cache' })
+    expect(env['CLAUDE_STATUSLINE_PASSIVE']).toBe('1')
+    expect(env['CLAUDE_STATUSLINE_CACHE_DIR']).toBe('/data/statusline-cache')
+    const bare = statuslineEnv({ ...base, mode: 'passive' })
+    expect(bare['CLAUDE_STATUSLINE_PASSIVE']).toBe('1')
+    expect('CLAUDE_STATUSLINE_CACHE_DIR' in bare).toBe(false)
+  })
+  test('live ignores a cache directory', () => {
+    expect('CLAUDE_STATUSLINE_CACHE_DIR' in statuslineEnv({ ...base, mode: 'live', cacheDir: '/x' })).toBe(false)
+  })
+  test('omit is passed as a clean list and left out when empty', () => {
+    expect(statuslineEnv({ ...base, omit: 'dir,branch' })['CLAUDE_STATUSLINE_OMIT']).toBe('dir,branch')
+    expect('CLAUDE_STATUSLINE_OMIT' in statuslineEnv({ ...base, omit: ' , ' })).toBe(false)
+  })
+  test('parseOmit keeps segment-like keys, as written, in order, once', () => {
+    expect(parseOmit('dir, branch;sevenDayReset  dir,,rate_limits')).toBe('dir,branch,sevenDayReset,rate_limits')
+    expect(parseOmit('a/b,$(x),ok')).toBe('ok')
+    expect(parseOmit(undefined)).toBe('')
+    expect(parseOmit(42)).toBe('')
+  })
+  test('joinDir uses the separator of the base', () => {
+    expect(joinDir('/data/', 'statusline-cache')).toBe('/data/statusline-cache')
+    expect(joinDir('C:\\data', 'statusline-cache')).toBe('C:\\data\\statusline-cache')
+  })
+  test('parseResolvedConfig reads what --print-config prints', () => {
+    const text = JSON.stringify({ contract: 1, version: '1.58.0', flavor: 'mocha', flavorSource: 'env', glyphs: 'nerd', separator: 'arrow', passive: true, cacheDir: '/c', layout: { origin: 'default', path: null, omitted: ['dir'] }, ramp: 'default' })
+    expect(parseResolvedConfig(text)).toEqual({ flavor: 'mocha', flavorSource: 'env', glyphs: 'nerd', separator: 'arrow', passive: true, omitted: ['dir'] })
+  })
+  test('parseResolvedConfig refuses what is not an object with a flavor', () => {
+    expect(parseResolvedConfig('')).toBeUndefined()
+    expect(parseResolvedConfig('statusline unavailable')).toBeUndefined()
+    expect(parseResolvedConfig('{"contract":1}')).toBeUndefined()
+    expect(parseResolvedConfig('[1]')).toBeUndefined()
+  })
+  test('parseResolvedConfig drops control characters and bounds the list', () => {
+    const omitted = Array.from({ length: 80 }, (_, i) => `k${i}`)
+    const out = parseResolvedConfig(JSON.stringify({ flavor: 'mo\u001bcha', glyphs: 'n', layout: { omitted } }))
+    expect(out?.flavor).toBe('mocha')
+    expect(out?.omitted.length).toBe(40)
+  })
+  test('flavorMismatch names a flavor that was asked for and not drawn', () => {
+    expect(flavorMismatch('latte', { flavor: 'mocha', omitted: [] })).toBe(true)
+    expect(flavorMismatch('mocha', { flavor: 'mocha', omitted: [] })).toBe(false)
+    // The theme-following flavor sets none, so there is nothing to compare.
+    expect(flavorMismatch('theme', { flavor: 'frappe', omitted: [] })).toBe(false)
+    expect(flavorMismatch('latte', undefined)).toBe(false)
+  })
+})
+
 describe('chooseSource (070 FR-010)', () => {
-  const ok = { choice: 'statusline', flavor: 'mocha', node: 'ok', copy: true, failing: false } as const
+  const ok ={ choice: 'statusline', flavor: 'mocha', node: 'ok', copy: true, failing: false } as const
   test('statusline when everything is there', () => {
     expect(chooseSource(ok)).toEqual({ source: 'statusline' })
   })

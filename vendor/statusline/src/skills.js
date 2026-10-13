@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { stateRoot, readablePath } from "./paths.js";
 import path from "node:path";
 import os from "node:os";
 import { scanTailForSkills, scanTail } from "./transcriptTail.js";
@@ -39,18 +40,6 @@ export function windowMs() {
 // as thirty more minutes of assumed activity.
 const TASK_SNAPSHOT_FRESHNESS_MS = 30 * 1000;
 
-/**
- * The roster file for a session, matching what `task-rows` writes.
- *
- * Keyed by session id, so two Claude Code windows on two projects no longer
- * read each other's running agents. `latest.json` is the name used when
- * neither side has a session id to key by, which is exactly the case that
- * behaved this way before the key existed.
- */
-function taskSnapshotPath(sessionId) {
-  const safe = sessionId ? String(sessionId).replace(/[^A-Za-z0-9_-]/g, "_") : "latest";
-  return path.join(os.homedir(), ".claude", "statusline", "tasks", `${safe}.json`);
-}
 
 /**
  * The running subagents `task-rows` recorded on its own tick
@@ -66,7 +55,8 @@ function taskSnapshotPath(sessionId) {
 function readTaskSnapshot(now, sessionId) {
   let raw;
   try {
-    raw = readFileSync(taskSnapshotPath(sessionId), "utf8");
+    const safe = sessionId ? String(sessionId).replace(/[^A-Za-z0-9_-]/g, "_") : "latest";
+    raw = readFileSync(readablePath("tasks", `${safe}.json`), "utf8");
   } catch {
     return [];
   }

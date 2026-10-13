@@ -17,6 +17,7 @@
  */
 
 import { appendFileSync, mkdirSync, readFileSync } from "node:fs";
+import { stateRoot, readablePath } from "./paths.js";
 import { plainText } from "./text.js";
 import path from "node:path";
 import os from "node:os";
@@ -24,7 +25,13 @@ import os from "node:os";
 const MAX_TAIL_BYTES = 64 * 1024;
 
 function skillsDir() {
-  return path.join(os.homedir(), ".claude", "statusline", "skills");
+  return path.join(stateRoot(), "skills");
+}
+
+/** The file to read: under the state root, else where the hooks wrote it (see `readablePath`). */
+function readableSessionFile(sessionId) {
+  const safe = String(sessionId || "default").replace(/[^A-Za-z0-9_-]/g, "_");
+  return readablePath("skills", `${safe}.jsonl`);
 }
 
 /** The same sanitising the animation state files already use. */
@@ -67,7 +74,7 @@ export function appendSkillEvent(sessionId, skill, { now = Date.now(), agentId =
 function scanAllSkillEvents(sessionId, { windowMs = 30 * 60 * 1000, now = Date.now() } = {}) {
   let text;
   try {
-    text = readFileSync(sessionFileFor(sessionId), "utf8");
+    text = readFileSync(readableSessionFile(sessionId), "utf8");
   } catch {
     return [];
   }
@@ -119,7 +126,7 @@ export function readSkillEventsTrueCount(sessionId, { windowMs = 30 * 60 * 1000,
 export function mostRecentSkillEvent(sessionId) {
   let text;
   try {
-    text = readFileSync(sessionFileFor(sessionId), "utf8");
+    text = readFileSync(readableSessionFile(sessionId), "utf8");
   } catch {
     return null;
   }
@@ -197,7 +204,7 @@ export function readSkillsByAgent(sessionId) {
   const byAgent = new Map();
   let text;
   try {
-    text = readFileSync(sessionFileFor(sessionId), "utf8");
+    text = readFileSync(readableSessionFile(sessionId), "utf8");
   } catch {
     return byAgent;
   }

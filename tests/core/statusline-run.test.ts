@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import { nodeStatus, renderFooter, type RunProc } from '../../hooks/io/statusline-run'
+import { nodeStatus, readResolvedConfig, renderFooter, type RunProc } from '../../hooks/io/statusline-run'
 
 const ok = (stdout: string): RunProc => async () => ({ exitCode: 0, stdout })
 const clock = () => {
@@ -57,6 +57,27 @@ describe('renderFooter (070 FR-006, FR-008)', () => {
   test('control sequences other than colour are dropped from good output', async () => {
     const r = await renderFooter({ ...base, run: ok('\x1b[2Jhello\x1b[?25l\n') })
     expect(r.ok && r.lines).toEqual([[{ text: 'hello' }]])
+  })
+})
+
+describe('readResolvedConfig (082 FR-005)', () => {
+  const base = { cli: '/p/vendor/statusline/bin/cli.js', env: { COLUMNS: '90' }, cwd: '/proj' }
+  test('asks for --print-config with the render environment and directory', async () => {
+    let seen: { argv: string[]; init: Record<string, unknown> } | undefined
+    const run: RunProc = async (argv, init) => {
+      seen = { argv, init }
+      return { exitCode: 0, stdout: '{"contract":1,"flavor":"mocha","layout":{"omitted":["dir"]}}' }
+    }
+    expect(await readResolvedConfig({ ...base, run })).toEqual({ flavor: 'mocha', omitted: ['dir'] })
+    expect(seen?.argv).toEqual(['node', '/p/vendor/statusline/bin/cli.js', '--print-config'])
+    expect(seen?.init['env']).toEqual({ COLUMNS: '90' })
+    expect(seen?.init['cwd']).toBe('/proj')
+    expect(seen?.init['stdin']).toBeUndefined()
+  })
+  test('a copy without the command, a failure or a throw give nothing', async () => {
+    expect(await readResolvedConfig({ ...base, run: ok('statusline unavailable\n') })).toBeUndefined()
+    expect(await readResolvedConfig({ ...base, run: async () => ({ exitCode: 1, stdout: '{"flavor":"mocha"}' }) })).toBeUndefined()
+    expect(await readResolvedConfig({ ...base, run: async () => { throw new Error('spawn node ENOENT') } })).toBeUndefined()
   })
 })
 

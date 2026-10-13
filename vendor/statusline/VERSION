@@ -1,6 +1,6 @@
 {
-  "commit": "2b565f22f3108228e9f88f4e062f175e8d80d6ae",
-  "version": "1.53.1",
+  "commit": "ff1ddc25a98ab837fa4feff3171a451f2c81cfe6",
+  "version": "1.58.0",
   "ref": "main",
   "source": "https://github.com/jonyfs/statusline"
 }
