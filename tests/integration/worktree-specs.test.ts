@@ -41,6 +41,8 @@ describe('worktree specs (037)', () => {
     await session.clock.advance(1000)
     expect(session.processes).toContain(WORKTREES)
     const ui = await mountPane($ as never, 'terminal', 100, 40)
+    // The feature is done: the default list leaves it out, so every status is asked for (081).
+    await ui.press('status-filter')
     const body = await ui.body()
     const featureRow = body.match(/[▸▾] ◆ 025 a\s+done/)?.[0] ?? ''
     const worktreeRow = body.match(/⎇026 claude-context\s+implement/)?.[0] ?? ''
