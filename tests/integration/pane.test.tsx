@@ -171,7 +171,7 @@ describe('the pane tabs (US1, US2)', () => {
     const { session } = await setup($ as never, on as never)
     for (const key of Object.keys(session.stateGets)) delete session.stateGets[key]
     const ui = await mountPane($ as never, 'terminal')
-    expect(session.stateGets).toEqual({ speckit: 1, session: 1, usage: 1, pane: 1, updates: 1 })
+    expect(session.stateGets).toEqual({ speckit: 1, session: 1, usage: 1, pane: 1, updates: 1, footer: 1 })
     await ui.unmount()
   })
 

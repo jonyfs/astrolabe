@@ -63,7 +63,12 @@ const SEP = ZONE_SEPARATOR
 
 /** Columns a text takes: pictographs and the declared wide emoji-set entries count two (064 #3). */
 export const textWidth = (text: string): number =>
-  [...text].reduce((n, ch) => n + ((ch.codePointAt(0) ?? 0) >= 0x1f000 || EMOJI_WIDE.includes(ch) ? 2 : 1), 0)
+  [...text].reduce((n, ch) => {
+    const cp = ch.codePointAt(0) ?? 0
+    // The supplementary private-use planes hold Nerd Font glyphs, one cell wide.
+    const pictograph = cp >= 0x1f000 && cp < 0xf0000
+    return n + (pictograph || EMOJI_WIDE.includes(ch) ? 2 : 1)
+  }, 0)
 
 /** `claude-opus-5-5` reads `opus 5.5`; anything else is kept. */
 export const shortModel = (model: string): string => {

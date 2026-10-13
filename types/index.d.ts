@@ -369,8 +369,17 @@ export type UsageQuestion = { kind: 'hold' | 'pause'; text: string; options: Usa
 /** The open question the `astrolabe-usage` pane draws, with when its default goes ahead. */
 export type AskState = { question?: UsageQuestion; deadline?: number }
 
+/** One styled piece of the footer statusline drew (070). */
+export type FooterRun = { text: string; fg?: string; bg?: string; bold?: true; dim?: true; underline?: true; href?: string }
+
+/** The footer statusline draws and where it came from (070): its own state key, so a new render does not copy the session's stats. */
+export type FooterState = {
+  render?: { at: number; columns: number; lines: FooterRun[][] }
+  health?: { source: 'statusline' | 'native'; reason?: string; version?: string; commit?: string }
+}
+
 declare module 'claude-code' {
   interface PluginState {
-    astrolabe: { speckit: SpeckitState; memo: SessionMemo; pane: PaneState; updates: UpdatesState; usage: UsageState; ask: AskState; session: SessionStats }
+    astrolabe: { speckit: SpeckitState; memo: SessionMemo; pane: PaneState; updates: UpdatesState; usage: UsageState; ask: AskState; session: SessionStats; footer: FooterState }
   }
 }

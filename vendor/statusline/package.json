@@ -1,0 +1,51 @@
+{
+  "name": "@jonfys/statusline",
+  "version": "1.46.0",
+  "description": "Catppuccin Powerline statusline for Claude Code: model/effort, context and rate-limit usage, active skills, git branch and pull request state.",
+  "keywords": [
+    "claude",
+    "claude-code",
+    "statusline",
+    "catppuccin",
+    "powerline",
+    "starship",
+    "cli"
+  ],
+  "homepage": "https://github.com/jonyfs/statusline#readme",
+  "bugs": {
+    "url": "https://github.com/jonyfs/statusline/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jonyfs/statusline.git"
+  },
+  "type": "module",
+  "main": "src/render.js",
+  "bin": {
+    "statusline-plugin": "bin/cli.js"
+  },
+  "scripts": {
+    "composer": "node scripts/generate-composer.js",
+    "previews": "node scripts/generate-previews.js",
+    "test": "node scripts/smoke-test.js"
+  },
+  "os": [
+    "darwin",
+    "linux",
+    "win32"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "bin",
+    "src",
+    "!src/preview",
+    "README.md",
+    "LICENSE"
+  ]
+}

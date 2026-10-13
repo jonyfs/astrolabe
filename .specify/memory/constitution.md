@@ -1,4 +1,16 @@
 <!--
+Sync Impact Report (1.1.0)
+- Version change: 1.0.2 → 1.1.0 (MINOR: three principles gain a stated exception)
+- Modified principles:
+  III. Native Mod, Zero Settings. A bundled program may keep its own caches under
+  `~/.claude/statusline/`; the mod itself still writes nothing outside `$.store` and `$.state`.
+  IX. Theme by Tokens. Colours of a bundled renderer's output are data it supplies; the mod
+  maps its `flavor` to the renderer's and adds no literal colour to an adapter.
+  XIV. Verified Distribution. A bundled dependency is pinned by commit, vendored in the
+  repository and refreshed only by a reviewed pull request.
+- Templates: no change needed.
+- Source: specs/070-statusline-dependency.
+
 Sync Impact Report (1.0.2)
 - Version change: 1.0.1 → 1.0.2 (PATCH: wording only)
 - Modified principles: II. Complete Documentation With Working Examples. The rule is
@@ -106,6 +118,11 @@ Persistent values live only in `$.store`; session values live only in `$.state`,
 Rationale: a plugin cannot set `statusLine`, and installing must never surprise the user by
 changing their configuration.
 
+Exception (1.1.0): a program the repository bundles under `vendor/` (today the statusline
+renderer, spec 070) runs as its own process and keeps its own caches under
+`~/.claude/statusline/`, as it does when it is Claude Code's `statusLine`. The mod starts it
+with its update check off, and the README lists what it writes and the tools it runs.
+
 ### IV. Pure Core, Thin Surfaces
 
 Business logic (Spec Kit state, `tasks.md` parsing, drift detection, theme tokens, presets)
@@ -174,6 +191,11 @@ Claude Code.
 
 Rationale: one source of color makes every flavor correct by construction.
 
+Exception (1.1.0): the output of a bundled renderer (spec 070) arrives already coloured; its
+colours are data the renderer supplies, not literals of an adapter. The mod maps its `flavor`
+to the renderer's and falls back to its own footer where the renderer has no equivalent
+(colorblind).
+
 ### X. Presets Are Data
 
 A preset is a declaration of which places to draw and in what order. It is data, not code.
@@ -222,6 +244,10 @@ when they differ.
 Rationale: users get a pinned, reproducible release, not whatever commit happens to be on
 `main`.
 
+Exception (1.1.0): a bundled dependency (`vendor/`) is pinned by the commit recorded in its
+`VERSION` file, shipped with the release, and refreshed only by a pull request that passes its
+contract test. Nothing is fetched at run time.
+
 ## Platform & Technical Constraints
 
 - Runtime: the Claude Code mod engine (2.1.287 or later for the terminal, 2.1.286 or later
@@ -257,4 +283,4 @@ Amendments are made only through `/speckit-constitution`, with a written rationa
 Sync Impact Report. Versioning: MAJOR for removing or redefining a principle, MINOR for
 adding a principle or section or materially expanding one, PATCH for wording only.
 
-**Version**: 1.0.2 | **Ratified**: 2026-10-07 | **Last Amended**: 2026-10-09
+**Version**: 1.1.0 | **Ratified**: 2026-10-07 | **Last Amended**: 2026-10-13
