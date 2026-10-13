@@ -78,7 +78,7 @@ const BY_TAB: Readonly<Record<PaneTab, readonly LegendKey[]>> = {
   tasks: ['filter', 'refresh'],
   session: ['copy', 'refresh'],
   prs: ['refresh'],
-  setup: ['refresh'],
+  setup: ['filter', 'refresh'],
 }
 
 export const legendOf = (tab: PaneTab, opts: { wide: boolean }): LegendPair[] =>

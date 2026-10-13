@@ -84,3 +84,17 @@ export const todayCounts = (log: ReadonlyArray<{ at: number; text: string }>, si
   }
   return { holds, pauses }
 }
+
+/** The chips of the active feature, one row (board 4): tasks, minutes per task, turns, cost. A chip with no data is left out. */
+export const sessionChips = (input: {
+  done: number
+  total: number
+  taskTimes: ReadonlyArray<{ ms: number }>
+  turns: number
+  cost?: number
+}): string[] => [
+  ...(input.total > 0 ? [`${input.done}/${input.total} tasks`] : []),
+  ...(input.taskTimes.length > 0 ? [`${Math.max(1, Math.round(input.taskTimes.reduce((n, x) => n + x.ms, 0) / input.taskTimes.length / 60_000))}m/task`] : []),
+  ...(input.turns > 0 ? [`${input.turns} turns`] : []),
+  ...(input.cost !== undefined && input.cost > 0 ? [`$${input.cost.toFixed(2)}`] : []),
+]

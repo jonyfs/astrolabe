@@ -6,6 +6,27 @@ tags `vX.Y.Z` equal to `plugin.json`'s `version`.
 
 ## [Unreleased]
 
+## [0.136.0] - 2026-10-13
+
+Specs 070 to 075: the footer is statusline's own output, and a second pass over the design boards.
+
+### Added
+
+- Spec 070: the pane footer is statusline's renderer, vendored and refreshed while the pane is drawn, with a native fallback.
+- Specs 071 to 074: context and trend in the Session tab with a governor box, clearer governor questions, a Ready to close group and a why-active line, Setup groups for the governor options.
+- Spec 075: a second pass over the nine boards of the design canvas. The band's bar is one heavy
+  line, the percentage shows from 200 columns, a `PR #41 ✓` chip sits at the right edge from 200
+  columns, and the update button reads `⬆ gstack 1.91.33`, `⬆ gstack`, `⬆1` by width. Specs rows
+  use a nine-cell `▰▱` bar, `Name N` headings, `◆ ✓ ✖ ·` marks and a track tag; the selected spec
+  is a block with its needs, its summary line and its buttons. The Tasks tab marks the current
+  task as a block, draws `○` and `test` tags and no group headers. Session gets a chips row and one
+  constitution row; Setup shows `‹ value ›`, `(nerd here)` and finds an option with `/`; a check
+  row offers `⧉ ask Claude to reconcile`.
+
+### Removed
+
+- The breadcrumb and the summary block above the Specs list, and the summary's expand toggle.
+
 ## [0.135.0] - 2026-10-12
 
 The design review (umbrella spec 063) lands as specs 064 to 069.

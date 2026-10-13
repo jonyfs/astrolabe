@@ -8,7 +8,8 @@ import { phaseShort } from './phase'
 import { byPriority, type Priorities } from './spec-actions'
 import { sectionOf } from './pane'
 import type { ThemeRole } from './theme'
-import type { Feature, Phase, SpeckitState, Step } from './types'
+import { STATE_GLYPHS } from './glyphs'
+import type { Feature, Phase, PullRequest, SpeckitState, Step } from './types'
 
 export type Segment = {
   key: string
@@ -34,13 +35,6 @@ const width = (segments: readonly Segment[]): number => segments.reduce((n, s) =
 export const bandText = (segments: readonly Segment[]): string => segments.map(s => s.text).join('')
 
 const gap = (key: string, text = ' '): Segment => ({ key: `gap-${key}`, text, role: 'muted' })
-
-/** The bar's fill color by the share left (042 #16): red when mostly left, green when nearly done. */
-const barRole = (feature: Feature): ThemeRole => {
-  if (feature.total === 0) return 'barFill'
-  const share = feature.done / feature.total
-  return share >= 2 / 3 ? 'done' : share >= 1 / 3 ? 'current' : 'blocked'
-}
 
 export type BandDensity = 'full' | 'compact' | 'minimal'
 export type BandExtras = {
@@ -144,8 +138,9 @@ const build = (state: SpeckitState, feature: Feature, extras: BandExtras, o: Opt
   out.push({ key: 'chip-step', text: chip.text, role: chip.role, chip: true, ...(extras.bright === true ? { bright: true as const } : {}) })
   if (running && current !== undefined) out.push({ key: `running-${current.step}`, text: '', role: 'accent' })
   if (o.bar > 0 && feature.total > 0) {
+    // One heavy line: blue where done, dim where left (board 1, 2).
     const filled = Math.floor((feature.done * o.bar) / feature.total)
-    out.push(gap('bar', ' '), { key: 'bar-fill', text: '█'.repeat(filled), role: barRole(feature) }, { key: 'bar-empty', text: '░'.repeat(o.bar - filled), role: BAR_ROLE_EMPTY })
+    out.push(gap('bar', ' '), { key: 'bar-fill', text: '━'.repeat(filled), role: 'barFill' }, { key: 'bar-empty', text: '━'.repeat(o.bar - filled), role: BAR_ROLE_EMPTY })
     if (o.percent) out.push(gap('percent'), { key: 'percent', text: `${Math.floor((feature.done * 100) / feature.total)}%`, role: 'muted' })
   }
   const governor = extras.governor
@@ -175,9 +170,21 @@ const build = (state: SpeckitState, feature: Feature, extras: BandExtras, o: Opt
 const tierOf = (columns: number, density: BandDensity | undefined): Options => {
   const effective = density === 'minimal' ? 80 : density === 'compact' ? Math.min(columns, 100) : columns
   if (effective >= 200) return { marks: true, count: true, names: true, name: true, bar: 20, percent: true, title: 'full', live: true, task: true, elapsed: true }
-  if (effective >= 144) return { marks: true, count: true, names: true, name: true, bar: 13, percent: true, title: 'cut', live: true, task: true, elapsed: false }
+  if (effective >= 144) return { marks: true, count: true, names: true, name: true, bar: 13, percent: false, title: 'cut', live: true, task: true, elapsed: false }
   if (effective >= 100) return { marks: true, count: true, names: false, name: true, bar: 9, percent: false, title: 'none', live: false, task: true, elapsed: false }
   return { marks: true, count: true, names: false, name: false, bar: 0, percent: false, title: 'none', live: false, task: true, elapsed: false }
+}
+
+/** The branch's pull request at the band's right edge, from 200 columns of a full band (board 2). */
+export const bandPr = (
+  pr: Pick<PullRequest, 'number' | 'checks'> | undefined,
+  columns: number,
+  density?: BandDensity,
+): { label: string; mark: string; role: ThemeRole } | undefined => {
+  if (pr === undefined || columns < 200 || density === 'compact' || density === 'minimal') return undefined
+  const mark = pr.checks === 'pass' ? '✓' : pr.checks === 'fail' ? '✖' : pr.checks === 'pending' ? STATE_GLYPHS.elapsed : ''
+  const role: ThemeRole = pr.checks === 'pass' ? 'done' : pr.checks === 'fail' ? 'blocked' : 'current'
+  return { label: `PR #${pr.number}`, mark, role }
 }
 
 export const bandSegments = (state: SpeckitState, columns: number, extras: BandExtras = {}): Segment[] => {

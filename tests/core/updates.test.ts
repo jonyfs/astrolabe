@@ -74,9 +74,12 @@ describe('the skills against the CLI (054 #98)', () => {
 })
 
 describe('one update button on the band (065 #19)', () => {
-  test('one update keeps its name from 144 columns', () => {
+  test('one update keeps its name and version from 200 columns, the name from 144 (board 2)', () => {
     expect(bandUpdateLabel(['gstack 1.91.33'], 200)).toBe('⬆ gstack 1.91.33')
+    expect(bandUpdateLabel(['gstack 1.91.33'], 144)).toBe('⬆ gstack')
+    expect(bandUpdateLabel(['astrolabe 0.136.0…'], 150)).toBe('⬆ astrolabe')
     expect(bandUpdateLabel(['gstack 1.91.33'], 100)).toBe('⬆1')
+    expect(bandUpdateLabel(['gstack 1.91.33'], 80)).toBe('⬆1')
   })
   test('two or more collapse into one button with a count', () => {
     expect(bandUpdateLabel(['gstack 1.91.33', 'specify 1.2.0'], 200)).toBe('⬆ 2')

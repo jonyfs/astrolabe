@@ -9,7 +9,7 @@ import { readFeatureDurations } from './modules/durations'
 import { withPr, worktreesById, filtered } from './modules/pane-data'
 import type { ConfigRow, EngineInterface, Hook, Register, RenderNode } from 'claude-code'
 
-import { bandSegments, bandText, nextReason, otherFeaturesCard, stepCards, type BandDensity } from './core/band'
+import { bandPr, bandSegments, bandText, nextReason, otherFeaturesCard, stepCards, type BandDensity } from './core/band'
 import { hintTail } from './core/hint'
 import { phaseToasts } from './core/phase-toast'
 import { justFinished } from './core/next-command'
@@ -19,7 +19,7 @@ import { ticksIn } from './core/tasks-parser'
 import { spinnerSuffix } from './core/spinner'
 import { bandUpdateLabel, astrolabeUpdate, firstLine, isDue, isStoredUpdates, localDay, parseCliVersion, parseGstackCheck, parseSelfCheck, skillsVersusCli, releaseNotesUrl, skillsUpdate, updateLabel } from './core/updates'
 import { fileUrl, joinPath } from './core/paths'
-import { closeAllSuggestion, closeSuggestion, configMark, nextFor, planFiles, nextPriority, skillsForPhase, specDetail, OPTION_GROUPS, optionDefaults, optionGroup, parallelPrompt, parsePriority, REVIEW_MODEL, reviewPrompt, withPriority, type OptionGroup, type Priority } from './core/spec-actions'
+import { closeAllSuggestion, closeSuggestion, configMark, reconcileSuggestion, nextFor, planFiles, nextPriority, skillsForPhase, specDetail, OPTION_GROUPS, optionDefaults, optionGroup, parallelPrompt, parsePriority, REVIEW_MODEL, reviewPrompt, withPriority, type OptionGroup, type Priority } from './core/spec-actions'
 import { parallelTasks } from './core/extensions'
 import { VERSION } from './core/version'
 import { QUEUE_HOTKEYS } from './core/keys'
@@ -30,7 +30,7 @@ import { withThumb } from './core/thumb'
 import { displaySectionOf, isReadyToClose } from './core/sections'
 import { blockLabel, jumpLine, jumpMatches, jumpQuery, nextGroup } from './core/specs-scale'
 import { usageBarRows } from './core/usage-bars'
-import { deciderNote, governorBoxState, todayCounts, trend24h } from './core/session-usage'
+import { deciderNote, governorBoxState, sessionChips, todayCounts, trend24h } from './core/session-usage'
 import { badgesOf, legacyTab, paneTitle } from './core/pane-tabs'
 import { usageRamp } from './core/usage-ramp'
 import { ASK_MS, clockOf, decide, dropped, EXTEND_MS, HOLD_LIFT_MS, holdQuestion, labelOf, nextHeld, isPaused, isReadOnlyTool, parseAllow, pauseQuestion, RAISE_MS, refusal, resumePrompt, runPrompt, usageSegment, type Decision, type Question, usageRows } from './core/governor'
@@ -672,7 +672,11 @@ function configBody(
   const rows: Array<{ node: RenderNode; rows: number }> = []
   if (configRows.length === 0) return [{ rows: 1, node: <Text color={tokens0.muted}>{t(lang, 'config.none')}</Text> }]
   // Under a heading per group (054 #64).
-  const ordered = (Object.keys(OPTION_GROUPS) as OptionGroup[]).flatMap(group => configRows.filter(row => optionGroup(row.key) === group).map((row, i) => ({ row, heading: i === 0 ? group : undefined })))
+  // `/` finds an option by name (board 4, 075 FR-017): the rows that match stay, and so do their headings.
+  const needle = (pane.filter ?? '').trim().toLowerCase()
+  const wanted = (row: ConfigRow) => needle === '' || `${row.key} ${row.label}`.toLowerCase().includes(needle)
+  const ordered = (Object.keys(OPTION_GROUPS) as OptionGroup[]).flatMap(group => configRows.filter(row => optionGroup(row.key) === group && wanted(row)).map((row, i) => ({ row, heading: i === 0 ? group : undefined })))
+  if (needle !== '' && ordered.length === 0) return [{ rows: 1, node: <Text color={tokens0.muted}>{t(lang, 'pane.noMatch', { filter: needle })}</Text> }]
   for (const { row, heading } of ordered) {
     if (heading !== undefined) rows.push({ rows: 1, node: <Text key={`config-group-${heading}`} color={tokens0.accent} bold>{t(lang, `config.group.${heading}` as TextKey)}</Text> })
     const shown = row.key in draft ? draft[row.key] : row.value
@@ -688,7 +692,13 @@ function configBody(
     else if (row.kind === 'choice' && row.options !== undefined) {
       const options = row.options
       const next = options[(options.indexOf(String(shown)) + 1) % options.length] ?? String(shown)
-      control = <Button key={key} label={`${String(shown)} ▸`} onPress={() => setDraft(row.key, next)} />
+      // `‹ value ›` with the other choices after it (board 4); a press moves to the next one.
+      control = (
+        <Box key={key} flexDirection="row">
+          <Button label={`‹ ${String(shown)} ›`} onPress={() => setDraft(row.key, next)} />
+          <Text color={tokens0.faint}>{`  ${options.filter(o => o !== String(shown)).join(' · ')}`}</Text>
+        </Box>
+      )
     } else if (Input !== undefined) {
       const save = (value: string) => setDraft(row.key, row.kind === 'number' ? Number(value) : value)
       control = <Input key={key} value={String(shown)} onInput={save} onSubmit={save} />
@@ -701,6 +711,7 @@ function configBody(
           <Box flexDirection="row">
             <Text color={changed ? tokens0.current : tokens0.text}>{label}</Text>
             {control}
+            {row.key === 'icons' && String(shown) === 'auto' ? <Text color={tokens0.faint}>{`  (${t(lang, iconsFor('auto', e.surface) === 'nerd' ? 'config.iconsNerd' : iconsFor('auto', e.surface) === 'ascii' ? 'config.iconsAscii' : 'config.iconsEmoji')})`}</Text> : null}
           </Box>
           <Box
             display="none"
@@ -1109,7 +1120,7 @@ function paneHeader(
   const Button = 'Button' in elements ? elements.Button : undefined
   const active = state.active
   // One filter for Specs, Tasks and Help (043 #23).
-  if (viewOf(pane) === 'specs' || viewOf(pane) === 'tasks' || viewOf(pane) === 'help') {
+  if (viewOf(pane) === 'specs' || viewOf(pane) === 'tasks' || viewOf(pane) === 'help' || viewOf(pane) === 'setup') {
     const out: RenderNode[] = []
     if (Input !== undefined) {
       // Each keystroke filters; Enter keeps the text the same way.
@@ -1118,7 +1129,7 @@ function paneHeader(
         await $.state.set(PANE_STATE, { ...held, filter: value })
       }
       out.push(
-        <Input key="astrolabe-filter" placeholder={t(currentLang(), viewOf(pane) === 'specs' ? 'pane.filter' : 'pane.filterRows')} value={pane.filter ?? ''} onInput={setFilter} onSubmit={setFilter} />,
+        <Input key="astrolabe-filter" placeholder={t(currentLang(), viewOf(pane) === 'specs' ? 'pane.filter' : viewOf(pane) === 'setup' ? 'pane.findOption' : 'pane.filterRows')} value={pane.filter ?? ''} onInput={setFilter} onSubmit={setFilter} />,
       )
       // A `#` jump (067 #31): the ids the query completes to, live.
       const jump = viewOf(pane) === 'specs' ? jumpQuery(pane.filter) : undefined
@@ -1137,66 +1148,8 @@ function paneHeader(
       if (age > DIFF_FOLD_MS) out.push(<elements.Text key="astrolabe-diff-folded" color={tokens0.muted}>{foldedDiff(stats.tasksDiff.text, stats.tasksDiff.file, age, currentLang())}</elements.Text>)
       else out.push(<Code source={capDiff(stats.tasksDiff.text, currentLang())} format="diff" path={stats.tasksDiff.file} />)
     }
-    // A run of [P] tasks offered as one prompt to subagents (054 #89).
-    if (viewOf(pane) === 'tasks' && active !== undefined && Button !== undefined) {
-      const open = (state.activeTasks ?? []).filter(task => !task.isDone)
-      const run = parallelTasks(open)
-      const feature = state.features.find(f => f.dir === active.dir)
-      if (run.length >= 2 && feature !== undefined) {
-        const tasks = open.filter(task => task.id !== undefined && run.includes(task.id))
-        out.push(
-          <Button key="parallel-dispatch" label={t(currentLang(), 'parallel.button', { ids: run.join(', ') })} plain onPress={() => void $.clock.after(0, () => void $.prompt.submit({ text: parallelPrompt(feature, tasks) }).catch(() => undefined))} />,
-        )
-      }
-    }
-    // The open tasks as GitHub issues with one key (050 #96): Spec Kit's own skill does it, after a second press.
-    if (pane.tab === 'tasks' && active !== undefined && Button !== undefined) {
-      const openTasks = (state.activeTasks ?? []).filter(task => !task.isDone)
-      const feature = state.features.find(f => f.dir === active.dir)
-      if (openTasks.length > 0 && feature !== undefined) {
-        const key = `issues-${feature.id}`
-        const n = Math.min(openTasks.length, 20)
-        out.push(
-          <Button
-            key="tasks-to-issues"
-            label={pane.confirm === key ? t(currentLang(), 'tasks.issuesConfirm', { n }) : t(currentLang(), 'tasks.issues', { n })}
-            plain
-            onPress={() => void confirmPress($, key, () => void $.clock.after(0, () => void runSkill($, 'speckit-taskstoissues', `${feature.id} ${feature.name}`)))}
-          />,
-        )
-      }
-    }
-    // The breadcrumb and summary name the active feature only while the filter keeps it (024 #49).
-    const activeShown =
-      viewOf(pane) === 'specs' && active !== undefined
-        ? filterFeatures(state.features, pane.filter, active.dir, pane.status, specFilterContext(stats)).some(feature => feature.dir === active.dir)
-        : false
-    // Breadcrumb row (043 #24): Specs › 026 claude-context
-    if (activeShown && active !== undefined && state.root !== undefined && elements.Text !== undefined) {
-      out.push(
-        <elements.Text key="astrolabe-breadcrumb" color={tokens0.muted} wrap={e.surface === 'desktop' ? 'wrap' : 'truncate-end'}>{`Specs › ${active.id} ${active.name}`}</elements.Text>
-      )
-    }
-    if (activeShown && active !== undefined && Markdown !== undefined && state.activeSummary !== undefined && state.root !== undefined) {
-      const summaryBlocks = state.activeSummary.split(/\n{2,}/)
-      const expanded = pane.summary?.dir === active.dir && pane.summary.expanded
-      const shownSummary = expanded ? state.activeSummary : summaryBlocks.slice(0, 2).join('\n\n')
-      const links = (state.activeDocs ?? []).map(file => `[${file}](${fileUrl(`${state.root}/specs/${active.dir}/${file}`)})`).join(' · ')
-      out.push(<Markdown key="astrolabe-summary" text={links === '' ? shownSummary : `${shownSummary}\n\n${links}`} />)
-      if (summaryBlocks.length > 2 && Button !== undefined) {
-        out.push(
-          <Button
-            key="summary-toggle"
-            label={t(currentLang(), expanded ? 'summary.less' : 'summary.more')}
-            plain
-            onPress={async () => {
-              const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
-              await $.state.set(PANE_STATE, { ...held, summary: { dir: active.dir, expanded: !(held.summary?.dir === active.dir && held.summary.expanded) } })
-            }}
-          />,
-        )
-      }
-    }
+    // The spec's summary and its links ride on the selected row now (board 3, 075 FR-006); the
+    // run of [P] tasks and the issues button are the actions under the Tasks list (taskActions).
     return out
   }
   return []
@@ -1709,7 +1662,13 @@ async function sessionTabRows(
   const governorDecision = decisionOf(usage, now)
   const overrideActive = usage.override !== undefined && usage.override.until > now
   const project = [
-    ...sessionRows(state, now, lang, labelWidth),
+    ...sessionRows(state, now, lang, labelWidth).flatMap(row => {
+      // The chips of the active feature sit under its row (board 4, 075 FR-013).
+      if (row.key !== 'session-active') return [row]
+      const feature = state.features.find(f => f.dir === state.active?.dir)
+      const chips = feature === undefined ? [] : sessionChips({ done: feature.done, total: feature.total, taskTimes: (stats?.taskTimes ?? []).filter(x => x.dir === feature.dir), turns: stats?.turns ?? 0, ...(stats?.cost === undefined ? {} : { cost: stats.cost }) })
+      return chips.length === 0 ? [row] : [row, { key: 'session-chips', text: `${''.padEnd(labelWidth)}${chips.map(c => `[ ${c} ]`).join(' ')}`, role: 'muted' as ThemeRole }]
+    }),
     // The branch, linked to its page on the remote (054 #79).
     ...(branch === undefined ? [] : [valueRow('session-branch', t(lang, 'session.branch'), branch, 'text', stats?.git?.remote === undefined ? {} : { href: branchWebUrl(stats.git.remote, branch) })]),
   ]
@@ -1749,7 +1708,8 @@ async function sessionTabRows(
     ...(advisor === undefined ? [] : [valueRow('advisor', t(lang, 'session.advisor'), t(lang, 'advisor.runs', { n: advisor.runs, at: clockOf(new Date(advisor.at).toISOString()) ?? '' }))]),
     ...(advisor?.last === undefined ? [] : advisor.last.text.split('\n').map((line, i) => valueRow(`advisor-${i}`, i === 0 ? `${t(lang, 'session.advisor')} ${advisor.last!.id}` : '', line))),
     ...(review === undefined ? [] : [
-      { key: 'review-heading', text: `${t(lang, 'session.review')} ${review.id} · ${REVIEW_MODEL.model} · ${now - review.at < 60_000 ? t(lang, 'time.justNow') : t(lang, 'time.ago', { age: minutes(now - review.at) })}`, role: 'text' as ThemeRole },
+      // `review 002 · 6 findings (opus xhigh) · 5m ago`: the findings are the lines under it (board 4, 075 FR-015).
+      { key: 'review-heading', text: `${t(lang, 'session.review')} ${review.id} · ${t(lang, 'session.findings', { n: review.text.split('\n').filter(line => line.trim() !== '').length })} (${REVIEW_MODEL.model} ${REVIEW_MODEL.effort}) · ${now - review.at < 60_000 ? t(lang, 'time.justNow') : t(lang, 'time.ago', { age: minutes(now - review.at) })}`, role: 'text' as ThemeRole },
       ...review.text.split('\n').map((line, i) => valueRow(`review-${i}`, '', line)),
     ]),
   ]
@@ -3302,6 +3262,7 @@ export const register: Register = (on, options) => {
     const lastActivity = sessionStats?.series?.at(-1)?.at ?? sessionStats?.startedAt
     const idle = value?.runningSkill === undefined && lastActivity !== undefined && now - lastActivity > 600_000
     const updates = (await $.state.get(UPDATES)).value ?? { items: [] }
+    const pr = idle ? undefined : bandPr(sessionStats?.git?.pr, e.props.bodyColumns, bandDensity)
     // One update button and the hide button at the right edge of the band row (065 #12, #19).
     const names = updates.items.map(item => (updates.running === item.id ? `${updateLabel(item, false)}…` : updateLabel(item, updates.confirming === item.id)))
     const updateText = bandUpdateLabel(names, e.props.bodyColumns)
@@ -3312,10 +3273,11 @@ export const register: Register = (on, options) => {
       ...(updateText === undefined
         ? {}
         : {
-            update: { label: updateText, onPress: async () => (only === undefined || only.id === 'speckit-skills' ? openPane($) : runUpdate($, only.id)) },
+            update: { label: updateText, ...(e.props.bodyColumns <= 80 ? { plain: true as const } : {}), onPress: async () => (only === undefined || only.id === 'speckit-skills' ? openPane($) : runUpdate($, only.id)) },
             hide: { label: t(currentLang(), 'updates.hide'), onPress: () => hideUpdates($) },
           }),
       onLift: () => liftBand($),
+      ...(pr === undefined ? {} : { pr: { ...pr, ...(sessionStats?.git?.pr?.url === undefined ? {} : { href: sessionStats.git.pr.url }) } }),
       // `a` opens the pane once the band has the focus (025 #41); from 100 columns.
       ...(e.props.bodyColumns >= 100 ? { open: { label: t(currentLang(), 'next.paneShort'), onPress: () => openPane($) } } : {}),
     }
@@ -3695,7 +3657,7 @@ export const register: Register = (on, options) => {
       view === 'help'
         ? helpRows(helpText(currentLang(), optionsSeen, stats?.health?.lines ?? []), pane.filter, currentLang())
         : view === 'tasks'
-        ? [...keep(taskRows(state, emptyMemo(), 1000, columns, currentLang(), await $.clock.now(), stats?.taskTimes ?? [])), ...(await pastResetRows($, state, stats, usage))]
+        ? ((list, past) => [...list.slice(0, 1), ...past, ...list.slice(1)])(keep(taskRows(state, emptyMemo(), 1000, columns, currentLang(), await $.clock.now(), stats?.taskTimes ?? [])), await pastResetRows($, state, stats, usage))
         : view === 'session'
           ? await sessionTabRows($, state, usage, stats, updates, updatesRead.value?.confirming)
           : [
@@ -3778,10 +3740,38 @@ export const register: Register = (on, options) => {
             ...(stats?.priorities?.[reviewed.id] === undefined ? {} : { priority: stats.priorities[reviewed.id]! }),
             worktrees: worktreesById(stats?.worktrees)[reviewed.id] ?? [],
             ...(reviewedNext === undefined ? {} : { next: reviewedNext }),
+            ...(reviewed.updatedAt === undefined ? {} : { age: ageOf(Date.parse(reviewed.updatedAt), await $.clock.now()) }),
             lang: currentLang(),
           })
+    // The selected spec's first line of summary, one dim row under its detail (board 3).
+    const rowDescription =
+      reviewed === undefined || view !== 'specs' || reviewed.dir !== state.active?.dir || state.activeSummary === undefined
+        ? undefined
+        : state.activeSummary.split('\n').map(l => l.replace(/^#+\s*/, '').trim()).find(l => l !== '' && !/^[-*>|`]/.test(l))
+    // Under the Tasks list: the [P] run as one prompt (054 #89) and the open tasks as issues (050 #96).
+    const taskActions: Array<{ key: string; label: string; onPress: () => void }> = []
+    if (view === 'tasks' && state.active !== undefined && 'Button' in $.ui.resolve(e)) {
+      const open = (state.activeTasks ?? []).filter(task => !task.isDone)
+      const feature = state.features.find(f => f.dir === state.active?.dir)
+      const run = parallelTasks(open)
+      if (feature !== undefined && run.length >= 2) {
+        const picked = open.filter(task => task.id !== undefined && run.includes(task.id))
+        taskActions.push({ key: 'parallel-dispatch', label: t(currentLang(), 'parallel.button', { ids: run.join(', ') }), onPress: () => void $.clock.after(0, () => void $.prompt.submit({ text: parallelPrompt(feature, picked) }).catch(() => undefined)) })
+      }
+      if (feature !== undefined && open.length > 0) {
+        const confirmKey = `issues-${feature.id}`
+        const n = Math.min(open.length, 20)
+        taskActions.push({
+          key: 'tasks-to-issues',
+          label: pane.confirm === confirmKey ? t(currentLang(), 'tasks.issuesConfirm', { n }) : t(currentLang(), 'tasks.issues', { n }),
+          onPress: () => void confirmPress($, confirmKey, () => void $.clock.after(0, () => void runSkill($, 'speckit-taskstoissues', `${feature.id} ${feature.name}`))),
+        })
+      }
+    }
     const extras = {
       rowButtons,
+      taskActions,
+      ...(rowDescription === undefined ? {} : { rowDescription }),
       ...(rowDetail === undefined ? {} : { rowDetail }),
       // What waits on the person (066 #23): never a total.
       badges: badgesOf({
@@ -3800,6 +3790,7 @@ export const register: Register = (on, options) => {
       // What the tab is for, then its keys (048 #72).
       onClose: () => $.ui.close({ id: PANE_ID }).then(() => undefined),
       ...(view === 'specs' ? { onCloseReady: (dirs: string[]) => void $.prompt.suggest({ text: closeAllSuggestion(dirs) }).catch(() => undefined) } : {}),
+      ...(view === 'specs' ? { onReconcile: (id: string) => void $.prompt.suggest({ text: reconcileSuggestion(id) }).catch(() => undefined) } : {}),
       columns,
       ...(view === 'session' && e.surface === 'terminal'
         ? {
@@ -3902,12 +3893,17 @@ export const register: Register = (on, options) => {
           }
         : {}),
       onCopy: (text: string) => copyNext($, text, e.surface),
-      onFind: view === 'specs' || view === 'tasks' || view === 'help' ? () => $.ui.focus({ requestId: PANE_ID, key: 'astrolabe-filter' }).then(() => undefined) : undefined,
+      onFind: view === 'specs' || view === 'tasks' || view === 'help' || view === 'setup' ? () => $.ui.focus({ requestId: PANE_ID, key: 'astrolabe-filter' }).then(() => undefined) : undefined,
       // What the tab is for, then its keys; a narrow pane keeps the keys whole (052 #3).
-      legend: ((about: string, keys: string) => ([...`${about} · ${keys}`].length <= columns ? `${about} · ${keys}` : keys))(
-        t(currentLang(), ABOUT[view]),
-        t(currentLang(), view === 'specs' ? 'legend.specs' : view === 'tasks' || view === 'help' ? 'legend.filter' : view === 'setup' ? 'legend.config' : 'legend.default'),
-      ) + (state.updatedAt === undefined || columns < 80 ? '' : ` · ${t(currentLang(), 'legend.updated', { at: clockOf(new Date(state.updatedAt).toISOString()) ?? '' })}`),
+      // Nothing under the Tasks list but its actions: the key row names the keys (board 3, 075 FR-012).
+      ...(view === 'tasks'
+        ? {}
+        : {
+            legend: ((about: string, keys: string) => ([...`${about} · ${keys}`].length <= columns ? `${about} · ${keys}` : keys))(
+              t(currentLang(), ABOUT[view]),
+              t(currentLang(), view === 'specs' ? 'legend.specs' : view === 'help' ? 'legend.filter' : view === 'setup' ? 'legend.config' : 'legend.default'),
+            ) + (state.updatedAt === undefined || columns < 80 ? '' : ` · ${t(currentLang(), 'legend.updated', { at: clockOf(new Date(state.updatedAt).toISOString()) ?? '' })}`),
+          }),
     }
     const select = async (tab: PaneTab) => {
       const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
@@ -4061,14 +4057,10 @@ export const register: Register = (on, options) => {
         ('Input' in $.ui.resolve(e) ? 1 + (filterCount === undefined ? 0 : 1) : 0) +
         (rowButtons.length > 0 ? 1 : 0) +
         (rowDetail === undefined ? 0 : 1) +
+        (rowDescription === undefined ? 0 : 1) +
+        (taskActions.length > 0 ? taskActions.length : 0) +
         (view === 'specs'
-          ? state.activeSummary === undefined
-            ? 0
-            : (pane.summary !== undefined && pane.summary.dir === state.active?.dir && pane.summary.expanded
-                ? wrappedRows(state.activeSummary, columns - 2)
-                : wrappedRows(state.activeSummary.split(/\n{2,}/).slice(0, 2).join('\n\n'), columns - 2)) +
-              2 +
-              (state.activeSummary.split(/\n{2,}/).length > 2 && 'Button' in $.ui.resolve(e) ? 1 : 0)
+          ? 0
           : view === 'tasks' && stats?.tasksDiff !== undefined && stats.tasksDiff.dir === state.active?.dir
             ? stats.tasksDiff.at !== undefined && nowForHeader - stats.tasksDiff.at > DIFF_FOLD_MS
               ? 1

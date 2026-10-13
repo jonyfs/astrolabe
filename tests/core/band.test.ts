@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import { bandSegments, bandText, nextReason, otherFeaturesCard } from '../../hooks/core/band'
+import { bandPr, bandSegments, bandText, nextReason, otherFeaturesCard } from '../../hooks/core/band'
 import type { Feature, Phase, SpeckitState } from '../../hooks/core/types'
 
 const feature = (phase: Phase, done = 14, total = 31, over: Partial<Feature> = {}): Feature => ({
@@ -32,21 +32,22 @@ describe('one row (065 #12, board 1 and 2)', () => {
   const impl = state(feature('implement', 9, 20, { dir: '002-band-hint' }), { currentTask: { id: 'T011', text: 'Show an empty-cart message' } as never })
 
   test('200 columns: id chip, name, steps, step chip, bar, task', () => {
-    expect(at(impl, 200)).toBe(' 002  band-hint  ✓ specify ✓ clarify ✓ plan ✓ tasks  ▶ implement 9/20  █████████░░░░░░░░░░░ 45%  │ ▸ T011 Show an empty-cart message')
+    expect(at(impl, 200)).toBe(' 002  band-hint  ✓ specify ✓ clarify ✓ plan ✓ tasks  ▶ implement 9/20  ━━━━━━━━━━━━━━━━━━━━ 45%  │ ▸ T011 Show an empty-cart message')
   })
   test('144 columns: shorter bar, the title is cut', () => {
     const text = at(impl, 144)
-    expect(text.startsWith(' 002  band-hint  ✓ specify ✓ clarify ✓ plan ✓ tasks  ▶ implement 9/20  █████░░░░░░░░ 45%  │ ▸ T011')).toBe(true)
+    expect(text.startsWith(' 002  band-hint  ✓ specify ✓ clarify ✓ plan ✓ tasks  ▶ implement 9/20  ━━━━━━━━━━━━━ │ ▸ T011')).toBe(true)
   })
   test('100 columns: marks only, no percentage', () => {
-    expect(at(impl, 100)).toBe(' 002  band-hint  ✓✓✓✓  ▶ implement 9/20  ████░░░░░ │ ▸ T011')
+    expect(at(impl, 100)).toBe(' 002  band-hint  ✓✓✓✓  ▶ implement 9/20  ━━━━━━━━━ │ ▸ T011')
   })
   test('80 columns: id, marks, step chip and the task id', () => {
     expect(at(impl, 80)).toBe(' 002  ✓✓✓✓  ▶ implement 9/20  │ ▸ T011')
   })
-  test('the percentage appears only from 144 columns', () => {
-    expect(at(impl, 143)).not.toContain('45%')
-    expect(at(impl, 144)).toContain('45%')
+  test('the percentage appears only from 200 columns (board 2)', () => {
+    expect(at(impl, 199)).not.toContain('45%')
+    expect(at(impl, 144)).not.toContain('45%')
+    expect(at(impl, 200)).toContain('45%')
   })
   test('the constitution step shows only when it is not ratified', () => {
     expect(at(impl, 200)).not.toContain('constitution')
@@ -58,10 +59,10 @@ describe('one row (065 #12, board 1 and 2)', () => {
     expect(has(144, '✓ specify')).toBe(true)
     expect(has(143, '✓ specify')).toBe(false)
     expect(has(143, 'band-hint')).toBe(true)
-    expect(has(100, '████')).toBe(true)
+    expect(has(100, '━━━━')).toBe(true)
     // Below 100 columns the name goes, then the bar.
     expect(has(99, 'band-hint')).toBe(false)
-    expect(has(99, '█')).toBe(false)
+    expect(has(99, '━')).toBe(false)
     expect(has(60, '▶ implement 9/20')).toBe(true)
     expect(has(60, '▸ T011')).toBe(true)
   })
@@ -93,7 +94,7 @@ describe('segments carry chips, links and roles (065)', () => {
   test('finished steps are done-coloured, the bar fill follows the share left', () => {
     const segments = bandSegments(impl, 200)
     expect(segments.find(s => s.key === 'mark-specify')).toMatchObject({ text: '✓', role: 'done' })
-    expect(segments.find(s => s.key === 'bar-fill')?.role).toBe('current')
+    expect(segments.find(s => s.key === 'bar-fill')?.role).toBe('barFill')
   })
 })
 
@@ -200,5 +201,20 @@ describe('band, part two (042)', () => {
     expect(nextReason(s, 'en', { '003': 'normal', '004': 'high' })).toBe(
       'the active feature is finished: start 004 high next (high priority)',
     )
+  })
+})
+
+describe('the pull request at the right edge (075 FR-002)', () => {
+  test('from 200 columns of a full band, with its CI mark', () => {
+    expect(bandPr({ number: 41, checks: 'pass' }, 200)).toEqual({ label: 'PR #41', mark: '✓', role: 'done' })
+    expect(bandPr({ number: 41, checks: 'fail' }, 220)).toEqual({ label: 'PR #41', mark: '✖', role: 'blocked' })
+    expect(bandPr({ number: 41, checks: 'pending' }, 200)).toMatchObject({ mark: '◷', role: 'current' })
+    expect(bandPr({ number: 41, checks: 'none' }, 200)).toMatchObject({ mark: '' })
+  })
+  test('never below 200, in the compact or minimal density, or without a pull request', () => {
+    expect(bandPr({ number: 41, checks: 'pass' }, 199)).toBeUndefined()
+    expect(bandPr({ number: 41, checks: 'pass' }, 200, 'compact')).toBeUndefined()
+    expect(bandPr({ number: 41, checks: 'pass' }, 200, 'minimal')).toBeUndefined()
+    expect(bandPr(undefined, 200)).toBeUndefined()
   })
 })

@@ -9,7 +9,7 @@ import { completeTurn, installEngine, installTree, startSession } from '../helpe
 import { drawBand, installRenderEngine, SURFACES } from '../helpers/render'
 
 // 120 columns is the 100-column tier of board 2: marks only, a 9-cell bar, the task id.
-const BAND_002 = ' 002  band-hint  ✓✓✓✓  ▶ implement 9/20  ████░░░░░ │ ▸ T010'
+const BAND_002 = ' 002  band-hint  ✓✓✓✓  ▶ implement 9/20  ━━━━━━━━━ │ ▸ T010'
 // A terminal draws a link as its text and, without OSC 8, the address after it.
 // The open-pane button ends the row (`≡ a`) and is not part of the rail.
 const noLinks = (text: string) => text.replace(/file:\/\/\/[^\s✓]*?\.md/g, '').replace(/≡ a$/, '')

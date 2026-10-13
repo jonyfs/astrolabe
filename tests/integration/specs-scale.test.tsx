@@ -41,7 +41,7 @@ describe('the Specs tab at 60 specs (067)', () => {
     expect(body).toContain('Done 57 ▸ 001–050 ')
     expect(body).toContain('055')
     // Ready to close lists the active specs whose tasks are all ticked (067 #32).
-    expect(body).toContain('Ready to close (2)')
+    expect(body).toContain('Ready to close 2')
     // 60 rows are not drawn: only the ones that need attention.
     expect((body.match(/spec-\d+/g) ?? []).length).toBeLessThan(10)
     await ui.unmount()

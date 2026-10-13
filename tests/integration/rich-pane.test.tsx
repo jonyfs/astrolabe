@@ -41,25 +41,14 @@ const setup = async ($: never, on: never, files = tree()) => {
 }
 
 describe('the rich pane (024)', () => {
-  test("Specs: the active spec's summary and links to its files", async ($, on) => {
+  test("Specs: the selected spec carries its description, one dim line under its detail (075 FR-006)", async ($, on) => {
     await setup($ as never, on as never)
     const ui = await mount($ as never)
-    const summary = await ui.find({ key: 'astrolabe-summary' })
-    expect(summary?.props['text']).toBe('**Band**\n\nA band above the prompt.\n\n[spec.md](file:///proj/specs/002-band/spec.md) · [plan.md](file:///proj/specs/002-band/plan.md) · [tasks.md](file:///proj/specs/002-band/tasks.md)')
-    await ui.unmount()
-  })
-
-  test('052 #9: the summary starts with two blocks and expands on press', async ($, on) => {
-    const files = tree()
-    files['/proj/specs/002-band/spec.md'] = '# Quick spec: Band\n\nA band above the prompt.\n\n### User Story 1 - First story\n\n### User Story 2 - Second story\n'
-    await setup($ as never, on as never, files)
-    const ui = await mount($ as never)
-    const summary = () => ui.find({ key: 'astrolabe-summary' })
-    expect((await summary())?.props['text']).not.toContain('First story')
-    await ui.press({ key: 'summary-toggle' })
-    expect((await summary())?.props['text']).toContain('- First story\n- Second story')
-    await ui.press({ key: 'summary-toggle' })
-    expect((await summary())?.props['text']).not.toContain('First story')
+    const body = (await ui.find({ key: 'astrolabe-pane-body' }))?.text ?? ''
+    expect(body).toContain('A band above the prompt.')
+    // No breadcrumb and no summary block above the sections any more.
+    expect(await ui.find({ key: 'astrolabe-summary' })).toBeUndefined()
+    expect(await ui.find({ key: 'astrolabe-breadcrumb' })).toBeUndefined()
     await ui.unmount()
   })
 

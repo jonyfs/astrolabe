@@ -81,20 +81,24 @@ export const nextFor = (f: Pick<Feature, 'phase' | 'done'>, isActive: boolean, i
 /** One line about the selected spec (061): what it needs, in the order the person decides. */
 export const specDetail = (
   f: Pick<Feature, 'id' | 'name' | 'phase' | 'done' | 'total' | 'track' | 'clarifications' | 'checklist' | 'warnings'>,
-  opts: { priority?: Priority; worktrees?: readonly string[]; next?: string; lang?: Lang },
+  opts: { priority?: Priority; worktrees?: readonly string[]; next?: string; age?: string; lang?: Lang },
 ): string => {
   const lang = opts.lang ?? 'en'
+  // The row above already says which spec and which phase; this line says what it needs (board 3).
   return [
-    `${f.id} ${f.name}`,
-    f.phase,
     ...(f.total > 0 ? [tr(lang, 'detail.tasksLeft', { n: f.total - f.done })] : []),
-    ...((f.clarifications ?? 0) > 0 ? [tr(lang, 'detail.questions', { n: f.clarifications! })] : []),
+    ...((f.clarifications ?? 0) > 0 ? [tr(lang, f.clarifications === 1 ? 'detail.question' : 'detail.questions', { n: f.clarifications! })] : []),
     ...((f.checklist?.open ?? 0) > 0 ? [tr(lang, 'detail.checklist', { open: f.checklist!.open, total: f.checklist!.total })] : []),
-    ...(f.track === 'quick' ? [tr(lang, 'detail.quick')] : []),
     ...(opts.priority === undefined || opts.priority === 'normal' ? [] : [`${priorityMark(opts.priority)} ${opts.priority}`]),
-    ...((opts.worktrees ?? []).length > 0 ? [`⑂ ${opts.worktrees!.join(', ')}`] : []),
-    ...(opts.next === undefined ? [] : [tr(lang, 'detail.next', { cmd: opts.next })]),
+    ...((opts.worktrees ?? []).length > 0 ? [`⎇ ${opts.worktrees!.join(', ')}`] : []),
+    ...(opts.age === undefined ? [] : [tr(lang, 'pane.updated', { age: opts.age })]),
   ].join(' · ')
+}
+
+/** The prompt a check row offers (board 6): the finding, and the one thing to do about it. The id is `dir\ntext`. */
+export const reconcileSuggestion = (id: string): string => {
+  const [dir = '', ...rest] = id.split('\n')
+  return `Reconcile specs/${dir}: ${rest.join(' ').trim()}. Change only the files that disagree, and say what you changed.`
 }
 
 /** Each option's default from plugin.json's userConfig, keyed `astrolabe.<field>` (054 #63). */
