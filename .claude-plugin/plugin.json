@@ -201,6 +201,22 @@
         "none"
       ]
     },
+    "footerStatuslineMode": {
+      "type": "string",
+      "title": "Footer statusline mode",
+      "description": "How the bundled statusline runs: live (the default; its pull request, CI, gate and rtk chips draw, filled by background gh and rtk processes) or passive (it starts only read-only git and writes only in a folder of this plugin; those chips are not drawn)",
+      "default": "live",
+      "options": [
+        "live",
+        "passive"
+      ]
+    },
+    "footerOmit": {
+      "type": "string",
+      "title": "Footer segments to omit",
+      "description": "Segment keys of the bundled statusline to leave out of the footer, separated by commas (for example: sevenDayReset,model). Empty by default; a name that is not a segment is ignored",
+      "default": ""
+    },
     "autoReload": {
       "type": "boolean",
       "title": "Reload when a new version lands on disk",

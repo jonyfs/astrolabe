@@ -1,4 +1,5 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, statSync, unlinkSync } from "node:fs";
+import { canWrite, stateRoot } from "./paths.js";
 import path from "node:path";
 import os from "node:os";
 import { pushSample } from "./samples.js";
@@ -24,7 +25,7 @@ import { pushSample } from "./samples.js";
  * against a throwaway HOME means.
  */
 function statuslineDir() {
-  return path.join(os.homedir(), ".claude", "statusline");
+  return stateRoot();
 }
 
 function stateDir() {
@@ -96,6 +97,7 @@ export function loadSamples(sessionId) {
  * forever, and every repository ever visited would leave a cache.
  */
 function pruneStaleState(now) {
+  if (!canWrite()) return;
   for (const dir of sweptDirs()) {
     try {
       for (const name of readdirSync(dir)) {
@@ -113,6 +115,7 @@ function pruneStaleState(now) {
 }
 
 function saveState(sessionId, state) {
+  if (!canWrite()) return;
   try {
     mkdirSync(stateDir(), { recursive: true });
     writeFileSync(sessionStateFile(sessionId), JSON.stringify(state));

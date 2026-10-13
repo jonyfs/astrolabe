@@ -1,15 +1,15 @@
 ---
 track: full # quick | full
-status: active # active | done | abandoned
+status: done # active | done | abandoned
 ---
 
 # Feature Specification: Use statusline's embedding contract
 
-**Feature Branch**: `078-statusline-embed-mode`
+**Feature Branch**: `081-statusline-embed-mode`
 
 **Created**: 2026-10-13
 
-**Status**: Draft
+**Status**: Done
 
 **Input**: "Write the Astrolabe spec" for what statusline 1.54 to 1.58 added for a host that
 embeds it: passive mode, an omit list, the resolved configuration, shared fixtures and a
@@ -55,7 +55,7 @@ Astrolabe does with the rest, without losing a feature it shows today.
   test and the fixtures pass either way.
 - **FR-008**: Four languages for each new string; no new `$` call on the draw path.
 
-## Decisions for the owner
+## Decisions (taken: the three recommendations)
 
 1. **Is passive worth its cost as an option?** Recommended: yes, as an opt-in (FR-003), default
    `live`. Making it the default would drop the pull request, CI and `rtk` chips for everyone, so it

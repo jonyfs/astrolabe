@@ -32,6 +32,7 @@ import {
   statSync,
 } from "node:fs";
 import { spawn } from "node:child_process";
+import { canWrite, isPassive, stateRoot } from "./paths.js";
 import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
@@ -45,7 +46,7 @@ const SCHEMA = 2;
 const CLI_PATH = fileURLToPath(new URL("../bin/cli.js", import.meta.url));
 
 function cacheDir() {
-  return path.join(os.homedir(), ".claude", "statusline", "cache");
+  return path.join(stateRoot(), "cache");
 }
 
 /**
@@ -76,6 +77,7 @@ function lockFileFor(key, name) {
  * and handing a reader the interleaving of both.
  */
 function writeAtomic(file, text) {
+  if (!canWrite()) return false;
   const tmp = `${file}.${process.pid}.tmp`;
   try {
     mkdirSync(path.dirname(file), { recursive: true });
@@ -160,6 +162,7 @@ function lockExpiry(file, lockMs) {
 
 /** Creates the lock file, failing if it already exists. */
 function createLock(file, until) {
+  if (!canWrite()) return false;
   try {
     mkdirSync(path.dirname(file), { recursive: true });
     const fd = openSync(file, "wx");
@@ -193,6 +196,7 @@ function createLock(file, until) {
 export function takeLock(key, name, { now = Date.now(), release = false, holdFor = null } = {}) {
   const file = lockFileFor(key, name);
   if (release) {
+    if (!canWrite()) return true;
     try {
       unlinkSync(file);
     } catch {
@@ -237,7 +241,7 @@ export function takeLock(key, name, { now = Date.now(), release = false, holdFor
  * test suite from touching anything live.
  */
 export function spawnRefresh(key, name, cwd, { now = Date.now() } = {}) {
-  if (process.env.CLAUDE_STATUSLINE_NO_REFRESH === "1") return false;
+  if (process.env.CLAUDE_STATUSLINE_NO_REFRESH === "1" || isPassive()) return false;
   if (!takeLock(key, name, { now })) return false;
   try {
     const child = spawn(process.execPath, [CLI_PATH, "refresh", name, key], {

@@ -16,6 +16,7 @@
  */
 
 import { spawnSync } from "node:child_process";
+import { isPassive } from "./paths.js";
 import { readFileSync, writeFileSync, mkdirSync, renameSync, unlinkSync } from "node:fs";
 import path from "node:path";
 import os from "node:os";
@@ -177,7 +178,7 @@ export function updateCheckDue(value, now = Date.now()) {
  * process; the redraw never waits for it.
  */
 export function maybeStartUpdateCheck({ now = Date.now(), root = REPO_ROOT, env = process.env } = {}) {
-  if (env.CLAUDE_STATUSLINE_NO_REFRESH === "1") return false;
+  if (env.CLAUDE_STATUSLINE_NO_REFRESH === "1" || isPassive(env)) return false;
   if (readBehaviour({ env }).mode === "off") return false;
   const key = repoKey(root);
   if (!updateCheckDue(readEntry(key, "update")?.value, now)) return false;

@@ -230,6 +230,21 @@ Command: node "/home/you/.claude/plugins/astrolabe/vendor/statusline/bin/cli.js"
 }
 ```
 
+### Passive footer
+
+By default the bundled statusline runs as it does under Claude Code: its pull request, CI, gate and
+`rtk` chips come from a cache that background `gh` and `rtk` processes fill, and it writes under
+`~/.claude/statusline/`. Set `footerStatuslineMode` to `passive` when you want a footer that starts
+nothing but read-only `git` and writes only in a folder of this plugin (`statusline-cache` inside the
+plugin's data folder). The git snapshot and the session state persist between redraws there. The
+pull request, CI, gate and `rtk` chips are not drawn in that mode, and the Setup tab says so.
+
+`footerOmit` takes segment keys separated by commas (for example `sevenDayReset,model`) and leaves
+them out of the footer; the width goes to the other chips. The Setup tab also shows what the
+bundled copy resolved for the footer (flavor, glyphs, separator, omitted segments), read from its
+`--print-config` at most once a minute, and says when the flavor you asked for is not the one drawn.
+Both options are empty or `live` by default, so nothing changes unless you set them.
+
 ### The footer in place of a statusline
 
 The footer carries what a statusline under the prompt usually shows, so you can remove a
@@ -655,6 +670,8 @@ one reloads the mod right away.
 | `footerLines` | `1`, `3` | `1` | How the pane's footer draws its chips: one row, or three in statusline's order (place and git, then the Spec Kit work and the skill, then the model and the limits). |
 | `footerSource` | `statusline`, `native` | `statusline` | Who draws the pane footer: the bundled statusline under Astrolabe's lead (needs Node 18 or newer, else the native footer shows), or Astrolabe's own chips. |
 | `footerSeparator` | `solid`, `thin`, `none` | `solid` | The rule above the pane's footer: a solid line, a thin one, or none. |
+| `footerStatuslineMode` | `live`, `passive` | `live` | How the bundled statusline runs. `live` keeps every chip, including the pull request, CI, gates and `rtk`, which come from a cache that background `gh` and `rtk` processes fill. `passive` starts only read-only `git` and writes only in a folder of this plugin, so those four chips are not drawn. See [Passive footer](#passive-footer). |
+| `footerOmit` | segment keys, comma separated | empty | Segments of the bundled statusline to leave out, for example `sevenDayReset,model`; the width goes to the others. A name that is not a segment is ignored. |
 | `autoReload` | `true`, `false` | `true` | After a turn, when the Astrolabe on disk is newer than the one running (an install from a local clone, an update), run `/reload-plugins` once so the new version loads. Off, a toast says to run it. |
 | `images` | `auto`, `on`, `off` | `auto` | Draw the Dashboard's usage chart as a picture. `auto` does on kitty and Ghostty outside tmux. |
 | `pullRequest` | `true`, `false` | `false` | Show the branch's open pull request and its checks in the footer, from `gh`. See [The footer in place of a statusline](#the-footer-in-place-of-a-statusline). |

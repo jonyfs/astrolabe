@@ -327,18 +327,88 @@ export const buildPayload = (input: PayloadInput): FooterPayload => {
   return out
 }
 
-/** The environment additions of FR-006; the host's own environment stays underneath. */
-export const statuslineEnv = (input: { columns: number; lines: number; flavor: string; ascii: boolean }): Record<string, string> => ({
-  COLUMNS: String(Math.max(20, Math.floor(input.columns))),
-  LINES: String(Math.max(1, Math.floor(input.lines))),
-  COLORTERM: 'truecolor',
-  CLAUDE_STATUSLINE_UPDATES: 'off',
-  CLAUDE_STATUSLINE_DEBUG: '0',
-  // The data form (statusline spec 056); a copy that does not know it prints ANSI and is read as before.
-  CLAUDE_STATUSLINE_OUTPUT: 'runs',
-  ...(input.flavor === 'theme' ? {} : { CLAUDE_STATUSLINE_FLAVOR: input.flavor }),
-  ...(input.ascii ? { CLAUDE_STATUSLINE_ASCII: '1' } : {}),
-})
+/**
+ * The segment keys of `footerOmit`, as statusline's `CLAUDE_STATUSLINE_OMIT` reads them: names
+ * separated by commas, spaces or semicolons, kept as written (a key is case-sensitive), once each.
+ * Anything that is not shaped like a key is dropped, so no shell or path text reaches the renderer.
+ */
+export const parseOmit = (raw: unknown): string => {
+  if (typeof raw !== 'string') return ''
+  const keys = raw.split(/[\s,;]+/).filter(k => /^[A-Za-z][A-Za-z0-9_-]{0,63}$/.test(k))
+  return [...new Set(keys)].slice(0, 40).join(',')
+}
+
+/** `name` inside `base`, with the separator `base` already uses. */
+export const joinDir = (base: string, name: string): string => `${base.replace(/[\\/]+$/, '')}${base.includes('\\') && !base.includes('/') ? '\\' : '/'}${name}`
+
+/**
+ * The environment additions of FR-006; the host's own environment stays underneath. `mode` is
+ * `live` unless the person chose `passive` (statusline spec 057): the renderer then starts only
+ * read-only `git` and writes only inside `cacheDir`, nothing when there is none. `omit` is
+ * statusline's omit list (spec 058).
+ */
+export const statuslineEnv = (input: {
+  columns: number
+  lines: number
+  flavor: string
+  ascii: boolean
+  mode?: 'live' | 'passive'
+  cacheDir?: string
+  omit?: string
+}): Record<string, string> => {
+  const omit = parseOmit(input.omit)
+  return {
+    COLUMNS: String(Math.max(20, Math.floor(input.columns))),
+    LINES: String(Math.max(1, Math.floor(input.lines))),
+    COLORTERM: 'truecolor',
+    CLAUDE_STATUSLINE_UPDATES: 'off',
+    CLAUDE_STATUSLINE_DEBUG: '0',
+    // The data form (statusline spec 056); a copy that does not know it prints ANSI and is read as before.
+    CLAUDE_STATUSLINE_OUTPUT: 'runs',
+    ...(input.flavor === 'theme' ? {} : { CLAUDE_STATUSLINE_FLAVOR: input.flavor }),
+    ...(input.ascii ? { CLAUDE_STATUSLINE_ASCII: '1' } : {}),
+    // A copy that predates these ignores them, so the footer is drawn as it was.
+    ...(input.mode === 'passive' ? { CLAUDE_STATUSLINE_PASSIVE: '1' } : {}),
+    ...(input.mode === 'passive' && input.cacheDir !== undefined && input.cacheDir !== '' ? { CLAUDE_STATUSLINE_CACHE_DIR: input.cacheDir } : {}),
+    ...(omit === '' ? {} : { CLAUDE_STATUSLINE_OMIT: omit }),
+  }
+}
+
+/** What `--print-config` says the copy resolved, reduced to what the Setup tab shows (statusline spec 059). */
+export type ResolvedConfig = { flavor: string; flavorSource?: string; glyphs?: string; separator?: string; passive?: boolean; omitted: string[] }
+
+const word = (v: unknown): string | undefined => (typeof v === 'string' ? v.replace(CONTROL, '').slice(0, 40) || undefined : undefined)
+
+/** The printed object as a `ResolvedConfig`; anything else (a copy without the command) is undefined. */
+export const parseResolvedConfig = (stdout: string): ResolvedConfig | undefined => {
+  const trimmed = stdout.trim()
+  if (!trimmed.startsWith('{')) return undefined
+  let value: unknown
+  try {
+    value = JSON.parse(trimmed)
+  } catch {
+    return undefined
+  }
+  if (typeof value !== 'object' || value === null) return undefined
+  const v = value as Record<string, unknown>
+  const flavor = word(v['flavor'])
+  if (flavor === undefined) return undefined
+  const layout = typeof v['layout'] === 'object' && v['layout'] !== null ? (v['layout'] as Record<string, unknown>) : {}
+  const omitted = Array.isArray(layout['omitted']) ? layout['omitted'].flatMap(k => word(k) ?? []).slice(0, 40) : []
+  const out: ResolvedConfig = { flavor, omitted }
+  const source = word(v['flavorSource'])
+  const glyphs = word(v['glyphs'])
+  const separator = word(v['separator'])
+  if (source !== undefined) out.flavorSource = source
+  if (glyphs !== undefined) out.glyphs = glyphs
+  if (separator !== undefined) out.separator = separator
+  if (typeof v['passive'] === 'boolean') out.passive = v['passive']
+  return out
+}
+
+/** The flavor Astrolabe asked for is not the one the copy drew. `theme` asks for none. */
+export const flavorMismatch = (asked: string, resolved: ResolvedConfig | undefined): boolean =>
+  resolved !== undefined && asked !== 'theme' && asked !== resolved.flavor
 
 export type SourceReason = 'native-chosen' | 'colorblind' | 'node-missing' | 'node-old' | 'no-copy' | 'renderer-failed' | 'contract-newer'
 

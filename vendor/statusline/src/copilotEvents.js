@@ -18,6 +18,7 @@
  */
 
 import { openSync, readSync, fstatSync, closeSync, readFileSync, writeFileSync, mkdirSync, renameSync, unlinkSync } from "node:fs";
+import { canWrite, stateRoot } from "./paths.js";
 import { createHash } from "node:crypto";
 import os from "node:os";
 import path from "node:path";
@@ -401,7 +402,7 @@ function applyLines(state, buf) {
 function sidecarFile(sessionDir) {
   const key = createHash("sha256").update(String(sessionDir)).digest("hex").slice(0, 16);
   // Resolved per call, the way cache.js does, so a HOME set later is honoured.
-  return path.join(os.homedir(), ".claude", "statusline", "cache", `${key}.copilot-events.json`);
+  return path.join(stateRoot(), "cache", `${key}.copilot-events.json`);
 }
 
 function readAt(fd, start, length) {
@@ -437,6 +438,7 @@ function loadSidecar(file) {
 
 /** Written through a temporary file and a rename, so a reader never sees half of it. */
 function saveSidecar(file, value) {
+  if (!canWrite()) return;
   const tmp = `${file}.${process.pid}.tmp`;
   try {
     mkdirSync(path.dirname(file), { recursive: true });

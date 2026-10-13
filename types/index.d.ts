@@ -377,7 +377,10 @@ export type FooterRun = { text: string; fg?: string; bg?: string; bold?: true; d
 /** The footer statusline draws and where it came from (070): its own state key, so a new render does not copy the session's stats. */
 export type FooterState = {
   render?: { at: number; columns: number; lines: FooterRun[][] }
-  health?: { source: 'statusline' | 'native'; reason?: string; version?: string; commit?: string; /** How the renderer answered: its runs object, or ANSI text from a copy that does not know runs (076). */ format?: 'runs' | 'ansi'; contract?: number }
+  health?: { source: 'statusline' | 'native'; reason?: string; version?: string; commit?: string; /** How the renderer answered: its runs object, or ANSI text from a copy that does not know runs (076). */ format?: 'runs' | 'ansi'; contract?: number
+    /** What the footer was asked to be and what the copy resolved (081): the mode, the omit list, the flavor asked for, and `--print-config`'s answer when the copy has one. */
+    embed?: { mode: 'live' | 'passive'; omit: string; asked: string; config?: { flavor: string; flavorSource?: string; glyphs?: string; separator?: string; passive?: boolean; omitted: string[] } }
+  }
 }
 
 declare module 'claude-code' {

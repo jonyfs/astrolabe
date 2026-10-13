@@ -22,6 +22,7 @@ import { execFileSync } from "node:child_process";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { plainText } from "./text.js";
+import { isPassive } from "./paths.js";
 
 const require = createRequire(import.meta.url);
 
@@ -81,7 +82,8 @@ const DRIVERS = {
     }
   },
   cli(file, { platform, timeout = CLI_TIMEOUT_MS }) {
-    if (platform === "win32") return undefined;
+    // A passive render starts no process of its own (specs/057-passive-mode).
+    if (platform === "win32" || isPassive()) return undefined;
     try {
       const out = execFileSync("sqlite3", ["-readonly", "-json", file, QUERY], {
         timeout,

@@ -51,8 +51,8 @@ import { emptyMemo, type Feature, type PaneState, type PaneTab, type PaneView, t
 import type { Preset } from './core/presets'
 import type { Fs } from './io/fs-port'
 import { findRoot } from './io/root'
-import { nodeStatus, renderFooter, type RunProc } from './io/statusline-run'
-import { buildPayload, chooseSource, cutRuns, statuslineEnv, SUPPORTED_CONTRACT, transcriptPathFor, type Run, type SourceReason } from './core/statusline-dep'
+import { nodeStatus, readResolvedConfig, renderFooter, type RunProc } from './io/statusline-run'
+import { buildPayload, chooseSource, cutRuns, flavorMismatch, joinDir, parseOmit, statuslineEnv, SUPPORTED_CONTRACT, transcriptPathFor, type ResolvedConfig, type Run, type SourceReason } from './core/statusline-dep'
 import { activeFilesChanged, applyFileTouch, applyRead, applyShell, applySkill, type Held, reconcileDeferred, reconcileNow, reconcileStart, reconcileTurn } from './io/reconcile'
 import { bandRow, edgeWidth, type BandEdge } from './surfaces/band'
 import { askTree } from './surfaces/ask'
@@ -2089,6 +2089,11 @@ const mayRunGate = (command: string): boolean => /\bgit\s+(?:\S+\s+)*(?:commit|p
 
 // The footer statusline draws (070): the choice, Node's state, the one in-flight render and its pacing.
 let footerSource: 'statusline' | 'native' = 'statusline'
+// How the bundled copy runs and what it leaves out (081), and the last `--print-config` answer.
+let footerStatuslineMode: 'live' | 'passive' = 'live'
+let footerOmit = ''
+let footerResolved: ResolvedConfig | undefined
+let footerResolvedAt = Number.NEGATIVE_INFINITY
 let nodeState: 'ok' | 'missing' | 'old' | undefined
 let nodeCheckedAt = Number.NEGATIVE_INFINITY
 let footerRefreshing = false
@@ -2103,6 +2108,7 @@ const FOOTER_FLOOR_MS = 5000
 const FOOTER_STALE_MS = 90_000
 const FOOTER_REUSE_MS = 60_000
 const FOOTER_TICK_MS = 30_000
+const FOOTER_CONFIG_MS = 60_000
 const FOOTER_BACKOFF_MS = [5000, 15_000, 60_000]
 
 /** The process runner of this module, built where `$` lives: no `$` crosses an import. */
@@ -2184,13 +2190,29 @@ async function refreshStatusline($: EngineInterface, onlyWhileShown = false): Pr
     const surface = surfaceSeen
     const ascii = iconsFor(iconsOption, surface as never) === 'ascii' || accessible || surface !== 'terminal'
     const width = Math.max(20, columnsSeen - 4)
-    const env = statuslineEnv({ columns: width, lines: 3, flavor, ascii })
+    // Passive mode writes only inside a folder of this plugin's own data (081); without one it writes nothing.
+    const dataDir = footerStatuslineMode === 'passive' ? await $.env.get('CLAUDE_PLUGIN_DATA').catch(() => undefined) : undefined
+    const env = statuslineEnv({
+      columns: width,
+      lines: 3,
+      flavor,
+      ascii,
+      mode: footerStatuslineMode,
+      ...(dataDir === undefined || dataDir === '' ? {} : { cacheDir: joinDir(dataDir, 'statusline-cache') }),
+      omit: footerOmit,
+    })
     const result = await renderFooter({ run: procOf($), cli: bundled.cli, payload, env, now: () => Date.now(), cwd: cwd ?? '.' })
     if (result.ok) {
       footerFailures = 0
       footerBackoffUntil = 0
       footerGoodAt = now
-      await setFooterState($, { at: now, columns: width, lines: result.lines.map(l => l.map(run => ({ ...run }))) }, { source: 'statusline', version: bundled.version, commit: bundled.commit, format: result.format, ...(result.format === 'runs' ? { contract: SUPPORTED_CONTRACT } : {}) })
+      // What the copy resolved, at most once a minute and after a render that worked, never on the draw path (081).
+      if (now - footerResolvedAt >= FOOTER_CONFIG_MS) {
+        footerResolvedAt = now
+        footerResolved = await readResolvedConfig({ run: procOf($), cli: bundled.cli, env, cwd: cwd ?? '.' })
+      }
+      const embed = { mode: footerStatuslineMode, omit: footerOmit, asked: flavor, ...(footerResolved === undefined ? {} : { config: footerResolved }) }
+      await setFooterState($, { at: now, columns: width, lines: result.lines.map(l => l.map(run => ({ ...run }))) }, { source: 'statusline', version: bundled.version, commit: bundled.commit, format: result.format, ...(result.format === 'runs' ? { contract: SUPPORTED_CONTRACT } : {}), embed })
       return
     }
     footerFailures += 1
@@ -2230,6 +2252,15 @@ function footerSetupRows(state: FooterState | undefined, lang: Lang): string[] {
   }
   if (health?.source === 'statusline' && health.format !== undefined) {
     rows.push(`${t(lang, 'footer.setup.format')}: ${health.format === 'runs' ? t(lang, 'footer.setup.formatRuns', { contract: String(health.contract ?? SUPPORTED_CONTRACT) }) : t(lang, 'footer.setup.formatAnsi')}`)
+  }
+  const embed = health?.embed
+  rows.push(`${t(lang, 'footer.setup.mode')}: ${t(lang, (embed?.mode ?? footerStatuslineMode) === 'passive' ? 'footer.setup.modePassive' : 'footer.setup.modeLive')}`)
+  const omitted = embed?.omit ?? footerOmit
+  if (omitted !== '') rows.push(`${t(lang, 'footer.setup.omit')}: ${omitted}`)
+  const config = embed?.config
+  if (config !== undefined) {
+    rows.push(`${t(lang, 'footer.setup.resolved')}: ${t(lang, 'footer.setup.resolvedLine', { flavor: config.flavor, glyphs: config.glyphs ?? '?', separator: config.separator ?? '?' })}`)
+    if (embed !== undefined && flavorMismatch(embed.asked, config)) rows.push(t(lang, 'footer.setup.flavorMismatch', { asked: embed.asked, drawn: config.flavor }))
   }
   rows.push(t(lang, 'footer.setup.use'))
   return rows
@@ -3145,6 +3176,12 @@ export const register: Register = (on, options) => {
   footerIn = options['footerIn'] === 'status' || options['footerIn'] === 'both' ? options['footerIn'] : 'pane'
   footerLines = options['footerLines'] === '3' ? '3' : '1'
   footerSource = options['footerSource'] === 'native' ? 'native' : 'statusline'
+  const embedMode = options['footerStatuslineMode'] === 'passive' ? 'passive' : 'live'
+  const embedOmit = parseOmit(options['footerOmit'])
+  // A changed option makes the resolved configuration stale at once, not a minute later.
+  if (embedMode !== footerStatuslineMode || embedOmit !== footerOmit) footerResolvedAt = Number.NEGATIVE_INFINITY
+  footerStatuslineMode = embedMode
+  footerOmit = embedOmit
   liveRowsOption = options['liveRows'] === 'agents' || options['liveRows'] === 'gates' || options['liveRows'] === 'off' ? options['liveRows'] : 'both'
   footerSeparator = options['footerSeparator'] === 'thin' || options['footerSeparator'] === 'none' ? options['footerSeparator'] : 'solid'
   bandDensity = options['bandDensity'] === 'compact' || options['bandDensity'] === 'minimal' ? options['bandDensity'] : 'full'

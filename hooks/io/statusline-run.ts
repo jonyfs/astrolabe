@@ -1,6 +1,6 @@
 // Runs the vendored statusline and checks Node (spec 070 FR-006, FR-008). It takes a process
 // runner built in register.tsx, so no `$` crosses this import (the engine refuses that).
-import { isFallback, parseAnsiLines, parseRunsOutput, plainOf, type Run } from '../core/statusline-dep'
+import { isFallback, parseAnsiLines, parseResolvedConfig, parseRunsOutput, plainOf, type ResolvedConfig, type Run } from '../core/statusline-dep'
 
 export type RunProc = (
   argv: string[],
@@ -21,6 +21,24 @@ export const nodeStatus = async (run: RunProc): Promise<'ok' | 'missing' | 'old'
     return major >= MIN_NODE_MAJOR ? 'ok' : 'old'
   } catch {
     return 'missing'
+  }
+}
+
+/**
+ * What the copy resolved for this environment and directory (`--print-config`, statusline spec 059).
+ * It is read-only on the renderer's side, and any failure (a copy that does not know the command, a
+ * timeout, text that is not the object) is undefined: the Setup tab then shows nothing.
+ */
+export const readResolvedConfig = async (input: { run: RunProc; cli: string; env: Record<string, string>; cwd?: string }): Promise<ResolvedConfig | undefined> => {
+  try {
+    const r = await input.run(['node', input.cli, '--print-config'], {
+      env: input.env,
+      timeoutMs: RENDER_BUDGET_MS,
+      ...(input.cwd === undefined ? {} : { cwd: input.cwd }),
+    })
+    return r.exitCode === 0 ? parseResolvedConfig(r.stdout) : undefined
+  } catch {
+    return undefined
   }
 }
 

@@ -31,9 +31,12 @@ const [subcommand, ...rest] = argvRest;
 const isRender = subcommand === "render" || subcommand === undefined;
 const runsMode = isRender && (formatValue === "runs" || (formatValue === null && process.env.CLAUDE_STATUSLINE_OUTPUT === "runs"));
 
-// A test can lower the version the check sees, in runs mode only.
+// The commands that answer as data: a failure is the error object and exit 75.
+const dataCommand = ["--print-config", "print-config", "--version", "version"].includes(subcommand);
+
+// A test can lower the version the check sees, in runs mode and for the data commands only.
 const nodeMajor =
-  runsMode && process.env.CLAUDE_STATUSLINE_TEST_NODE_MAJOR
+  (runsMode || dataCommand) && process.env.CLAUDE_STATUSLINE_TEST_NODE_MAJOR
     ? Number.parseInt(process.env.CLAUDE_STATUSLINE_TEST_NODE_MAJOR, 10)
     : Number.parseInt(process.versions.node.split(".")[0], 10);
 const nodeTooOld = !(nodeMajor >= MIN_NODE_MAJOR);
@@ -106,16 +109,9 @@ const INSTALL_FLAGS = "[--no-hook] [--no-refresh-interval] [--no-task-rows]";
 const USAGE = [
   `Usage: node "${process.argv[1]}" <command>`,
   "",
-  "  install " + INSTALL_FLAGS,
-  "  install --harness copilot|codex|opencode [--quiet-footer|--no-quiet-footer] [--theme <catppuccin-*>|--no-theme] [--pane|--no-pane]",
-  "  update " + INSTALL_FLAGS,
-  "  updates [auto|notify|off]",
-  "  check-updates",
-  "  uninstall [--harness copilot|codex|opencode]",
-  "  codex [codex arguments]      Codex CLI with the bar in a tmux pane under it",
-  "  codex-pane [--cwd <dir>] [--rollout <file>] [--session <id>] [--pid <n>] [--once]",
   "  render [--format runs|ansi]   the bar; runs prints it as JSON for a host (see the README)",
-  "  doctor [--json|--explain]",
+  "  --print-config [--cwd <dir>]  the resolved configuration as JSON",
+  "  --version [--json]            the version and the contract number",
   "  help",
 ].join("\n");
 
@@ -181,7 +177,8 @@ const runRuns = runsMain;
 async function main() {
   ignoreClosedOutput();
   if (nodeTooOld) {
-    if (runsMode) {
+    // The data commands answer in the failure contract too.
+    if (runsMode || dataCommand) {
       runsFailure("node-version", `statusline needs Node ${MIN_NODE_MAJOR} or newer`);
       return;
     }
@@ -196,6 +193,31 @@ async function main() {
     return;
   }
   switch (subcommand) {
+    case "--print-config":
+    case "print-config": {
+      // Resolved configuration as data, for a host (specs/059-print-config).
+      try {
+        const eq = rest.find((a) => String(a).startsWith("--cwd="));
+        const cwdAt = rest.indexOf("--cwd");
+        const dir = eq ? eq.slice("--cwd=".length) || process.cwd() : cwdAt !== -1 && rest[cwdAt + 1] ? rest[cwdAt + 1] : process.cwd();
+        const { resolvedConfig } = await import("../src/printConfig.js");
+        process.stdout.write(JSON.stringify(resolvedConfig(dir)) + "\n");
+      } catch {
+        runsFailure("internal", "statusline could not resolve its configuration");
+      }
+      break;
+    }
+    case "--version":
+    case "version": {
+      try {
+        const { versionDocument } = await import("../src/printConfig.js");
+        const v = versionDocument();
+        process.stdout.write((rest.includes("--json") ? JSON.stringify(v) : `statusline ${v.version} (contract ${v.contract})`) + "\n");
+      } catch {
+        runsFailure("internal", "statusline could not read its version");
+      }
+      break;
+    }
     case "help":
     case "--help":
     case "-h":

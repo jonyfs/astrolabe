@@ -1,4 +1,5 @@
 import { writeFileSync } from "node:fs";
+import { isPassive } from "./paths.js";
 import { createHash } from "node:crypto";
 import path from "node:path";
 import os from "node:os";
@@ -86,6 +87,8 @@ APPLESCRIPT
  * open a tab (caller should fall back to a plain directory link).
  */
 export function getOpenTabUrl(cwd) {
+  // The script is a file in the temporary directory; a passive render writes none.
+  if (isPassive()) return null;
   const file = buildOpenTabScript(cwd, process.env.TERM_PROGRAM);
   return file ? pathToFileUrl(file) : null;
 }

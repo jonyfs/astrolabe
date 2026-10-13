@@ -6,6 +6,18 @@ tags `vX.Y.Z` equal to `plugin.json`'s `version`.
 
 ## [Unreleased]
 
+### Added
+
+- Spec 081: the pane footer uses what statusline 1.54 to 1.58 added for a host. `footerStatuslineMode`
+  (`live`, the default, or `passive`) runs the bundled copy with `CLAUDE_STATUSLINE_PASSIVE=1` and a
+  cache folder inside the plugin's data folder, so it starts only read-only `git` and writes only
+  there; the pull request, CI, gate and `rtk` chips are not drawn in that mode. `footerOmit` passes a
+  list of segment keys as `CLAUDE_STATUSLINE_OMIT`. The Setup tab shows the mode, the omitted segments
+  and what the copy resolved (`--print-config`, at most once a minute), and says when the flavor asked
+  for is not the one drawn. The vendored copy is statusline 1.58.0, taken as its render-only build
+  with the shared host fixtures, which the contract test now renders. With neither option set the
+  footer is drawn as before.
+
 ## [0.139.0] - 2026-10-13
 
 ### Added

@@ -98,6 +98,49 @@ function readJson(file) {
  * has the environment variable above it.
  */
 export function resolveLayout(cwd = process.cwd(), env = process.env) {
+  return withOmitted(resolveLayoutFile(cwd, env), env);
+}
+
+/** The keys `CLAUDE_STATUSLINE_OMIT` names, in order, without blanks or repeats. */
+export function omittedKeys(env = process.env) {
+  const raw = String(env.CLAUDE_STATUSLINE_OMIT ?? "");
+  return [...new Set(raw.split(",").map((s) => s.trim()).filter(Boolean))];
+}
+
+/**
+ * Puts the omit list on top of the arrangement in force, as `{ on: false }`
+ * entries. It wins over `on: true` and leaves lines and order alone, so the
+ * rest of the bar is what the arrangement already drew (specs/058-omit-list).
+ */
+function withOmitted(layout, env) {
+  const keys = omittedKeys(env);
+  if (!keys.length) return layout;
+  const isObject = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
+  // A file the arrangement code would step aside from as a whole (not an
+  // object, or a version this build does not know) would take the omit list
+  // with it. The list stands alone then, and the reason is kept for `doctor`.
+  const usable =
+    isObject(layout.arrangement) &&
+    (layout.arrangement.version === undefined || layout.arrangement.version === 1) &&
+    (layout.arrangement.segments === undefined || isObject(layout.arrangement.segments));
+  const base = usable ? layout.arrangement : { version: 1 };
+  // No prototype, so a name like `__proto__` is an entry like any other and
+  // `doctor` reports it as no such segment.
+  const segments = Object.assign(Object.create(null), isObject(base.segments) ? base.segments : {});
+  for (const key of keys) {
+    const entry = isObject(segments[key]) ? segments[key] : {};
+    segments[key] = { ...entry, on: false };
+  }
+  const hadFile = layout.arrangement !== null && layout.arrangement !== undefined;
+  return {
+    ...layout,
+    arrangement: { ...base, segments },
+    origin: layout.origin === "default" ? "CLAUDE_STATUSLINE_OMIT" : layout.origin,
+    error: layout.error ?? (hadFile && !usable ? "the arrangement was not understood; CLAUDE_STATUSLINE_OMIT still applies" : null),
+  };
+}
+
+function resolveLayoutFile(cwd, env) {
   if (env.CLAUDE_STATUSLINE_LAYOUT) {
     const read = readJson(env.CLAUDE_STATUSLINE_LAYOUT);
     // The path is kept even when nothing was read, so the diagnostic can say

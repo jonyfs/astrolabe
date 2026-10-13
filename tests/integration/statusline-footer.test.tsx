@@ -29,7 +29,7 @@ const setup = async ($: never, on: never, node: { stdout: string } | 'missing' =
   const root = manifest!.replace(/\/\.claude-plugin\/plugin\.json$/, '')
   tree[`${root}/vendor/statusline/VERSION`] = JSON.stringify({ commit: 'b703d7be7e15467836ceaa610563171a9656fa65', version: '1.46.0' })
   tree[`${root}/vendor/statusline/bin/cli.js`] = '// bundled'
-  return { session }
+  return { session, cli: `${root}/vendor/statusline/bin/cli.js` }
 }
 
 // The pane is on screen first: the footer is drawn and refreshed only for a pane someone sees.
@@ -163,5 +163,91 @@ describe('the pane footer from statusline (070)', () => {
     const out = await ($ as unknown as { command: { run: (e: never) => Promise<{ text?: string }> } }).command.run({ command: 'astrolabe', args: 'statusline' } as never)
     expect(out.text).toContain('"statusLine"')
     expect(out.text).toContain('vendor/statusline/bin/cli.js')
+  })
+})
+
+describe('the embedding options (081)', () => {
+  // The renderer's environment, as the mod gave it, once a render answered.
+  const renderEnv = async ($: never, on: never, script?: (s: Session) => void) => {
+    const { session, cli } = await setup($, on)
+    script?.(session)
+    await turn($, session)
+    await answerCli($, session, GOOD)
+    return { session, cli, env: session.envs[`node ${cli}`] ?? {} }
+  }
+
+  test('by default the environment has no passive switch, cache directory or omit list', async ($, on) => {
+    const { env } = await renderEnv($ as never, on as never, s => { s.script.env['CLAUDE_PLUGIN_DATA'] = '/data' })
+    expect(env['CLAUDE_STATUSLINE_OUTPUT']).toBe('runs')
+    for (const key of ['CLAUDE_STATUSLINE_PASSIVE', 'CLAUDE_STATUSLINE_CACHE_DIR', 'CLAUDE_STATUSLINE_OMIT']) expect(key in env).toBe(false)
+  })
+
+  test('passive sets the switch and a cache directory inside the plugin data folder', { options: { footerStatuslineMode: 'passive' } }, async ($, on) => {
+    const { env } = await renderEnv($ as never, on as never, s => { s.script.env['CLAUDE_PLUGIN_DATA'] = '/data' })
+    expect(env['CLAUDE_STATUSLINE_PASSIVE']).toBe('1')
+    expect(env['CLAUDE_STATUSLINE_CACHE_DIR']).toBe('/data/statusline-cache')
+  })
+
+  test('passive with no plugin data folder sets the switch and no cache directory', { options: { footerStatuslineMode: 'passive' } }, async ($, on) => {
+    const { env } = await renderEnv($ as never, on as never)
+    expect(env['CLAUDE_STATUSLINE_PASSIVE']).toBe('1')
+    expect('CLAUDE_STATUSLINE_CACHE_DIR' in env).toBe(false)
+  })
+
+  test('footerOmit is passed as the omit list, cleaned', { options: { footerOmit: 'dir, branch;$(x)' } }, async ($, on) => {
+    const { env } = await renderEnv($ as never, on as never)
+    expect(env['CLAUDE_STATUSLINE_OMIT']).toBe('dir,branch')
+  })
+
+  test('the Setup tab shows the mode, the omit list and what the copy resolved', { options: { footerStatuslineMode: 'passive', footerOmit: 'dir' } }, async ($, on) => {
+    const { session, cli } = await setup($ as never, on as never)
+    session.script.processes[`node ${cli} --print-config`] = { stdout: JSON.stringify({ contract: 1, flavor: 'mocha', glyphs: 'nerd', separator: 'arrow', passive: true, layout: { omitted: ['dir'] } }) }
+    await turn($ as never, session)
+    await answerCli($ as never, session, GOOD)
+    const ui = await mountPane($ as never, 'terminal', 100, 80)
+    await ui.press('tab-setup')
+    const body = await ui.body()
+    expect(body).toContain('passive (no pull request')
+    expect(body).toContain('omitted segments: dir')
+    expect(body).toContain('flavor mocha, glyphs nerd, separator arrow')
+    await ui.unmount()
+  })
+
+  test('the Setup tab names a flavor that was asked for and not drawn', { options: { flavor: 'latte' } }, async ($, on) => {
+    const { session, cli } = await setup($ as never, on as never)
+    session.script.processes[`node ${cli} --print-config`] = { stdout: JSON.stringify({ contract: 1, flavor: 'mocha', glyphs: 'nerd', separator: 'arrow', layout: { omitted: [] } }) }
+    await turn($ as never, session)
+    await answerCli($ as never, session, GOOD)
+    const ui = await mountPane($ as never, 'terminal', 100, 80)
+    await ui.press('tab-setup')
+    expect(await ui.body()).toContain('asked for flavor latte, drawn mocha')
+    await ui.unmount()
+  })
+
+  test('a copy without --print-config draws the footer and the mode row only', async ($, on) => {
+    const { session } = await setup($ as never, on as never)
+    await turn($ as never, session)
+    await answerCli($ as never, session, GOOD)
+    const ui = await mountPane($ as never, 'terminal', 100, 80)
+    await ui.press('tab-setup')
+    const body = await ui.body()
+    expect(body).toContain('live (the pull request')
+    expect(body).not.toContain('resolved by the copy')
+    await ui.unmount()
+  })
+
+  test('the resolved configuration is read at most once a minute, never while drawing', async ($, on) => {
+    const { session, cli } = await setup($ as never, on as never)
+    session.script.processes[`node ${cli} --print-config`] = { stdout: JSON.stringify({ contract: 1, flavor: 'mocha', layout: { omitted: [] } }) }
+    await turn($ as never, session)
+    await answerCli($ as never, session, GOOD)
+    const reads = () => session.processes.filter(p => p.endsWith('--print-config')).length
+    const first = reads()
+    expect(first).toBeGreaterThan(0)
+    const ui = await mountPane($ as never, 'terminal', 100, 80)
+    await ui.press('tab-setup')
+    await ui.body()
+    await ui.unmount()
+    expect(reads()).toBe(first)
   })
 })

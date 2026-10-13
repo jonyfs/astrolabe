@@ -132,6 +132,8 @@ export type Session = {
   processes: string[]
   /** What each of those processes was given on stdin, keyed by the argv line (the last wins). */
   stdins: Record<string, string>
+  /** The environment each of those processes was given, keyed by the argv line (the last wins) (081). */
+  envs: Record<string, Record<string, string>>
   /** Every URL the plugin fetched. */
   fetches: string[]
   /** How many times the plugin wrote each astrolabe.* state key. */
@@ -239,6 +241,7 @@ export const installTree = (on: On, tree: Tree, cwd: string, seed: Record<string
   on('store.keys', () => ({ value: [...store.keys()] }))
   const processes: string[] = []
   const stdins: Record<string, string> = {}
+  const envs: Record<string, Record<string, string>> = {}
   const fetches: string[] = []
   const prompts: string[] = []
   const submitted: string[] = []
@@ -247,6 +250,8 @@ export const installTree = (on: On, tree: Tree, cwd: string, seed: Record<string
     processes.push(line)
     const given = (e as { init?: { stdin?: unknown } }).init?.stdin
     if (typeof given === 'string') stdins[line] = given
+    const givenEnv = (e as { init?: { env?: Record<string, string> } }).init?.env
+    if (givenEnv !== undefined) envs[line] = { ...givenEnv }
     const answer = script.processes[line]
     if (answer === undefined || answer === 'missing') return { deny: `ENOENT: ${e.argv[0]}` }
     return { value: { exitCode: answer.exitCode ?? 0, stdout: answer.stdout ?? '', stderr: answer.stderr ?? '', isStdoutTruncated: false, isStderrTruncated: false } } as never
@@ -283,7 +288,7 @@ export const installTree = (on: On, tree: Tree, cwd: string, seed: Record<string
   })
   // Only the home directory may be read (to find gstack); anything else is a test failure.
   on('env.get', ($, e) => {
-    if (e.name === 'HOME' || e.name === 'USERPROFILE' || e.name === 'CLAUDE_CONFIG_DIR') return { value: script.env[e.name] }
+    if (e.name === 'HOME' || e.name === 'USERPROFILE' || e.name === 'CLAUDE_CONFIG_DIR' || e.name === 'CLAUDE_PLUGIN_DATA') return { value: script.env[e.name] }
     // The terminal's own variables, read to tell whether it draws pictures (024).
     if (['KITTY_WINDOW_ID', 'TERM', 'TERM_PROGRAM', 'TMUX'].includes(e.name)) return { value: script.env[e.name] }
     // The NO_COLOR convention (041 #9).
@@ -341,6 +346,7 @@ export const installTree = (on: On, tree: Tree, cwd: string, seed: Record<string
     store,
     processes,
     stdins,
+    envs,
     fetches,
     prompts,
     submitted,

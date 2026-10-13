@@ -1,0 +1,5 @@
+{
+  "session_id": "fixture-minimal",
+  "cwd": "/fixtures/app",
+  "model": { "id": "claude-opus-5-5", "display_name": "Opus 5.5" }
+}

@@ -1,4 +1,5 @@
 import path from "node:path";
+import { canWrite, stateRoot } from "./paths.js";
 import os from "node:os";
 import { realpathSync } from "node:fs";
 import { PALETTES, renderRow, displayWidth, separatorStyle, colourEnabled, bgSeq, STRONG, QUIET, MARK_OFF, GOOD, WARM, BEHIND } from "./theme.js";
@@ -115,7 +116,7 @@ import { trackChanges, loadSamples } from "./changeTracker.js";
 import { reading, missing, isRenderable } from "./freshness.js";
 import { byLine, segment, inChannel, SEGMENTS } from "./segments.js";
 import { resolveArrangement } from "./arrangement.js";
-import { resolveLayout, iconTier, repoConfig } from "./config.js";
+import { resolveLayout, iconTier, repoConfig, omittedKeys } from "./config.js";
 import { abbreviateBranch, cutMiddle, DEFAULT_BRANCH_PREFIXES, BRANCH_COLUMNS } from "./names.js";
 import { gaugeChip, bandFor, track, paceBand, contextBand } from "./ramp.js";
 import { ROLE } from "./colourRoles.js";
@@ -559,12 +560,12 @@ export async function render({ asciiArrows = false, flavor = "mocha", strict = f
     throw Object.assign(new Error("the status payload is not a JSON object"), { code: "bad-payload" });
   }
 
-  if (process.env.CLAUDE_STATUSLINE_DEBUG === "1") {
+  if (process.env.CLAUDE_STATUSLINE_DEBUG === "1" && canWrite()) {
     try {
       const fs = await import("node:fs");
       const path = await import("node:path");
       const os = await import("node:os");
-      const dir = path.join(os.homedir(), ".claude", "statusline");
+      const dir = stateRoot();
       fs.mkdirSync(dir, { recursive: true });
       fs.writeFileSync(path.join(dir, "debug-last-payload.json"), raw || "{}");
     } catch {
@@ -644,7 +645,9 @@ export function gather(payload, probe, { now = Date.now(), off = null, copilotSe
   const ctxPct = getContextPercent(payload);
   // RTK is needed both for its segment and for the sample history, so read it
   // once and reuse the timed reading.
-  const rtkReading = timed("rtk", () => probe.getRtkSavings(cwd));
+  // A segment the arrangement or the omit list switched off reads nothing
+  // that would start a lookup (specs/058-omit-list, FR-002).
+  const rtkReading = off?.has("rtk") ? missing("rtk", "switched off") : timed("rtk", () => probe.getRtkSavings(cwd));
   const sampleHistory = pushSample(loadSamples(payload?.session_id), {
     at: now,
     contextPct: payload?.context_window?.used_percentage ?? ctxPct,
@@ -656,11 +659,15 @@ export function gather(payload, probe, { now = Date.now(), off = null, copilotSe
   // is two cache reads and, once a day, a detached process; reading its
   // result is one more read. Neither can fail the redraw.
   try {
-    probe.maybeStartUpdateCheck?.({ now });
+    // Hidden by a layout file, the chip still has an update check behind it
+    // that applies updates in `auto` mode; only the host's own omit list stops it.
+    if (!omittedKeys().includes("update")) probe.maybeStartUpdateCheck?.({ now });
   } catch {
     // a check that cannot start is tried again on the next redraw
   }
-  const updateReading = timed("update", () => probe.getUpdateNotice?.(payload?.session_id ?? null, { now }) ?? null);
+  const updateReading = off?.has("update")
+    ? missing("cache", "switched off")
+    : timed("update", () => probe.getUpdateNotice?.(payload?.session_id ?? null, { now }) ?? null);
 
   const git = timed("git", () => probe.getGitInfo(cwd));
   // Two questions, kept apart. Line 1's own git segments need the snapshot,
@@ -761,7 +768,9 @@ export function gather(payload, probe, { now = Date.now(), off = null, copilotSe
       at: now,
       source: "cache",
     }),
-    pr: hasRepo
+    pr: off?.has("pr")
+      ? missing("gh", "switched off")
+      : hasRepo
       ? payloadPr
         ? reading({ value: payloadPr, at: now, source: "payload" })
         : timed("gh", () => normalizePr(probe.getPrInfo(cwd, { branch: namedBranch }), "gh"))
@@ -783,9 +792,11 @@ export function gather(payload, probe, { now = Date.now(), off = null, copilotSe
         : probe.getGateRuns
           ? timed("cache", () => probe.getGateRuns(cwd, { now }))
           : missing("cache", "no reader"),
-    ci: hasRepo
-      ? timed("gh", () => probe.getCiStatus(cwd, { branch: namedBranch }))
-      : missing("gh", "not a repository"),
+    ci: off?.has("ci")
+      ? missing("gh", "switched off")
+      : hasRepo
+        ? timed("gh", () => probe.getCiStatus(cwd, { branch: namedBranch }))
+        : missing("gh", "not a repository"),
     model: reading({
       value: routedModel ? `${routedModel} (auto)` : modelName,
       at: now,
@@ -840,7 +851,9 @@ export function gather(payload, probe, { now = Date.now(), off = null, copilotSe
     // The account's monthly quota, from the cache the detached refresh fills.
     // Never read under Claude Code: reading it is what starts the lookup.
     copilotQuota: isCopilot
-      ? probe.getCopilotQuota
+      ? off?.has("premiumQuota") && off?.has("chatQuota")
+        ? missing("cache", "switched off")
+        : probe.getCopilotQuota
         ? timed("cache", () => probe.getCopilotQuota({ now }))
         : missing("cache", "no reader")
       : missing("cache", "Copilot CLI only"),
