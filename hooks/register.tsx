@@ -50,7 +50,7 @@ import type { Preset } from './core/presets'
 import type { Fs } from './io/fs-port'
 import { findRoot } from './io/root'
 import { nodeStatus, renderFooter, type RunProc } from './io/statusline-run'
-import { buildPayload, chooseSource, cutRuns, statuslineEnv, type Run, type SourceReason } from './core/statusline-dep'
+import { buildPayload, chooseSource, cutRuns, statuslineEnv, SUPPORTED_CONTRACT, type Run, type SourceReason } from './core/statusline-dep'
 import { activeFilesChanged, applyFileTouch, applyRead, applyShell, applySkill, type Held, reconcileDeferred, reconcileNow, reconcileStart, reconcileTurn } from './io/reconcile'
 import { bandRow, edgeWidth, type BandEdge } from './surfaces/band'
 import { askTree } from './surfaces/ask'
@@ -1955,14 +1955,16 @@ async function refreshStatusline($: EngineInterface, onlyWhileShown = false): Pr
       footerFailures = 0
       footerBackoffUntil = 0
       footerGoodAt = now
-      await setFooterState($, { at: now, columns: width, lines: result.lines.map(l => l.map(run => ({ ...run }))) }, { source: 'statusline', version: bundled.version, commit: bundled.commit })
+      await setFooterState($, { at: now, columns: width, lines: result.lines.map(l => l.map(run => ({ ...run }))) }, { source: 'statusline', version: bundled.version, commit: bundled.commit, format: result.format, ...(result.format === 'runs' ? { contract: SUPPORTED_CONTRACT } : {}) })
       return
     }
     footerFailures += 1
     footerBackoffUntil = now + (FOOTER_BACKOFF_MS[Math.min(footerFailures - 1, FOOTER_BACKOFF_MS.length - 1)] ?? 60_000)
     const reusable = footerGoodAt !== undefined && now - footerGoodAt < FOOTER_REUSE_MS
     // The last good lines stay for a minute; after that the native footer shows with the reason.
-    if (!reusable) await setFooterState($, undefined, { source: 'native', reason: 'renderer-failed', version: bundled.version, commit: bundled.commit })
+    // A newer contract or the renderer's own node check name the reason; the rest is a failed render.
+    const reason: SourceReason = result.reason === 'contract-newer' ? 'contract-newer' : result.reason === 'contract-error' && result.code === 'node-version' ? 'node-old' : 'renderer-failed'
+    if (!reusable || result.reason === 'contract-newer') await setFooterState($, undefined, { source: 'native', reason, version: bundled.version, commit: bundled.commit })
   } catch (error) {
     $.ui.log(`astrolabe: ${error instanceof Error ? error.message : String(error)}`, { to: 'debug' })
   } finally {
@@ -1990,6 +1992,9 @@ function footerSetupRows(state: FooterState | undefined, lang: Lang): string[] {
   rows.push(`${t(lang, 'footer.setup.source')}: ${health?.source === 'statusline' ? (bundled ?? 'statusline') : t(lang, 'footer.setup.native')}`)
   if (health?.source === 'native' && health.reason !== undefined && health.reason !== 'native-chosen') {
     rows.push(`${t(lang, 'footer.setup.because')}: ${t(lang, `footer.fallback.${health.reason}` as TextKey)}`)
+  }
+  if (health?.source === 'statusline' && health.format !== undefined) {
+    rows.push(`${t(lang, 'footer.setup.format')}: ${health.format === 'runs' ? t(lang, 'footer.setup.formatRuns', { contract: String(health.contract ?? SUPPORTED_CONTRACT) }) : t(lang, 'footer.setup.formatAnsi')}`)
   }
   rows.push(t(lang, 'footer.setup.use'))
   return rows

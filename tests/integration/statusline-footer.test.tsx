@@ -69,6 +69,38 @@ describe('the pane footer from statusline (070)', () => {
     await ui.unmount()
   })
 
+  test('a runs object (statusline spec 056) draws the same footer without an escape parser (076)', async ($, on) => {
+    const { session } = await setup($ as never, on as never)
+    await turn($ as never, session)
+    const runs = JSON.stringify({ contract: 1, lines: [[{ text: '  main  ', fg: '#ffffff', bg: '#313244' }], [{ text: 'model opus 5.5', bold: true }, { text: ' 5h 42%' }]] })
+    await answerCli($ as never, session, runs)
+    const ui = await mountPane($ as never, 'terminal', 100, 80)
+    const footer = await ui.footer()
+    expect(footer).toContain('main')
+    expect(footer).toContain('model opus 5.5')
+    await ui.unmount()
+  })
+
+  test('a contract newer than this build reads shows the native footer and says why (076)', async ($, on) => {
+    const { session } = await setup($ as never, on as never)
+    await turn($ as never, session)
+    await answerCli($ as never, session, JSON.stringify({ contract: 9, lines: [[{ text: 'model opus 5.5' }]] }))
+    const ui = await mountPane($ as never, 'terminal', 100, 80)
+    const footer = await ui.footer()
+    expect(footer).toContain('newer than this Astrolabe reads')
+    expect(footer).not.toContain('model opus 5.5')
+    await ui.unmount()
+  })
+
+  test('the error object with its code is a failed render, and the native footer says it did not answer (076)', async ($, on) => {
+    const { session } = await setup($ as never, on as never)
+    await turn($ as never, session)
+    await answerCli($ as never, session, JSON.stringify({ contract: 1, error: { code: 'internal', message: 'boom' } }))
+    const ui = await mountPane($ as never, 'terminal', 100, 80)
+    expect(await ui.footer()).toContain('did not answer')
+    await ui.unmount()
+  })
+
   test('node missing: the native footer shows and says why; the renderer never runs', async ($, on) => {
     const { session } = await setup($ as never, on as never, 'missing')
     await turn($ as never, session)

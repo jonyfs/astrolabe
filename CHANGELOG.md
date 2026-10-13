@@ -6,6 +6,13 @@ tags `vX.Y.Z` equal to `plugin.json`'s `version`.
 
 ## [Unreleased]
 
+### Added
+
+- Spec 076: the pane footer reads statusline's runs output and failure contract (statusline spec
+  056): a JSON object of styled runs, or an error object with exit code 75. Copies that predate it
+  keep working through the ANSI path; a newer contract falls back to the Astrolabe footer and the
+  Setup tab names the reason and the form.
+
 ## [0.136.0] - 2026-10-13
 
 Specs 070 to 075: the footer is statusline's own output, and a second pass over the design boards.

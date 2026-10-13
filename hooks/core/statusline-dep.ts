@@ -169,6 +169,67 @@ export const isFallback = (plain: readonly string[]): boolean => {
   return FALLBACKS.some(f => text.includes(f))
 }
 
+/** The runs contract this build reads (statusline spec 056). A higher number is not read. */
+export const SUPPORTED_CONTRACT = 1
+
+export type RunsOutput =
+  | { kind: 'runs'; contract: number; lines: Run[][] }
+  | { kind: 'error'; contract: number; code: string; message: string }
+  | { kind: 'newer'; contract: number }
+  | { kind: 'ansi' }
+
+const HEX = /^#[0-9a-fA-F]{6}$/
+// eslint-disable-next-line no-control-regex
+const CONTROL = /[\u0000-\u001f\u007f-\u009f]/g
+
+const asRun = (value: unknown): Run | undefined => {
+  if (typeof value !== 'object' || value === null) return undefined
+  const v = value as Record<string, unknown>
+  if (typeof v['text'] !== 'string') return undefined
+  const text = v['text'].replace(CONTROL, '')
+  if (text === '') return undefined
+  const run: Run = { text }
+  if (typeof v['fg'] === 'string' && HEX.test(v['fg'])) run.fg = v['fg'].toLowerCase()
+  if (typeof v['bg'] === 'string' && HEX.test(v['bg'])) run.bg = v['bg'].toLowerCase()
+  if (v['bold'] === true) run.bold = true
+  if (v['dim'] === true) run.dim = true
+  if (v['underline'] === true) run.underline = true
+  // A link is drawn inside an OSC 8 sequence: a control character or a space in it could end that
+  // sequence and start another, so any href that holds one is dropped, not cleaned.
+  if (typeof v['href'] === 'string' && v['href'].length <= 2048 && LINK_SCHEMES.test(v['href']) && !/[\u0000-\u0020\u007f-\u009f]/.test(v['href'])) run.href = v['href']
+  return run
+}
+
+/**
+ * What the renderer printed when it was asked for runs (statusline spec 056). Anything that is not
+ * a JSON object with a `contract` is the ANSI text an older copy prints, so one reader serves both.
+ */
+export const parseRunsOutput = (stdout: string): RunsOutput => {
+  const trimmed = stdout.trim()
+  if (!trimmed.startsWith('{')) return { kind: 'ansi' }
+  let value: unknown
+  try {
+    value = JSON.parse(trimmed)
+  } catch {
+    return { kind: 'ansi' }
+  }
+  if (typeof value !== 'object' || value === null) return { kind: 'ansi' }
+  const v = value as Record<string, unknown>
+  const contract = v['contract']
+  if (typeof contract !== 'number' || !Number.isInteger(contract)) return { kind: 'ansi' }
+  if (contract > SUPPORTED_CONTRACT) return { kind: 'newer', contract }
+  const error = v['error']
+  if (typeof error === 'object' && error !== null) {
+    const e = error as Record<string, unknown>
+    return { kind: 'error', contract, code: typeof e['code'] === 'string' ? e['code'] : 'internal', message: typeof e['message'] === 'string' ? e['message'].replace(CONTROL, '') : '' }
+  }
+  const raw = v['lines']
+  if (!Array.isArray(raw)) return { kind: 'error', contract, code: 'internal', message: 'no lines in the runs output' }
+  const lines = raw.map(line => (Array.isArray(line) ? line.flatMap(r => asRun(r) ?? []) : []))
+  while (lines.length > 0 && lines[lines.length - 1]!.every(r => r.text.trim() === '')) lines.pop()
+  return { kind: 'runs', contract, lines }
+}
+
 /** The payload fields the mod can fill, in statusLine's shapes. Absent facts are left out. */
 export type FooterPayload = {
   session_id?: string
@@ -232,11 +293,13 @@ export const statuslineEnv = (input: { columns: number; lines: number; flavor: s
   COLORTERM: 'truecolor',
   CLAUDE_STATUSLINE_UPDATES: 'off',
   CLAUDE_STATUSLINE_DEBUG: '0',
+  // The data form (statusline spec 056); a copy that does not know it prints ANSI and is read as before.
+  CLAUDE_STATUSLINE_OUTPUT: 'runs',
   ...(input.flavor === 'theme' ? {} : { CLAUDE_STATUSLINE_FLAVOR: input.flavor }),
   ...(input.ascii ? { CLAUDE_STATUSLINE_ASCII: '1' } : {}),
 })
 
-export type SourceReason = 'native-chosen' | 'colorblind' | 'node-missing' | 'node-old' | 'no-copy' | 'renderer-failed'
+export type SourceReason = 'native-chosen' | 'colorblind' | 'node-missing' | 'node-old' | 'no-copy' | 'renderer-failed' | 'contract-newer'
 
 /** Who draws the pane footer and, when it is not the one chosen, why. */
 export const chooseSource = (input: {
@@ -245,12 +308,15 @@ export const chooseSource = (input: {
   node: 'ok' | 'missing' | 'old'
   copy: boolean
   failing: boolean
+  /** The copy answered with a contract number this build does not read. */
+  contractNewer?: boolean
 }): { source: 'statusline' | 'native'; reason?: SourceReason } => {
   if (input.choice === 'native') return { source: 'native', reason: 'native-chosen' }
   if (input.flavor === 'colorblind') return { source: 'native', reason: 'colorblind' }
   if (input.node === 'missing') return { source: 'native', reason: 'node-missing' }
   if (input.node === 'old') return { source: 'native', reason: 'node-old' }
   if (!input.copy) return { source: 'native', reason: 'no-copy' }
+  if (input.contractNewer === true) return { source: 'native', reason: 'contract-newer' }
   if (input.failing) return { source: 'native', reason: 'renderer-failed' }
   return { source: 'statusline' }
 }
