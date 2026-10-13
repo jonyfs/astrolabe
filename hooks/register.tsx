@@ -384,7 +384,7 @@ async function flushStats($: EngineInterface, change: (s: SessionStats) => Sessi
 }
 
 /** Shows a bounded notification and keeps its full text in the Session tab (052 #44). */
-async function showToast($: EngineInterface, text: string, options?: { timeoutMs?: number; kind?: 'ok' | 'warn' }): Promise<void> {
+async function showToast($: EngineInterface, text: string, options?: { timeoutMs?: number; kind?: 'ok' | 'warn' | 'update' }): Promise<void> {
   const formatted = formatToast(text, t(currentLang(), 'toast.details'), options?.kind ?? 'ok')
   if (formatted.full !== undefined) await flushStats($, stats => ({ ...stats, toastDetails: formatted.full }))
   $.ui.toast(formatted.text, options?.timeoutMs === undefined ? undefined : { timeoutMs: options.timeoutMs })
@@ -1068,10 +1068,10 @@ async function checkDiskVersion($: EngineInterface): Promise<void> {
     await $.store.set(RELOADED, version).catch(() => undefined)
     const lang = currentLang()
     if (!autoReload) {
-      await showToast($, t(lang, 'toast.onDisk', { version, running: VERSION }))
+      await showToast($, t(lang, 'toast.onDisk', { version, running: VERSION }), { kind: 'update' })
       return
     }
-    await showToast($, t(lang, 'toast.reloading', { version, running: VERSION }))
+    await showToast($, t(lang, 'toast.reloading', { version, running: VERSION }), { kind: 'update' })
     await $.command.run({ command: 'reload-plugins' })
   } catch (error) {
     $.ui.log(`astrolabe: ${error instanceof Error ? error.message : String(error)}`, { to: 'debug' })
