@@ -468,4 +468,13 @@ export const FR: Dictionary = {
   'footer.setup.use': "/astrolabe statusline affiche la commande pour l’utiliser comme statusLine de Claude Code",
   'statusline.command': "statusline {version} ({commit}) est inclus avec Astrolabe.\nCommande : node \"{cli}\"\nPour l’utiliser comme statusLine de Claude Code, mettez ceci dans vos réglages (Astrolabe ne l’écrit jamais) :\n{settings}",
   'statusline.none': "Le statusline inclus est absent, il n’y a donc pas de commande à afficher.",
+  'session.trend': "{window} · 24h",
+  'session.box.title': "governor",
+  'session.box.hold': "‖ nouveaux subagents retenus · {window} décide · jusqu’à {at}",
+  'session.box.pause': "‖ en pause · {window} décide · jusqu’à {at}",
+  'session.box.slow': "ralentissement : {cap} subagents au plus à la fois · {window} décide",
+  'session.box.clear': "tout est libre",
+  'session.box.today': "aujourd’hui : {holds} retenues · {pauses} pauses",
+  'session.box.lift': "lever 1h",
+  'session.box.lifted': "🧭 subagents autorisés 1 heure, un à la fois",
 }

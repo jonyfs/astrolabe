@@ -466,6 +466,15 @@ export const EN = {
   'footer.setup.use': "/astrolabe statusline prints the command to use it as Claude Code's statusLine",
   'statusline.command': "statusline {version} ({commit}) is bundled with Astrolabe.\nCommand: node \"{cli}\"\nTo use it as Claude Code's statusLine, put this in your settings (Astrolabe never writes it):\n{settings}",
   'statusline.none': "The bundled statusline is missing, so there is no command to print.",
+  'session.trend': "{window} · 24h",
+  'session.box.title': "governor",
+  'session.box.hold': "‖ holding new subagents · {window} decides · until {at}",
+  'session.box.pause': "‖ paused · {window} decides · until {at}",
+  'session.box.slow': "slowing: at most {cap} subagents at a time · {window} decides",
+  'session.box.clear': "all clear",
+  'session.box.today': "today: {holds} holds · {pauses} pauses",
+  'session.box.lift': "lift 1h",
+  'session.box.lifted': "🧭 subagents allowed for 1 hour, one at a time",
 } as const
 
 export type TextKey = keyof typeof EN

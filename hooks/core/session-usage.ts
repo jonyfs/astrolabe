@@ -1,0 +1,86 @@
+// The Session tab's usage block beyond the bars (071, board 4): the note on the deciding
+// window, the 24 hour trend and the governor box's state. Pure: no $.
+import { duration } from './duration'
+import { sparkline } from './dashboard'
+import type { Band } from './governor'
+import type { UsageReading } from './types'
+
+const LEVELS: ReadonlyArray<[number, 'throttle' | 'hold' | 'stop' | 'ceiling']> = [[60, 'throttle'], [80, 'hold'], [88, 'stop'], [90, 'ceiling']]
+const HOUR_MS = 3_600_000
+
+/**
+ * The next governor level the deciding window reaches before its reset at the pace of the
+ * recent readings: `stop 88% in ≈3h`; undefined when it will not, or without a pace.
+ */
+export const deciderNote = (
+  readings: readonly UsageReading[],
+  history: ReadonlyArray<{ at: number; percent: number }>,
+  now: number,
+): string | undefined => {
+  const top = [...readings]
+    .filter(r => r.resetsAt === undefined || Date.parse(r.resetsAt) > now)
+    .sort((a, b) => b.percentUsed - a.percentUsed)[0]
+  const first = history[0]
+  const last = history.at(-1)
+  if (top === undefined || first === undefined || last === undefined || last.at <= first.at) return undefined
+  const rate = (last.percent - first.percent) / (last.at - first.at)
+  const ahead = LEVELS.find(([at]) => at > top.percentUsed)
+  if (rate <= 0 || ahead === undefined) return undefined
+  const ms = (ahead[0] - top.percentUsed) / rate
+  const reset = top.resetsAt === undefined ? Number.NaN : Date.parse(top.resetsAt)
+  if (!Number.isNaN(reset) && now + ms >= reset) return undefined
+  const span = duration(Math.max(1, Math.round(ms / 60_000)) * 60_000)
+  return `${ahead[1]} ${ahead[0]}% in ≈${span}`
+}
+
+/**
+ * The last 24 hours of the binding window: one block per hour (the latest reading of the hour,
+ * carried forward), `┄` cells towards the reset at the recent pace, then the label.
+ */
+export const trend24h = (input: {
+  series: ReadonlyArray<{ at: number; percent: number; sevenDay?: number }>
+  now: number
+  resetsAt?: string
+}): string | undefined => {
+  const { series, now } = input
+  const points = series.filter(p => p.at <= now && now - p.at < 24 * HOUR_MS)
+  if (points.length < 3) return undefined
+  const valueOf = (p: { percent: number; sevenDay?: number }) => p.sevenDay ?? p.percent
+  const cells: number[] = []
+  let carried = valueOf(points[0]!)
+  for (let h = 23; h >= 0; h -= 1) {
+    const from = now - (h + 1) * HOUR_MS
+    const to = now - h * HOUR_MS
+    const inHour = points.filter(p => p.at > from && p.at <= to)
+    if (inHour.length > 0) carried = valueOf(inHour[inHour.length - 1]!)
+    cells.push(carried)
+  }
+  const first = points[0]!
+  const last = points[points.length - 1]!
+  const reset = input.resetsAt === undefined ? Number.NaN : Date.parse(input.resetsAt)
+  const rate = last.at > first.at ? (valueOf(last) - valueOf(first)) / (last.at - first.at) : 0
+  const dashes = !Number.isNaN(reset) && reset > now && rate > 0 ? Math.max(1, Math.min(8, Math.round((reset - now) / HOUR_MS))) : 0
+  return `${sparkline(cells)}${'┄'.repeat(dashes)}  now${dashes > 0 ? ' → reset' : ''}`
+}
+
+/** When the governor box shows and which of its buttons: lift while held or paused, revoke with an override. */
+export const governorBoxState = (input: { band: Band; queued: number; override: boolean; lift: boolean }): { show: boolean; lift: boolean; revoke: boolean } => {
+  const held = input.band === 'hold' || input.band === 'stop' || input.band === 'ceiling'
+  return {
+    show: held || input.queued > 0 || input.override || input.lift,
+    lift: held,
+    revoke: input.override,
+  }
+}
+
+/** Holds and pauses the log recorded since `since`. */
+export const todayCounts = (log: ReadonlyArray<{ at: number; text: string }>, since: number): { holds: number; pauses: number } => {
+  let holds = 0
+  let pauses = 0
+  for (const entry of log) {
+    if (entry.at < since) continue
+    if (/\((?:stop|ceiling)\)/.test(entry.text)) pauses += 1
+    else if (/\((?:hold|throttle)\)/.test(entry.text)) holds += 1
+  }
+  return { holds, pauses }
+}
