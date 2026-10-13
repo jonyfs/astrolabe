@@ -8,9 +8,9 @@ tags `vX.Y.Z` equal to `plugin.json`'s `version`.
 
 ### Added
 
-- Spec 077: the bundled statusline is given the transcript path and the session's duration and
-  spend, so its skills, activity, cache, duration and spend chips draw inside Astrolabe. A fact
-  the mod does not have is left out, never zeroed.
+- Spec 077: the bundled statusline is given the transcript path, the session's duration, the lines
+  its tools changed and fast mode, so its skills, activity, duration, lines and `fast` chips draw
+  inside Astrolabe. A fact the mod does not have is left out, never zeroed.
 
 ## [0.137.2] - 2026-10-13
 

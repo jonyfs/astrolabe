@@ -240,7 +240,8 @@ export type FooterPayload = {
   effort?: string
   context_window?: { used_percentage?: number; context_window_size?: number }
   rate_limits?: Partial<Record<'five_hour' | 'seven_day', { used_percentage: number; resets_at?: number }>>
-  cost?: { total_duration_ms?: number; total_cost_usd?: number }
+  cost?: { total_duration_ms?: number; total_lines_added?: number; total_lines_removed?: number }
+  fast_mode?: boolean
 }
 
 export type PayloadInput = {
@@ -254,13 +255,17 @@ export type PayloadInput = {
   /** The session's start and the clock, both epoch milliseconds: the duration chip reads the difference. */
   startedAt?: number
   now?: number
-  /** What the session has spent, in dollars. */
-  costUsd?: number
+  /** Lines the session's tools added and removed. */
+  lines?: { added: number; removed: number }
+  /** Fast mode is on. */
+  fast?: boolean
 }
 
 /**
  * Where Claude Code writes a session's transcript: `<config dir>/projects/<directory with every
- * character outside A-Z, a-z, 0-9 turned into `-`>/<session id>.jsonl`. Statusline reads it for the
+ * character outside A-Z, a-z, 0-9 turned into `-`>/<session id>.jsonl`. A directory name over 200
+ * characters is cut to 200 and followed by `-` and the base-36 absolute value of the 31-multiplier
+ * hash of the whole directory string, as Claude Code writes it (2.1.296). Statusline reads it for the
  * active skills, the activity chip and the cache chip, and tolerates it missing. Nothing here reads
  * the file.
  */
@@ -270,7 +275,11 @@ export const transcriptPathFor = (input: { home?: string; configDir?: string; cw
   const base = input.configDir !== undefined && input.configDir !== '' ? input.configDir : input.home === undefined || input.home === '' ? undefined : `${input.home.replace(/[\\/]+$/, '')}${input.home.includes('\\') ? '\\' : '/'}.claude`
   if (base === undefined) return undefined
   const sep = base.includes('\\') ? '\\' : '/'
-  return [base.replace(/[\\/]+$/, ''), 'projects', cwd.replace(/[^A-Za-z0-9]/g, '-'), `${sessionId}.jsonl`].join(sep)
+  const key = cwd.replace(/[^A-Za-z0-9]/g, '-')
+  let hash = 0
+  for (let i = 0; i < cwd.length; i += 1) hash = ((hash << 5) - hash + cwd.charCodeAt(i)) | 0
+  const dir = key.length <= 200 ? key : `${key.slice(0, 200)}-${Math.abs(hash).toString(36)}`
+  return [base.replace(/[\\/]+$/, ''), 'projects', dir, `${sessionId}.jsonl`].join(sep)
 }
 
 export const buildPayload = (input: PayloadInput): FooterPayload => {
@@ -308,8 +317,13 @@ export const buildPayload = (input: PayloadInput): FooterPayload => {
   if (input.startedAt !== undefined && input.now !== undefined && Number.isFinite(input.startedAt) && Number.isFinite(input.now) && input.now >= input.startedAt) {
     cost.total_duration_ms = Math.round(input.now - input.startedAt)
   }
-  if (input.costUsd !== undefined && Number.isFinite(input.costUsd) && input.costUsd >= 0) cost.total_cost_usd = input.costUsd
+  const lines = input.lines
+  if (lines !== undefined && Number.isFinite(lines.added) && Number.isFinite(lines.removed) && lines.added >= 0 && lines.removed >= 0) {
+    cost.total_lines_added = lines.added
+    cost.total_lines_removed = lines.removed
+  }
   if (Object.keys(cost).length > 0) out.cost = cost
+  if (input.fast === true) out.fast_mode = true
   return out
 }
 

@@ -1941,7 +1941,8 @@ async function refreshStatusline($: EngineInterface, onlyWhileShown = false): Pr
       ...(stats?.effort === undefined ? {} : { effort: stats.effort }),
       ...(transcriptPath === undefined ? {} : { transcriptPath }),
       ...(usage?.startedAt === undefined ? {} : { startedAt: usage.startedAt, now }),
-      ...(usage?.cost?.usd === undefined ? {} : { costUsd: usage.cost.usd }),
+      ...(stats?.lines === undefined ? {} : { lines: stats.lines }),
+      ...(stats?.fast === true ? { fast: true } : {}),
     })
     const surface = surfaceSeen
     const ascii = iconsFor(iconsOption, surface as never) === 'ascii' || accessible || surface !== 'terminal'

@@ -191,11 +191,11 @@ CI) stay. The status entry under the prompt is always Astrolabe's own one line.
 
 **What it is given.** Besides the model, the effort, the context window and the usage windows,
 Astrolabe sends the path of the session's transcript (where Claude Code writes it, under
-`CLAUDE_CONFIG_DIR` or `~/.claude`), the session's duration and what it has spent. With them
-statusline draws the active skills, the activity chip, the cache chip, the duration and the
-spend, as it does under Claude Code's own status line. A fact Astrolabe does not have is left
-out, never zeroed. The branch, the worktree, `vim`, `fast` and the lines changed come from
-Claude Code's own payload, which a mod does not receive.
+`CLAUDE_CONFIG_DIR` or `~/.claude`), the session's duration, the lines its tools changed and
+whether fast mode is on. With them statusline draws the active skills, the activity chip, the
+duration, `+n −n` and `fast`, as it does under Claude Code's own status line. A fact Astrolabe
+does not have is left out, never zeroed. The cache chip and the `vim` mode are not drawn: the
+mod does not hand statusline the prompt cache's own figures or the editor mode.
 
 **How the renderer answers.** Astrolabe asks for statusline's data form (`CLAUDE_STATUSLINE_OUTPUT=runs`,
 statusline spec 056): one JSON object of lines of styled runs, or an error object with exit code 75.
