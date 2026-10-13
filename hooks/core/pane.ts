@@ -207,11 +207,11 @@ const buildSpecsRows = (
   scale?: ScaleOptions,
 ): PaneRow[] => {
   if (!state.present) return [noSpeckit(lang)]
-  if (state.features.length === 0) return [{ key: 'empty', text: tr(lang, 'pane.noFeatures'), role: 'muted', copy: '/speckit-specify' }]
+  if (state.features.length === 0 && scale?.allHidden !== true) return [{ key: 'empty', text: tr(lang, 'pane.noFeatures'), role: 'muted', copy: '/speckit-specify' }]
   const activeDir = state.active?.dir
   const ctx = {
     idWidth: idWidth([...state.features.map(f => f.id), ...worktreeRows.map(w => w.id)]),
-    nameWidth: wrapLongNames ? Math.max(...state.features.map(f => width(f.name)), ...worktreeRows.map(w => width(w.featureName))) : Math.min(24, Math.max(...state.features.map(f => width(f.name)), ...worktreeRows.map(w => width(w.featureName)))),
+    nameWidth: wrapLongNames ? Math.max(0, ...state.features.map(f => width(f.name)), ...worktreeRows.map(w => width(w.featureName))) : Math.min(24, Math.max(0, ...state.features.map(f => width(f.name)), ...worktreeRows.map(w => width(w.featureName)))),
     countWidth: Math.max(0, ...state.features.filter(f => f.total > 0).map(f => width(`${f.done}/${f.total}`)), ...worktreeRows.filter(w => w.total > 0).map(w => width(`${w.done}/${w.total}`))),
   }
   const running = state.runningSkill?.name
@@ -565,6 +565,8 @@ export type ScaleOptions = {
   planMissing?: Readonly<Record<string, readonly string[]>>
   /** The tree's folds (078): a spec row carries `▾` or `▸` when it has tasks to show. */
   tree?: Fold
+  /** Specs exist but the default view hides them all: no `No features yet` (081). */
+  allHidden?: true
   /** The pull request of each spec's branch, by feature dir (078 FR-030). */
   pulls?: Readonly<Record<string, { number: number; checks: 'pass' | 'fail' | 'pending' | 'none' }>>
 }
@@ -580,11 +582,13 @@ const sortFeatures = <F extends Pick<Feature, 'name' | 'done' | 'total'>>(featur
           ? a.name.localeCompare(b.name)
           : (b.total === 0 ? 0 : b.done / b.total) - (a.total === 0 ? 0 : a.done / a.total))
 
-export type StatusFilter = 'all' | 'progress' | 'next' | 'done' | 'abandoned'
-const STATUS_CYCLE: Readonly<Record<StatusFilter, StatusFilter>> = { all: 'progress', progress: 'next', next: 'done', done: 'abandoned', abandoned: 'all' }
+export type StatusFilter = 'open' | 'all' | 'progress' | 'next' | 'done' | 'abandoned'
+/** What the Specs tab shows until `s` is pressed: the specs that are not done and not abandoned (081). */
+export const DEFAULT_STATUS: StatusFilter = 'open'
+const STATUS_CYCLE: Readonly<Record<StatusFilter, StatusFilter>> = { open: 'all', all: 'progress', progress: 'next', next: 'done', done: 'abandoned', abandoned: 'open' }
 
 /** The next status the Specs tab's `s` shows (054 #21): all, in progress, next up, done, abandoned. */
-export const nextStatus = (status: StatusFilter | undefined): StatusFilter => STATUS_CYCLE[status ?? 'all']
+export const nextStatus = (status: StatusFilter | undefined): StatusFilter => STATUS_CYCLE[status ?? DEFAULT_STATUS]
 
 /**
  * The features a filter keeps (054 #21): words match the id or name, and `is:done`,
@@ -622,10 +626,10 @@ export const parseSpecFilter = (filter: string | undefined): SpecFilter => {
 }
 
 /** The filter's tokens as chips for the row under the box (061): `phase:plan`, `has:questions`. */
-export const filterChips = (filter: string | undefined, status: StatusFilter = 'all'): string[] => {
+export const filterChips = (filter: string | undefined, status: StatusFilter = DEFAULT_STATUS): string[] => {
   const f = parseSpecFilter(filter)
   return [
-    ...(status === 'all' ? [] : [`status:${status}`]),
+    ...(status === DEFAULT_STATUS ? [] : [`status:${status}`]),
     ...(f.is === undefined ? [] : [`is:${f.is}`]),
     ...(f.phase === undefined ? [] : [`phase:${f.phase}`]),
     ...f.has.map(h => `has:${h}`),
@@ -653,8 +657,11 @@ export const filterFeatures = <F extends Filterable>(
   context: { priorities?: Priorities; worktrees?: Readonly<Record<string, readonly string[]>>; /** Specs one of whose tasks holds the words (078). */ taskDirs?: ReadonlySet<string> } = {},
 ): F[] => {
   const f = parseSpecFilter(filter)
-  const wanted = f.is === 'active' || f.is === 'ready' ? undefined : f.is ?? (status === 'all' ? undefined : status)
+  const wanted = f.is === 'active' || f.is === 'ready' ? undefined : f.is ?? (status === 'all' || status === 'open' ? undefined : status)
   return features.filter(x => {
+    // `open` keeps what is not finished: no done and no abandoned spec. A filter that was typed looks at
+    // every spec, so a name finds a finished one too (081).
+    if (status === 'open' && (filter ?? '').trim() === '' && (x.phase === 'done' || x.phase === 'abandoned')) return false
     if (f.words !== '' && !`${x.id} ${x.name}`.toLowerCase().includes(f.words) && context.taskDirs?.has(x.dir) !== true) return false
     if (wanted !== undefined && sectionOf(x, activeDir) !== wanted) return false
     if (f.is === 'active' && x.dir !== activeDir) return false
