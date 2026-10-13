@@ -80,7 +80,8 @@ describe('the Specs tab is a tree (078 FR-002, FR-003)', () => {
     const ui = await mountPane($ as never, 'terminal', 100, 40, 40)
     await ui.press('open-all')
     expect(await ui.body()).toContain('1 open questions')
-    await ui.press('question-003-cart-0-action')
+    // The ask button lives in the list's surface module; its press is the message it posts (080).
+    await ui.post({ op: 'action', kind: 'ask', id: '003-cart\nwhich login?' })
     expect(session.suggested.at(-1)).toContain('which login?')
     await ui.unmount()
   })

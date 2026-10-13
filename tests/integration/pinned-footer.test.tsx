@@ -2,11 +2,11 @@ import { describe, expect, test } from 'claude-code/testing'
 
 import { featureJson, project, RATIFIED, spec, tasks } from '../fixtures/build'
 import { installEngine, installTree, startSession } from '../helpers/fake-fs'
-import { installPaneEngine, installRenderEngine } from '../helpers/render'
+import { installPaneEngine, installRenderEngine, paneText } from '../helpers/render'
 import { windowUnits } from '../../hooks/core/pane'
 
 // Spec 038: the footer stays on the pane's last rows; the body scrolls inside, with arrows.
-type Ui = { find: (q: { key?: string }) => Promise<{ text: string } | undefined>; press: (q: { key: string }) => Promise<unknown>; unmount: () => Promise<void> }
+type Ui = { find: (q: { key?: string }) => Promise<{ text: string; props?: Record<string, unknown> } | undefined>; press: (q: { key: string }) => Promise<unknown>; unmount: () => Promise<void> }
 const mount = async ($: never, bodyRows: number) =>
   (await ($ as unknown as { ui: { mount: (t: never) => Promise<Ui> } }).ui.mount({
     plugin: 'astrolabe',
@@ -35,7 +35,7 @@ describe('the pinned footer (038)', () => {
     await startSession($, '/proj')
     const ui = await mount($ as never, 20)
     await ui.press({ key: 'tasks-only' })
-    const body = () => ui.find({ key: 'astrolabe-pane-body' }).then(f => f?.text ?? '')
+    const body = () => paneText(ui)
     expect(await body()).toContain('T001 task 1')
     expect(await body()).not.toContain('T030 task 30')
     expect(await body()).toMatch(/▼ \d+ more \(j\)/)

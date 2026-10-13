@@ -172,3 +172,15 @@ export const installPaneEngine = (on: On) => {
   })
   return seen
 }
+
+/**
+ * The pane body's text with the rows of the Specs list module added (080): the kit exposes a
+ * Client's props, not what it draws, so the rows are read from the props.
+ */
+export const paneText = async (ui: { find: (q: { key?: string }) => Promise<{ text: string; props?: Record<string, unknown> } | undefined> }): Promise<string> => {
+  const text = (await ui.find({ key: 'astrolabe-pane-body' }))?.text ?? ''
+  const client = await ui.find({ key: 'astrolabe-specs' })
+  const inner = (client?.props as { props?: { rows?: Array<{ k: string; t: string; i?: number; l?: Array<{ l: string }> }>; sel?: string } } | undefined)?.props
+  if (inner?.rows === undefined) return text
+  return `${text}${inner.rows.map(r => `${r.k === inner.sel && r.i === 1 ? '❯ ' : ''}${r.t}${(r.l ?? []).map(link => ` ${link.l}`).join('')}`).join('')}`
+}

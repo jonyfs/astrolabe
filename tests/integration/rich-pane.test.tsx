@@ -2,7 +2,7 @@ import { describe, expect, test } from 'claude-code/testing'
 
 import { featureJson, project, RATIFIED, spec, tasks } from '../fixtures/build'
 import { completeTurn, installEngine, installTree, startSession } from '../helpers/fake-fs'
-import { installPaneEngine, installRenderEngine } from '../helpers/render'
+import { installPaneEngine, installRenderEngine, paneText } from '../helpers/render'
 
 // Spec 024: the pane's Specs tab shows the active spec's summary and links, a filter, and the
 // Tasks tab the last turn's tasks.md change as a diff.
@@ -44,7 +44,7 @@ describe('the rich pane (024)', () => {
   test("Specs: the selected spec carries its description, one dim line under its detail (075 FR-006)", async ($, on) => {
     await setup($ as never, on as never)
     const ui = await mount($ as never)
-    const body = (await ui.find({ key: 'astrolabe-pane-body' }))?.text ?? ''
+    const body = await paneText(ui)
     expect(body).toContain('A band above the prompt.')
     // No breadcrumb and no summary block above the sections any more.
     expect(await ui.find({ key: 'astrolabe-summary' })).toBeUndefined()
@@ -56,11 +56,11 @@ describe('the rich pane (024)', () => {
     await setup($ as never, on as never)
     const ui = await mount($ as never)
     await ui.input({ key: 'astrolabe-filter', text: 'zzz', kind: 'change' })
-    const body = (await ui.find({ key: 'astrolabe-pane-body' }))?.text ?? ''
+    const body = await paneText(ui)
     expect(body).toContain('No rows hold "zzz"; press c to see them all.')
     expect(body).not.toContain('No features yet')
     await ui.press({ key: 'tasks-only' })
-    expect((await ui.find({ key: 'astrolabe-pane-body' }))?.text).toContain('No rows hold "zzz"')
+    expect(await paneText(ui)).toContain('No rows hold "zzz"')
     await ui.unmount()
   })
 
@@ -68,11 +68,11 @@ describe('the rich pane (024)', () => {
     await setup($ as never, on as never)
     const ui = await mount($ as never)
     await ui.input({ key: 'astrolabe-filter', text: 'core', kind: 'change' })
-    const body = (await ui.find({ key: 'astrolabe-pane-body' }))?.text ?? ''
+    const body = await paneText(ui)
     expect(body).toContain('001 core-state')
     expect(body).not.toContain('002 band')
     await ui.input({ key: 'astrolabe-filter', text: '', kind: 'change' })
-    expect((await ui.find({ key: 'astrolabe-pane-body' }))?.text).toContain('002 band')
+    expect(await paneText(ui)).toContain('002 band')
     await ui.unmount()
   })
 
