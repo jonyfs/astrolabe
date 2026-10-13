@@ -170,14 +170,22 @@ export const specChildren = (feature: Feature, tasks: readonly Task[], ctx: Chil
       text: line,
       role: cur ? 'current' : 'text',
       ...(cur ? { bold: true, highlight: true as const } : {}),
-      task: { dir: feature.dir, ...(t.id === undefined ? {} : { id: t.id }), line: t.line, text: cleanTaskText(t.text) },
+      task: { dir: feature.dir, ...(t.id === undefined ? {} : { id: t.id }), ...(t.line === undefined ? {} : { line: t.line }), text: cleanTaskText(t.text), ...(t.story === undefined ? {} : { story: storyLabel(t.story).split(' ')[0]! }) },
       ...(taskFile === undefined || t.line === undefined ? {} : { href: `${fileUrl(taskFile)}#L${t.line}` }),
     })
     if (wraps) rows.push({ key: `${key}-wrap`, text: `${pad}    ${cut(text.slice(first.length).trim(), ctx.columns - indent - 4)}`, role: 'faint' })
     // The files the current task names and the test that covers it, in the same block (078 FR-037).
     if (cur) {
       const files = taskFiles(t.text)
-      if (files.length > 0) rows.push({ key: `${key}-files`, text: cut(`${pad}    ${files.join(' · ')}`, ctx.columns), role: 'faint', highlight: true })
+      if (files.length > 0) {
+        rows.push({
+          key: `${key}-files`,
+          text: cut(`${pad}    ${files.join(' · ')}`, ctx.columns),
+          role: 'faint',
+          highlight: true,
+          ...(ctx.root === undefined ? {} : { fileLinks: files.map(file => ({ label: file, href: fileUrl(`${ctx.root}/${file}`) })) }),
+        })
+      }
       const test = tasks.find(x => x.id !== undefined && x.id !== t.id && TEST_TASK.test(cleanTaskText(x.text)) && taskFiles(x.text).some(f => files.includes(f)))
       if (test !== undefined) rows.push({ key: `${key}-test`, text: cut(`${pad}    ${tr(lang, 'tree.covered', { id: test.id ?? '' })}${test.isDone ? ' ✓' : ''}`, ctx.columns), role: 'faint', highlight: true })
     }
@@ -311,6 +319,17 @@ export const withChildren = (
     out.push(row)
     const f = byKey.get(row.key.replace(/~\d+$/, ''))
     if (f !== undefined && !f.warnings.includes('loading') && isOpenFeature(f)) out.push(...childrenOf(f))
+  }
+  return out
+}
+
+/** A blank row before each spec that follows another row of the list, for the roomy density (078 FR-096). */
+export const spaced = (rows: readonly PaneRow[]): PaneRow[] => {
+  const out: PaneRow[] = []
+  for (const [i, row] of rows.entries()) {
+    const before = rows[i - 1]
+    if (i > 0 && before !== undefined && row.key.startsWith('feature-') && !before.key.startsWith('section-') && !before.key.startsWith('block-')) out.push({ key: `gap-${row.key}`, text: ' ', role: 'faint' })
+    out.push(row)
   }
   return out
 }

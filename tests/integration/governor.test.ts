@@ -225,6 +225,8 @@ describe('pause and the owner ceiling (US3)', () => {
     expect(isRefused(await $.tool.call(agent('a1')))).toBe(false)
     const pane = await mountPane($ as never, 'terminal')
     await pane.press('tab-session')
+    // Today's governor log is folded until opened (078 FR-059).
+    await pane.press('governor-log-fold-action')
     expect(await pane.body()).toContain('would pause Bash (ceiling)')
     expect(await pane.body()).toContain('would queue job a1 (ceiling)')
     await pane.unmount()

@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import { badgesOf, legacyTab, legendOf, paneTitle, TABS } from '../../hooks/core/pane-tabs'
+import { badgesOf, escapeStep, legacyTab, legendOf, paneTitle, TABS } from '../../hooks/core/pane-tabs'
 
 describe('four tabs (066 #21, 078 FR-001)', () => {
   test('Specs, Session, PRs and Setup, on 1 to 4: the digits follow the tab order', () => {
@@ -85,5 +85,14 @@ describe('the pane title says why the spec is active (066 #30)', () => {
   })
   test('without an active feature the title is the name alone', () => {
     expect(paneTitle({ present: true, constitution: 'ratified', features: [], isAnalyzed: false } as never)).toBe('🧭 Astrolabe')
+  })
+})
+
+describe('Esc is layered (078 FR-018)', () => {
+  test('the help overlay goes first, then the filter, then the pane closes', () => {
+    expect(escapeStep({ help: true, filter: 'cart' })).toBe('help')
+    expect(escapeStep({ filter: 'cart' })).toBe('filter')
+    expect(escapeStep({ filter: '   ' })).toBe('close')
+    expect(escapeStep({})).toBe('close')
   })
 })

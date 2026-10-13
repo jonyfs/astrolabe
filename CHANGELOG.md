@@ -6,11 +6,37 @@ tags `vX.Y.Z` equal to `plugin.json`'s `version`.
 
 ## [Unreleased]
 
+## [0.138.0] - 2026-10-13
+
 ### Added
 
+- Spec 078: Specs and Tasks are one tab. Tasks sit under their spec as a tree: the active spec starts
+  open, Enter opens or folds a spec, `e` opens or folds all, `t` shows only the active spec's tasks,
+  `u` makes a spec the active one, and `x` puts a task's tick in the prompt box for Claude. The
+  pane has four tabs (Specs, Session, PRs, Setup) on `1` to `4`; the Specs badge reads `2·11`.
+- Esc takes one layer: the filter, then the help overlay, then the pane.
+- Specs: a `PR #41 ✓` chip, `⎇` for the worktree, gate dots, a bar on each section heading,
+  open questions as a first story, `‖ after T012` on a task that waits, one `run these` action
+  under a `[P]` run, `m` to cycle Mine, Blocked and Ready to close, `+ specify` on roadmap items.
+- Session: the project as a header, the next governor level in the box, the live table with the
+  same columns as above the prompt, updates and the governor log folded, review findings with an
+  ask action, the doctor's failed checks with their fix.
+- PRs: a table with the ones that need you first, a spec chip, an open-PR suggestion for a branch
+  without one, and `is:` filters.
+- Setup: groups that fold, Minimal, Balanced and Full look presets, `↺ default` per option, conflicts
+  named on their row, a copy button for the changed options, and a model and effort button pair per
+  skill. The `paneDensity` option leaves a blank row between specs.
+- The band's current task is a button that opens the pane at that task.
 - Spec 077: the bundled statusline is given the transcript path, the session's duration, the lines
   its tools changed and fast mode, so its skills, activity, duration, lines and `fast` chips draw
   inside Astrolabe. A fact the mod does not have is left out, never zeroed.
+
+### Changed
+
+- Digits follow the tab order: `2` is Session, `3` PRs, `4` Setup. A stored Tasks tab opens Specs.
+- The worktree glyph is `⎇` everywhere (it was `⑂` in rows and the band).
+- The pane no longer edits `tasks.md`. Astrolabe writes nothing to the project, so Enter twice on
+  a task no longer ticks it; `x` hands the tick to Claude.
 
 ## [0.137.2] - 2026-10-13
 

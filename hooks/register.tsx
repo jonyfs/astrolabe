@@ -14,7 +14,7 @@ import { hintTail } from './core/hint'
 import { phaseToasts } from './core/phase-toast'
 import { justFinished } from './core/next-command'
 import { filterChips, filterFeatures, helpRows, moveSpecSelection, nextSort, nextStatus, parseSpecFilter, windowUnits, wrappedRows, type PaneRow, sessionRows, specsRows } from './core/pane'
-import { allToggled, doTaskSuggestion, isOpen, questionSuggestion, questionsIn, specChildren, tickSuggestion, toggled, withChildren, type Fold, type TreeTask } from './core/pane-tree'
+import { allToggled, breadcrumb, doTaskSuggestion, isOpen, questionSuggestion, questionsIn, spaced, specChildren, tickSuggestion, toggled, withChildren, type Fold, type TreeTask } from './core/pane-tree'
 import { presetOf } from './core/presets'
 import { parseTasks, ticksIn } from './core/tasks-parser'
 import { spinnerSuffix } from './core/spinner'
@@ -32,7 +32,7 @@ import { displaySectionOf, isReadyToClose } from './core/sections'
 import { blockLabel, jumpLine, jumpMatches, jumpQuery, nextGroup } from './core/specs-scale'
 import { usageBarRows } from './core/usage-bars'
 import { deciderNote, governorBoxState, nextLevelText, projectHeader, sessionChips, todayCounts, trend24h } from './core/session-usage'
-import { badgesOf, legacyTab, paneTitle } from './core/pane-tabs'
+import { badgesOf, escapeStep, legacyTab, paneTitle } from './core/pane-tabs'
 import { changedSettingsJson, LOOK_PRESETS, optionConflicts, OPTIONS_README, presetMatching } from './core/setup-extras'
 import { usageRamp } from './core/usage-ramp'
 import { ASK_MS, clockOf, decide, dropped, EXTEND_MS, HOLD_LIFT_MS, holdQuestion, labelOf, nextHeld, isPaused, isReadOnlyTool, parseAllow, pauseQuestion, RAISE_MS, refusal, resumePrompt, runPrompt, usageSegment, type Decision, type Question, usageRows } from './core/governor'
@@ -335,6 +335,8 @@ const scheduleFresh = ($: EngineInterface, now: number): void => {
 // The options' defaults from plugin.json, read once at session start (052 #39).
 let defaultsSeen: Record<string, string | number | boolean> = {}
 let bandDensity: BandDensity = 'full'
+// How roomy the Specs list is (078 FR-096).
+let paneDensity: 'compact' | 'comfortable' = 'compact'
 let gitNeedsRefresh = true
 
 /** Writes what the session counted since the last write, merged with `change`, if anything moved. */
@@ -507,7 +509,10 @@ async function refreshPulls($: EngineInterface, force = false): Promise<void> {
     if (version !== undefined) {
       const tags = await $.process.run(['git', 'tag', '--list', 'v*', '--sort=-v:refname'], { cwd: root, timeoutMs: 3000 }).catch(() => undefined)
       const names = tags?.exitCode === 0 ? tags.stdout.split('\n').map(x => x.trim()).filter(x => x !== '') : []
-      release = { version, tagged: names.includes(`v${version}`), ...(names[0] === undefined ? {} : { latest: names[0] }) }
+      // How many commits the latest tag does not have (078 FR-068).
+      const since = names[0] === undefined ? undefined : await $.process.run(['git', 'rev-list', '--count', `${names[0]}..HEAD`], { cwd: root, timeoutMs: 3000 }).catch(() => undefined)
+      const unreleased = since?.exitCode === 0 ? Number(since.stdout.trim()) : undefined
+      release = { version, tagged: names.includes(`v${version}`), ...(names[0] === undefined ? {} : { latest: names[0] }), ...(unreleased === undefined || !Number.isFinite(unreleased) ? {} : { unreleased }) }
     }
     await flushStats($, s => ({ ...s, pulls: { at, rows }, ...(release === undefined ? {} : { release }) }))
   } catch (error) {
@@ -559,7 +564,7 @@ function pullsBody(
             rows: 1,
             node: (
               <elements.Text key="astrolabe-release-gate" color={release.tagged ? tokens0[STATUS_ROLE.warning] : tokens0[STATUS_ROLE.success]} wrap="truncate-end">
-                {t(currentLang(), release.tagged ? 'prs.release.tagged' : 'prs.release.ready', { version: release.version, latest: release.latest ?? '—' })}
+                {`${t(currentLang(), release.tagged ? 'prs.release.tagged' : 'prs.release.ready', { version: release.version, latest: release.latest ?? '—' })}${release.unreleased === undefined || release.latest === undefined ? '' : ` · ${t(currentLang(), 'prs.release.since', { n: release.unreleased, tag: release.latest })}`}`}
               </elements.Text>
             ),
           },
@@ -715,6 +720,7 @@ function configBody(
   $: Parameters<Hook<'ui.render'>>[0],
   e: Parameters<Hook<'ui.render'>>[1],
   pane: PaneState,
+  speckit?: SpeckitState,
 ): Array<{ node: RenderNode; rows: number }> {
   const elements = $.ui.resolve(e)
   const { Box, Text, Button } = elements
@@ -776,6 +782,12 @@ function configBody(
         </Box>
       ),
     })
+  }
+  // The band as the drafted density would draw it, under the presets (078 FR-076).
+  if (needle === '' && speckit !== undefined) {
+    const density = values['bandDensity'] === 'compact' || values['bandDensity'] === 'minimal' ? values['bandDensity'] : 'full'
+    const line = bandText(bandSegments(speckit, Math.min(100, (e.props as { bodyColumns?: number }).bodyColumns ?? 80), { density }))
+    if (line.trim() !== '') rows.push({ rows: 1, node: <Text key="setup-preview" color={tokens0.muted} wrap="truncate-end">{`${t(lang, 'setup.preview')}  ${line}`}</Text> })
   }
   for (const { row, group, heading } of ordered) {
     if (heading !== undefined) {
@@ -1119,6 +1131,9 @@ async function kpisText($: EngineInterface): Promise<string | undefined> {
   return kpisMarkdown(t(currentLang(), 'kpis.title', { feature: feature === undefined ? '—' : `${feature.id} ${feature.name}` }), rows)
 }
 
+/** Tokens as `182k` or `1.2M`. */
+const tokensText = (n: number): string => (n >= 1_000_000 ? `${(n / 1_000_000).toFixed(1)}M` : n >= 1000 ? `${Math.round(n / 1000)}k` : String(n))
+
 /** A press that needs a second one within ten seconds (052 #41), for actions that cost a turn (061). */
 async function confirmPress($: EngineInterface, key: string, run: () => void): Promise<void> {
   const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
@@ -1253,6 +1268,8 @@ function paneHeader(
   now = 0,
   /** The rows in view of a list longer than the pane (067 #35): `rows 12–40 of 140`. */
   range?: { from: number; to: number; total: number },
+  /** Where the selected row sits: `Specs › 002 › US2 › T012` (078 FR-024). */
+  crumb?: string,
 ): RenderNode[] {
   const elements = $.ui.resolve(e)
   const Input = 'Input' in elements ? elements.Input : undefined
@@ -1281,7 +1298,7 @@ function paneHeader(
         const count = range !== undefined && range.total > range.to - range.from + 1
           ? t(currentLang(), 'pane.range', range)
           : t(currentLang(), 'pane.filterCount', filterCount)
-        out.push(<elements.Text key="astrolabe-filter-count" color={tokens0.muted}>{chips.length === 0 ? count : `${chips.join(' · ')} ${count}`}</elements.Text>)
+        out.push(<elements.Text key="astrolabe-filter-count" color={tokens0.muted} wrap="truncate-end">{`${crumb === undefined ? '' : `${crumb} · `}${chips.length === 0 ? count : `${chips.join(' · ')} ${count}`}`}</elements.Text>)
       }
     }
     if (viewOf(pane) === 'specs' && pane.tasksOnly === true && Code !== undefined && stats?.tasksDiff !== undefined && stats.tasksDiff.dir === active?.dir) {
@@ -1783,7 +1800,7 @@ async function sessionTabRows(
   /** The update waiting for its second click (Spec Kit skills rewrite files). */
   confirming?: string,
   /** The pane's columns, for the live table, and which folded blocks are open (078). */
-  layout: { columns: number; updatesOpen: boolean; logOpen: boolean } = { columns: 80, updatesOpen: false, logOpen: false },
+  layout: { columns: number; updatesOpen: boolean; logOpen: boolean; turnsOpen: boolean } = { columns: 80, updatesOpen: false, logOpen: false, turnsOpen: false },
 ): Promise<PaneRow[]> {
   const lang = currentLang()
   const labelWidth = paneLabelWidth(lang)
@@ -1943,10 +1960,36 @@ async function sessionTabRows(
         { key: 'governor-box-today', text: `│ ${t(lang, 'session.box.today', { holds: counts.holds, pauses: counts.pauses })}`, role: 'muted' as ThemeRole },
         { key: 'governor-box-bottom', text: `╰${'─'.repeat(t(lang, 'session.box.title').length + 31)}╯`, role: 'current' as ThemeRole },
       ]
-  if (!state.present) return [...bars, ...trendRow, ...boxRows, ...project, ...governorRest, ...liveList, ...activity, ...updateRows]
+  // Tokens per turn as a sparkline with the turn that used most marked, and a folded timeline of turns (078 FR-052, FR-056).
+  const turnLog = stats?.turnLog ?? []
+  const spent = turnLog.flatMap(x => (x.tokens === undefined ? [] : [x.tokens]))
+  const peak = spent.length === 0 ? undefined : turnLog.reduce((best, x) => ((x.tokens ?? 0) > (best.tokens ?? 0) ? x : best), turnLog[0]!)
+  const perTurn: PaneRow[] =
+    spent.length < 2 || peak === undefined
+      ? []
+      : [valueRow('turn-tokens', t(lang, 'session.perTurn'), `${sparkline(spent.slice(-20))}  ${t(lang, 'session.peak', { at: clockOf(new Date(peak.at).toISOString()) ?? '', n: tokensText(peak.tokens ?? 0) })}`, 'muted')]
+  const timeline: PaneRow[] =
+    turnLog.length === 0
+      ? []
+      : layout.turnsOpen
+        ? [
+            valueRow('turn-log-fold', t(lang, 'session.turns'), t(lang, 'session.log.hide', { n: turnLog.length }), 'muted', { action: { id: 'turns', label: t(lang, 'session.fold'), kind: 'fold' as const } }),
+            ...turnLog.slice().reverse().slice(0, 12).map((x, i) => valueRow(`turn-log-${i}`, '', [clockOf(new Date(x.at).toISOString()) ?? '', x.id, x.task, x.tokens === undefined ? undefined : tokensText(x.tokens), x.text].filter((p): p is string => p !== undefined && p !== '').join(' · '), 'muted')),
+          ]
+        : [valueRow('turn-log-fold', t(lang, 'session.turns'), t(lang, 'session.turnCount', { n: turnLog.length }), 'muted', { action: { id: 'turns', label: t(lang, 'session.unfold'), kind: 'fold' as const } })]
+  // What the doctor found that is wrong, each with its fix (078 FR-058); the passed checks stay in Help.
+  const health: PaneRow[] = (stats?.health?.lines ?? [])
+    .filter(line => line.trimStart().startsWith('✗'))
+    .map((line, i) => {
+      const text = line.trim().replace(/^✗/, '✖')
+      const fix = /(?:run |: )((?:gh|uv|specify|claude|npm|git|brew)\b[^]*)$/.exec(text)?.[1]
+      return { key: `health-${i}`, text, role: 'current' as ThemeRole, ...(fix === undefined ? {} : { copy: fix }) }
+    })
+  if (!state.present) return [...bars, ...trendRow, ...boxRows, ...project, ...governorRest, ...liveList, ...activity, ...updateRows, ...health]
+  const activityRows = [...activity, ...perTurn, ...timeline]
   const block = (key: string, rows: Array<{ key: string; text: string; role: ThemeRole; bold?: boolean }>) =>
     rows.length === 0 ? [] : [{ key: `block-${key}`, text: t(lang, `session.block.${key}` as TextKey), role: 'accent' as ThemeRole, bold: true }, ...rows]
-  return [...bars, ...trendRow, ...boxRows, ...block('project', project), ...block('governor', governorRest), ...block('live', liveList), ...block('activity', activity), ...block('updates', updateRows)]
+  return [...bars, ...trendRow, ...boxRows, ...block('project', project), ...block('governor', governorRest), ...block('live', liveList), ...block('activity', activityRows), ...block('updates', updateRows), ...block('health', health)]
 }
 
 /** Brings the Spec Kit state up to date mid-turn (053); writes only when something moved. */
@@ -2571,7 +2614,8 @@ async function specsTreeRows(
     const head = base.find(r => r.key === `feature-${active.id}`)
     if (head !== undefined) return { rows: [head, ...childrenOf(active)], kept: visible.features.length }
   }
-  return { rows: withChildren(base, features, f => isOpen(f.dir, activeDir, fold) && f.total + (f.clarifications ?? 0) > 0, childrenOf), kept: visible.features.length }
+  const tree = withChildren(base, features, f => isOpen(f.dir, activeDir, fold) && f.total + (f.clarifications ?? 0) > 0, childrenOf)
+  return { rows: paneDensity === 'comfortable' ? spaced(tree) : tree, kept: visible.features.length }
 }
 
 /** One line of the governor's history (021): what it asked, what was answered, when it resumed. */
@@ -2944,6 +2988,7 @@ export const register: Register = (on, options) => {
   liveRowsOption = options['liveRows'] === 'agents' || options['liveRows'] === 'gates' || options['liveRows'] === 'off' ? options['liveRows'] : 'both'
   footerSeparator = options['footerSeparator'] === 'thin' || options['footerSeparator'] === 'none' ? options['footerSeparator'] : 'solid'
   bandDensity = options['bandDensity'] === 'compact' || options['bandDensity'] === 'minimal' ? options['bandDensity'] : 'full'
+  paneDensity = options['paneDensity'] === 'comfortable' ? 'comfortable' : 'compact'
   autoReload = options['autoReload'] !== false
   imagesOption = options['images']
   languageOption = options['language']
@@ -3115,6 +3160,17 @@ export const register: Register = (on, options) => {
     } catch {
       // No saved tab: Specs.
     }
+    // The row this project had selected (078 FR-021).
+    try {
+      const root = started?.state.root
+      const saved = root === undefined ? undefined : await $.store.get(`selection:${root}`)
+      if (typeof saved === 'string') {
+        const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
+        await $.state.set(PANE_STATE, saved.startsWith('task-') ? { ...held, selectedTask: saved } : { ...held, selectedFeature: saved.slice('feature-'.length) })
+      }
+    } catch {
+      // No selection kept: the active spec.
+    }
     // The specs this project had open and folded (078 FR-010).
     try {
       const root = started?.state.root
@@ -3222,7 +3278,12 @@ export const register: Register = (on, options) => {
         const line = recapLine(e.answer)
         const id = held?.state.active?.id
         const recap = line === '' ? s.recap : [...(s.recap ?? []), { at: now, ...(id === undefined ? {} : { id }), text: line }].slice(-20)
-        return { ...s, turns: s.turns + 1, ...(turnGit === undefined ? {} : { git: { ...withPr(turnGit, cached), ...(ci === undefined ? {} : { ci }), ...(origin === undefined ? {} : { origin }) } }), ...(recap === undefined ? {} : { recap }) }
+        // The turn log: the spec and task it ended on and the tokens it used (078 FR-052, FR-056).
+        const u = e.usage
+        const tokens = u === undefined ? undefined : u.input_tokens + u.output_tokens + u.cache_read_input_tokens + u.cache_creation_input_tokens
+        const task = held?.state.currentTask?.id
+        const turnLog = [...(s.turnLog ?? []), { at: now, ...(id === undefined ? {} : { id }), ...(task === undefined ? {} : { task }), ...(tokens === undefined ? {} : { tokens }), ...(line === '' ? {} : { text: line }) }].slice(-30)
+        return { ...s, turns: s.turns + 1, turnLog, ...(turnGit === undefined ? {} : { git: { ...withPr(turnGit, cached), ...(ci === undefined ? {} : { ci }), ...(origin === undefined ? {} : { origin }) } }), ...(recap === undefined ? {} : { recap }) }
       })
       if (root !== undefined && turnGit?.branch !== undefined) {
         const repoRoot = root
@@ -3353,12 +3414,13 @@ export const register: Register = (on, options) => {
     // Esc is layered (078 FR-018): it clears the filter, then drops the help overlay, then closes the pane.
     if (e.id === PANE_ID && e.origin.kind === 'person') {
       const held = (await $.state.get(PANE_STATE)).value
-      if (held !== undefined && held.help === true) {
+      const step = held === undefined ? 'close' : escapeStep(held)
+      if (held !== undefined && step === 'help') {
         const { help: _off, ...rest } = held
         await $.state.set(PANE_STATE, rest)
         return { value: undefined }
       }
-      if (held !== undefined && (held.filter ?? '').trim() !== '') {
+      if (held !== undefined && step === 'filter') {
         const { filter: _gone, ...rest } = held
         await $.state.set(PANE_STATE, rest)
         return { value: undefined }
@@ -3834,6 +3896,9 @@ export const register: Register = (on, options) => {
           ...picked,
           ...(offset === heldOffset ? {} : { scroll: { tab: 'specs', offset } }),
         })
+        // The selection is kept per project (078 FR-021).
+        const root = (await $.state.get(SPECKIT)).value?.root
+        if (root !== undefined) await $.store.set(`selection:${root}`, row.key).catch(() => undefined)
         if (specLinksEnabled) await $.ui.focus({ requestId: PANE_ID, key: `${row.key}-spec-link` })
       }
       return {}
@@ -3934,7 +3999,7 @@ export const register: Register = (on, options) => {
       view === 'help'
         ? helpRows(helpText(currentLang(), optionsSeen, stats?.health?.lines ?? []), pane.filter, currentLang())
         : view === 'session'
-          ? await sessionTabRows($, state, usage, stats, updates, updatesRead.value?.confirming, { columns, updatesOpen: pane.updatesOpen === true, logOpen: pane.logOpen === true })
+          ? await sessionTabRows($, state, usage, stats, updates, updatesRead.value?.confirming, { columns, updatesOpen: pane.updatesOpen === true, logOpen: pane.logOpen === true, turnsOpen: pane.turnsOpen === true })
           : view === 'specs'
             ? await (async () => {
                 const tree = await specsTreeRows($, e, state, stats, pane, specFilter, columns, await pastResetRows($, state, stats, usage))
@@ -4022,6 +4087,8 @@ export const register: Register = (on, options) => {
                   })()),
                 }]
               : []),
+            // The id copies on a press; the toast names what was copied (078 FR-023).
+            { key: 'copy-id', label: `⧉ ${reviewed.id}`, onPress: () => void copyNext($, reviewed.id, e.surface) },
             { key: 'priority', label: t(currentLang(), 'detail.priority'), hotkey: 'p', onPress: () => void setPriority($, reviewed.id, nextPriority(stats?.priorities?.[reviewed.id])).catch(() => undefined) },
             // Ready to close (067 #32): the edit is Claude's, offered in the prompt box.
             ...(isReadyToClose(reviewed)
@@ -4038,6 +4105,8 @@ export const register: Register = (on, options) => {
             worktrees: worktreesById(stats?.worktrees)[reviewed.id] ?? [],
             ...(reviewedNext === undefined ? {} : { next: reviewedNext }),
             ...(reviewed.updatedAt === undefined ? {} : { age: ageOf(Date.parse(reviewed.updatedAt), await $.clock.now()) }),
+            // What is left at the pace of the tasks done so far: two samples at least (078 FR-006).
+            ...((samples => (samples.length >= 2 && reviewed.total > reviewed.done ? { estimate: duration(Math.round(samples.reduce((n, x) => n + x.ms, 0) / samples.length) * (reviewed.total - reviewed.done)) } : {}))((stats?.taskTimes ?? []).filter(x => x.dir === reviewed.dir && x.ms > 0))),
             lang: currentLang(),
           })
     // The selected spec's first line of summary, one dim row under its detail (board 3).
@@ -4099,8 +4168,10 @@ export const register: Register = (on, options) => {
         ? {
             onFold: async (id: string) => {
               const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
-              const { updatesOpen: u, logOpen: l, ...rest } = held
-              await $.state.set(PANE_STATE, id === 'updates' ? { ...rest, ...(l === true ? { logOpen: true as const } : {}), ...(u === true ? {} : { updatesOpen: true as const }) } : { ...rest, ...(u === true ? { updatesOpen: true as const } : {}), ...(l === true ? {} : { logOpen: true as const }) })
+              const { updatesOpen: u, logOpen: l, turnsOpen: n, ...rest } = held
+              const open = { updates: u === true, log: l === true, turns: n === true }
+              open[id as keyof typeof open] = !open[id as keyof typeof open]
+              await $.state.set(PANE_STATE, { ...rest, ...(open.updates ? { updatesOpen: true as const } : {}), ...(open.log ? { logOpen: true as const } : {}), ...(open.turns ? { turnsOpen: true as const } : {}) })
             },
             onFinding: (id: string) => {
               const [spec = '', ...rest] = id.split('\n')
@@ -4255,6 +4326,8 @@ export const register: Register = (on, options) => {
       // The last tab, per project, for the next session (043 #22).
       if (state.root !== undefined) await $.store.set(`tab:${state.root}`, tab).catch(() => undefined)
       if (tab === 'prs') $.clock.after(0, () => void refreshPulls($))
+      // The doctor's checks, at most once a minute, for the Session tab's health block (078 FR-058).
+      if (tab === 'session') $.clock.after(0, () => void refreshHealth($))
     }
     // The footer under every tab (035), held at the bottom when the tab is shorter than the pane.
     const shortPaneRule = (e.props.scroll?.bodyRows ?? 24) < 12
@@ -4335,7 +4408,7 @@ export const register: Register = (on, options) => {
       return {
         win,
         pad: room - shownRows - arrows,
-        nav: { above: win.start, below: heights.length - win.end, up: () => scrollBy(-step), down: () => scrollBy(step), labels: { more: t(currentLang(), 'pane.scrollMore') } },
+        nav: { above: win.start, below: heights.length - win.end, up: () => scrollBy(-step), down: () => scrollBy(step), top: () => scrollBy(-heights.length), labels: { more: t(currentLang(), 'pane.scrollMore') } },
       }
     }
     if (view === 'prs') {
@@ -4354,7 +4427,7 @@ export const register: Register = (on, options) => {
       // Setup (066 #21): the options, then the model per skill.
       const { Text: SetupText } = $.ui.resolve(e)
       const setupUnits = [
-        ...configBody($, e, pane),
+        ...configBody($, e, pane, state),
         { rows: 1, node: <SetupText key="setup-footer-title" color={tokens.accent} bold>{t(currentLang(), 'footer.setup.title')}</SetupText> },
         ...footerSetupRows(footerNow, currentLang()).map((text, i) => ({
           rows: 1,
@@ -4386,7 +4459,11 @@ export const register: Register = (on, options) => {
               }
             : undefined
       const nowForHeader = await $.clock.now()
-      const header = paneHeader($, e, pane, state, stats, filterCount, nowForHeader)
+      const crumb =
+        view !== 'specs' || reviewed === undefined
+          ? undefined
+          : breadcrumb({ spec: reviewed.id, ...(taskRow?.story === undefined ? {} : { story: taskRow.story }), ...(taskRow?.id === undefined ? {} : { task: taskRow.id }) })
+      const header = paneHeader($, e, pane, state, stats, filterCount, nowForHeader, undefined, crumb)
       // Rows the header takes: the filter, the summary's lines and links, the diff's lines.
       const headerRows =
         ('Input' in $.ui.resolve(e) ? 1 + (filterCount === undefined ? 0 : 1) : 0) +
@@ -4404,7 +4481,7 @@ export const register: Register = (on, options) => {
       const footer = await footerFor(pad)
       // A list longer than the pane says which rows are in view and draws a thumb (067 #35).
       const windowed = win.start > 0 || win.end < rows.length
-      const shownHeader = windowed ? paneHeader($, e, pane, state, stats, filterCount, nowForHeader, { from: win.start + 1, to: win.end, total: rows.length }) : header
+      const shownHeader = windowed ? paneHeader($, e, pane, state, stats, filterCount, nowForHeader, { from: win.start + 1, to: win.end, total: rows.length }, crumb) : header
       const shown = windowed ? withThumb(rows.slice(win.start, win.end), win.start, rows.length, columns) : rows.slice(win.start, win.end)
       return paneTree({ Box, Text, Button }, pane.tab, shown, tokens, select, undefined, currentLang(), shownHeader, footer, nav, extras)
     }

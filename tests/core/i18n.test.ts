@@ -2,7 +2,7 @@ import { describe, expect, test } from 'claude-code/testing'
 
 import { guessLang, langOf, LANGS, paneLabelWidth, t, type TextKey } from '../../hooks/core/i18n'
 
-const KEYS: TextKey[] = ['pane.noSpeckit', 'pane.count', 'ask.hold', 'ask.extend', 'toast.moved', 'kpi.atResetValue', 'help.title', 'dash.currentStep']
+const KEYS: TextKey[] = ['pane.noSpeckit', 'tree.done', 'ask.hold', 'ask.extend', 'toast.moved', 'kpi.atResetValue', 'help.title', 'dash.currentStep']
 
 describe('dictionaries (019)', () => {
   test('every language keeps every placeholder of every text', () => {
@@ -13,9 +13,9 @@ describe('dictionaries (019)', () => {
     }
   })
   test('placeholders are filled', () => {
-    expect(t('pt-BR', 'pane.count', { done: 9, total: 20 })).toBe('9/20 feitas')
+    expect(t('pt-BR', 'tree.done', { n: 9, ids: 'T001…T009' })).toBe('9 feitas · T001…T009')
     expect(t('es', 'ask.extend', { n: 91 })).toBe('Seguir 30 minutos más (techo 91%)')
-    expect(t('fr', 'pane.more', { n: 3 })).toBe('… 3 de plus')
+    expect(t('fr', 'tree.more', { n: 3 })).toBe('… 3 de plus · t les montre toutes')
   })
   test('the option wins, auto takes the guess, English otherwise', () => {
     expect(langOf('fr', 'pt-BR')).toBe('fr')

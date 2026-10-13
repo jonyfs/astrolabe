@@ -41,7 +41,7 @@ export const paneTree = (
     notice?: string
   },
   /** What is above and below the rows shown, with the presses that scroll (038). */
-  nav?: { above: number; below: number; up: () => Promise<void>; down: () => Promise<void>; labels: { more: string } },
+  nav?: { above: number; below: number; up: () => Promise<void>; down: () => Promise<void>; /** `g`: back to the first row (078 FR-017). */ top?: () => Promise<void>; labels: { more: string } },
   /** Counts beside the tab labels (043 #21) and the keys of the tab shown (043 #25). */
   extras: { view?: { label: string; onPress: () => Promise<void> }; group?: { label: string; onPress: () => Promise<void> }; onToggleBlock?: (key: string) => Promise<void>; help?: boolean; onHelp?: () => Promise<void>; onUpdate?: (id: string) => Promise<void>; badges?: Partial<Record<PaneTab, string>>; legend?: string; onClose?: () => Promise<void>; onFind?: () => Promise<void>; onCopy?: (text: string) => Promise<void>; onRefresh?: () => Promise<void>; onCopyKpis?: () => Promise<void>; showKeys?: boolean; sort?: { label: string; onPress: () => Promise<void> }; onClear?: () => Promise<void>; onPriority?: () => Promise<void>; onRunQueued?: (id: string) => Promise<void>; rowButtons?: ReadonlyArray<{ key: string; label: string; hotkey?: string; onPress: () => void }>; rowDetail?: string; onLiftBand?: () => Promise<void>; taskActions?: ReadonlyArray<{ key: string; label: string; onPress: () => void }>; rowDescription?: string; onCloseReady?: (dirs: string[]) => void; onReconcile?: (id: string) => void; onAsk?: (id: string) => void; onFold?: (id: string) => void; onFinding?: (id: string) => void; onSpecify?: (id: string) => void; preset?: { label: string; onPress: () => Promise<void> }; onParallel?: (id: string) => void; tasksOnly?: { label: string; onPress: () => Promise<void> }; openAll?: { label: string; onPress: () => Promise<void> }; onAllowUsage?: () => Promise<void>; onRevokeUsage?: () => Promise<void>; status?: { label: string; onPress: () => Promise<void> }; columns?: number; marks?: 'unicode' | 'ascii' | 'words'; colorblind?: boolean; wrapLongNames?: boolean; Link?: ElementTable<'terminal'>['Link'] } = {},
 ) => {
@@ -74,6 +74,8 @@ export const paneTree = (
   return (
   <Box flexDirection="column">
     <Box key="astrolabe-pane-tabs" flexDirection="row">
+      {/* A thin accent bar while the keys go to the pane (078 FR-020). */}
+      {extras.showKeys === true && <Text color={tokens.accent}>▌</Text>}
       {PANE_TABS.map(item => {
         // Below 80 columns a tab is its number and badge, so the row never wraps (052 #1).
         // The tab shown is the primary button; `▸` stays for the colorblind flavor (052 #2).
@@ -126,9 +128,18 @@ export const paneTree = (
       {header}
       {nav !== undefined && nav.above > 0 && <Button key="scroll-up" label={`▲ ${nav.above} ${nav.labels.more} (k)`} hotkey="k" plain onPress={() => nav.up()} />}
       {nav !== undefined && nav.above > 0 && <Button key="page-back" label="⇞ b" hotkey="b" plain onPress={() => nav.up()} />}
+      {nav !== undefined && nav.above > 0 && nav.top !== undefined && extras.group === undefined && <Button key="to-top" label="⤒" hotkey="g" plain onPress={() => nav.top!()} />}
       {rows.flatMap(row => {
           const node = (
-          row.key.startsWith('block-') && extras.onToggleBlock !== undefined ? (
+          row.fileLinks !== undefined && Link !== undefined ? (
+            // The files a task names, each its own link (078 FR-042).
+            <Box key={row.key} flexDirection="row">
+              <Text {...(row.highlight === true ? { backgroundColor: tokens.barEmpty } : {})}>{row.text.match(/^\s*/)?.[0] ?? ''}</Text>
+              {row.fileLinks.map((link, i) => (
+                <Link key={`${row.key}-file-${i}`} href={link.href} label={`${link.label} `} />
+              ))}
+            </Box>
+          ) : row.key.startsWith('block-') && extras.onToggleBlock !== undefined ? (
             <Button key={row.key} label={m(row.text)} plain onPress={() => extras.onToggleBlock!(row.key.slice('block-'.length))} />
           ) : row.copy !== undefined && extras.onCopy !== undefined ? (
             <Box key={row.key} flexDirection="row">

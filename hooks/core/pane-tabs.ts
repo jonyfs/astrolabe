@@ -99,6 +99,13 @@ const BY_TAB: Readonly<Record<PaneTab, readonly LegendKey[]>> = {
 export const legendOf = (tab: PaneTab, opts: { wide: boolean }): LegendPair[] =>
   BY_TAB[tab].map(id => ({ id, hotkey: HOTKEY[id], verb: (opts.wide ? FULL : SHORT)[id] }))
 
+/**
+ * What the person's Escape takes away first (078 FR-018): the help overlay on top, then the
+ * filter, and only then the pane closes.
+ */
+export const escapeStep = (pane: { help?: true | undefined; filter?: string | undefined }): 'help' | 'filter' | 'close' =>
+  pane.help === true ? 'help' : (pane.filter ?? '').trim() !== '' ? 'filter' : 'close'
+
 const WHY = { 'feature.json': 'feature.json', branch: 'branch', latest: 'highest open spec' } as const
 
 /** The pane's title: the active feature the way the band names it, and why it is active (066 #30). */
