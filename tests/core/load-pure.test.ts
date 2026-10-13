@@ -5,7 +5,8 @@ import { freezeTree, treeFs } from '../helpers/fake-fs'
 import { readSnapshot } from '../../hooks/io/snapshot'
 import { deriveSpeckitState } from '../../hooks/core/speckit'
 import { emptyMemo } from '../../hooks/core/types'
-import { specsRows, taskRows } from '../../hooks/core/pane'
+import { specsRows } from '../../hooks/core/pane'
+import { activeTaskRows } from '../helpers/tree-rows'
 
 const dirs = [...Array(500).keys()].map(i => `${String(i + 1).padStart(3, '0')}-feature-${i + 1}`)
 
@@ -41,7 +42,7 @@ describe('the pane on 100 features (049 #81)', () => {
     for (let i = 0; i < 10; i += 1) {
       const t0 = performance.now()
       rows = specsRows(state, 100)
-      taskRows(state, emptyMemo(), 1000, 100, 'en', 0)
+      activeTaskRows(state, 100, 0)
       best = Math.min(best, performance.now() - t0)
     }
     expect(best).toBeLessThan(100)
@@ -55,13 +56,13 @@ describe('1,000 tasks in one tasks.md (054 #10)', () => {
     const { fs } = treeFs(tree)
     const snap = await readSnapshot(fs, '/proj', 'full')
     const { state } = deriveSpeckitState(snap, emptyMemo(), 0)
-    taskRows(state, emptyMemo(), 1000, 100, 'en', 0)
+    activeTaskRows(state, 100, 0)
     // The best of ten runs, as above.
     let best = Number.POSITIVE_INFINITY
-    let rows = taskRows(state, emptyMemo(), 1000, 100, 'en', 0)
+    let rows = activeTaskRows(state, 100, 0)
     for (let i = 0; i < 10; i += 1) {
       const t0 = performance.now()
-      rows = taskRows(state, emptyMemo(), 1000, 100, 'en', 0)
+      rows = activeTaskRows(state, 100, 0)
       best = Math.min(best, performance.now() - t0)
     }
     expect(best).toBeLessThan(100)

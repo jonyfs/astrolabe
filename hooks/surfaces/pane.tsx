@@ -43,12 +43,19 @@ export const paneTree = (
   /** What is above and below the rows shown, with the presses that scroll (038). */
   nav?: { above: number; below: number; up: () => Promise<void>; down: () => Promise<void>; labels: { more: string } },
   /** Counts beside the tab labels (043 #21) and the keys of the tab shown (043 #25). */
-  extras: { view?: { label: string; onPress: () => Promise<void> }; group?: { label: string; onPress: () => Promise<void> }; onToggleBlock?: (key: string) => Promise<void>; help?: boolean; onHelp?: () => Promise<void>; onUpdate?: (id: string) => Promise<void>; badges?: Partial<Record<PaneTab, string>>; legend?: string; onClose?: () => Promise<void>; onFind?: () => Promise<void>; onCopy?: (text: string) => Promise<void>; onRefresh?: () => Promise<void>; onCopyKpis?: () => Promise<void>; showKeys?: boolean; sort?: { label: string; onPress: () => Promise<void> }; onClear?: () => Promise<void>; onPriority?: () => Promise<void>; onRunQueued?: (id: string) => Promise<void>; rowButtons?: ReadonlyArray<{ key: string; label: string; hotkey?: string; onPress: () => void }>; rowDetail?: string; onLiftBand?: () => Promise<void>; taskActions?: ReadonlyArray<{ key: string; label: string; onPress: () => void }>; rowDescription?: string; onCloseReady?: (dirs: string[]) => void; onReconcile?: (id: string) => void; onAllowUsage?: () => Promise<void>; onRevokeUsage?: () => Promise<void>; status?: { label: string; onPress: () => Promise<void> }; columns?: number; marks?: 'unicode' | 'ascii' | 'words'; colorblind?: boolean; wrapLongNames?: boolean; Link?: ElementTable<'terminal'>['Link'] } = {},
+  extras: { view?: { label: string; onPress: () => Promise<void> }; group?: { label: string; onPress: () => Promise<void> }; onToggleBlock?: (key: string) => Promise<void>; help?: boolean; onHelp?: () => Promise<void>; onUpdate?: (id: string) => Promise<void>; badges?: Partial<Record<PaneTab, string>>; legend?: string; onClose?: () => Promise<void>; onFind?: () => Promise<void>; onCopy?: (text: string) => Promise<void>; onRefresh?: () => Promise<void>; onCopyKpis?: () => Promise<void>; showKeys?: boolean; sort?: { label: string; onPress: () => Promise<void> }; onClear?: () => Promise<void>; onPriority?: () => Promise<void>; onRunQueued?: (id: string) => Promise<void>; rowButtons?: ReadonlyArray<{ key: string; label: string; hotkey?: string; onPress: () => void }>; rowDetail?: string; onLiftBand?: () => Promise<void>; taskActions?: ReadonlyArray<{ key: string; label: string; onPress: () => void }>; rowDescription?: string; onCloseReady?: (dirs: string[]) => void; onReconcile?: (id: string) => void; onAsk?: (id: string) => void; onParallel?: (id: string) => void; tasksOnly?: { label: string; onPress: () => Promise<void> }; openAll?: { label: string; onPress: () => Promise<void> }; onAllowUsage?: () => Promise<void>; onRevokeUsage?: () => Promise<void>; status?: { label: string; onPress: () => Promise<void> }; columns?: number; marks?: 'unicode' | 'ascii' | 'words'; colorblind?: boolean; wrapLongNames?: boolean; Link?: ElementTable<'terminal'>['Link'] } = {},
 ) => {
   const Link = extras.Link
   // The pane's own marks in the set the icons option and the accessible mode pick (052 #49, #47).
   const m = (text: string) => markText(text, extras.marks ?? 'unicode')
-  const linkScope = (row: PaneRow) => `astrolabe-spec-link-${row.key}`
+  // A scope is 1 to 64 characters: a long task key is shortened with a hash of the whole key (078).
+  const linkScope = (row: PaneRow) => {
+    const whole = `astrolabe-spec-link-${row.key}`
+    if (whole.length <= 64) return whole
+    let hash = 5381
+    for (const ch of row.key) hash = ((hash * 33) ^ ch.charCodeAt(0)) >>> 0
+    return `astrolabe-spec-link-${row.key.slice(0, 30)}-${hash.toString(36)}`
+  }
   const rowHover = (row: PaneRow) =>
     tab === 'specs' && row.href !== undefined && row.selected !== true
       ? { scope: linkScope(row), underline: true }
@@ -72,7 +79,7 @@ export const paneTree = (
         // The tab shown is the primary button; `▸` stays for the colorblind flavor (052 #2).
         const text = `${extras.colorblind === true && item.tab === tab ? '▸ ' : ''}${extras.showKeys === true && (extras.columns === undefined || extras.columns >= 80) ? `${item.hotkey} ` : ''}${
           extras.columns !== undefined && extras.columns < 80
-            ? `${item.hotkey}${extras.badges?.[item.tab] === undefined ? '' : `·${extras.badges[item.tab]}`}`
+            ? `${item.hotkey}${extras.badges?.[item.tab] === undefined ? '' : `:${extras.badges[item.tab]}`}`
             : extras.badges?.[item.tab] === undefined ? t(lang, item.label) : `${t(lang, item.label)} ${extras.badges[item.tab]}`
         }`
         // The tab shown keeps its button (primary, in the accent colour) so every tab stays pressable.
@@ -92,16 +99,18 @@ export const paneTree = (
           <Box key="astrolabe-pane-keys-row" flexDirection="row">
             {extras.onFind !== undefined && <Button key="find" label={m(verb('filter') ?? 'filter')} hotkey={hotkeyOf('/')} plain onPress={() => extras.onFind!()} />}
             {extras.onFind !== undefined && <Text> </Text>}
+            {extras.tasksOnly !== undefined && <Button key="tasks-only" label={extras.tasksOnly.label} hotkey="t" plain onPress={() => extras.tasksOnly!.onPress()} />}
+            {extras.tasksOnly !== undefined && <Text> </Text>}
             {extras.status !== undefined && <Button key="status-filter" label={extras.status.label} hotkey="s" plain onPress={() => extras.status!.onPress()} />}
             {extras.status !== undefined && <Text> </Text>}
             {extras.sort !== undefined && <Button key="sort" label={extras.sort.label} hotkey="o" plain onPress={() => extras.sort!.onPress()} />}
             {extras.sort !== undefined && <Text> </Text>}
+            {extras.openAll !== undefined && <Button key="open-all" label={extras.openAll.label} hotkey="e" plain onPress={() => extras.openAll!.onPress()} />}
+            {extras.openAll !== undefined && <Text> </Text>}
             {extras.view !== undefined && <Button key="view" label={extras.view.label} hotkey="v" plain onPress={() => extras.view!.onPress()} />}
             {extras.view !== undefined && <Text> </Text>}
             {extras.group !== undefined && <Button key="group" label={extras.group.label} hotkey="g" plain onPress={() => extras.group!.onPress()} />}
             {extras.group !== undefined && <Text> </Text>}
-            {extras.onPriority !== undefined && verb('priority') !== undefined && <Button key="priority" label={verb('priority')!} hotkey="p" plain onPress={() => extras.onPriority!()} />}
-            {extras.onPriority !== undefined && <Text> </Text>}
             {extras.onClear !== undefined && <Button key="clear-filter" label={verb('clear') ?? 'clear'} hotkey="c" plain onPress={() => extras.onClear!()} />}
             {extras.onClear !== undefined && <Text> </Text>}
             {extras.onRefresh !== undefined && verb('refresh') !== undefined && <Button key="refresh" label={verb('refresh')!} hotkey="r" plain onPress={() => extras.onRefresh!()} />}
@@ -160,6 +169,10 @@ export const paneTree = (
               ? extras.onCloseReady !== undefined
               : row.action.kind === 'reconcile'
               ? extras.onReconcile !== undefined
+              : row.action.kind === 'ask'
+              ? extras.onAsk !== undefined
+              : row.action.kind === 'parallel'
+              ? extras.onParallel !== undefined
               : row.action.kind === 'allow'
               ? extras.onAllowUsage !== undefined
               : row.action.kind === 'revoke'
@@ -172,7 +185,7 @@ export const paneTree = (
                 {m(colorblindText(row, extras.colorblind))}
               </Text>
               <Button
-                key={row.action.kind === undefined ? `queue-run-${row.action.id}` : row.action.kind === 'update' ? `update-${row.action.id}` : row.action.kind === 'close' ? 'close-ready' : row.action.kind === 'reconcile' ? `reconcile-${row.key}` : `usage-${row.action.kind}`}
+                key={row.action.kind === undefined ? `queue-run-${row.action.id}` : row.action.kind === 'update' ? `update-${row.action.id}` : row.action.kind === 'close' ? 'close-ready' : row.action.kind === 'reconcile' ? `reconcile-${row.key}` : row.action.kind === 'ask' || row.action.kind === 'parallel' ? `${row.key}-action` : `usage-${row.action.kind}`}
                 label={row.action.label}
                 hotkey={row.action.hotkey}
                 plain
@@ -182,6 +195,10 @@ export const paneTree = (
                   ? extras.onCloseReady!(row.action.id.split('\n'))
                   : row.action?.kind === 'reconcile'
                   ? extras.onReconcile!(row.action.id)
+                  : row.action?.kind === 'ask'
+                  ? extras.onAsk!(row.action.id)
+                  : row.action?.kind === 'parallel'
+                  ? extras.onParallel!(row.action.id)
                   : row.action?.kind === 'allow'
                   ? extras.onAllowUsage!()
                   : row.action?.kind === 'revoke'

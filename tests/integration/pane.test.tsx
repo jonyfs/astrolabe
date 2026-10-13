@@ -31,15 +31,15 @@ describe('the /astrolabe command (US1)', () => {
 
 describe('the pane tabs (US1, US2)', () => {
   for (const surface of SURFACES) {
-    test(`${surface}: Specs first, then Tasks and Session by hotkey buttons`, async ($, on) => {
+    test(`${surface}: Specs first with the active spec open, then Session by hotkey buttons`, async ($, on) => {
       const { session } = await setup($ as never, on as never)
       const ui = await mountPane($ as never, surface)
       expect(await ui.tabs()).toContain('Specs')
-      expect(await ui.body()).toContain('❯ ▸ ◆ 002 band-hint   implement  ▰▰▰▰▱▱▱▱▱  9/20  45%')
+      expect(await ui.body()).toContain('❯ ▾ ◆ 002 band-hint   implement  ▰▰▰▰▱▱▱▱▱  9/20  45%')
       const reads = session.counts.read
-      await ui.press('tab-tasks')
-      expect(await ui.body()).toContain('9/20 done')
+      // The tasks sit under their spec: no tab to press (078 FR-001).
       expect(await ui.body()).toContain('T010 task 10')
+      expect(await ui.tabs()).not.toContain('Tasks')
       await ui.press('tab-session')
       expect(await ui.body()).toContain('✓ ratified · active by feature.json')
       await ui.press('tab-specs')
@@ -80,7 +80,6 @@ describe('the pane tabs (US1, US2)', () => {
     const ui = await mountPane($ as never, 'desktop', 120, 60)
     const tabs = [
       ['tab-specs', '002 band-hint'],
-      ['tab-tasks', 'T010 task 10'],
       ['tab-session', 'feature.json'],
       ['tab-session', 'Spec Kit cycle'],
       ['help-key', '/astrolabe status'],
@@ -226,7 +225,7 @@ describe('/astrolabe help (025 #39)', () => {
     await setup($ as never, on as never)
     const ran = (await $.command.run({ command: 'astrolabe', args: 'help', origin: { kind: 'composer' } } as never)) as { text?: string }
     const text = ran.text ?? ''
-    for (const part of ['/astrolabe', '/astrolabe allow', '/astrolabe revoke', '/astrolabe help', '1 Specs', '2 Tasks', '3 Session', '4 PRs', '5 Setup', 'Esc']) {
+    for (const part of ['/astrolabe', '/astrolabe allow', '/astrolabe revoke', '/astrolabe help', '1 Specs', '2 Session', '3 PRs', '4 Setup', 'Esc']) {
       expect(text).toContain(part)
     }
   })
@@ -256,7 +255,6 @@ describe('extensions and parallel tasks (020c)', () => {
     installPaneEngine(on)
     await startSession($ as never, '/proj')
     const ui = await mountPane($ as never, 'terminal')
-    await ui.press('tab-tasks')
     expect(await ui.body()).toContain('┘ P')
     await ui.press('tab-session')
     expect(await ui.body()).toContain(`hooks after${' '.repeat(paneLabelWidth('en') - 'hooks after'.length)}/speckit-git-commit (optional)`)
@@ -266,7 +264,7 @@ describe('extensions and parallel tasks (020c)', () => {
 })
 
 describe('[P] tasks to subagents (054 #89)', () => {
-  test('the Tasks tab offers one prompt that sends the [P] run to subagents', async ($, on) => {
+  test('the tree offers one action under the [P] run that sends it to subagents', async ($, on) => {
     const tree = project({
       constitution: RATIFIED,
       featureJson: featureJson('specs/002-b'),
@@ -278,8 +276,7 @@ describe('[P] tasks to subagents (054 #89)', () => {
     installPaneEngine(on)
     await startSession($ as never, '/proj')
     const ui = await mountPane($ as never, 'terminal', 120, 40)
-    await ui.press('tab-tasks')
-    await ui.press('parallel-dispatch')
+    await ui.press('parallel-002-b-action')
     await session.clock.settle()
     const sent = session.submitted.at(-1) ?? ''
     expect(sent).toContain('Dispatch each one to its own subagent')
@@ -294,11 +291,12 @@ describe('pane navigation (043)', () => {
   test('#21 #25: tabs carry counts; a legend names the keys of the tab shown', async ($, on) => {
     await setup($ as never, on as never)
     const ui = await mountPane($ as never, 'terminal', 130, 30)
-    expect(await ui.tabs()).toContain('Tasks 11')
+    // One badge for the specs in progress and the open tasks of the active spec (078 FR-014).
+    expect(await ui.tabs()).toMatch(/Specs \d+·11/)
     // 054 #26: the legend ends with when the state was last written.
-    expect(await ui.legend()).toMatch(/^every feature, its phase and progress · 1-5 tabs · h help · f filters · s status · j\/k scroll · r ↻ · Esc closes · updated \d\d:\d\d$/)
-    await ui.press('tab-tasks')
-    // Nothing under the Tasks list but its actions (075 FR-012).
+    expect(await ui.legend()).toMatch(/^every feature, its tasks, phase and progress · 1-4 tabs · h help · Enter folds · t tasks only · j\/k scroll · Esc closes · updated \d\d:\d\d$/)
+    await ui.press('tasks-only')
+    // Nothing under the tasks-only list but its actions (075 FR-012).
     expect(await ui.legend()).toBe('')
     await ui.unmount()
   })
@@ -307,14 +305,14 @@ describe('pane navigation (043)', () => {
 
 describe('every tab at 60, 80 and 100 pane columns (066 #21)', () => {
   for (const surface of SURFACES) {
-    test(`${surface}: the five tabs draw, and the tab row shrinks to numbers and badges below 80 columns`, async ($, on) => {
+    test(`${surface}: the four tabs draw, and the tab row shrinks to numbers and badges below 80 columns`, async ($, on) => {
       await setup($ as never, on as never)
       for (const columns of [60, 80, 100]) {
         const ui = await mountPane($ as never, surface, columns)
         const tabs = await ui.tabs()
         if (columns >= 100) expect(tabs).toContain('Specs')
         if (columns < 80) expect(tabs).not.toContain('Specs')
-        for (const tab of ['specs', 'tasks', 'session', 'prs', 'setup']) {
+        for (const tab of ['specs', 'session', 'prs', 'setup']) {
           await ui.press(`tab-${tab}`)
           expect(await ui.body()).not.toBe('')
         }
@@ -335,7 +333,8 @@ describe('pane navigation, part two (043)', () => {
     installPaneEngine(on)
     await startSession($ as never, halfDone.cwd)
     const ui = await mountPane($ as never, 'terminal', 100, 30)
-    expect(await ui.body()).toContain('9/20 done')
+    // A stored Tasks tab opens Specs, where the tasks are (078 FR-001).
+    expect(await ui.body()).toContain('9/20')
     await ui.press('tab-session')
     expect(session.store.get('tab:/proj')).toBe('session')
     await ui.unmount()
@@ -343,7 +342,6 @@ describe('pane navigation, part two (043)', () => {
   test('#23 #28: one filter keeps matching task rows; ✕ closes the pane', async ($, on) => {
     const { pane } = await setup($ as never, on as never)
     const ui = await mountPane($ as never, 'terminal', 100, 30)
-    await ui.press('tab-tasks')
     const before = await ui.body()
     expect(before).toContain('T010 task 10')
     await ui.press('close-pane')
@@ -379,7 +377,7 @@ describe('acting on a spec (051)', () => {
     expect(ran.text).toBe('🧭 002 band-hint: priority high')
     expect(session.store.get('priority:/proj')).toEqual({ '002': 'high' })
     const ui = await mountPane($ as never, 'terminal', 100, 30)
-    expect(await ui.body()).toContain('▸ ↑ 002 band-hint')
+    expect(await ui.body()).toContain('▾ ↑ 002 band-hint')
     await ui.press('priority')
     expect(session.store.get('priority:/proj')).toEqual({ '002': 'low' })
     await ui.unmount()
@@ -441,7 +439,7 @@ describe('design and UX (052)', () => {
     await setup($ as never, on as never)
     const st = $ as never
     const ui = await mountPane(st, 'terminal', 60, 30)
-    expect(await ui.legend()).toBe('1-5 tabs · h help · f filters · s status · j/k scroll · r ↻ · Esc closes')
+    expect(await ui.legend()).toBe('1-4 tabs · h help · Enter folds · t tasks only · j/k scroll · Esc closes')
     await ui.unmount()
   })
 
@@ -594,7 +592,8 @@ describe('a narrow tab row (052 #1)', () => {
     await setup($ as never, on as never)
     const ui = await mountPane($ as never, 'terminal', 60, 30)
     const tabs = await ui.tabs()
-    expect(tabs).toContain('2·11')
+    // The number, a colon, then the badge: specs in progress and open tasks (078 FR-014).
+    expect(tabs).toMatch(/1:\d+·11/)
     expect(tabs).not.toContain('Tasks')
     await ui.unmount()
   })
@@ -604,7 +603,7 @@ describe('h opens Help (052 #50)', () => {
   test('from any tab', async ($, on) => {
     await setup($ as never, on as never)
     const ui = await mountPane($ as never, 'terminal', 100, 30)
-    await ui.press('tab-tasks')
+    await ui.press('tab-session')
     await ui.press('help-key')
     expect(await ui.body()).toContain('Astrolabe commands:')
     await ui.unmount()
@@ -641,7 +640,7 @@ describe('keys and copying (046 #59, 054 #65)', () => {
     await setup($ as never, on as never)
     const ui = await mountPane($ as never, 'terminal', 100, 30)
     expect(await ui.tabs()).toMatch(/1 Specs/)
-    expect(await ui.tabs()).toMatch(/2 Tasks/)
+    expect(await ui.tabs()).toMatch(/2 Session/)
     await ui.unmount()
   })
   test('the Dashboard has a copy button for its numbers; other tabs do not', async ($, on) => {
@@ -655,10 +654,10 @@ describe('keys and copying (046 #59, 054 #65)', () => {
 })
 
 describe('open tasks as GitHub issues (050 #96)', () => {
-  test('the Tasks tab has one button that needs a second press and then runs speckit-taskstoissues', async ($, on) => {
+  test('the tasks-only list has one button that needs a second press and then runs speckit-taskstoissues', async ($, on) => {
     await setup($ as never, on as never)
     const ui = await mountPane($ as never, 'terminal', 100, 40)
-    await ui.press('tab-tasks')
+    await ui.press('tasks-only')
     const button = await ui.find({ key: 'tasks-to-issues' })
     expect(button?.text).toContain('open')
     await ui.press('tasks-to-issues')

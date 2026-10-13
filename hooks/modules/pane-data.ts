@@ -18,7 +18,7 @@ export const filtered = (
   state: SpeckitState,
   filter: string | undefined,
   status: PaneState['status'] = 'all',
-  context: { priorities?: Record<string, 'high' | 'normal' | 'low'>; worktrees?: Record<string, string[]> } = {},
+  context: { priorities?: Record<string, 'high' | 'normal' | 'low'>; worktrees?: Record<string, string[]>; taskDirs?: ReadonlySet<string> } = {},
 ): SpeckitState =>
   (filter ?? '').trim() === '' && status === 'all' ? state : { ...state, features: filterFeatures(state.features, filter, state.active?.dir, status, context) }
 

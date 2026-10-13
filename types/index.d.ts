@@ -169,13 +169,13 @@ export type SpeckitState = {
   activeDocs?: Array<'spec.md' | 'plan.md' | 'tasks.md'>
 }
 
-export type PaneTab = 'specs' | 'tasks' | 'session' | 'prs' | 'setup'
+export type PaneTab = 'specs' | 'session' | 'prs' | 'setup'
 
 /** What the pane body shows: a tab, or the help overlay above it (066 #21). */
 export type PaneView = PaneTab | 'help'
 
 /** The /astrolabe pane's session state: the tab shown and whether it opened unasked already. */
-export type PaneState = { tab: PaneTab; /** The help overlay is on, above the tab. */ help?: true; /** Specs at scale (067): the view, the open blocks and the grouping. */ view?: 'focus' | 'all'; open?: string[]; group?: 'status' | 'phase' | 'track' | 'priority'; autoOpened: boolean; filter?: string; status?: 'all' | 'progress' | 'next' | 'done' | 'abandoned'; sort?: 'status' | 'progress' | 'name'; scroll?: { tab: PaneView; offset: number }; selectedFeature?: string; summary?: { dir: string; expanded: boolean }; draft?: Record<string, string | number | boolean>; confirm?: string; confirmSelecting?: string }
+export type PaneState = { tab: PaneTab; /** The help overlay is on, above the tab. */ help?: true; /** Specs at scale (067): the view, the open blocks and the grouping. */ view?: 'focus' | 'all'; open?: string[]; group?: 'status' | 'phase' | 'track' | 'priority'; autoOpened: boolean; filter?: string; status?: 'all' | 'progress' | 'next' | 'done' | 'abandoned'; sort?: 'status' | 'progress' | 'name'; scroll?: { tab: PaneView; offset: number }; selectedFeature?: string; /** A task row selected in the tree (078): its key. */ selectedTask?: string; /** Specs the person opened and folded (078); the active spec is open unless it is in `closed`. */ opened?: string[]; closed?: string[]; /** Only the active spec's tasks, full height (078). */ tasksOnly?: true; summary?: { dir: string; expanded: boolean }; draft?: Record<string, string | number | boolean>; confirm?: string; confirmSelecting?: string }
 
 export type UpdateId = 'gstack' | 'specify' | 'speckit-skills' | 'astrolabe'
 

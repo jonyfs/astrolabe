@@ -10,7 +10,8 @@ import { layoutLive, liveRows } from '../../hooks/core/live-table'
 import { bandSegments, type Segment } from '../../hooks/core/band'
 import { footerChips, footerText } from '../../hooks/core/footer'
 import { iconSet } from '../../hooks/core/icons'
-import { specsRows, taskRows } from '../../hooks/core/pane'
+import { specsRows } from '../../hooks/core/pane'
+import { activeTaskRows } from './tree-rows'
 import { formatStatus } from '../../hooks/core/status-text'
 import { CHIPS, FLAVORS, type FlavorName } from '../../hooks/core/theme'
 import { emptyMemo, type Feature, type SpeckitState } from '../../hooks/core/types'
@@ -100,7 +101,7 @@ export const surfacesOf = (flavor: FlavorName, columns: number): Record<string, 
     footer: [footerText(footerInput), ...footerChips(footerInput).map(c => `${c.text}|${chips[c.colour] ?? '?'}`)],
     pane: withRole([
       ...specsRows(state, columns),
-      ...taskRows(state, emptyMemo(), NOW, columns, 'en', NOW),
+      ...activeTaskRows(state, columns, NOW),
     ]),
   }
 }

@@ -34,7 +34,7 @@ describe('the pinned footer (038)', () => {
     installPaneEngine(on)
     await startSession($, '/proj')
     const ui = await mount($ as never, 20)
-    await ui.press({ key: 'tab-tasks' })
+    await ui.press({ key: 'tasks-only' })
     const body = () => ui.find({ key: 'astrolabe-pane-body' }).then(f => f?.text ?? '')
     expect(await body()).toContain('T001 task 1')
     expect(await body()).not.toContain('T030 task 30')

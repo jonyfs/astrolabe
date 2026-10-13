@@ -13,9 +13,10 @@ import { bandPr, bandSegments, bandText, nextReason, otherFeaturesCard, stepCard
 import { hintTail } from './core/hint'
 import { phaseToasts } from './core/phase-toast'
 import { justFinished } from './core/next-command'
-import { filterChips, filterFeatures, helpRows, moveSpecSelection, nextSort, nextStatus, taskRows, windowUnits, wrappedRows, type PaneRow, sessionRows, specsRows } from './core/pane'
+import { filterChips, filterFeatures, helpRows, moveSpecSelection, nextSort, nextStatus, parseSpecFilter, windowUnits, wrappedRows, type PaneRow, sessionRows, specsRows } from './core/pane'
+import { allToggled, doTaskSuggestion, isOpen, questionSuggestion, questionsIn, specChildren, tickSuggestion, toggled, withChildren, type Fold, type TreeTask } from './core/pane-tree'
 import { presetOf } from './core/presets'
-import { ticksIn } from './core/tasks-parser'
+import { parseTasks, ticksIn } from './core/tasks-parser'
 import { spinnerSuffix } from './core/spinner'
 import { bandUpdateLabel, astrolabeUpdate, firstLine, isDue, isStoredUpdates, localDay, parseCliVersion, parseGstackCheck, parseSelfCheck, skillsVersusCli, releaseNotesUrl, skillsUpdate, updateLabel } from './core/updates'
 import { fileUrl, joinPath } from './core/paths'
@@ -45,7 +46,7 @@ import { readFeature } from './io/snapshot'
 import { deriveSpeckitState, snapshotFromMemo } from './core/speckit'
 import { deriveFeature } from './core/phase'
 import { chartImage, dialFrames, imagesFor } from './core/pixels'
-import { emptyMemo, type PaneState, type PaneTab, type PaneView, type UpdateId, type UpdateItem, type UpdatesState, type UsageState, type UsageReading, type QueuedAgent, type SessionStats, type SpeckitState, type FooterState } from './core/types'
+import { emptyMemo, type Feature, type PaneState, type PaneTab, type PaneView, type UpdateId, type UpdateItem, type UpdatesState, type UsageState, type UsageReading, type QueuedAgent, type SessionStats, type SpeckitState, type FooterState } from './core/types'
 import type { Preset } from './core/presets'
 import type { Fs } from './io/fs-port'
 import { findRoot } from './io/root'
@@ -1109,8 +1110,8 @@ function paneHeader(
   const Code = 'Code' in elements ? elements.Code : undefined
   const Button = 'Button' in elements ? elements.Button : undefined
   const active = state.active
-  // One filter for Specs, Tasks and Help (043 #23).
-  if (viewOf(pane) === 'specs' || viewOf(pane) === 'tasks' || viewOf(pane) === 'help' || viewOf(pane) === 'setup') {
+  // One filter for Specs (and its tasks), Help and Setup (043 #23, 078).
+  if (viewOf(pane) === 'specs' || viewOf(pane) === 'help' || viewOf(pane) === 'setup') {
     const out: RenderNode[] = []
     if (Input !== undefined) {
       // Each keystroke filters; Enter keeps the text the same way.
@@ -1133,7 +1134,7 @@ function paneHeader(
         out.push(<elements.Text key="astrolabe-filter-count" color={tokens0.muted}>{chips.length === 0 ? count : `${chips.join(' · ')} ${count}`}</elements.Text>)
       }
     }
-    if (viewOf(pane) === 'tasks' && Code !== undefined && stats?.tasksDiff !== undefined && stats.tasksDiff.dir === active?.dir) {
+    if (viewOf(pane) === 'specs' && pane.tasksOnly === true && Code !== undefined && stats?.tasksDiff !== undefined && stats.tasksDiff.dir === active?.dir) {
       const age = stats.tasksDiff.at === undefined ? 0 : now - stats.tasksDiff.at
       if (age > DIFF_FOLD_MS) out.push(<elements.Text key="astrolabe-diff-folded" color={tokens0.muted}>{foldedDiff(stats.tasksDiff.text, stats.tasksDiff.file, age, currentLang())}</elements.Text>)
       else out.push(<Code source={capDiff(stats.tasksDiff.text, currentLang())} format="diff" path={stats.tasksDiff.file} />)
@@ -2300,6 +2301,101 @@ async function pastResetRows(
   return [{ key: 'past-reset', text: t(currentLang(), 'tasks.pastReset', { time: minutes(left), n: feature.total - feature.done, at: clockOf(window.resetsAt) ?? '' }), role: 'current' }]
 }
 
+// The tasks of the specs the tree shows (078): the active spec's come with the state; the others
+// are read from their tasks.md once per memo version.
+const specFilesCache = new Map<string, { key: string; tasks: TreeTask[]; spec?: string }>()
+
+/** One spec's tasks, and its spec.md when it has open questions to list (078 FR-045). */
+async function specFilesOf($: EngineInterface, state: SpeckitState, f: Feature, wantSpec: boolean): Promise<{ tasks: TreeTask[]; spec?: string }> {
+  if (state.root === undefined) return { tasks: [] }
+  const key = `${state.root}|${state.memoVersion ?? 'x'}|${f.done}/${f.total}|${wantSpec}`
+  const hit = specFilesCache.get(f.dir)
+  if (hit !== undefined && hit.key === key && state.memoVersion !== undefined) return { tasks: hit.tasks, ...(hit.spec === undefined ? {} : { spec: hit.spec }) }
+  const text = await $.fs.read(`${state.root}/specs/${f.dir}/${f.track === 'quick' ? 'spec.md' : 'tasks.md'}`).catch(() => '')
+  const spec = wantSpec ? await $.fs.read(`${state.root}/specs/${f.dir}/spec.md`).catch(() => '') : undefined
+  const tasks = parseTasks(text)
+  specFilesCache.set(f.dir, { key, tasks, ...(spec === undefined ? {} : { spec }) })
+  return { tasks, ...(spec === undefined ? {} : { spec }) }
+}
+
+/**
+ * The Specs tab as a tree (078): each spec row, and under an open one its questions, its current
+ * task and its stories with their tasks. `past` rows (the 5h reset warning) sit under the active spec.
+ */
+async function specsTreeRows(
+  $: EngineInterface,
+  e: Parameters<Hook<'ui.render'>>[1],
+  state: SpeckitState,
+  stats: SessionStats | undefined,
+  pane: PaneState,
+  filter: string | undefined,
+  columns: number,
+  past: PaneRow[],
+): Promise<{ rows: PaneRow[]; kept: number }> {
+  const lang = currentLang()
+  const activeDir = state.active?.dir
+  const words = parseSpecFilter(filter).words
+  const now = await $.clock.now()
+  const baseFold: Fold = { ...(pane.opened === undefined ? {} : { opened: pane.opened }), ...(pane.closed === undefined ? {} : { closed: pane.closed }) }
+  // With words in the filter every spec's tasks are read (capped), so a task match keeps its spec (078 FR-007).
+  const wanted = words === '' ? state.features.filter(f => f.total > 0 && isOpen(f.dir, activeDir, baseFold)) : state.features.filter(f => f.total > 0).slice(0, 40)
+  const files = new Map<string, { tasks: TreeTask[]; spec?: string }>()
+  await Promise.all(wanted.map(async f => {
+    const wantSpec = (f.clarifications ?? 0) > 0 && isOpen(f.dir, activeDir, baseFold)
+    const read = f.dir === activeDir && state.activeTasks !== undefined && !wantSpec ? { tasks: [...state.activeTasks] } : await specFilesOf($, state, f, wantSpec)
+    files.set(f.dir, read)
+  }))
+  const taskDirs = new Set<string>()
+  if (words !== '') for (const [dir, got] of files) if (got.tasks.some(t => t.text.toLowerCase().includes(words) || (/^t\d+$/.test(words) && (t.id ?? '').toLowerCase().includes(words)))) taskDirs.add(dir)
+  const fold: Fold = {
+    opened: [...new Set([...(baseFold.opened ?? []), ...taskDirs])],
+    closed: (baseFold.closed ?? []).filter(d => !taskDirs.has(d)),
+  }
+  const context = { ...specFilterContext(stats), taskDirs }
+  const visible = filtered(state, filter, pane.status, context)
+  const features = withWorktreeProgress(visible.features, stats?.worktrees)
+  const base = specsRows(
+    { ...visible, features },
+    columns,
+    lang,
+    stats?.priorities ?? {},
+    worktreesById(stats?.worktrees),
+    (filter ?? '').trim() === '' && (pane.status ?? 'all') === 'all',
+    stats?.worktrees?.map(w => ({ name: w.name, id: w.id, featureName: w.featureName, phase: w.phase, done: w.done, total: w.total, status: worktreeState(w) })) ?? [],
+    e.surface === 'desktop',
+    pane.sort ?? 'status',
+    state.root === undefined ? undefined : roadmapCache.has(state.root) ? roadmapCache.get(state.root) : await $.fs.read(`${state.root}/docs/roadmap.md`).then(text => { roadmapCache.set(state.root!, text); return text }).catch(() => { roadmapCache.set(state.root!, undefined); return undefined }),
+    { ...(pane.view === undefined ? {} : { view: pane.view }), filtered: !((filter ?? '').trim() === '' && (pane.status ?? 'all') === 'all'), open: pane.open ?? [], group: pane.group ?? 'status', touched: stats?.touchedSpecs ?? [], planMissing: stats?.planMissing ?? {}, tree: fold },
+  )
+  const tasksOnly = pane.tasksOnly === true
+  const childrenOf = (f: Feature): PaneRow[] => {
+    const got = files.get(f.dir)
+    const isActive = f.dir === activeDir
+    const tasks = isActive ? [...(state.activeTasks ?? got?.tasks ?? [])] : got?.tasks ?? []
+    const rows = specChildren(f, tasks, {
+      columns,
+      lang,
+      now,
+      isActive,
+      tasksOnly,
+      ...(state.root === undefined ? {} : { root: state.root }),
+      ...(isActive && state.currentTask !== undefined ? { currentTask: state.currentTask } : {}),
+      times: stats?.taskTimes ?? [],
+      ...(words === '' ? {} : { words }),
+      questions: questionsIn(got?.spec),
+      ...(f.checklist === undefined ? {} : { checklist: f.checklist }),
+      wrap: e.surface === 'desktop' || columns >= 100,
+    })
+    return isActive ? [...past, ...rows] : rows
+  }
+  const active = state.features.find(f => f.dir === activeDir)
+  if (tasksOnly && active !== undefined) {
+    const head = base.find(r => r.key === `feature-${active.id}`)
+    if (head !== undefined) return { rows: [head, ...childrenOf(active)], kept: visible.features.length }
+  }
+  return { rows: withChildren(base, features, f => isOpen(f.dir, activeDir, fold) && f.total + (f.clarifications ?? 0) > 0, childrenOf), kept: visible.features.length }
+}
+
 /** One line of the governor's history (021): what it asked, what was answered, when it resumed. */
 async function logGovernor($: EngineInterface, text: string): Promise<void> {
   const at = await $.clock.now()
@@ -2834,6 +2930,19 @@ export const register: Register = (on, options) => {
     } catch {
       // No saved tab: Specs.
     }
+    // The specs this project had open and folded (078 FR-010).
+    try {
+      const root = started?.state.root
+      const saved = root === undefined ? undefined : await $.store.get(`folds:${root}`)
+      if (typeof saved === 'object' && saved !== null && !Array.isArray(saved)) {
+        const { opened, closed } = saved as { opened?: unknown; closed?: unknown }
+        const list = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [])
+        const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
+        await $.state.set(PANE_STATE, { ...held, opened: list(opened), closed: list(closed) })
+      }
+    } catch {
+      // No saved folds: the active spec is open.
+    }
     // A large project reads its other features in batches after the band draws (040).
     if (started?.state.features.some(f => f.warnings.includes('loading')) === true) $.clock.after(0, () => void loadDeferred($))
     // The baseline for the next turn's tasks diff, and the theme's lightness for the charts (024).
@@ -3056,6 +3165,20 @@ export const register: Register = (on, options) => {
 
   // The usage question's pane: Esc (or any close but our own) takes the default at once.
   on('ui.close', async ($, e, next) => {
+    // Esc is layered (078 FR-018): it clears the filter, then drops the help overlay, then closes the pane.
+    if (e.id === PANE_ID && e.origin.kind === 'person') {
+      const held = (await $.state.get(PANE_STATE)).value
+      if (held !== undefined && held.help === true) {
+        const { help: _off, ...rest } = held
+        await $.state.set(PANE_STATE, rest)
+        return { value: undefined }
+      }
+      if (held !== undefined && (held.filter ?? '').trim() !== '') {
+        const { filter: _gone, ...rest } = held
+        await $.state.set(PANE_STATE, rest)
+        return { value: undefined }
+      }
+    }
     if (e.id === ASK_ID && e.origin.kind !== 'plugin') {
       const { value } = await $.state.get(ASK)
       if (value?.question !== undefined) pick?.(value.question.fallback)
@@ -3505,9 +3628,14 @@ export const register: Register = (on, options) => {
       if (row !== undefined) {
         const heldOffset = held.scroll?.tab === 'specs' ? held.scroll.offset : 0
         const offset = row.index < specSelectionWindow.start || row.index >= specSelectionWindow.end ? row.index : heldOffset
+        // A task row of the tree is selected the same way a spec row is (078).
+        const picked = row.key.startsWith('task-')
+          ? { selectedTask: row.key }
+          : { selectedFeature: row.key.slice('feature-'.length) }
+        const { selectedTask: _prev, ...kept } = held
         await $.state.set(PANE_STATE, {
-          ...held,
-          selectedFeature: row.key.slice('feature-'.length),
+          ...kept,
+          ...picked,
           ...(offset === heldOffset ? {} : { scroll: { tab: 'specs', offset } }),
         })
         if (specLinksEnabled) await $.ui.focus({ requestId: PANE_ID, key: `${row.key}-spec-link` })
@@ -3546,76 +3674,24 @@ export const register: Register = (on, options) => {
     return e
   })
 
-  // Two-step Enter confirmation for spec selection (044 #38): first Enter selects, second Enter confirms and writes feature.json.
+  // Enter on the selected row of the Specs tree opens or folds it (078 FR-004). Making a spec the
+  // active one is the `u` key; ticking a task is `x`, which hands the tick to Claude (spec 051).
   on('ui.input', { component: 'Pane', requestId: PANE_ID }, async ($, e, next) => {
     const pane = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
-    if (e.element === 'astrolabe-filter' || e.kind !== 'submit' || pane.tab !== 'specs' || specSelectionRows.length === 0) return next(e)
-    const held = pane
+    if (e.element === 'astrolabe-filter' || e.kind !== 'submit' || pane.tab !== 'specs' || pane.help === true || specSelectionRows.length === 0) return next(e)
     const state = (await $.state.get(SPECKIT)).value
     if (state === undefined) return next(e)
-    const activeSpecFeature = state.features.find(feature => feature.dir === state.active?.dir)
-    const preferredSelection = pane.selectedFeature === undefined
-      ? activeSpecFeature === undefined ? undefined : `feature-${activeSpecFeature.id}`
-      : `feature-${pane.selectedFeature}`
-    const currentSelected = specSelectionRows.some(row => row.key === preferredSelection)
-      ? preferredSelection
-      : specSelectionRows[0]?.key
-    if (currentSelected === undefined) return next(e)
-    // First Enter: select the spec (show confirm prompt)
-    if (held.confirmSelecting !== currentSelected) {
-      await $.state.set(PANE_STATE, { ...held, confirmSelecting: currentSelected })
-      await showToast($, t(currentLang(), 'specs.confirmSelect', { id: currentSelected.slice('feature-'.length) }))
-      return e
-    }
-    // Second Enter: confirm and write feature.json
-    await $.state.set(PANE_STATE, { ...held, confirmSelecting: undefined })
-    const dir = currentSelected.slice('feature-'.length)
-    const feature = state.features.find(f => f.id === dir)
-    if (feature !== undefined && state.root !== undefined) {
-      await $.store.set(`feature:${state.root}`, dir).catch(() => undefined)
-      await showToast($, t(currentLang(), 'specs.selected', { id: dir, name: feature.name }))
-    }
-    return e
-  })
-
-  // Two-step Enter confirmation for task tick (045 #46): first Enter selects task, second confirms tick.
-  on('ui.input', { component: 'Pane', requestId: PANE_ID }, async ($, e, next) => {
-    const pane = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
-    if (e.element === 'astrolabe-filter' || e.kind !== 'submit' || pane.tab !== 'tasks') return next(e)
-    const state = (await $.state.get(SPECKIT)).value
-    if (state?.active === undefined) return next(e)
-    const held = pane
-    const tasks = state.activeTasks ?? []
-    const openTasks = tasks.filter(t => !t.isDone && t.id !== undefined)
-    if (openTasks.length === 0) return next(e)
-    // Find the currently selected task row (highlighted)
-    const currentTask = state.currentTask
-    const currentTaskId = currentTask?.id
-    if (currentTaskId === undefined) return next(e)
-    // First Enter: select the task (show confirm prompt)
-    if (held.confirmSelecting !== `task-${currentTaskId}`) {
-      await $.state.set(PANE_STATE, { ...held, confirmSelecting: `task-${currentTaskId}` })
-      await showToast($, t(currentLang(), 'tasks.confirmTick', { id: currentTaskId }))
-      return e
-    }
-    // Second Enter: confirm and tick the task
-    await $.state.set(PANE_STATE, { ...held, confirmSelecting: undefined })
-    // Tick the task by editing tasks.md
-    const task = openTasks.find(t => t.id === currentTaskId)
-    if (task !== undefined && task.line !== undefined && state.root !== undefined) {
-      const fs = fsOf($)
-      const taskFile = `${state.root}/specs/${state.active.dir}/${state.features.find(f => f.dir === state.active?.dir)?.track === 'quick' ? 'spec.md' : 'tasks.md'}`
-      const content = await fs.read(taskFile).catch(() => '')
-      const lines = content.split('\n')
-      if (task.line > 0 && task.line <= lines.length) {
-        const line = lines[task.line - 1]
-        if (line !== undefined && line.includes('[ ]')) {
-          lines[task.line - 1] = line.replace('[ ]', '[x]')
-          await fs.write?.(taskFile, lines.join('\n'))
-          await showToast($, t(currentLang(), 'tasks.ticked', { id: currentTaskId }))
-        }
-      }
-    }
+    const key = selectedSpecRow
+    if (key === undefined) return next(e)
+    // A task row: its spec folds, the way ← does in a file tree.
+    const taskMatch = /^task-(.+)-(?:T\d+|\d+)$/.exec(key)
+    const dir = taskMatch !== null ? taskMatch[1] : state.features.find(f => `feature-${f.id}` === key)?.dir
+    if (dir === undefined) return next(e)
+    const fold = toggled(dir, state.active?.dir, { ...(pane.opened === undefined ? {} : { opened: pane.opened }), ...(pane.closed === undefined ? {} : { closed: pane.closed }) })
+    const feature = state.features.find(f => f.dir === dir)
+    const { selectedTask: _gone, ...kept } = pane
+    await $.state.set(PANE_STATE, { ...kept, ...fold, ...(taskMatch !== null && feature !== undefined ? { selectedFeature: feature.id } : {}) })
+    if (state.root !== undefined) await $.store.set(`folds:${state.root}`, fold).catch(() => undefined)
     return e
   })
 
@@ -3656,45 +3732,39 @@ export const register: Register = (on, options) => {
     const needle = (specFilter ?? '').trim().toLowerCase()
     const keep = <R extends { key: string; text: string }>(list: R[]): R[] =>
       needle === '' ? list : list.filter(r => r.key === 'count' || r.text.toLowerCase().includes(needle))
-    const rows =
+    // The Specs tab is the tree of specs and their tasks (078); the 5h reset warning sits under the active spec.
+    let keptSpecs = 0
+    const rows: PaneRow[] =
       view === 'help'
         ? helpRows(helpText(currentLang(), optionsSeen, stats?.health?.lines ?? []), pane.filter, currentLang())
-        : view === 'tasks'
-        ? ((list, past) => [...list.slice(0, 1), ...past, ...list.slice(1)])(keep(taskRows(state, emptyMemo(), 1000, columns, currentLang(), await $.clock.now(), stats?.taskTimes ?? [])), await pastResetRows($, state, stats, usage))
         : view === 'session'
           ? await sessionTabRows($, state, usage, stats, updates, updatesRead.value?.confirming)
-          : [
-              ...specsRows(
-                { ...filtered(state, specFilter, pane.status, specFilterContext(stats)), features: withWorktreeProgress(filtered(state, specFilter, pane.status, specFilterContext(stats)).features, stats?.worktrees) },
-                columns,
-                currentLang(),
-                stats?.priorities ?? {},
-                worktreesById(stats?.worktrees),
-                (specFilter ?? '').trim() === '' && (pane.status ?? 'all') === 'all',
-                stats?.worktrees?.map(w => ({ name: w.name, id: w.id, featureName: w.featureName, phase: w.phase, done: w.done, total: w.total, status: worktreeState(w) })) ?? [],
-                e.surface === 'desktop',
-                pane.sort ?? 'status',
-                // Roadmap view (044 #40): read here, the core stays pure.
-                state.root === undefined ? undefined : roadmapCache.has(state.root) ? roadmapCache.get(state.root) : await $.fs.read(`${state.root}/docs/roadmap.md`).then(text => { roadmapCache.set(state.root!, text); return text }).catch(() => { roadmapCache.set(state.root!, undefined); return undefined }),
-                // Specs at scale (067): the view, the open blocks, the grouping and what Claude touched.
-                { ...(pane.view === undefined ? {} : { view: pane.view }), filtered: !((specFilter ?? '').trim() === '' && (pane.status ?? 'all') === 'all'), open: pane.open ?? [], group: pane.group ?? 'status', touched: stats?.touchedSpecs ?? [], planMissing: stats?.planMissing ?? {} },
-              ),
-            ]
+          : view === 'specs'
+            ? await (async () => {
+                const tree = await specsTreeRows($, e, state, stats, pane, specFilter, columns, await pastResetRows($, state, stats, usage))
+                keptSpecs = tree.kept
+                return tree.rows
+              })()
+            : []
     // A filter that keeps nothing says so (052 #7).
     const matchesNone =
       (needle !== '' || (view === 'specs' && (pane.status ?? 'all') !== 'all')) &&
-      (view === 'specs' ? filtered(state, specFilter, pane.status, specFilterContext(stats)).features.length === 0 && state.features.length > 0 : (view === 'tasks' || view === 'help') && rows.every(r => r.key === 'count'))
+      (view === 'specs' ? keptSpecs === 0 && state.features.length > 0 : view === 'help' && rows.length === 0)
     if (matchesNone && view === 'specs') rows.splice(0, rows.length, ...rows.filter(r => r.key !== 'empty'))
-    if (matchesNone) rows.push({ key: 'no-match', text: t(currentLang(), 'pane.noMatch', { filter: pane.filter?.trim() ?? '' }), role: 'muted' } as never)
+    if (matchesNone) rows.push({ key: 'no-match', text: t(currentLang(), 'pane.noMatch', { filter: pane.filter?.trim() ?? '' }), role: 'muted' })
     const { Box, Text, Button } = $.ui.resolve(e)
     const featureRowKeys = new Set(state.features.map(feature => `feature-${feature.id}`))
+    // The tree's selectable rows: each spec and each task (078).
     specSelectionRows = view === 'specs'
-      ? rows.flatMap((row, index) => featureRowKeys.has(row.key) && 'href' in row && row.href !== undefined ? [{ key: row.key, index }] : [])
+      ? rows.flatMap((row, index) => ((featureRowKeys.has(row.key) || row.task !== undefined) && row.href !== undefined ? [{ key: row.key, index }] : []))
       : []
     const activeSpecFeature = state.features.find(feature => feature.dir === state.active?.dir)
-    const preferredSelection = pane.selectedFeature === undefined
-      ? activeSpecFeature === undefined ? undefined : `feature-${activeSpecFeature.id}`
-      : `feature-${pane.selectedFeature}`
+    const preferredSelection =
+      pane.selectedTask !== undefined && specSelectionRows.some(row => row.key === pane.selectedTask)
+        ? pane.selectedTask
+        : pane.selectedFeature === undefined
+          ? activeSpecFeature === undefined ? undefined : `feature-${activeSpecFeature.id}`
+          : `feature-${pane.selectedFeature}`
     selectedSpecRow = specSelectionRows.some(row => row.key === preferredSelection)
       ? preferredSelection
       : specSelectionRows[0]?.key
@@ -3708,10 +3778,25 @@ export const register: Register = (on, options) => {
     const inProgress = state.features.filter(f => f.phase !== 'done' && f.phase !== 'abandoned').length
     const pullCount = stats?.pulls?.rows.length
     // The advisor review and gstack's skills that fit the selected spec's phase, under its row (051, 055, 061).
-    const reviewed = state.features.find(f => `feature-${f.id}` === selectedSpecRow)
+    const selectedTaskRow = rows.find(r => r.key === selectedSpecRow && r.task !== undefined)
+    const reviewed = selectedTaskRow?.task === undefined
+      ? state.features.find(f => `feature-${f.id}` === selectedSpecRow)
+      : state.features.find(f => f.dir === selectedTaskRow.task!.dir)
     const reviewedNext = reviewed === undefined ? undefined : nextFor(reviewed, reviewed.dir === state.active?.dir, state.isAnalyzed === true)
+    const taskRow = selectedTaskRow?.task
+    const taskButtons: Array<{ key: string; label: string; hotkey?: string; onPress: () => void }> =
+      view === 'specs' && reviewed !== undefined && taskRow !== undefined && 'Button' in $.ui.resolve(e)
+        ? [
+            // Astrolabe writes nothing to the project (spec 051): the tick goes to the prompt box for Claude.
+            { key: 'task-tick', label: t(currentLang(), 'task.tick'), hotkey: 'x', onPress: () => void $.prompt.suggest({ text: tickSuggestion(reviewed, taskRow) }).catch(() => undefined) },
+            { key: 'task-do', label: t(currentLang(), 'task.do'), onPress: () => void $.prompt.suggest({ text: doTaskSuggestion(reviewed, taskRow) }).catch(() => undefined) },
+            ...(taskRow.id === undefined ? [] : [{ key: 'task-copy', label: `⧉ ${taskRow.id}`, onPress: () => void copyNext($, taskRow.id!, e.surface) }]),
+          ]
+        : []
     const rowButtons: Array<{ key: string; label: string; hotkey?: string; onPress: () => void }> =
-      view === 'specs' && reviewed !== undefined && 'Button' in $.ui.resolve(e)
+      taskButtons.length > 0
+        ? taskButtons
+        : view === 'specs' && reviewed !== undefined && 'Button' in $.ui.resolve(e)
         ? [
             {
               key: 'advisor-review',
@@ -3729,6 +3814,19 @@ export const register: Register = (on, options) => {
             ...(reviewedNext === undefined
               ? []
               : [{ key: 'copy-next', label: `⧉ ${reviewedNext}`, onPress: () => void copyNext($, reviewedNext, e.surface) }]),
+            // Making this spec the active one asks twice, as before (044 #38, 078 FR-004).
+            ...(reviewed.dir !== state.active?.dir && state.root !== undefined
+              ? [{
+                  key: 'use-spec',
+                  label: pane.confirm === `use-${reviewed.id}` ? t(currentLang(), 'specs.confirmSelect', { id: reviewed.id }) : t(currentLang(), 'detail.use'),
+                  hotkey: 'u',
+                  onPress: () => void confirmPress($, `use-${reviewed.id}`, () => void (async () => {
+                    await $.store.set(`feature:${state.root}`, reviewed.dir).catch(() => undefined)
+                    await showToast($, t(currentLang(), 'specs.selected', { id: reviewed.id, name: reviewed.name }))
+                  })()),
+                }]
+              : []),
+            { key: 'priority', label: t(currentLang(), 'detail.priority'), hotkey: 'p', onPress: () => void setPriority($, reviewed.id, nextPriority(stats?.priorities?.[reviewed.id])).catch(() => undefined) },
             // Ready to close (067 #32): the edit is Claude's, offered in the prompt box.
             ...(isReadyToClose(reviewed)
               ? [{ key: 'close-spec', label: t(currentLang(), 'detail.close'), onPress: () => void $.prompt.suggest({ text: closeSuggestion(reviewed) }).catch(() => undefined) }]
@@ -3737,7 +3835,7 @@ export const register: Register = (on, options) => {
         : []
     // The line above those buttons: what the spec needs, at a glance (061).
     const rowDetail =
-      reviewed === undefined || view !== 'specs'
+      reviewed === undefined || view !== 'specs' || taskRow !== undefined
         ? undefined
         : specDetail(reviewed, {
             ...(stats?.priorities?.[reviewed.id] === undefined ? {} : { priority: stats.priorities[reviewed.id]! }),
@@ -3748,19 +3846,14 @@ export const register: Register = (on, options) => {
           })
     // The selected spec's first line of summary, one dim row under its detail (board 3).
     const rowDescription =
-      reviewed === undefined || view !== 'specs' || reviewed.dir !== state.active?.dir || state.activeSummary === undefined
+      reviewed === undefined || view !== 'specs' || taskRow !== undefined || reviewed.dir !== state.active?.dir || state.activeSummary === undefined
         ? undefined
         : state.activeSummary.split('\n').map(l => l.replace(/^#+\s*/, '').trim()).find(l => l !== '' && !/^[-*>|`]/.test(l))
-    // Under the Tasks list: the [P] run as one prompt (054 #89) and the open tasks as issues (050 #96).
+    // Under the tasks-only list: the open tasks as issues (050 #96). The [P] run is an action row in the tree.
     const taskActions: Array<{ key: string; label: string; onPress: () => void }> = []
-    if (view === 'tasks' && state.active !== undefined && 'Button' in $.ui.resolve(e)) {
+    if (view === 'specs' && pane.tasksOnly === true && state.active !== undefined && 'Button' in $.ui.resolve(e)) {
       const open = (state.activeTasks ?? []).filter(task => !task.isDone)
       const feature = state.features.find(f => f.dir === state.active?.dir)
-      const run = parallelTasks(open)
-      if (feature !== undefined && run.length >= 2) {
-        const picked = open.filter(task => task.id !== undefined && run.includes(task.id))
-        taskActions.push({ key: 'parallel-dispatch', label: t(currentLang(), 'parallel.button', { ids: run.join(', ') }), onPress: () => void $.clock.after(0, () => void $.prompt.submit({ text: parallelPrompt(feature, picked) }).catch(() => undefined)) })
-      }
       if (feature !== undefined && open.length > 0) {
         const confirmKey = `issues-${feature.id}`
         const n = Math.min(open.length, 20)
@@ -3827,14 +3920,6 @@ export const register: Register = (on, options) => {
             } },
           }
         : {}),
-      ...(view === 'specs' && state.active !== undefined
-        ? {
-            onPriority: async () => {
-              const id = state.active!.id
-              await setPriority($, id, nextPriority((await $.state.get(SESSION)).value?.priorities?.[id]))
-            },
-          }
-        : {}),
       // file: links open only from the terminal; the desktop draws them as plain text, so none there.
       ...((el => ('Link' in el && e.surface === 'terminal' ? { Link: el.Link } : {}))($.ui.resolve(e))),
       onRefresh: () => refreshNow($).catch(() => undefined),
@@ -3847,13 +3932,13 @@ export const register: Register = (on, options) => {
       // v toggles Focus and All, g cycles the grouping, a block header opens and folds (067 #31, #39).
       ...(view === 'specs'
         ? {
-            view: {
+            ...(state.features.length > 12 || pane.view !== undefined ? { view: {
               label: t(currentLang(), pane.view === 'all' ? 'pane.view.all' : state.features.length > 12 || pane.view === 'focus' ? 'pane.view.focus' : 'pane.view.list'),
               onPress: async () => {
                 const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
                 await $.state.set(PANE_STATE, { ...held, view: held.view === 'all' ? 'focus' : 'all' })
               },
-            },
+            } } : {}),
             ...(pane.view === 'all'
               ? {
                   group: {
@@ -3871,6 +3956,35 @@ export const register: Register = (on, options) => {
               if (open.has(key)) open.delete(key)
               else open.add(key)
               await $.state.set(PANE_STATE, { ...held, open: [...open] })
+            },
+          }
+        : {}),
+      // t shows only the active spec's tasks, e opens or folds every spec (078 FR-005, FR-009).
+      ...(view === 'specs'
+        ? {
+            tasksOnly: {
+              label: t(currentLang(), pane.tasksOnly === true ? 'tree.allSpecs' : 'tree.tasksOnly'),
+              onPress: async () => {
+                const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
+                const { tasksOnly: _was, ...rest } = held
+                await $.state.set(PANE_STATE, held.tasksOnly === true ? rest : { ...rest, tasksOnly: true })
+              },
+            },
+            openAll: {
+              label: t(currentLang(), 'tree.openAll'),
+              onPress: async () => {
+                const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
+                const fold = allToggled(state.features.filter(f => f.total > 0).map(f => f.dir), state.active?.dir, { ...(held.opened === undefined ? {} : { opened: held.opened }), ...(held.closed === undefined ? {} : { closed: held.closed }) })
+                await $.state.set(PANE_STATE, { ...held, ...fold })
+                if (state.root !== undefined) await $.store.set(`folds:${state.root}`, fold).catch(() => undefined)
+              },
+            },
+            onAsk: (id: string) => void $.prompt.suggest({ text: questionSuggestion(id) }).catch(() => undefined),
+            onParallel: (id: string) => {
+              const [dir, ...ids] = id.split('\n')
+              const feature = state.features.find(f => f.dir === dir)
+              const picked = (dir === state.active?.dir ? state.activeTasks ?? [] : []).filter(task => task.id !== undefined && ids.includes(task.id))
+              if (feature !== undefined && picked.length > 0) void $.clock.after(0, () => void $.prompt.submit({ text: parallelPrompt(feature, picked) }).catch(() => undefined))
             },
           }
         : {}),
@@ -3896,10 +4010,10 @@ export const register: Register = (on, options) => {
           }
         : {}),
       onCopy: (text: string) => copyNext($, text, e.surface),
-      onFind: view === 'specs' || view === 'tasks' || view === 'help' || view === 'setup' ? () => $.ui.focus({ requestId: PANE_ID, key: 'astrolabe-filter' }).then(() => undefined) : undefined,
+      onFind: view === 'specs' || view === 'help' || view === 'setup' ? () => $.ui.focus({ requestId: PANE_ID, key: 'astrolabe-filter' }).then(() => undefined) : undefined,
       // What the tab is for, then its keys; a narrow pane keeps the keys whole (052 #3).
       // Nothing under the Tasks list but its actions: the key row names the keys (board 3, 075 FR-012).
-      ...(view === 'tasks'
+      ...(view === 'specs' && pane.tasksOnly === true
         ? {}
         : {
             legend: ((about: string, keys: string) => ([...`${about} · ${keys}`].length <= columns ? `${about} · ${keys}` : keys))(
@@ -4035,24 +4149,15 @@ export const register: Register = (on, options) => {
       return paneTree({ Box, Text, Button }, pane.tab, [], tokens, select, body, currentLang(), [], await footerFor(pad), nav, extras)
     }
     if (view !== 'session') {
-      const allTaskRows = view === 'tasks'
-        ? taskRows(state, emptyMemo(), Number.MAX_SAFE_INTEGER, columns, currentLang())
-        : []
-      const taskFilterRows = allTaskRows.filter(row => row.key.startsWith('task-') && (needle === '' || row.text.toLowerCase().includes(needle)))
       const filterCount =
         view === 'specs'
-          ? { kept: filtered(state, specFilter, pane.status, specFilterContext(stats)).features.length, total: state.features.length }
-          : view === 'tasks'
+          ? { kept: keptSpecs, total: state.features.length }
+          : view === 'help'
             ? {
-                kept: taskFilterRows.length,
-                total: allTaskRows.filter(row => row.key.startsWith('task-')).length,
+                kept: rows.filter(row => row.key !== 'no-match').length,
+                total: helpRows(helpText(currentLang(), optionsSeen, stats?.health?.lines ?? []), undefined, currentLang()).length,
               }
-            : view === 'help'
-              ? {
-                  kept: rows.filter(row => row.key !== 'no-match').length,
-                  total: helpRows(helpText(currentLang(), optionsSeen, stats?.health?.lines ?? []), undefined, currentLang()).length,
-                }
-              : undefined
+            : undefined
       const nowForHeader = await $.clock.now()
       const header = paneHeader($, e, pane, state, stats, filterCount, nowForHeader)
       // Rows the header takes: the filter, the summary's lines and links, the diff's lines.
@@ -4062,13 +4167,11 @@ export const register: Register = (on, options) => {
         (rowDetail === undefined ? 0 : 1) +
         (rowDescription === undefined ? 0 : 1) +
         (taskActions.length > 0 ? taskActions.length : 0) +
-        (view === 'specs'
-          ? 0
-          : view === 'tasks' && stats?.tasksDiff !== undefined && stats.tasksDiff.dir === state.active?.dir
-            ? stats.tasksDiff.at !== undefined && nowForHeader - stats.tasksDiff.at > DIFF_FOLD_MS
-              ? 1
-              : wrappedRows(capDiff(stats.tasksDiff.text, currentLang()), columns - 2)
-            : 0)
+        (view === 'specs' && pane.tasksOnly === true && stats?.tasksDiff !== undefined && stats.tasksDiff.dir === state.active?.dir
+          ? stats.tasksDiff.at !== undefined && nowForHeader - stats.tasksDiff.at > DIFF_FOLD_MS
+            ? 1
+            : wrappedRows(capDiff(stats.tasksDiff.text, currentLang()), columns - 2)
+          : 0)
       const room = bodyRows - 1 - headerRows - footerReserve
       const { win, pad, nav } = navFor(rows.map(() => 1), room)
       const footer = await footerFor(pad)

@@ -59,10 +59,9 @@ export const buildHelp = (lang: Lang, optionsSeen: Readonly<Record<string, unkno
     `  ${t(lang, 'help.tabs')}`,
     `  ${t(lang, 'help.filterSyntax')}`,
     `  1 ${t(lang, 'tab.specs').padEnd(labelWidth)} ${t(lang, 'help.specs')}`,
-    `  2 ${t(lang, 'tab.tasks').padEnd(labelWidth)} ${t(lang, 'help.tasksTab')}`,
-    `  3 ${t(lang, 'tab.session').padEnd(labelWidth)} ${t(lang, 'help.sessionTab')} · ${t(lang, 'help.dashboardTab')}`,
-    `  4 ${t(lang, 'tab.prs').padEnd(labelWidth)} ${t(lang, 'help.prsTab')}`,
-    `  5 ${t(lang, 'tab.setup').padEnd(labelWidth)} ${t(lang, 'help.configTab')} · ${t(lang, 'help.modelsTab')}`,
+    `  2 ${t(lang, 'tab.session').padEnd(labelWidth)} ${t(lang, 'help.sessionTab')} · ${t(lang, 'help.dashboardTab')}`,
+    `  3 ${t(lang, 'tab.prs').padEnd(labelWidth)} ${t(lang, 'help.prsTab')}`,
+    `  4 ${t(lang, 'tab.setup').padEnd(labelWidth)} ${t(lang, 'help.configTab')} · ${t(lang, 'help.modelsTab')}`,
     `  ? ${t(lang, 'tab.help').padEnd(labelWidth)} ${t(lang, 'help.helpTab')}`,
     // The keys grouped by tab, and one example per filter of the Specs filter language (066 #29).
     ...(['pane', 'specs', 'tasks', 'session', 'prs', 'setup', 'examples'] as const).map(group => `  ${t(lang, `help.keys.${group}` as TextKey)}`),
@@ -101,7 +100,6 @@ export const DOC_LINKS = [
 
 export const ABOUT: Readonly<Record<PaneView, TextKey>> = {
   specs: 'help.specs',
-  tasks: 'help.tasksTab',
   session: 'help.sessionTab',
   prs: 'help.prsTab',
   setup: 'help.configTab',

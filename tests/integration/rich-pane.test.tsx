@@ -59,7 +59,7 @@ describe('the rich pane (024)', () => {
     const body = (await ui.find({ key: 'astrolabe-pane-body' }))?.text ?? ''
     expect(body).toContain('No rows hold "zzz"; press c to see them all.')
     expect(body).not.toContain('No features yet')
-    await ui.press({ key: 'tab-tasks' })
+    await ui.press({ key: 'tasks-only' })
     expect((await ui.find({ key: 'astrolabe-pane-body' }))?.text).toContain('No rows hold "zzz"')
     await ui.unmount()
   })
@@ -82,7 +82,7 @@ describe('the rich pane (024)', () => {
     files['/proj/specs/002-band/tasks.md'] = tasks(2, 2)
     await completeTurn($)
     const ui = await mount($ as never)
-    await ui.press({ key: 'tab-tasks' })
+    await ui.press({ key: 'tasks-only' })
     const diff = await ui.find({ type: 'Code' })
     expect(diff?.props['source']).toBe('@@ -4,1 +4,1 @@\n-- [ ] T002 task 2\n+- [x] T002 task 2\n')
     expect(diff?.props['format']).toBe('diff')

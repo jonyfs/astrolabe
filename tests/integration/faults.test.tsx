@@ -16,7 +16,7 @@ describe('fault injection (049 #89)', () => {
     await startSession($ as never, '/proj')
     await completeTurn($ as never)
     const ui = await mountPane($ as never, 'terminal', 100, 40)
-    for (const tab of ['specs', 'tasks', 'session', 'prs', 'setup']) {
+    for (const tab of ['specs', 'session', 'prs', 'setup']) {
       await ui.press(`tab-${tab}`)
       expect(typeof (await ui.body())).toBe('string')
     }

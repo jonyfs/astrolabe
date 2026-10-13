@@ -2,9 +2,13 @@ import { describe, expect, test } from 'claude-code/testing'
 
 import { badgesOf, legacyTab, legendOf, paneTitle, TABS } from '../../hooks/core/pane-tabs'
 
-describe('five tabs (066 #21)', () => {
-  test('Specs, Tasks, Session, PRs and Setup, on 1 to 5', () => {
-    expect(TABS.map(t => [t.tab, t.hotkey])).toEqual([['specs', '1'], ['tasks', '2'], ['session', '3'], ['prs', '4'], ['setup', '5']])
+describe('four tabs (066 #21, 078 FR-001)', () => {
+  test('Specs, Session, PRs and Setup, on 1 to 4: the digits follow the tab order', () => {
+    expect(TABS.map(t => [t.tab, t.hotkey])).toEqual([['specs', '1'], ['session', '2'], ['prs', '3'], ['setup', '4']])
+  })
+
+  test('a stored Tasks tab opens Specs, where the tasks are now', () => {
+    expect(legacyTab('tasks')).toBe('specs')
   })
 
   test('a stored tab of the old eight maps to its new tab', () => {
@@ -24,8 +28,10 @@ describe('badges count what needs the person (066 #23)', () => {
     expect(badgesOf({ inProgress: 0, openTasks: 0, pulls: 0, governor: 'ok' })).toEqual({})
     expect(badgesOf({ governor: 'throttle' })).toEqual({})
   })
-  test('features in progress, open tasks of the active feature, open pull requests', () => {
-    expect(badgesOf({ inProgress: 2, openTasks: 11, pulls: 1, governor: 'ok' })).toEqual({ specs: '2', tasks: '11', prs: '1' })
+  test('one badge for specs in progress and the open tasks of the active spec, and open pull requests (078 FR-014)', () => {
+    expect(badgesOf({ inProgress: 2, openTasks: 11, pulls: 1, governor: 'ok' })).toEqual({ specs: '2·11', prs: '1' })
+    expect(badgesOf({ inProgress: 2, openTasks: 0 })).toEqual({ specs: '2' })
+    expect(badgesOf({ inProgress: 0, openTasks: 4 })).toEqual({ specs: '4' })
   })
   test('Session shows ▲ only while the governor holds or pauses, never a total', () => {
     expect(badgesOf({ governor: 'hold' })).toEqual({ session: '▲' })
@@ -39,13 +45,16 @@ describe('badges count what needs the person (066 #23)', () => {
 })
 
 describe('the legend row holds key-verb pairs (066 #22)', () => {
-  test('Specs: filter, status, order, view, group, priority, advisor, refresh', () => {
+  test('Specs names six keys: filter, tasks only, status, order, open all, refresh (078 FR-015)', () => {
     const pairs = legendOf('specs', { wide: true })
-    expect(pairs.map(p => p.verb)).toEqual(['filter', 'status', 'order', 'view', 'group', 'priority', 'advisor', 'refresh'])
-    expect(pairs.map(p => p.hotkey)).toEqual(['f', 's', 'o', 'v', 'g', 'p', 'a', 'r'])
+    expect(pairs.map(p => p.verb)).toEqual(['filter', 'tasks only', 'status', 'order', 'open all', 'refresh'])
+    expect(pairs.map(p => p.hotkey)).toEqual(['f', 't', 's', 'o', 'e', 'r'])
+  })
+  test('no tab names more than six keys', () => {
+    for (const tab of ['specs', 'session', 'prs', 'setup'] as const) expect(legendOf(tab, { wide: true }).length).toBeLessThanOrEqual(6)
   })
   test('no verb carries a hotkey prefix', () => {
-    for (const tab of ['specs', 'tasks', 'session', 'prs', 'setup'] as const) {
+    for (const tab of ['specs', 'session', 'prs', 'setup'] as const) {
       for (const pair of legendOf(tab, { wide: true })) expect(pair.verb).not.toMatch(/^[a-z?/]:|^[a-z] /)
     }
   })
@@ -55,8 +64,7 @@ describe('the legend row holds key-verb pairs (066 #22)', () => {
     expect(narrow.map(p => p.hotkey)).toEqual(wide.map(p => p.hotkey))
     expect(narrow.every((p, i) => [...p.verb].length <= [...wide[i]!.verb].length)).toBe(true)
   })
-  test('Tasks and Setup have their own pairs', () => {
-    expect(legendOf('tasks', { wide: true }).map(p => p.verb)).toEqual(['filter', 'refresh'])
+  test('Setup, Session and PRs have their own pairs', () => {
     expect(legendOf('setup', { wide: true }).map(p => p.verb)).toEqual(['filter', 'refresh'])
     expect(legendOf('session', { wide: true }).map(p => p.verb)).toEqual(['copy kpis', 'refresh'])
     expect(legendOf('prs', { wide: true }).map(p => p.verb)).toEqual(['refresh'])

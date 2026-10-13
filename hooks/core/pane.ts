@@ -1,28 +1,25 @@
 // What each tab of the /astrolabe pane says (contracts/pane.md). Pure: no $.
 import { t as tr, type Lang, type TextKey } from './i18n'
 import { formatElapsed, cleanTaskText } from './spinner'
-import { parallelTasks } from './extensions'
+import { foldGlyph, isOpen, type Fold } from './pane-tree'
 import { ageOf } from './pulls'
 import { fileUrl } from './paths'
-import { byPriority, priorityMark, taskFiles, type Priorities, type Priority } from './spec-actions'
-import { parseTasks } from './tasks-parser'
-import { STATE_GLYPHS } from './glyphs'
+import { byPriority, priorityMark, type Priorities, type Priority } from './spec-actions'
 import { phaseShort } from './phase'
-import { duration } from './duration'
 import { idWidth, padId } from './ids'
 import { blockLabel, blocksOf, checksLine, checksOf, countsOf, countsText, groupKeyOf, loadingRuns, runLabel, type SpecGroup, type SpecView } from './specs-scale'
 import { STATUS_ROLE, type ThemeRole } from './theme'
-import type { Feature, SessionMemo, SpeckitState } from './types'
+import type { Feature, SpeckitState } from './types'
 
 /** A row; `segments`, when given, colour parts of `text` (which stays their join) (052 #12). */
-export type PaneRow = { key: string; text: string; role: ThemeRole; bold?: boolean; selected?: boolean; label?: string; value?: string; action?: { id: string; label: string; hotkey?: string; kind?: 'allow' | 'revoke' | 'update' | 'lift' | 'close' | 'reconcile' }; copy?: string; href?: string; links?: ReadonlyArray<{ label: string; href: string }>; segments?: ReadonlyArray<{ text: string; role: ThemeRole }>; /** Drawn on a background: the current task's block (board 3). */ highlight?: true }
+export type PaneRow = { key: string; text: string; role: ThemeRole; bold?: boolean; selected?: boolean; label?: string; value?: string; action?: { id: string; label: string; hotkey?: string; kind?: 'allow' | 'revoke' | 'update' | 'lift' | 'close' | 'reconcile' | 'ask' | 'parallel' }; copy?: string; href?: string; links?: ReadonlyArray<{ label: string; href: string }>; segments?: ReadonlyArray<{ text: string; role: ThemeRole }>; /** Drawn on a background: the current task's block (board 3). */ highlight?: true; /** The task a row of the tree stands for (078). */ task?: { dir: string; id?: string; line?: number; text: string } }
 
 /** Nine cells of `▰▱`, as the Specs rows of board 3 draw them. */
 const BAR_CELLS = 9
-const noSpeckit = (lang: Lang): PaneRow => ({ key: 'none', text: tr(lang, 'pane.noSpeckit'), role: 'muted' })
+export const noSpeckit = (lang: Lang): PaneRow => ({ key: 'none', text: tr(lang, 'pane.noSpeckit'), role: 'muted' })
 
-const width = (text: string): number => [...text].length
-const cut = (text: string, room: number): string =>
+export const width = (text: string): number => [...text].length
+export const cut = (text: string, room: number): string =>
   width(text) <= room ? text : room < 2 ? '' : `${[...text].slice(0, room - 1).join('').trimEnd()}…`
 
 /**
@@ -41,7 +38,7 @@ const trackTag = (f: Feature, lang: Lang): string => {
 }
 
 /** What a row shows besides the feature: the name column's width and the skill running on it (044). */
-type RowContext = { nameWidth: number; countWidth: number; idWidth?: number; bare?: boolean; running?: string; priority?: Priority; worktrees?: readonly string[]; wrapLongNames?: boolean; lang: Lang; now: number }
+type RowContext = { fold?: string; nameWidth: number; countWidth: number; idWidth?: number; bare?: boolean; running?: string; priority?: Priority; worktrees?: readonly string[]; wrapLongNames?: boolean; lang: Lang; now: number }
 
 /** One colour per phase, the rail's (054 #71). */
 const PHASE_ROLE: Partial<Record<Feature['phase'], ThemeRole>> = { specify: 'muted', clarify: 'current', plan: 'barFill', tasks: 'accent', implement: 'current', done: 'done' }
@@ -56,7 +53,8 @@ const featureRow = (f: Feature, isActive: boolean, columns: number, ctx: RowCont
   // Ids padded to the widest, so every name starts in one column (054 #25).
   // The priority arrow takes the mark's place when there is one (board 3: `▸ ↑ 002`).
   const arrow = priorityMark(ctx.priority).trim()
-  const head = `${isActive ? '▸' : ' '} ${arrow !== '' ? arrow : markOf(f, isActive, ctx.bare === true)} ${padId(f.id, ctx.idWidth ?? 0)} `
+  // A spec with tasks to show carries `▾` open or `▸` folded in column 0 (078); otherwise `▸` marks the active one as before.
+  const head = `${ctx.fold ?? (isActive ? '▸' : ' ')} ${arrow !== '' ? arrow : markOf(f, isActive, ctx.bare === true)} ${padId(f.id, ctx.idWidth ?? 0)} `
   // A figure the files do not give prints ?, never 0% or a blank (067 #37): from the tasks phase on, a spec has tasks.
   const unknown = f.total === 0 && (f.phase === 'tasks' || f.phase === 'implement' || f.phase === 'done')
   const percent = f.total > 0 ? `${Math.floor((f.done * 100) / f.total)}%`.padStart(4) : unknown ? '?%'.padStart(4) : ''
@@ -192,7 +190,9 @@ const buildSpecsRows = (
     const now = Date.now()
     // The Focus view lists open specs under their section: no `·` before the id there (board 6).
     const focusView = (scale?.view ?? (state.features.length > 12 ? 'focus' : undefined)) === 'focus' && scale?.filtered !== true
-    const row = featureRow(f, activeDir === f.dir, columns - 2, { ...ctx, bare: focusView, wrapLongNames, ...(running !== undefined && f.dir === activeDir ? { running } : {}), ...(priorities[f.id] === undefined ? {} : { priority: priorities[f.id]! }), ...(worktrees[f.id] === undefined ? {} : { worktrees: worktrees[f.id]! }), lang, now })
+    const hasKids = f.total > 0 || (f.clarifications ?? 0) > 0
+    const fold = scale?.tree === undefined ? undefined : hasKids ? foldGlyph(isOpen(f.dir, activeDir, scale.tree)) : ' '
+    const row = featureRow(f, activeDir === f.dir, columns - 2, { ...ctx, ...(fold === undefined ? {} : { fold }), bare: focusView, wrapLongNames, ...(running !== undefined && f.dir === activeDir ? { running } : {}), ...(priorities[f.id] === undefined ? {} : { priority: priorities[f.id]! }), ...(worktrees[f.id] === undefined ? {} : { worktrees: worktrees[f.id]! }), lang, now })
     // A link to the feature's spec.md (044 #35).
     const root = state.root
     // Its plan.md and tasks.md too, once they exist (054 #77); a quick spec keeps its tasks in spec.md.
@@ -448,124 +448,7 @@ export const moveSpecSelection = (
   return to === from && found >= 0 ? undefined : rows[to]?.key
 }
 
-/** A section heading as the story it names: `Phase 3: User Story 3 - Cart page (P1)` reads `US3 Cart page`. */
-export const storyLabel = (heading: string): string => {
-  const m = /User Story\s+(\d+)(?:\s*[-–—:]\s*(.+?))?(?:\s*\([^)]*\))?\s*$/i.exec(heading)
-  if (m === null) return heading
-  return m[2] === undefined ? `US${m[1]}` : `US${m[1]} ${m[2]}`
-}
-
-/** A test task: it writes tests, or names a tests/ path (board 3). */
-const TEST_TASK = /\b(?:write|add)\b[^.]*\btests?\b|\btests?\//i
-
-export const taskRows = (
-  state: SpeckitState,
-  memo: SessionMemo,
-  rows: number,
-  columns: number,
-  lang: Lang = 'en',
-  now?: number,
-  /** What the done tasks took, from the session (045 #47). */
-  times: ReadonlyArray<{ dir: string; id: string; ms: number }> = [],
-): PaneRow[] => {
-  const active = state.active
-  if (!state.present) return [noSpeckit(lang)]
-  if (active === undefined) return [{ key: 'none', text: tr(lang, 'pane.noActive'), role: 'muted' }]
-  const tasks = state.activeTasks ?? parseTasks(memo.files[active.dir]?.tasks ?? '')
-  const open = tasks.filter(t => !t.isDone)
-  // Which feature these are, its phase and its count (052 #17).
-  const phase = state.features.find(f => f.dir === active.dir)?.phase
-  const count = tr(lang, 'pane.count', { done: tasks.length - open.length, total: tasks.length })
-  // What is left at the pace of the tasks done so far this session (066 #9 of the board): two samples at least.
-  const samples = times.filter(x => x.dir === active.dir && x.ms > 0)
-  const estimate = samples.length >= 2 && open.length > 0 ? tr(lang, 'pane.estimate', { time: duration(Math.round(samples.reduce((n, x) => n + x.ms, 0) / samples.length) * open.length) }) : undefined
-  const out: PaneRow[] = [{ key: 'count', text: cut([`${active.id} ${active.name}`, phase, count, estimate].filter(x => x !== undefined).join(' · '), columns), role: 'muted' }]
-  if (tasks.length === 0) {
-    let requirementsShown = false
-    // Quick specs show their Requirements as a checklist (045 #49).
-    const feature = state.features.find(f => f.dir === active.dir)
-    const spec = memo.files[active.dir]?.spec
-    const requirements = feature?.track === 'quick' && spec !== undefined && spec.includes('## Requirements')
-      ? spec.split(/\r?\n/)
-      : undefined
-    if (requirements) {
-      const requirementsIndex = requirements.findIndex(line => /^##\s+Requirements/i.test(line))
-      const tasksIndex = requirements.findIndex(line => /^##\s+Tasks\s*$/i.test(line))
-      if (requirementsIndex >= 0 && tasksIndex > requirementsIndex) {
-        const reqLines = requirements.slice(requirementsIndex + 1, tasksIndex).filter(l => /^\s*[-*+]\s+\[[ xX]\]/.test(l))
-        if (reqLines.length > 0) {
-          const reqTasks = reqLines.map((l, i) => ({ line: parseTasks(reqLines.join('\n'))[i]?.line ?? 0, text: l, isDone: /^\s*\[x\]/i.test(l) }))
-          // Show Requirements as a checklist
-          const requirementsText = reqTasks.map((t, i) => `${t.isDone ? '☑' : '☐'} ${t.text}`).join('\n')
-          out.push({ key: 'requirements', text: cut(`${tr(lang, 'pane.requirements')}:`, columns), role: 'muted' })
-          out.push({ key: 'requirements-list', text: requirementsText, role: 'text' })
-          requirementsShown = true
-        }
-      }
-    }
-    if (!requirementsShown) return [{ key: 'no-tasks', text: tr(lang, 'pane.noTasks'), role: 'muted' }]
-  }
-  if (open.length === 0) return [...out, { key: 'all-done', text: tr(lang, 'pane.allTicked'), role: 'done' }]
-  // Done tasks folded under one row (045 #41).
-  const done = tasks.filter(t => t.isDone && t.id !== undefined).map(t => t.id!)
-  // The fold row counts what it folds (052 #23).
-  // The time they took, from the session's task times (045 #47).
-  const took = times.filter(x => x.dir === active.dir && done.includes(x.id)).reduce((sum, x) => sum + x.ms, 0)
-  const tookText = took > 0 ? ` · ${duration(took)}` : ''
-  if (done.length > 0) out.push({ key: 'done-folded', text: cut(`${tr(lang, 'pane.folded', { n: done.length, ids: done.length === 1 ? done[0]! : `${done[0]}…${done.at(-1)}` })}${tookText}`, columns), role: 'faint' })
-  const room = Math.max(1, rows - 1)
-  const shown = open.length <= room ? open : open.slice(0, room - 1)
-  // A run of [P] tasks at the head can go to subagents at once (020c #19); the line drops when
-  // brackets already draw a run of two or more (052 #21).
-  const parallel = parallelTasks(tasks)
-  const bracketed = shown.some((t, i) => t.text.includes('[P]') && shown[i + 1]?.text.includes('[P]') === true)
-  if (parallel.length > 0 && !bracketed) out.push({ key: 'parallel', text: tr(lang, 'pane.parallel', { ids: parallel.join(', ') }), role: 'accent' })
-  // [P] tasks (045 #43): a run of them is bracketed, a lone one is marked ⇉.
-  const isP = (i: number) => shown[i]?.text.includes('[P]') === true
-  // A run draws a bracket at the right edge (┐ ┤ ┘ with P); a lone one is a P (066, board 3).
-  const bracketOf = (i: number): string => {
-    if (!isP(i)) return ''
-    const before = isP(i - 1)
-    const after = isP(i + 1)
-    return before && after ? '┤ P' : before ? '┘ P' : after ? '┐ P' : 'P'
-  }
-  // Ids padded to the widest shown, so the text column lines up (052 #22).
-  const taskIdWidth = idWidth(shown.flatMap(t => (t.id === undefined ? [] : [t.id])), 0)
-  let story: string | undefined
-  // Each task links to its line (054 #78); a quick spec keeps its tasks in spec.md.
-  const taskFile = state.root === undefined ? undefined : `${state.root}/specs/${active.dir}/${state.features.find(f => f.dir === active.dir)?.track === 'quick' ? 'spec.md' : 'tasks.md'}`
-  for (const [index, t] of shown.entries()) {
-    // The user story a run of tasks belongs to (045 #44).
-    if (t.story !== undefined && t.story !== story) {
-      story = t.story
-      // Each story carries its own count (052 #18).
-      const inStory = tasks.filter(x => x.story === t.story)
-      out.push({ key: `story-${t.line ?? index}`, text: cut(`${storyLabel(t.story)} ${inStory.filter(x => x.isDone).length}/${inStory.length}`, columns), role: 'muted' })
-    }
-    // The task being worked on (045 #42): marked, with how long it has run.
-    const current = state.currentTask
-    const isCurrent = current !== undefined && t.id !== undefined && current.id === t.id
-    const ran = isCurrent && now !== undefined && current.startedAt !== undefined ? duration(now - current.startedAt) : ''
-    // A running task in a [P] run keeps its bracket beside the clock.
-    const bracket = bracketOf(index)
-    const clock = ran === '' || ran === '?' ? bracket : bracket === '' ? `${STATE_GLYPHS.elapsed} ${ran}` : `${bracket} ${STATE_GLYPHS.elapsed} ${ran}`
-    // `▶` the task being worked on, `○` each one waiting (board 3); a test task carries a tag at the edge.
-    const tag = !isCurrent && TEST_TASK.test(cleanTaskText(t.text)) ? tr(lang, 'tasks.tag.test') : ''
-    const edge = [tag, clock].filter(x => x !== '').join(' ')
-    const head = `${isCurrent ? '▶ ' : '  ○ '}${t.id === undefined ? '' : `${padId(t.id, taskIdWidth)} `}`
-    // The ◷ sits at the right edge, the current row in bold (052 #20).
-    // The `↗` link after the row takes three cells: the edge text stops short of it.
-    const room = taskFile === undefined || t.line === undefined ? columns : columns - 3
-    const body = `${head}${cut(cleanTaskText(t.text), room - width(head) - width(edge) - (edge === '' ? 0 : 2))}`.trimEnd()
-    const line = edge === '' ? body : `${body}${' '.repeat(Math.max(2, room - width(body) - width(edge)))}${edge}`
-    const named = isCurrent ? taskFiles(t.text) : []
-    out.push({ key: `task-${t.id ?? index}`, text: line, role: isCurrent ? 'current' : 'text', ...(isCurrent ? { bold: true, highlight: true as const } : {}), ...(taskFile === undefined || t.line === undefined ? {} : { href: `${fileUrl(taskFile)}#L${t.line}` }) })
-    // The files the current task names, under it, in the same block (045 #45).
-    if (named.length > 0) out.push({ key: `task-files-${t.id ?? index}`, text: cut(`      ${named.join(' · ')}`, columns), role: 'faint', highlight: true })
-  }
-  if (shown.length < open.length) out.push({ key: 'more', text: tr(lang, 'pane.more', { n: open.length - shown.length }), role: 'muted' })
-  return out
-}
+export { storyLabel, TEST_TASK } from './pane-tree'
 
 export const sessionRows = (state: SpeckitState, now: number, lang: Lang = 'en', labelWidth = 14): PaneRow[] => {
   if (!state.present) {
@@ -642,6 +525,8 @@ export type ScaleOptions = {
   filtered?: boolean
   /** Files plan.md names that are not there, by feature dir, from the reconcile's own reads. */
   planMissing?: Readonly<Record<string, readonly string[]>>
+  /** The tree's folds (078): a spec row carries `▾` or `▸` when it has tasks to show. */
+  tree?: Fold
 }
 
 export type SpecSort = 'status' | 'progress' | 'name'
@@ -725,12 +610,12 @@ export const filterFeatures = <F extends Filterable>(
   filter: string | undefined,
   activeDir: string | undefined,
   status: StatusFilter = 'all',
-  context: { priorities?: Priorities; worktrees?: Readonly<Record<string, readonly string[]>> } = {},
+  context: { priorities?: Priorities; worktrees?: Readonly<Record<string, readonly string[]>>; /** Specs one of whose tasks holds the words (078). */ taskDirs?: ReadonlySet<string> } = {},
 ): F[] => {
   const f = parseSpecFilter(filter)
   const wanted = f.is === 'active' ? undefined : f.is ?? (status === 'all' ? undefined : status)
   return features.filter(x => {
-    if (f.words !== '' && !`${x.id} ${x.name}`.toLowerCase().includes(f.words)) return false
+    if (f.words !== '' && !`${x.id} ${x.name}`.toLowerCase().includes(f.words) && context.taskDirs?.has(x.dir) !== true) return false
     if (wanted !== undefined && sectionOf(x, activeDir) !== wanted) return false
     if (f.is === 'active' && x.dir !== activeDir) return false
     if (f.phase !== undefined && x.phase !== f.phase) return false
