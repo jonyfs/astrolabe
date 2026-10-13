@@ -189,6 +189,14 @@ What you give up with `statusline`: the hover explanation rows, the brighten-on-
 percent; the governor still acts at 60, 80 and 88). Its links (branch, pull request, repository,
 CI) stay. The status entry under the prompt is always Astrolabe's own one line.
 
+**What it is given.** Besides the model, the effort, the context window and the usage windows,
+Astrolabe sends the path of the session's transcript (where Claude Code writes it, under
+`CLAUDE_CONFIG_DIR` or `~/.claude`), the session's duration and what it has spent. With them
+statusline draws the active skills, the activity chip, the cache chip, the duration and the
+spend, as it does under Claude Code's own status line. A fact Astrolabe does not have is left
+out, never zeroed. The branch, the worktree, `vim`, `fast` and the lines changed come from
+Claude Code's own payload, which a mod does not receive.
+
 **How the renderer answers.** Astrolabe asks for statusline's data form (`CLAUDE_STATUSLINE_OUTPUT=runs`,
 statusline spec 056): one JSON object of lines of styled runs, or an error object with exit code 75.
 It reads that without parsing escapes and tells a failure from a footer by the object, not by

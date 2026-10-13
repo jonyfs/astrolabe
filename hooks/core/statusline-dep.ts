@@ -240,6 +240,7 @@ export type FooterPayload = {
   effort?: string
   context_window?: { used_percentage?: number; context_window_size?: number }
   rate_limits?: Partial<Record<'five_hour' | 'seven_day', { used_percentage: number; resets_at?: number }>>
+  cost?: { total_duration_ms?: number; total_cost_usd?: number }
 }
 
 export type PayloadInput = {
@@ -250,6 +251,26 @@ export type PayloadInput = {
   transcriptPath?: string
   model?: { id?: string; displayName?: string }
   effort?: string
+  /** The session's start and the clock, both epoch milliseconds: the duration chip reads the difference. */
+  startedAt?: number
+  now?: number
+  /** What the session has spent, in dollars. */
+  costUsd?: number
+}
+
+/**
+ * Where Claude Code writes a session's transcript: `<config dir>/projects/<directory with every
+ * character outside A-Z, a-z, 0-9 turned into `-`>/<session id>.jsonl`. Statusline reads it for the
+ * active skills, the activity chip and the cache chip, and tolerates it missing. Nothing here reads
+ * the file.
+ */
+export const transcriptPathFor = (input: { home?: string; configDir?: string; cwd?: string; sessionId?: string }): string | undefined => {
+  const { cwd, sessionId } = input
+  if (cwd === undefined || cwd === '' || sessionId === undefined || sessionId === '') return undefined
+  const base = input.configDir !== undefined && input.configDir !== '' ? input.configDir : input.home === undefined || input.home === '' ? undefined : `${input.home.replace(/[\\/]+$/, '')}${input.home.includes('\\') ? '\\' : '/'}.claude`
+  if (base === undefined) return undefined
+  const sep = base.includes('\\') ? '\\' : '/'
+  return [base.replace(/[\\/]+$/, ''), 'projects', cwd.replace(/[^A-Za-z0-9]/g, '-'), `${sessionId}.jsonl`].join(sep)
 }
 
 export const buildPayload = (input: PayloadInput): FooterPayload => {
@@ -283,6 +304,12 @@ export const buildPayload = (input: PayloadInput): FooterPayload => {
     limits[r.kind] = { used_percentage: r.percentUsed, ...(Number.isFinite(at) ? { resets_at: at / 1000 } : {}) }
   }
   if (Object.keys(limits).length > 0) out.rate_limits = limits
+  const cost: NonNullable<FooterPayload['cost']> = {}
+  if (input.startedAt !== undefined && input.now !== undefined && Number.isFinite(input.startedAt) && Number.isFinite(input.now) && input.now >= input.startedAt) {
+    cost.total_duration_ms = Math.round(input.now - input.startedAt)
+  }
+  if (input.costUsd !== undefined && Number.isFinite(input.costUsd) && input.costUsd >= 0) cost.total_cost_usd = input.costUsd
+  if (Object.keys(cost).length > 0) out.cost = cost
   return out
 }
 

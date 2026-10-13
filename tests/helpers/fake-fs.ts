@@ -130,6 +130,8 @@ export type Session = {
   clock: MockClock
   /** Every process the plugin ran, as argv joined with spaces. */
   processes: string[]
+  /** What each of those processes was given on stdin, keyed by the argv line (the last wins). */
+  stdins: Record<string, string>
   /** Every URL the plugin fetched. */
   fetches: string[]
   /** How many times the plugin wrote each astrolabe.* state key. */
@@ -141,7 +143,15 @@ export type Session = {
   /** Every slash command the plugin ran, as `/name`. */
   prompts: string[]
   /** Script process.run answers and http.fetch answers for a test. */
-  script: { processes: ProcessScript; http: Record<string, { status: number; text: string }>; env: Record<string, string> }
+  script: {
+    processes: ProcessScript
+    http: Record<string, { status: number; text: string }>
+    env: Record<string, string>
+    /** What `$.session.id()` answers; without it the call is refused, as before (077). */
+    sessionId?: string
+    /** What `$.session.usage()` answers; without it the call is refused, as before (077). */
+    usage?: Record<string, unknown>
+  }
   /** The context each submitted prompt carried for the model, in order (026). */
   contexts: string[][]
   /** Texts the plugin proposed for the empty prompt box ($.prompt.suggest). */
@@ -228,12 +238,15 @@ export const installTree = (on: On, tree: Tree, cwd: string, seed: Record<string
   })
   on('store.keys', () => ({ value: [...store.keys()] }))
   const processes: string[] = []
+  const stdins: Record<string, string> = {}
   const fetches: string[] = []
   const prompts: string[] = []
   const submitted: string[] = []
   on('process.run', ($, e) => {
     const line = e.argv.join(' ')
     processes.push(line)
+    const given = (e as { init?: { stdin?: unknown } }).init?.stdin
+    if (typeof given === 'string') stdins[line] = given
     const answer = script.processes[line]
     if (answer === undefined || answer === 'missing') return { deny: `ENOENT: ${e.argv[0]}` }
     return { value: { exitCode: answer.exitCode ?? 0, stdout: answer.stdout ?? '', stderr: answer.stderr ?? '', isStdoutTruncated: false, isStderrTruncated: false } } as never
@@ -270,7 +283,7 @@ export const installTree = (on: On, tree: Tree, cwd: string, seed: Record<string
   })
   // Only the home directory may be read (to find gstack); anything else is a test failure.
   on('env.get', ($, e) => {
-    if (e.name === 'HOME' || e.name === 'USERPROFILE') return { value: script.env[e.name] }
+    if (e.name === 'HOME' || e.name === 'USERPROFILE' || e.name === 'CLAUDE_CONFIG_DIR') return { value: script.env[e.name] }
     // The terminal's own variables, read to tell whether it draws pictures (024).
     if (['KITTY_WINDOW_ID', 'TERM', 'TERM_PROGRAM', 'TMUX'].includes(e.name)) return { value: script.env[e.name] }
     // The NO_COLOR convention (041 #9).
@@ -307,6 +320,8 @@ export const installTree = (on: On, tree: Tree, cwd: string, seed: Record<string
     return { value: undefined }
   })
   on('session.cwd', () => ({ value: cwd }))
+  on('session.id', () => (script.sessionId === undefined ? { deny: 'no session id' } : ({ value: script.sessionId } as never)))
+  on('session.usage', () => (script.usage === undefined ? { deny: 'no usage' } : ({ value: script.usage } as never)))
   on('session.start', ($, e) => ({ cwd: e.cwd }))
   on('ui.status', ($, e) => {
     statuses.push(e.text)
@@ -325,6 +340,7 @@ export const installTree = (on: On, tree: Tree, cwd: string, seed: Record<string
     toasts,
     store,
     processes,
+    stdins,
     fetches,
     prompts,
     submitted,

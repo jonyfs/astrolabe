@@ -2,6 +2,7 @@ import { describe, expect, test } from 'claude-code/testing'
 
 import {
   buildPayload,
+  transcriptPathFor,
   chooseSource,
   cutRuns,
   isLinkable,
@@ -227,5 +228,32 @@ describe('a cut that leaves only padding (the engine refuses a link with a blank
     expect(isLinkable({ text: 'main', href: 'https://x.test' })).toBe(true)
     expect(isLinkable({ text: '   ', href: 'https://x.test' })).toBe(false)
     expect(isLinkable({ text: 'main' })).toBe(false)
+  })
+})
+
+describe('the facts statusline reads that the mod already has (077)', () => {
+  test('the transcript path is where Claude Code writes it, under the config dir', () => {
+    expect(transcriptPathFor({ home: '/Users/jony', cwd: '/Users/jony/repos/ai/statusline', sessionId: 'abc-123' })).toBe(
+      '/Users/jony/.claude/projects/-Users-jony-repos-ai-statusline/abc-123.jsonl',
+    )
+    expect(transcriptPathFor({ home: '/h', configDir: '/cfg', cwd: '/a.b/c d', sessionId: 's' })).toBe('/cfg/projects/-a-b-c-d/s.jsonl')
+  })
+  test('a Windows directory is encoded and joined with its own separator', () => {
+    expect(transcriptPathFor({ home: 'C:\\Users\\jony', cwd: 'C:\\Users\\jony\\proj', sessionId: 's' })).toBe(
+      'C:\\Users\\jony\\.claude\\projects\\C--Users-jony-proj\\s.jsonl',
+    )
+  })
+  test('no session id, no directory or no home: no path', () => {
+    expect(transcriptPathFor({ home: '/h', cwd: '/p' })).toBeUndefined()
+    expect(transcriptPathFor({ home: '/h', sessionId: 's' })).toBeUndefined()
+    expect(transcriptPathFor({ cwd: '/p', sessionId: 's' })).toBeUndefined()
+  })
+  test('the session duration and the spend travel as cost, and unknown facts are left out', () => {
+    const p = buildPayload({ rateLimits: [], startedAt: 1_000, now: 61_000, costUsd: 4.2 })
+    expect(p.cost).toEqual({ total_duration_ms: 60_000, total_cost_usd: 4.2 })
+    expect(buildPayload({ rateLimits: [] }).cost).toBeUndefined()
+    expect(buildPayload({ rateLimits: [], startedAt: 5_000, now: 1_000 }).cost).toBeUndefined()
+    expect(buildPayload({ rateLimits: [], costUsd: Number.NaN }).cost).toBeUndefined()
+    expect(buildPayload({ rateLimits: [], costUsd: 0 }).cost).toEqual({ total_cost_usd: 0 })
   })
 })
