@@ -7,7 +7,7 @@ updates, and a status entry with your fullest usage window.
 
 ![Astrolabe in a 180-column terminal](docs/images/overview-180.svg)
 
-> **Version 0.135.0.** Every image in this README is a capture of the real mod running in Claude
+> **Version 0.136.0.** Every image in this README is a capture of the real mod running in Claude
 > Code 2.1.292, made with `scripts/capture/scene.sh` in the demo project
 > [docs/demo/](docs/demo/) (see [How the images are made](#how-the-images-are-made)).
 
@@ -169,7 +169,7 @@ on the first row (the Spec Kit part, the window that decides, the advisor, the h
 statusline's lines go below it, with its segments, ranks, colours, shedding and links:
 
 ```text
-◆ 002 · implement 45% │ astrolabe 0.135.0 │ /astrolabe help
+◆ 002 · implement 45% │ astrolabe 0.136.0 │ /astrolabe help
  ⌂ astrolabe  jonyfs/astrolabe  ⎇ 070-statusline-dependency  ●3 +7  PR #160 draft  ✓ CI
  ◆ 059 specify  ❖ humanizer, dataviz  ▸ Fix authentication (1/3)  ● working
  opus 5.5 · high  ctx 41%  5h 72%▵ · 2h09m  7d 84%▴ · Thu 18:00  cache warm · 1m  1h12m
@@ -760,7 +760,7 @@ turn ends.
 
 The footer carries the advisor and Astrolabe's own details, so a separate statusline does not have to.
 An `adv N` chip counts the times the advisor ran this session and shows once it has run. The last chip,
-`astrolabe 0.135.0`, names the running version; it is the first one a narrow footer drops.
+`astrolabe 0.136.0`, names the running version; it is the first one a narrow footer drops.
 
 The footer's chips take their order and colour from one table in `hooks/core/footer.ts`, and the Help tab prints it: each chip's rank (a narrow footer drops the highest rank first) and its colour.
 
