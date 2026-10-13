@@ -303,10 +303,17 @@ export function isRepository(cwd) {
  */
 export function normalizePr(raw, source) {
   if (!raw || typeof raw.number !== "number") return null;
-  const review = raw.isDraft
-    ? "draft"
-    : raw.review_state || (raw.state ? String(raw.state).toLowerCase() : null);
+  // `gh` reports a review decision and a state; the payload reports one word.
+  // The decision maps onto the same words the payload uses, so the review mark
+  // appears from either source (specs/052-review-round-two).
+  const decision = { APPROVED: "approved", CHANGES_REQUESTED: "changes_requested", REVIEW_REQUIRED: "review_required" }[
+    String(raw.reviewDecision ?? "").toUpperCase()
+  ];
+  const stateWord = raw.state ? String(raw.state).toLowerCase() : null;
+  const review = raw.isDraft ? "draft" : raw.review_state || decision || stateWord;
   return {
+    prState: raw.isDraft ? "draft" : stateWord,
+    comments: typeof raw.comments === "number" && raw.comments > 0 ? raw.comments : null,
     number: raw.number,
     url: raw.url ?? null,
     review,
@@ -395,7 +402,7 @@ export function currentBranch(cwd, timeout = SOURCE_BUDGET_MS.git) {
 export function probePrResult(cwd, timeout = 5000) {
   const branch = currentBranch(cwd);
   try {
-    const out = execFileSync("gh", ["pr", "view", "--json", "number,state,isDraft,url,labels"], {
+    const out = execFileSync("gh", ["pr", "view", "--json", "number,state,isDraft,url,labels,reviewDecision,comments"], {
       cwd,
       timeout,
       encoding: "utf8",
@@ -405,7 +412,16 @@ export function probePrResult(cwd, timeout = 5000) {
     const pr = JSON.parse(out);
     return {
       state: "found",
-      value: { number: pr.number, state: pr.state, isDraft: pr.isDraft, url: pr.url, labels: pr.labels, branch },
+      value: {
+        number: pr.number,
+        state: pr.state,
+        isDraft: pr.isDraft,
+        url: pr.url,
+        labels: pr.labels,
+        reviewDecision: pr.reviewDecision,
+        comments: Array.isArray(pr.comments) ? pr.comments.length : null,
+        branch,
+      },
     };
   } catch (err) {
     const stderr = String(err?.stderr ?? "");

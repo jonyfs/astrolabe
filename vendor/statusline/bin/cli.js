@@ -5,10 +5,45 @@
 // the bar used to read "statusline unavailable" after an install that had
 // reported success (specs/024-install-update).
 const MIN_NODE_MAJOR = 18;
-const nodeMajor = Number.parseInt(process.versions.node.split(".")[0], 10);
+
+// `--format runs` or `CLAUDE_STATUSLINE_OUTPUT=runs` asks for the footer as
+// data and a failure as an exit code (specs/056-runs-output-contract). It is
+// read here, before anything is imported, so the error object can be printed
+// even when most modules cannot load. The flag wins over the variable, and
+// `--format ansi` asks for the default whatever the variable says.
+// Only the render command takes the flag; every other command keeps its
+// arguments as they were (`codex` passes its own through to Codex).
+const argv = process.argv.slice(2);
+const isFormat = (a) => a === "--format" || String(a).startsWith("--format=");
+const rendering = argv.length === 0 || argv[0] === "render" || isFormat(argv[0]);
+const formatAt = rendering ? argv.findIndex(isFormat) : -1;
+const formatValue =
+  formatAt === -1
+    ? null
+    : argv[formatAt].includes("=")
+      ? argv[formatAt].split("=")[1]
+      : (argv[formatAt + 1] ?? null);
+const argvRest =
+  formatAt === -1
+    ? argv
+    : argv.filter((a, i) => i !== formatAt && !(argv[formatAt] === "--format" && i === formatAt + 1 && formatValue !== null));
+const [subcommand, ...rest] = argvRest;
+const isRender = subcommand === "render" || subcommand === undefined;
+const runsMode = isRender && (formatValue === "runs" || (formatValue === null && process.env.CLAUDE_STATUSLINE_OUTPUT === "runs"));
+
+// A test can lower the version the check sees, in runs mode only.
+const nodeMajor =
+  runsMode && process.env.CLAUDE_STATUSLINE_TEST_NODE_MAJOR
+    ? Number.parseInt(process.env.CLAUDE_STATUSLINE_TEST_NODE_MAJOR, 10)
+    : Number.parseInt(process.versions.node.split(".")[0], 10);
 const nodeTooOld = !(nodeMajor >= MIN_NODE_MAJOR);
 
-const [, , subcommand, ...rest] = process.argv;
+/** One error object on stdout and exit 75. No import: this runs when imports are what failed. */
+function runsFailure(code, message) {
+  const one = String(message || "statusline could not render").replace(/[\r\n]+/g, " ").trim();
+  process.stdout.write(JSON.stringify({ contract: 1, error: { code, message: one } }) + "\n");
+  process.exitCode = 75;
+}
 
 /**
  * The last line of defence for the statusline command itself.
@@ -49,6 +84,20 @@ function ignoreClosedOutput() {
   }
 }
 
+/**
+ * Asks the terminal for its background and remembers the answer, for the render
+ * path to read later. Only here, where the command owns the terminal: a render
+ * cannot ask, because the reply would arrive on Claude Code's own input.
+ */
+async function rememberTerminalBackground() {
+  try {
+    const { refreshTerminalBackground } = await import("../src/terminalBackground.js");
+    await refreshTerminalBackground();
+  } catch {
+    // an unanswered query is an unknown background
+  }
+}
+
 const UPDATE_COMMAND = `node "${process.argv[1]}" update`;
 
 // One string for both answers: `--help` asked for it, and an unknown command
@@ -65,7 +114,7 @@ const USAGE = [
   "  uninstall [--harness copilot|codex|opencode]",
   "  codex [codex arguments]      Codex CLI with the bar in a tmux pane under it",
   "  codex-pane [--cwd <dir>] [--rollout <file>] [--session <id>] [--pid <n>] [--once]",
-  "  render",
+  "  render [--format runs|ansi]   the bar; runs prints it as JSON for a host (see the README)",
   "  doctor [--json|--explain]",
   "  help",
 ].join("\n");
@@ -105,14 +154,46 @@ function installFlags() {
 
 const KEPT_OFF_NAMES = { hook: ["skill hook", "--hook"], refreshInterval: ["refresh interval", "--refresh-interval"], taskRows: ["task rows", "--task-rows"] };
 
+/**
+ * The footer as one JSON object of runs, or one error object and exit 75.
+ * Truecolor is forced: the host has no terminal, and the contract hands over
+ * the colour the palette resolved.
+ */
+async function runsMain() {
+  process.env.COLORTERM = "truecolor";
+  try {
+    const { resolveSettings } = await import("../src/config.js");
+    const settings = resolveSettings(process.cwd());
+    if (settings.separator) process.env.CLAUDE_STATUSLINE_SEPARATOR = settings.separator;
+    if (settings.skillWindowMin) process.env.CLAUDE_STATUSLINE_SKILL_WINDOW_MIN = String(settings.skillWindowMin);
+    const { render } = await import("../src/render.js");
+    const { runsDocument } = await import("../src/runs.js");
+    if (process.env.CLAUDE_STATUSLINE_TEST_THROW === "1") throw new Error("deliberate failure, for the exit-code test");
+    const out = await render({ flavor: settings.flavor, asciiArrows: settings.asciiArrows, strict: true });
+    process.stdout.write(JSON.stringify(runsDocument(out)) + "\n");
+  } catch (err) {
+    if (err?.code === "bad-payload") runsFailure("bad-payload", err.message);
+    else runsFailure("internal", "statusline could not render");
+  }
+}
+const runRuns = runsMain;
+
 async function main() {
   ignoreClosedOutput();
   if (nodeTooOld) {
+    if (runsMode) {
+      runsFailure("node-version", `statusline needs Node ${MIN_NODE_MAJOR} or newer`);
+      return;
+    }
     if (subcommand === "render" || subcommand === undefined) {
       process.stdout.write(` statusline needs Node ${MIN_NODE_MAJOR}+ \n`);
       return;
     }
     throw new Error(`Node ${MIN_NODE_MAJOR} or newer is required; this is Node ${process.versions.node}. Nothing was changed.`);
+  }
+  if (runsMode) {
+    await runRuns();
+    return;
   }
   switch (subcommand) {
     case "help":
@@ -121,6 +202,7 @@ async function main() {
       console.log(USAGE);
       break;
     case "install": {
+      await rememberTerminalBackground();
       const harness = harnessFlag();
       if (harness) {
         const { installHarness } = await import("../src/install.js");
@@ -321,6 +403,7 @@ async function main() {
         process.stdout.write(explainSegments() + "\n");
         break;
       }
+      if (!rest.includes("--json")) await rememberTerminalBackground();
       const out = await runDoctor({ json: rest.includes("--json") });
       process.stdout.write(out + "\n");
       break;
@@ -407,6 +490,10 @@ main().catch((err) => {
   // Only the non-render subcommands reach this: a person typed them and is
   // waiting for an answer, so a failure belongs on stderr with an exit
   // code. `render` handles its own failure above and never gets here.
+  if (runsMode) {
+    runsFailure("internal", "statusline could not render");
+    return;
+  }
   if (subcommand === "render" || subcommand === undefined) {
     process.stdout.write(renderFallback() + "\n");
     process.exit(0);

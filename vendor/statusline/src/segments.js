@@ -98,7 +98,7 @@ export const SEGMENTS = [
   // takes the place of. Ranked with the windows: on the free plan it is the
   // only usage figure there is. The credit balance sits with the spend limit.
   { key: "codexWindow", line: 3, group: "gauges", order: 49, priority: 89, colour: "ramp", source: "payload" },
-  { key: "codexCredits", line: 3, group: "savings", order: 53, priority: 67, colour: "identity", source: "payload" },
+  { key: "codexCredits", line: 3, group: "gauges", order: 53, priority: 67, colour: "identity", source: "payload" },
   // Copilot CLI only (specs/033-copilot-parity). GitHub meters Copilot by the
   // month, so these stand where the 5-hour and 7-day chips stand under Claude
   // Code, which are absent under Copilot: the two never share a line. Two
@@ -116,7 +116,7 @@ export const SEGMENTS = [
   // moment its state changes what you do next (specs/025-prompt-cache-chip).
   // Actionable, so it sits under the allowances and the model and above the
   // burn rate. Order 54 moves nothing that was already on the line.
-  { key: "promptCache", line: 3, group: "savings", order: 54, priority: 80, colour: "ramp", source: "payload" },
+  { key: "promptCache", line: 3, group: "gauges", order: 54, priority: 80, colour: "ramp", source: "payload" },
   { key: "duration", line: 3, group: "savings", order: 55, priority: 50, colour: "identity", source: "payload" },
   // Copilot CLI only: the AI credits this session used, and the share of its
   // session limit when one is set (specs/033-copilot-parity). Beside the

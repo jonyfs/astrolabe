@@ -6,6 +6,14 @@ tags `vX.Y.Z` equal to `plugin.json`'s `version`.
 
 ## [Unreleased]
 
+## [0.137.0] - 2026-10-13
+
+### Changed
+
+- The bundled statusline is 1.53.1 (commit `2b565f2`), which prints the runs form and the failure
+  contract of its spec 056. The pane footer now reads runs objects and error objects (spec 076)
+  instead of parsing escape text; the contract test runs the runs checks against this copy.
+
 ### Added
 
 - Spec 076: the pane footer reads statusline's runs output and failure contract (statusline spec
