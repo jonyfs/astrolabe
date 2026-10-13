@@ -40,6 +40,8 @@ describe('option groups (054 #64)', () => {
   test('each option has one group; an unknown one goes last', () => {
     expect(optionGroup('astrolabe.preset')).toBe('display')
     expect(optionGroup('governUsage')).toBe('governor')
+    expect(optionGroup('quietHours')).toBe('governor')
+    expect(optionGroup('governThresholds')).toBe('governor')
     expect(optionGroup('astrolabe.terse')).toBe('claude')
     expect(optionGroup('astrolabe.pullRequest')).toBe('integrations')
     expect(optionGroup('astrolabe.someday')).toBe('integrations')

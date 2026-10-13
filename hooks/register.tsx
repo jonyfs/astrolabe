@@ -758,7 +758,7 @@ function modelSkillTabBody(
     rows.push({ rows: 1, node: <Text key={`models-${category}`} color={tokens0.accent} bold>{t(lang, `models.category.${category}`)}</Text> })
     for (const skill of getAllSkills().filter(s => s.category === category)) {
       const running = auto && active === skill.skill
-      const text = `${running ? '▸' : ' '} ${skill.skill}  ${skill.tier}  ${skill.model}  ${skill.effort}`
+      const text = `${running ? '▸' : ' '} ${skill.skill}  ${skill.tier}  ${skill.model}  ${skill.effort}${running ? `  ← ${t(lang, 'models.running')}` : ''}`
       rows.push({ rows: 1, node: <Text key={`skill-${skill.skill}`} color={running ? tokens0.current : tokens0[tierColour[skill.tier] ?? 'text']}>{text}</Text> })
     }
   }
@@ -3976,7 +3976,7 @@ export const register: Register = (on, options) => {
           node: <SetupText key={`setup-footer-${i}`} color={tokens.text} wrap="truncate-end">{text}</SetupText>,
         })),
         { rows: 1, node: <SetupText key="setup-footnote" color={tokens.faint} wrap="truncate-end">{t(currentLang(), 'config.footnote')}</SetupText> },
-        { rows: 1, node: <SetupText key="setup-models" color={tokens.accent} bold>{t(currentLang(), 'setup.models')}</SetupText> },
+        { rows: 1, node: <SetupText key="setup-models" color={tokens.accent} bold>{`${t(currentLang(), 'setup.models')}  skillModels: ${skillModels}`}</SetupText> },
         ...modelSkillTabBody($, e, pane),
       ]
       const units = setupUnits
