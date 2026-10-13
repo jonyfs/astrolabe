@@ -90,12 +90,17 @@ export const firstLine = (text: string): string => text.split(/\r?\n/).map(l => 
 
 /**
  * The one update button at the band's right edge (065 #19): one pending update keeps its name,
- * two or more collapse into `⬆ N`, which opens the list. From 144 columns the label says
- * `⬆ gstack 1.91.33`, below it `⬆1`-style short forms keep the room.
+ * two or more collapse into `⬆ N`, which opens the list. From 200 columns the label says
+ * `⬆ gstack 1.91.33`, from 144 `⬆ gstack`, below it `⬆1`-style short forms keep the room (board 2).
  */
 export const bandUpdateLabel = (names: readonly string[], columns: number): string | undefined => {
   if (names.length === 0) return undefined
-  if (names.length === 1) return columns >= 144 ? `⬆ ${names[0]}` : '⬆1'
+  if (names.length === 1) {
+    if (columns >= 200) return `⬆ ${names[0]}`
+    // The version goes first; a confirmation prompt keeps its words.
+    if (columns >= 144) return `⬆ ${names[0]!.replace(/\s+v?\d[\w.+-]*…?$/, '')}`
+    return '⬆1'
+  }
   return columns >= 100 ? `⬆ ${names.length}` : `⬆${names.length}`
 }
 

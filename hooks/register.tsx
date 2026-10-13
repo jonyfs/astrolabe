@@ -9,7 +9,7 @@ import { readFeatureDurations } from './modules/durations'
 import { withPr, worktreesById, filtered } from './modules/pane-data'
 import type { ConfigRow, EngineInterface, Hook, Register, RenderNode } from 'claude-code'
 
-import { bandSegments, bandText, nextReason, otherFeaturesCard, stepCards, type BandDensity } from './core/band'
+import { bandPr, bandSegments, bandText, nextReason, otherFeaturesCard, stepCards, type BandDensity } from './core/band'
 import { hintTail } from './core/hint'
 import { phaseToasts } from './core/phase-toast'
 import { justFinished } from './core/next-command'
@@ -1137,66 +1137,8 @@ function paneHeader(
       if (age > DIFF_FOLD_MS) out.push(<elements.Text key="astrolabe-diff-folded" color={tokens0.muted}>{foldedDiff(stats.tasksDiff.text, stats.tasksDiff.file, age, currentLang())}</elements.Text>)
       else out.push(<Code source={capDiff(stats.tasksDiff.text, currentLang())} format="diff" path={stats.tasksDiff.file} />)
     }
-    // A run of [P] tasks offered as one prompt to subagents (054 #89).
-    if (viewOf(pane) === 'tasks' && active !== undefined && Button !== undefined) {
-      const open = (state.activeTasks ?? []).filter(task => !task.isDone)
-      const run = parallelTasks(open)
-      const feature = state.features.find(f => f.dir === active.dir)
-      if (run.length >= 2 && feature !== undefined) {
-        const tasks = open.filter(task => task.id !== undefined && run.includes(task.id))
-        out.push(
-          <Button key="parallel-dispatch" label={t(currentLang(), 'parallel.button', { ids: run.join(', ') })} plain onPress={() => void $.clock.after(0, () => void $.prompt.submit({ text: parallelPrompt(feature, tasks) }).catch(() => undefined))} />,
-        )
-      }
-    }
-    // The open tasks as GitHub issues with one key (050 #96): Spec Kit's own skill does it, after a second press.
-    if (pane.tab === 'tasks' && active !== undefined && Button !== undefined) {
-      const openTasks = (state.activeTasks ?? []).filter(task => !task.isDone)
-      const feature = state.features.find(f => f.dir === active.dir)
-      if (openTasks.length > 0 && feature !== undefined) {
-        const key = `issues-${feature.id}`
-        const n = Math.min(openTasks.length, 20)
-        out.push(
-          <Button
-            key="tasks-to-issues"
-            label={pane.confirm === key ? t(currentLang(), 'tasks.issuesConfirm', { n }) : t(currentLang(), 'tasks.issues', { n })}
-            plain
-            onPress={() => void confirmPress($, key, () => void $.clock.after(0, () => void runSkill($, 'speckit-taskstoissues', `${feature.id} ${feature.name}`)))}
-          />,
-        )
-      }
-    }
-    // The breadcrumb and summary name the active feature only while the filter keeps it (024 #49).
-    const activeShown =
-      viewOf(pane) === 'specs' && active !== undefined
-        ? filterFeatures(state.features, pane.filter, active.dir, pane.status, specFilterContext(stats)).some(feature => feature.dir === active.dir)
-        : false
-    // Breadcrumb row (043 #24): Specs › 026 claude-context
-    if (activeShown && active !== undefined && state.root !== undefined && elements.Text !== undefined) {
-      out.push(
-        <elements.Text key="astrolabe-breadcrumb" color={tokens0.muted} wrap={e.surface === 'desktop' ? 'wrap' : 'truncate-end'}>{`Specs › ${active.id} ${active.name}`}</elements.Text>
-      )
-    }
-    if (activeShown && active !== undefined && Markdown !== undefined && state.activeSummary !== undefined && state.root !== undefined) {
-      const summaryBlocks = state.activeSummary.split(/\n{2,}/)
-      const expanded = pane.summary?.dir === active.dir && pane.summary.expanded
-      const shownSummary = expanded ? state.activeSummary : summaryBlocks.slice(0, 2).join('\n\n')
-      const links = (state.activeDocs ?? []).map(file => `[${file}](${fileUrl(`${state.root}/specs/${active.dir}/${file}`)})`).join(' · ')
-      out.push(<Markdown key="astrolabe-summary" text={links === '' ? shownSummary : `${shownSummary}\n\n${links}`} />)
-      if (summaryBlocks.length > 2 && Button !== undefined) {
-        out.push(
-          <Button
-            key="summary-toggle"
-            label={t(currentLang(), expanded ? 'summary.less' : 'summary.more')}
-            plain
-            onPress={async () => {
-              const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
-              await $.state.set(PANE_STATE, { ...held, summary: { dir: active.dir, expanded: !(held.summary?.dir === active.dir && held.summary.expanded) } })
-            }}
-          />,
-        )
-      }
-    }
+    // The spec's summary and its links ride on the selected row now (board 3, 075 FR-006); the
+    // run of [P] tasks and the issues button are the actions under the Tasks list (taskActions).
     return out
   }
   return []
@@ -3302,6 +3244,7 @@ export const register: Register = (on, options) => {
     const lastActivity = sessionStats?.series?.at(-1)?.at ?? sessionStats?.startedAt
     const idle = value?.runningSkill === undefined && lastActivity !== undefined && now - lastActivity > 600_000
     const updates = (await $.state.get(UPDATES)).value ?? { items: [] }
+    const pr = idle ? undefined : bandPr(sessionStats?.git?.pr, e.props.bodyColumns, bandDensity)
     // One update button and the hide button at the right edge of the band row (065 #12, #19).
     const names = updates.items.map(item => (updates.running === item.id ? `${updateLabel(item, false)}…` : updateLabel(item, updates.confirming === item.id)))
     const updateText = bandUpdateLabel(names, e.props.bodyColumns)
@@ -3312,10 +3255,11 @@ export const register: Register = (on, options) => {
       ...(updateText === undefined
         ? {}
         : {
-            update: { label: updateText, onPress: async () => (only === undefined || only.id === 'speckit-skills' ? openPane($) : runUpdate($, only.id)) },
+            update: { label: updateText, ...(e.props.bodyColumns <= 80 ? { plain: true as const } : {}), onPress: async () => (only === undefined || only.id === 'speckit-skills' ? openPane($) : runUpdate($, only.id)) },
             hide: { label: t(currentLang(), 'updates.hide'), onPress: () => hideUpdates($) },
           }),
       onLift: () => liftBand($),
+      ...(pr === undefined ? {} : { pr: { ...pr, ...(sessionStats?.git?.pr?.url === undefined ? {} : { href: sessionStats.git.pr.url }) } }),
       // `a` opens the pane once the band has the focus (025 #41); from 100 columns.
       ...(e.props.bodyColumns >= 100 ? { open: { label: t(currentLang(), 'next.paneShort'), onPress: () => openPane($) } } : {}),
     }
@@ -3778,10 +3722,38 @@ export const register: Register = (on, options) => {
             ...(stats?.priorities?.[reviewed.id] === undefined ? {} : { priority: stats.priorities[reviewed.id]! }),
             worktrees: worktreesById(stats?.worktrees)[reviewed.id] ?? [],
             ...(reviewedNext === undefined ? {} : { next: reviewedNext }),
+            ...(reviewed.updatedAt === undefined ? {} : { age: ageOf(Date.parse(reviewed.updatedAt), await $.clock.now()) }),
             lang: currentLang(),
           })
+    // The selected spec's first line of summary, one dim row under its detail (board 3).
+    const rowDescription =
+      reviewed === undefined || view !== 'specs' || reviewed.dir !== state.active?.dir || state.activeSummary === undefined
+        ? undefined
+        : state.activeSummary.split('\n').map(l => l.replace(/^#+\s*/, '').trim()).find(l => l !== '' && !/^[-*>|`]/.test(l))
+    // Under the Tasks list: the [P] run as one prompt (054 #89) and the open tasks as issues (050 #96).
+    const taskActions: Array<{ key: string; label: string; onPress: () => void }> = []
+    if (view === 'tasks' && state.active !== undefined && 'Button' in $.ui.resolve(e)) {
+      const open = (state.activeTasks ?? []).filter(task => !task.isDone)
+      const feature = state.features.find(f => f.dir === state.active?.dir)
+      const run = parallelTasks(open)
+      if (feature !== undefined && run.length >= 2) {
+        const picked = open.filter(task => task.id !== undefined && run.includes(task.id))
+        taskActions.push({ key: 'parallel-dispatch', label: t(currentLang(), 'parallel.button', { ids: run.join(', ') }), onPress: () => void $.clock.after(0, () => void $.prompt.submit({ text: parallelPrompt(feature, picked) }).catch(() => undefined)) })
+      }
+      if (feature !== undefined && open.length > 0) {
+        const confirmKey = `issues-${feature.id}`
+        const n = Math.min(open.length, 20)
+        taskActions.push({
+          key: 'tasks-to-issues',
+          label: pane.confirm === confirmKey ? t(currentLang(), 'tasks.issuesConfirm', { n }) : t(currentLang(), 'tasks.issues', { n }),
+          onPress: () => void confirmPress($, confirmKey, () => void $.clock.after(0, () => void runSkill($, 'speckit-taskstoissues', `${feature.id} ${feature.name}`))),
+        })
+      }
+    }
     const extras = {
       rowButtons,
+      taskActions,
+      ...(rowDescription === undefined ? {} : { rowDescription }),
       ...(rowDetail === undefined ? {} : { rowDetail }),
       // What waits on the person (066 #23): never a total.
       badges: badgesOf({
@@ -3904,10 +3876,15 @@ export const register: Register = (on, options) => {
       onCopy: (text: string) => copyNext($, text, e.surface),
       onFind: view === 'specs' || view === 'tasks' || view === 'help' ? () => $.ui.focus({ requestId: PANE_ID, key: 'astrolabe-filter' }).then(() => undefined) : undefined,
       // What the tab is for, then its keys; a narrow pane keeps the keys whole (052 #3).
-      legend: ((about: string, keys: string) => ([...`${about} · ${keys}`].length <= columns ? `${about} · ${keys}` : keys))(
-        t(currentLang(), ABOUT[view]),
-        t(currentLang(), view === 'specs' ? 'legend.specs' : view === 'tasks' || view === 'help' ? 'legend.filter' : view === 'setup' ? 'legend.config' : 'legend.default'),
-      ) + (state.updatedAt === undefined || columns < 80 ? '' : ` · ${t(currentLang(), 'legend.updated', { at: clockOf(new Date(state.updatedAt).toISOString()) ?? '' })}`),
+      // Nothing under the Tasks list but its actions: the key row names the keys (board 3, 075 FR-012).
+      ...(view === 'tasks'
+        ? {}
+        : {
+            legend: ((about: string, keys: string) => ([...`${about} · ${keys}`].length <= columns ? `${about} · ${keys}` : keys))(
+              t(currentLang(), ABOUT[view]),
+              t(currentLang(), view === 'specs' ? 'legend.specs' : view === 'help' ? 'legend.filter' : view === 'setup' ? 'legend.config' : 'legend.default'),
+            ) + (state.updatedAt === undefined || columns < 80 ? '' : ` · ${t(currentLang(), 'legend.updated', { at: clockOf(new Date(state.updatedAt).toISOString()) ?? '' })}`),
+          }),
     }
     const select = async (tab: PaneTab) => {
       const held = (await $.state.get(PANE_STATE)).value ?? DEFAULT_PANE
@@ -4061,14 +4038,10 @@ export const register: Register = (on, options) => {
         ('Input' in $.ui.resolve(e) ? 1 + (filterCount === undefined ? 0 : 1) : 0) +
         (rowButtons.length > 0 ? 1 : 0) +
         (rowDetail === undefined ? 0 : 1) +
+        (rowDescription === undefined ? 0 : 1) +
+        (taskActions.length > 0 ? taskActions.length : 0) +
         (view === 'specs'
-          ? state.activeSummary === undefined
-            ? 0
-            : (pane.summary !== undefined && pane.summary.dir === state.active?.dir && pane.summary.expanded
-                ? wrappedRows(state.activeSummary, columns - 2)
-                : wrappedRows(state.activeSummary.split(/\n{2,}/).slice(0, 2).join('\n\n'), columns - 2)) +
-              2 +
-              (state.activeSummary.split(/\n{2,}/).length > 2 && 'Button' in $.ui.resolve(e) ? 1 : 0)
+          ? 0
           : view === 'tasks' && stats?.tasksDiff !== undefined && stats.tasksDiff.dir === state.active?.dir
             ? stats.tasksDiff.at !== undefined && nowForHeader - stats.tasksDiff.at > DIFF_FOLD_MS
               ? 1

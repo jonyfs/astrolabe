@@ -4,7 +4,7 @@ import type { ElementTable } from 'claude-code'
 
 import { stepOf, type Segment } from '../core/band'
 import { fileUrl } from '../core/paths'
-import { chipForeground, lighten, type Tokens } from '../core/theme'
+import { chipForeground, lighten, type ThemeRole, type Tokens } from '../core/theme'
 
 type BandElements = Pick<ElementTable<'terminal' | 'desktop'>, 'Box' | 'Text'> & {
   Client?: ElementTable<'terminal'>['Client']
@@ -16,7 +16,10 @@ type BandElements = Pick<ElementTable<'terminal' | 'desktop'>, 'Box' | 'Text'> &
 export type BandEdge = {
   /** Opens the pane: `a` once the band has the focus (025 #41). */
   open?: { label: string; onPress: () => Promise<void> }
-  update?: { label: string; onPress: () => Promise<void> }
+  /** `plain` draws the label without brackets, as the 80-column row does (board 2). */
+  update?: { label: string; onPress: () => Promise<void>; plain?: boolean }
+  /** The branch's pull request, from 200 columns: `PR #41 ✓`, a link when it has a page (board 2). */
+  pr?: { label: string; mark: string; role: ThemeRole; href?: string }
   hide?: { label: string; onPress: () => Promise<void> }
   /** The lift button of a paused or holding band. */
   onLift?: () => Promise<void>
@@ -26,7 +29,8 @@ export type BandEdge = {
 
 /** Cells the right-edge buttons take, each drawn as `[ label ]`. */
 export const edgeWidth = (edge: BandEdge): number =>
-  [edge.open, edge.update, edge.hide].reduce((n, b) => (b === undefined ? n : n + [...b.label].length + 5), 0)
+  [edge.open, edge.update, edge.hide].reduce((n, b) => (b === undefined ? n : n + [...b.label].length + (b === edge.update && edge.update.plain === true ? 1 : 5)), 0) +
+  (edge.pr === undefined ? 0 : [...edge.pr.label].length + [...edge.pr.mark].length + 3)
 
 export const bandRow = (
   { Box, Text, Client, Button, Link }: BandElements,
@@ -92,9 +96,15 @@ export const bandRow = (
         return draw(segment)
       })}
       <Box flexGrow={1} />
+      {edge.pr === undefined ? null : (
+        <Box key="band-pr" flexDirection="row">
+          {edge.pr.href !== undefined && Link !== undefined ? <Link key="band-pr-link" href={edge.pr.href} label={edge.pr.label} /> : <Text color={tokens.muted}>{edge.pr.label}</Text>}
+          <Text color={tokens[edge.pr.role]}>{` ${edge.pr.mark} `}</Text>
+        </Box>
+      )}
       {Button !== undefined && edge.open !== undefined && <Button key="open-pane" label={edge.open.label} hotkey="a" onPress={() => edge.open!.onPress()} />}
       {Button !== undefined && edge.open !== undefined && edge.update !== undefined && <Text> </Text>}
-      {Button !== undefined && edge.update !== undefined && <Button key="band-update" label={edge.update.label} onPress={() => edge.update!.onPress()} />}
+      {Button !== undefined && edge.update !== undefined && <Button key="band-update" label={edge.update.label} {...(edge.update.plain === true ? { plain: true as const } : {})} onPress={() => edge.update!.onPress()} />}
       {Button !== undefined && edge.hide !== undefined && <Text> </Text>}
       {Button !== undefined && edge.hide !== undefined && <Button key="updates-hide" label={edge.hide.label} onPress={() => edge.hide!.onPress()} />}
     </Box>

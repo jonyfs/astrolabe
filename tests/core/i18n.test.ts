@@ -15,7 +15,7 @@ describe('dictionaries (019)', () => {
   test('placeholders are filled', () => {
     expect(t('pt-BR', 'pane.count', { done: 9, total: 20 })).toBe('9/20 feitas')
     expect(t('es', 'ask.extend', { n: 91 })).toBe('Seguir 30 minutos más (techo 91%)')
-    expect(t('fr', 'pane.more', { n: 3 })).toBe('+3 de plus')
+    expect(t('fr', 'pane.more', { n: 3 })).toBe('… 3 de plus')
   })
   test('the option wins, auto takes the guess, English otherwise', () => {
     expect(langOf('fr', 'pt-BR')).toBe('fr')

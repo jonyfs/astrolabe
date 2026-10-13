@@ -45,13 +45,13 @@ describe('specsRows', () => {
   test('sections by status, aligned columns with counts on every spec, warnings under their feature (044, 052 #14)', () => {
     expect(texts(specsRows(state(), 80))).toEqual([
       'Active (1)',
-      '▸ ◐ 002 band-hint   implement  ████░░░░░░   9/20  45%',
+      '▸ ◆ 002 band-hint   implement  ▰▰▰▰▱▱▱▱▱   9/20  45%',
       '  gates  constitution ✓  clarify ✗  checklist –  tasks ✓  analyze ✓',
       '! 002: [NEEDS CLARIFICATION] left after the plan',
       'Done (1)',
-      '  ● 001 core-state  done       ██████████  49/49 100%',
+      '  ✓ 001 core-state  done       ▰▰▰▰▰▰▰▰▰  49/49 100%',
       'Abandoned (1)',
-      '  ○ 003 dropped     abandoned  ░░░░░░░░░░    0/3   0%',
+      '  ✖ 003 dropped     abandoned  ▱▱▱▱▱▱▱▱▱    0/3   0%',
     ])
   })
   test('long feature names wrap on desktop and are elided for terminal rows', () => {
@@ -81,7 +81,7 @@ describe('specsRows', () => {
   })
   test('the running skill shows on the active feature (044 #33)', () => {
     const rows = specsRows(state({ runningSkill: { name: 'speckit-implement', step: 'implement' } }), 100)
-    expect(texts(rows)[1]).toBe('▸ ◐ 002 band-hint   implement  ████░░░░░░   9/20  45%  ⟳ speckit-implement')
+    expect(texts(rows)[1]).toBe('▸ ◆ 002 band-hint   implement  ▰▰▰▰▱▱▱▱▱   9/20  45%  ⟳ speckit-implement')
   })
   test('a stale feature.json is named when the branch is on an active feature (044 #34)', () => {
     const done = f('001', 'core-state', 'done', 49, 49)
@@ -95,9 +95,9 @@ describe('specsRows', () => {
   })
   test('narrow panes drop the bar, then the count, then cut the name, never the id', () => {
     const row = (columns: number) => texts(specsRows(state(), columns).filter(r => r.key === 'feature-002'))[0]
-    expect(row(48)).toBe('▸ ◐ 002 band-hint   implement   9/20  45%')
-    expect(row(34)).toBe('▸ ◐ 002 band-hint   impl  45%')
-    expect(row(27)).toBe('▸ ◐ 002 band-h…  impl 45%')
+    expect(row(48)).toBe('▸ ◆ 002 band-hint   implement   9/20  45%')
+    expect(row(34)).toBe('▸ ◆ 002 band-hint   impl  45%')
+    expect(row(27)).toBe('▸ ◆ 002 band-h…  impl 45%')
     for (let columns = 12; columns <= 120; columns += 1) {
       for (const row of specsRows(state(), columns).filter(r => r.key.startsWith('feature-'))) {
         expect(width(row.text) <= columns || /^. . \d{3}/.test(row.text)).toBe(true)
@@ -127,30 +127,30 @@ describe('taskRows', () => {
   const memo = (tasks: string): SessionMemo => ({ ...emptyMemo(), files: { '002-band-hint': { dir: '002-band-hint', plan: true, tasks } } })
   const TASKS = '- [X] T001 a\n- [ ] T002 [P] [US1] Write `x.ts`\n- [ ] T003 c\n- [ ] T004 d\n'
   test('open tasks in file order after a count', () => {
-    expect(texts(taskRows(state(), memo(TASKS), 10, 80))).toEqual(['002 band-hint · implement · 1/4 done', '✓ 1 done · T001', 'next', `${'T002 Write x.ts'.padEnd(80 - 'P'.length)}P`, 'later', 'T003 c', 'T004 d'])
+    expect(texts(taskRows(state(), memo(TASKS), 10, 80))).toEqual(['002 band-hint · implement · 1/4 done', '✓ 1 done · T001', `${'  ○ T002 Write x.ts'.padEnd(80 - 'P'.length)}P`, '  ○ T003 c', '  ○ T004 d'])
   })
   test('the current task is marked, with how long it has run (045 #42)', () => {
     const now = 10 * 60_000
     const rows = taskRows(state({ currentTask: { id: 'T003', text: 'c', startedAt: 0 } }), memo(TASKS), 10, 80, 'en', now)
-    expect(texts(rows)).toEqual(['002 band-hint · implement · 1/4 done', '✓ 1 done · T001', 'next', `${'T002 Write x.ts'.padEnd(80 - 'P'.length)}P`, 'current', `${'▸ T003 c'.padEnd(80 - '◷ 10m'.length)}◷ 10m`, 'later', 'T004 d'])
-    expect(rows[5]?.role).toBe('current')
-    // The current row is bold and its clock sits at the right edge (052 #20).
-    expect(rows[5]?.bold).toBe(true)
-    expect(rows[7]?.bold).toBeUndefined()
+    expect(texts(rows)).toEqual(['002 band-hint · implement · 1/4 done', '✓ 1 done · T001', `${'  ○ T002 Write x.ts'.padEnd(80 - 'P'.length)}P`, `${'▶ T003 c'.padEnd(80 - '◷ 10m'.length)}◷ 10m`, '  ○ T004 d'])
+    // The current row is a bold highlighted block and its clock sits at the right edge (052 #20, 075 FR-010).
+    expect(rows[3]?.role).toBe('current')
+    expect(rows[3]?.bold).toBe(true)
+    expect(rows[3]?.highlight).toBe(true)
+    expect(rows[4]?.bold).toBeUndefined()
+    expect(rows.some(r => r.key.startsWith('group-'))).toBe(false)
   })
   test('[P] runs are bracketed at the right edge and stories head their tasks (045 #43, #44, 066)', () => {
     const text = '## Phase 3: User Story 1\n- [ ] T001 [P] a\n- [ ] T002 [P] b\n- [ ] T003 [P] c\n## Phase 4: User Story 2 - Cart page (P2)\n- [ ] T004 d\n'
     const edge = (body: string, mark: string) => `${body.padEnd(80 - mark.length)}${mark}`
     expect(texts(taskRows(state(), memo(text), 20, 80))).toEqual([
       '002 band-hint · implement · 0/4 done',
-      'next',
       'US1 0/3',
-      edge('T001 a', '┐ P'),
-      edge('T002 b', '┤ P'),
-      edge('T003 c', '┘ P'),
-      'later',
+      edge('  ○ T001 a', '┐ P'),
+      edge('  ○ T002 b', '┤ P'),
+      edge('  ○ T003 c', '┘ P'),
       'US2 Cart page 0/1',
-      'T004 d',
+      '  ○ T004 d',
     ])
   })
   test('the header estimates what is left from the tasks done so far (066)', () => {
@@ -160,7 +160,7 @@ describe('taskRows', () => {
     expect(texts(taskRows(state(), memo(text), 20, 80, 'en', 0, times.slice(0, 1)))[0]).toBe('002 band-hint · implement · 2/5 done')
   })
   test('too many for the rows ends with +N more', () => {
-    expect(texts(taskRows(state(), memo(TASKS), 3, 80))).toEqual(['002 band-hint · implement · 1/4 done', '✓ 1 done · T001', `${'T002 Write x.ts'.padEnd(80 - 'P'.length)}P`, '+2 more'])
+    expect(texts(taskRows(state(), memo(TASKS), 3, 80))).toEqual(['002 band-hint · implement · 1/4 done', '✓ 1 done · T001', `${'  ○ T002 Write x.ts'.padEnd(80 - 'P'.length)}P`, '… 2 more'])
   })
   test('empty cases', () => {
     expect(texts(taskRows(state(), memo('- [x] T001 a\n'), 10, 80))).toEqual(['002 band-hint · implement · 1/1 done', 'All tasks are ticked.'])
@@ -169,7 +169,7 @@ describe('taskRows', () => {
   })
   test('long tasks are cut, ids kept', () => {
     const rows = taskRows(state(), memo(`- [ ] T002 ${'y'.repeat(100)}\n`), 10, 20)
-    expect(rows[1]?.text).toBe(`T002 ${'y'.repeat(14)}…`)
+    expect(rows[1]?.text).toBe(`  ○ T002 ${'y'.repeat(10)}…`)
   })
 })
 
@@ -211,7 +211,7 @@ describe('spec chips (044 #39)', () => {
   test('open questions and checklist items ride on the row', () => {
     const doing = { ...f('002', 'band-hint', 'implement', 9, 20), clarifications: 2, checklist: { open: 3, total: 5 } }
     const rows = specsRows(state({ features: [doing] }), 120)
-    expect(texts(rows).find(t => t.includes('002'))).toBe('▸ ◐ 002 band-hint  implement  ████░░░░░░  9/20  45%  ?2 ☐3')
+    expect(texts(rows).find(t => t.includes('002'))).toBe('▸ ◆ 002 band-hint  implement  ▰▰▰▰▱▱▱▱▱  9/20  45%  ?2 ☐3')
   })
 })
 
@@ -272,8 +272,8 @@ describe('task ids line up (052 #22)', () => {
   test('a short id is padded to the widest', () => {
     const memo2 = { ...emptyMemo(), files: { '002-band-hint': { dir: '002-band-hint', plan: true, tasks: '- [ ] T9 a\n- [ ] T10 b\n' } } }
     const rows = texts(taskRows(state(), memo2, 10, 80))
-    expect(rows).toContain('T9  a')
-    expect(rows).toContain('T10 b')
+    expect(rows).toContain('  ○ T9  a')
+    expect(rows).toContain('  ○ T10 b')
   })
 })
 
@@ -330,10 +330,10 @@ describe('a compact pane under 60 columns (054 #69)', () => {
   test('no bars even when a short name leaves room', () => {
     const features = [f('002', 'ab', 'implement', 9, 20)]
     const narrow = specsRows(state({ features }), 58).find(r => r.key === 'feature-002')
-    expect(narrow?.text).not.toContain('█')
+    expect(narrow?.text).not.toContain('▰')
     expect(narrow?.text).toContain('9/20')
     const wide = specsRows(state({ features }), 100).find(r => r.key === 'feature-002')
-    expect(wide?.text).toContain('█')
+    expect(wide?.text).toContain('▰')
   })
 })
 
@@ -352,8 +352,9 @@ describe('the Tasks tab, part three (045 #45, #47)', () => {
     const texts = rows.map(r => r.text)
     expect(texts.find(t => t.startsWith('✓'))).toBe('✓ 1 done · T001 · 12m')
     const at = texts.findIndex(t => t.includes('T003'))
-    expect(texts[at + 1]).toContain('files: src/x.ts, hooks/y.ts')
-    expect(texts.some(t => t.includes('files:') && t.includes('T004'))).toBe(false)
+    expect(texts[at + 1]).toContain('src/x.ts · hooks/y.ts')
+    expect(rows[at + 1]?.highlight).toBe(true)
+    expect(texts.some(t => t.includes('src/x.ts') && t.includes('T004'))).toBe(false)
   })
 })
 
@@ -393,12 +394,16 @@ describe('what the selected spec offers (061)', () => {
     expect(skillsForPhase('implement')).toEqual(['review', 'investigate', 'qa-only', 'health'])
     expect(skillsForPhase('done')[0]).toBe('retro')
   })
-  test('the detail line names tasks left, questions, checklist, track, priority, worktrees and the next command', () => {
+  test('the detail line names tasks left, questions, checklist, priority, worktrees and the age (075 FR-008)', () => {
     const line = specDetail(
       { id: '003', name: 'gamma', phase: 'plan', done: 0, total: 8, track: 'quick', clarifications: 2, checklist: { open: 1, total: 3 }, warnings: [] },
-      { priority: 'high', worktrees: ['wt-a'], next: '/speckit-plan', lang: 'en' },
+      { priority: 'high', worktrees: ['wt-a'], next: '/speckit-plan', age: '5m', lang: 'en' },
     )
-    expect(line).toBe('003 gamma · plan · 8 tasks left · 2 open questions · checklist 1/3 open · quick spec · ↑ high · ⑂ wt-a · next /speckit-plan')
+    expect(line).toBe('8 left · ? 2 questions · checklist 1 open · ↑ high · ⎇ wt-a · updated 5m')
+  })
+  test('one question reads in the singular', () => {
+    const line = specDetail({ id: '002', name: 'cart', phase: 'implement', done: 9, total: 20, track: 'full', clarifications: 1, warnings: [] }, { lang: 'en' })
+    expect(line).toBe('11 left · ? 1 question')
   })
   test('a non-active spec is taken as analyzed, so implement is next', () => {
     expect(nextFor({ phase: 'implement', done: 0 }, false, false)).toBe('/speckit-implement')
@@ -608,5 +613,23 @@ describe('the Specs tab at scale (067)', () => {
   test('a spec with no task figures prints ?%, never 0% (067 #37)', () => {
     const rows = specsRows(st([{ id: '001', name: 'a', dir: '001-a', phase: 'tasks', done: 0, total: 0, warnings: [] } as Feature]), 100, 'en')
     expect(rows.find(r => r.key === 'feature-001')?.text).toContain('?%')
+  })
+})
+
+describe('the Tasks tab, board 3 (075 FR-010, FR-011)', () => {
+  const memo = (tasks: string): SessionMemo => ({ ...emptyMemo(), files: { '002-band-hint': { dir: '002-band-hint', plan: true, tasks } } })
+  test('every open task starts with ○, and a test task carries a tag at the right edge', () => {
+    const text = '- [ ] T012 Write failing tests for out-of-stock items\n- [ ] T013 Block checkout\n- [ ] T014 Update tests/cart/page.test.ts\n'
+    const rows = texts(taskRows(state(), memo(text), 20, 60))
+    expect(rows[1]).toBe(`${'  ○ T012 Write failing tests for out-of-stock items'.padEnd(60 - 4)}test`.slice(0, 60))
+    expect(rows[2]).toBe('  ○ T013 Block checkout')
+    expect(rows[3]?.endsWith('test')).toBe(true)
+  })
+  test('the current task is a highlighted block; no group headers and no clock without a start time', () => {
+    const rows = taskRows(state({ currentTask: { id: 'T013', text: 'Block checkout' } }), memo('- [ ] T012 a\n- [ ] T013 Block checkout\n'), 20, 60)
+    const current = rows.find(r => r.key === 'task-T013')
+    expect(current?.highlight).toBe(true)
+    expect(current?.text).toBe('▶ T013 Block checkout')
+    expect(rows.every(r => !['current', 'next', 'later'].includes(r.text))).toBe(true)
   })
 })

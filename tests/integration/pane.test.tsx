@@ -35,7 +35,7 @@ describe('the pane tabs (US1, US2)', () => {
       const { session } = await setup($ as never, on as never)
       const ui = await mountPane($ as never, surface)
       expect(await ui.tabs()).toContain('Specs')
-      expect(await ui.body()).toContain('❯ ▸ ◐ 002 band-hint   implement  ████░░░░░░  9/20  45%')
+      expect(await ui.body()).toContain('❯ ▸ ◆ 002 band-hint   implement  ▰▰▰▰▱▱▱▱▱  9/20  45%')
       const reads = session.counts.read
       await ui.press('tab-tasks')
       expect(await ui.body()).toContain('9/20 done')
@@ -43,7 +43,7 @@ describe('the pane tabs (US1, US2)', () => {
       await ui.press('tab-session')
       expect(await ui.body()).toContain(`chosen by${' '.repeat(paneLabelWidth('en') - 'chosen by'.length)}feature.json`)
       await ui.press('tab-specs')
-      expect(await ui.body()).toContain('● 001 core-state')
+      expect(await ui.body()).toContain('✓ 001 core-state')
       expect(session.counts.read).toBe(reads)
       await ui.unmount()
     })
@@ -298,7 +298,8 @@ describe('pane navigation (043)', () => {
     // 054 #26: the legend ends with when the state was last written.
     expect(await ui.legend()).toMatch(/^every feature, its phase and progress · 1-5 tabs · h help · f filters · s status · j\/k scroll · r ↻ · Esc closes · updated \d\d:\d\d$/)
     await ui.press('tab-tasks')
-    expect(await ui.legend()).toMatch(/^the active feature's open tasks · 1-5 tabs · h help · f filters · j\/k scroll · r ↻ · Esc closes · updated \d\d:\d\d$/)
+    // Nothing under the Tasks list but its actions (075 FR-012).
+    expect(await ui.legend()).toBe('')
     await ui.unmount()
   })
 })
@@ -378,7 +379,7 @@ describe('acting on a spec (051)', () => {
     expect(ran.text).toBe('🧭 002 band-hint: priority high')
     expect(session.store.get('priority:/proj')).toEqual({ '002': 'high' })
     const ui = await mountPane($ as never, 'terminal', 100, 30)
-    expect(await ui.body()).toContain('▸ ◐↑002 band-hint')
+    expect(await ui.body()).toContain('▸ ↑ 002 band-hint')
     await ui.press('priority')
     expect(session.store.get('priority:/proj')).toEqual({ '002': 'low' })
     await ui.unmount()

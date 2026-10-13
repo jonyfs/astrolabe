@@ -42,7 +42,7 @@ export const paneTree = (
   /** What is above and below the rows shown, with the presses that scroll (038). */
   nav?: { above: number; below: number; up: () => Promise<void>; down: () => Promise<void>; labels: { more: string } },
   /** Counts beside the tab labels (043 #21) and the keys of the tab shown (043 #25). */
-  extras: { view?: { label: string; onPress: () => Promise<void> }; group?: { label: string; onPress: () => Promise<void> }; onToggleBlock?: (key: string) => Promise<void>; help?: boolean; onHelp?: () => Promise<void>; onUpdate?: (id: string) => Promise<void>; badges?: Partial<Record<PaneTab, string>>; legend?: string; onClose?: () => Promise<void>; onFind?: () => Promise<void>; onCopy?: (text: string) => Promise<void>; onRefresh?: () => Promise<void>; onCopyKpis?: () => Promise<void>; showKeys?: boolean; sort?: { label: string; onPress: () => Promise<void> }; onClear?: () => Promise<void>; onPriority?: () => Promise<void>; onRunQueued?: (id: string) => Promise<void>; rowButtons?: ReadonlyArray<{ key: string; label: string; hotkey?: string; onPress: () => void }>; rowDetail?: string; onLiftBand?: () => Promise<void>; onCloseReady?: (dirs: string[]) => void; onAllowUsage?: () => Promise<void>; onRevokeUsage?: () => Promise<void>; status?: { label: string; onPress: () => Promise<void> }; columns?: number; marks?: 'unicode' | 'ascii' | 'words'; colorblind?: boolean; wrapLongNames?: boolean; Link?: ElementTable<'terminal'>['Link'] } = {},
+  extras: { view?: { label: string; onPress: () => Promise<void> }; group?: { label: string; onPress: () => Promise<void> }; onToggleBlock?: (key: string) => Promise<void>; help?: boolean; onHelp?: () => Promise<void>; onUpdate?: (id: string) => Promise<void>; badges?: Partial<Record<PaneTab, string>>; legend?: string; onClose?: () => Promise<void>; onFind?: () => Promise<void>; onCopy?: (text: string) => Promise<void>; onRefresh?: () => Promise<void>; onCopyKpis?: () => Promise<void>; showKeys?: boolean; sort?: { label: string; onPress: () => Promise<void> }; onClear?: () => Promise<void>; onPriority?: () => Promise<void>; onRunQueued?: (id: string) => Promise<void>; rowButtons?: ReadonlyArray<{ key: string; label: string; hotkey?: string; onPress: () => void }>; rowDetail?: string; onLiftBand?: () => Promise<void>; taskActions?: ReadonlyArray<{ key: string; label: string; onPress: () => void }>; rowDescription?: string; onCloseReady?: (dirs: string[]) => void; onAllowUsage?: () => Promise<void>; onRevokeUsage?: () => Promise<void>; status?: { label: string; onPress: () => Promise<void> }; columns?: number; marks?: 'unicode' | 'ascii' | 'words'; colorblind?: boolean; wrapLongNames?: boolean; Link?: ElementTable<'terminal'>['Link'] } = {},
 ) => {
   const Link = extras.Link
   // The pane's own marks in the set the icons option and the accessible mode pick (052 #49, #47).
@@ -66,23 +66,20 @@ export const paneTree = (
   return (
   <Box flexDirection="column">
     <Box key="astrolabe-pane-tabs" flexDirection="row">
-      {PANE_TABS.map(item => (
-        <Button
-          key={`tab-${item.tab}`}
-          label={
-            // Below 80 columns a tab is its number and badge, so the row never wraps (052 #1).
-            // The tab shown also gets ▸, beyond the button's colour (052 #2).
-            `${item.tab === tab ? '▸ ' : ''}${extras.showKeys === true && (extras.columns === undefined || extras.columns >= 80) ? `${item.hotkey} ` : ''}${
-              extras.columns !== undefined && extras.columns < 80
-                ? `${item.hotkey}${extras.badges?.[item.tab] === undefined ? '' : `·${extras.badges[item.tab]}`}`
-                : extras.badges?.[item.tab] === undefined ? t(lang, item.label) : `${t(lang, item.label)} ${extras.badges[item.tab]}`
-            }`
-          }
-          hotkey={item.hotkey}
-          variant={item.tab === tab ? 'primary' : 'secondary'}
-          onPress={() => onSelect(item.tab)}
-        />
-      ))}
+      {PANE_TABS.map(item => {
+        // Below 80 columns a tab is its number and badge, so the row never wraps (052 #1).
+        // The tab shown is the primary button; `▸` stays for the colorblind flavor (052 #2).
+        const text = `${extras.colorblind === true && item.tab === tab ? '▸ ' : ''}${extras.showKeys === true && (extras.columns === undefined || extras.columns >= 80) ? `${item.hotkey} ` : ''}${
+          extras.columns !== undefined && extras.columns < 80
+            ? `${item.hotkey}${extras.badges?.[item.tab] === undefined ? '' : `·${extras.badges[item.tab]}`}`
+            : extras.badges?.[item.tab] === undefined ? t(lang, item.label) : `${t(lang, item.label)} ${extras.badges[item.tab]}`
+        }`
+        // The tab shown keeps its button (primary, in the accent colour) so every tab stays pressable.
+        return <Button key={`tab-${item.tab}`} label={text} hotkey={item.hotkey} variant={item.tab === tab ? 'primary' : 'secondary'} onPress={() => onSelect(item.tab)} />
+      })}
+      <Box flexGrow={1} />
+      {extras.onHelp !== undefined && <Button key="help-key" label={extras.help === true ? 'close' : 'help'} hotkey={hotkeyOf('?')} plain onPress={() => extras.onHelp!()} />}
+      {extras.onHelp !== undefined && <Text> </Text>}
       {extras.onClose !== undefined && <Button key="close-pane" label={m('✕')} plain onPress={() => extras.onClose!()} />}
     </Box>
     {/* The legend row (066 #22): the tab's keys as plain buttons, each drawing its own hotkey, so no label carries one. */}
@@ -92,8 +89,6 @@ export const paneTree = (
         const verb = (id: string) => pairs.find(p => p.id === id)?.verb
         return (
           <Box key="astrolabe-pane-keys-row" flexDirection="row">
-            {extras.onHelp !== undefined && <Button key="help-key" label={extras.help === true ? 'close' : 'help'} hotkey={hotkeyOf('?')} plain onPress={() => extras.onHelp!()} />}
-            {extras.onHelp !== undefined && <Text> </Text>}
             {extras.onFind !== undefined && <Button key="find" label={m(verb('filter') ?? 'filter')} hotkey={hotkeyOf('/')} plain onPress={() => extras.onFind!()} />}
             {extras.onFind !== undefined && <Text> </Text>}
             {extras.status !== undefined && <Button key="status-filter" label={extras.status.label} hotkey="s" plain onPress={() => extras.status!.onPress()} />}
@@ -206,7 +201,7 @@ export const paneTree = (
             </Box>
           ) : row.href !== undefined && Link !== undefined ? (
             <Box flexDirection="row">
-              <Text color={row.selected === true ? tokens.accent : tokens[row.role]} bold={row.selected === true || row.bold === true} wrap={extras.wrapLongNames === true ? 'wrap' : 'truncate-end'} hover={rowHover(row)}>
+              <Text color={row.selected === true ? tokens.accent : tokens[row.role]} {...(row.highlight === true ? { backgroundColor: tokens.barEmpty } : {})} bold={row.selected === true || row.bold === true} wrap={extras.wrapLongNames === true ? 'wrap' : 'truncate-end'} hover={rowHover(row)}>
                 {m(`${row.selected === true ? '❯ ' : ''}${colorblindText(row, extras.colorblind)}`)}
               </Text>
               <Text> </Text>
@@ -214,7 +209,7 @@ export const paneTree = (
               {(row.links ?? []).map(link => rowLink(row, `link-${link.label}`, link.href, ` ${link.label}${m('↗')}`))}
             </Box>
           ) : (
-            <Text color={row.selected === true ? tokens.accent : tokens[row.role]} bold={row.selected === true || row.bold === true} wrap={extras.wrapLongNames === true ? 'wrap' : 'truncate-end'} hover={rowHover(row)}>
+            <Text color={row.selected === true ? tokens.accent : tokens[row.role]} {...(row.highlight === true ? { backgroundColor: tokens.barEmpty } : {})} bold={row.selected === true || row.bold === true} wrap={extras.wrapLongNames === true ? 'wrap' : 'truncate-end'} hover={rowHover(row)}>
               {m(`${row.selected === true ? '❯ ' : ''}${colorblindText(row, extras.colorblind)}`)}
             </Text>
           )
@@ -224,6 +219,7 @@ export const paneTree = (
           return [
             node,
             ...(extras.rowDetail === undefined ? [] : [<Text key={`${row.key}-detail`} color={tokens.text} backgroundColor={tokens.barEmpty} wrap="truncate-end">{`    ${m(extras.rowDetail)}`}</Text>]),
+            ...(extras.rowDescription === undefined ? [] : [<Text key={`${row.key}-description`} color={tokens.faint} wrap="truncate-end">{`    ${m(extras.rowDescription)}`}</Text>]),
             <Box key={`${row.key}-buttons`} flexDirection="row">
               <Text>{'  '}</Text>
               {extras.rowButtons.map(button => (
@@ -233,6 +229,9 @@ export const paneTree = (
           ]
         })}
       {body}
+      {(extras.taskActions ?? []).map(action => (
+        <Button key={action.key} label={m(action.label)} plain onPress={() => action.onPress()} />
+      ))}
       {nav !== undefined && nav.below > 0 && <Button key="scroll-down" label={`▼ ${nav.below} ${nav.labels.more} (j)`} hotkey="j" plain onPress={() => nav.down()} />}
     </Box>
     {extras.legend === undefined ? null : (
