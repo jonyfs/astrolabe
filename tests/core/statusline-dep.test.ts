@@ -4,6 +4,7 @@ import {
   buildPayload,
   chooseSource,
   cutRuns,
+  isLinkable,
   isFallback,
   parseAnsiLines,
   parseRunsOutput,
@@ -213,5 +214,18 @@ describe('parseRunsOutput (076, statusline spec 056 FR-001 and FR-003)', () => {
   })
   test('a newer contract picks the native footer with its reason', () => {
     expect(chooseSource({ choice: 'statusline', flavor: 'mocha', node: 'ok', copy: true, failing: false, contractNewer: true })).toEqual({ source: 'native', reason: 'contract-newer' })
+  })
+})
+
+describe('a cut that leaves only padding (the engine refuses a link with a blank label)', () => {
+  test('cutRuns keeps the text and drops the link when the kept part is blank', () => {
+    const runs: Run[] = [{ text: 'ab' }, { text: '   main', href: 'https://x.test/m' }]
+    expect(cutRuns(runs, 4)).toEqual([{ text: 'ab' }, { text: '  ' }])
+    expect(cutRuns(runs, 8)).toEqual([{ text: 'ab' }, { text: '   main', href: 'https://x.test/m' }].map(r => ({ ...r })).slice(0, 1).concat([{ text: '   mai', href: 'https://x.test/m' }]))
+  })
+  test('isLinkable needs a link and a label that is not blank', () => {
+    expect(isLinkable({ text: 'main', href: 'https://x.test' })).toBe(true)
+    expect(isLinkable({ text: '   ', href: 'https://x.test' })).toBe(false)
+    expect(isLinkable({ text: 'main' })).toBe(false)
   })
 })

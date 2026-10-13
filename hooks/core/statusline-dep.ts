@@ -321,6 +321,9 @@ export const chooseSource = (input: {
   return { source: 'statusline' }
 }
 
+/** A run the surface may draw as a link: the engine refuses a link whose label is blank. */
+export const isLinkable = (run: Pick<Run, 'text' | 'href'>): boolean => run.href !== undefined && run.text.trim() !== ''
+
 /** Keeps whole characters up to `columns` cells, in order, never splitting a run's style or link. */
 export const cutRuns = (runs: readonly Run[], columns: number): Run[] => {
   const out: Run[] = []
@@ -337,7 +340,12 @@ export const cutRuns = (runs: readonly Run[], columns: number): Run[] => {
       text += ch
       used += w
     }
-    if (text !== '') out.push({ ...run, text })
+    if (text === '') continue
+    // A cut can leave only the padding of a linked run: that stays text, not a link with a blank label.
+    if (run.href !== undefined && text.trim() === '') {
+      const { href: _dropped, ...plain } = run
+      out.push({ ...plain, text })
+    } else out.push({ ...run, text })
   }
   return out
 }

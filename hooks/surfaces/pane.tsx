@@ -7,6 +7,7 @@ import { t, type Lang, type TextKey } from '../core/i18n'
 import { markText } from '../core/icons'
 import { hotkeyOf } from '../core/keys'
 import { COLORBLIND_MARKS, type Tokens } from '../core/theme'
+import { isLinkable } from '../core/statusline-dep'
 import { legendOf } from '../core/pane-tabs'
 import { TABS } from '../core/pane-tabs'
 import type { PaneTab } from '../core/types'
@@ -305,8 +306,8 @@ export const paneTree = (
             : footer.lines.map((line, lineIndex) => (
                 <Box key={`footer-statusline-${lineIndex}`} flexDirection="row">
                   {line.map((run, i) =>
-                    run.href !== undefined && Link !== undefined ? (
-                      <Link key={`sl-${lineIndex}-${i}`} href={run.href} label={run.text} />
+                    isLinkable(run) && Link !== undefined ? (
+                      <Link key={`sl-${lineIndex}-${i}`} href={run.href!} label={run.text} />
                     ) : (
                       <Text
                         key={`sl-${lineIndex}-${i}`}

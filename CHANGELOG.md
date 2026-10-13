@@ -6,6 +6,15 @@ tags `vX.Y.Z` equal to `plugin.json`'s `version`.
 
 ## [Unreleased]
 
+## [0.137.1] - 2026-10-13
+
+### Fixed
+
+- The pane did not open below about 100 columns of terminal: the footer cut a linked statusline
+  run down to its padding, and the engine refuses a link with a blank label (`ui.render (Pane)
+  refused: Link label is blank`), so it drew an empty box. A cut that leaves only padding stays
+  plain text now, and a run with a blank label is never drawn as a link.
+
 ## [0.137.0] - 2026-10-13
 
 ### Changed
