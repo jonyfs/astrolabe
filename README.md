@@ -189,6 +189,13 @@ What you give up with `statusline`: the hover explanation rows, the brighten-on-
 percent; the governor still acts at 60, 80 and 88). Its links (branch, pull request, repository,
 CI) stay. The status entry under the prompt is always Astrolabe's own one line.
 
+**How the renderer answers.** Astrolabe asks for statusline's data form (`CLAUDE_STATUSLINE_OUTPUT=runs`,
+statusline spec 056): one JSON object of lines of styled runs, or an error object with exit code 75.
+It reads that without parsing escapes and tells a failure from a footer by the object, not by
+comparing text. A copy that predates the form prints ANSI text and is read as before; a copy that
+answers with a newer `contract` than Astrolabe reads falls back to the Astrolabe footer, and the
+Setup tab says so. The Setup tab shows which form the copy answered in.
+
 **Updates.** There is no download at run time. A workflow refreshes `vendor/statusline/` weekly
 through a pull request, runs a contract test against it, and the copy ships with the next
 release; the Setup tab shows the version and commit in use.

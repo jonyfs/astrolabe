@@ -6,6 +6,7 @@ import {
   cutRuns,
   isFallback,
   parseAnsiLines,
+  parseRunsOutput,
   plainOf,
   statuslineEnv,
   type Run,
@@ -121,6 +122,7 @@ describe('statuslineEnv (070 FR-006)', () => {
       COLORTERM: 'truecolor',
       CLAUDE_STATUSLINE_UPDATES: 'off',
       CLAUDE_STATUSLINE_DEBUG: '0',
+      CLAUDE_STATUSLINE_OUTPUT: 'runs',
       CLAUDE_STATUSLINE_FLAVOR: 'mocha',
     })
   })
@@ -166,5 +168,45 @@ describe('cutRuns (070 R6)', () => {
   test('Nerd Font glyphs count one cell', () => {
     const nerd: Run[] = [{ text: '\u{F00E8}abc' }]
     expect(cutRuns(nerd, 3)).toEqual([{ text: '\u{F00E8}a' }])
+  })
+})
+
+describe('parseRunsOutput (076, statusline spec 056 FR-001 and FR-003)', () => {
+  const obj = (v: unknown) => JSON.stringify(v)
+  test('a runs object gives lines of runs; unknown fields and empty text are dropped', () => {
+    const out = parseRunsOutput(obj({ contract: 1, lines: [[{ text: ' app ', fg: '#CDD6F4', bg: '#313244', bold: true, extra: 1 }, { text: '' }, { text: 'main', href: 'https://x.test/a' }]] }))
+    expect(out).toEqual({
+      kind: 'runs',
+      contract: 1,
+      lines: [[{ text: ' app ', fg: '#cdd6f4', bg: '#313244', bold: true }, { text: 'main', href: 'https://x.test/a' }]],
+    })
+  })
+  test('a link outside http, https and file keeps its text and loses the link; control characters go', () => {
+    const out = parseRunsOutput(obj({ contract: 1, lines: [[{ text: 'a\u001b[31mb', href: 'javascript:alert(1)' }]] }))
+    expect(out).toEqual({ kind: 'runs', contract: 1, lines: [[{ text: 'a[31mb' }]] })
+  })
+  test('a colour that is not #rrggbb is left out; a style that is not true is off', () => {
+    const out = parseRunsOutput(obj({ contract: 1, lines: [[{ text: 'x', fg: 'red', bg: '#12', bold: 'yes', dim: false }]] }))
+    expect(out).toEqual({ kind: 'runs', contract: 1, lines: [[{ text: 'x' }]] })
+  })
+  test('empty status is no lines, and trailing blank lines are dropped', () => {
+    expect(parseRunsOutput(obj({ contract: 1, lines: [] }))).toEqual({ kind: 'runs', contract: 1, lines: [] })
+    expect(parseRunsOutput(obj({ contract: 1, lines: [[{ text: 'a' }], [{ text: '  ' }]] }))).toMatchObject({ lines: [[{ text: 'a' }]] })
+  })
+  test('an error object names the code; a missing code is internal', () => {
+    expect(parseRunsOutput(obj({ contract: 1, error: { code: 'bad-payload', message: 'not an object' } }))).toEqual({ kind: 'error', contract: 1, code: 'bad-payload', message: 'not an object' })
+    expect(parseRunsOutput(obj({ contract: 1, error: {} }))).toMatchObject({ kind: 'error', code: 'internal' })
+  })
+  test('a newer contract is not read', () => {
+    expect(parseRunsOutput(obj({ contract: 2, lines: [[{ text: 'a' }]] }))).toEqual({ kind: 'newer', contract: 2 })
+  })
+  test('ANSI text, other JSON and broken JSON are the ANSI path', () => {
+    expect(parseRunsOutput('\u001b[1mmain\u001b[0m\n')).toEqual({ kind: 'ansi' })
+    expect(parseRunsOutput('{"hello":1}')).toEqual({ kind: 'ansi' })
+    expect(parseRunsOutput('{"contract":1,')).toEqual({ kind: 'ansi' })
+    expect(parseRunsOutput('')).toEqual({ kind: 'ansi' })
+  })
+  test('a newer contract picks the native footer with its reason', () => {
+    expect(chooseSource({ choice: 'statusline', flavor: 'mocha', node: 'ok', copy: true, failing: false, contractNewer: true })).toEqual({ source: 'native', reason: 'contract-newer' })
   })
 })

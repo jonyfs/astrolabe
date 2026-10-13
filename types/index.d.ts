@@ -375,7 +375,7 @@ export type FooterRun = { text: string; fg?: string; bg?: string; bold?: true; d
 /** The footer statusline draws and where it came from (070): its own state key, so a new render does not copy the session's stats. */
 export type FooterState = {
   render?: { at: number; columns: number; lines: FooterRun[][] }
-  health?: { source: 'statusline' | 'native'; reason?: string; version?: string; commit?: string }
+  health?: { source: 'statusline' | 'native'; reason?: string; version?: string; commit?: string; /** How the renderer answered: its runs object, or ANSI text from a copy that does not know runs (076). */ format?: 'runs' | 'ansi'; contract?: number }
 }
 
 declare module 'claude-code' {

@@ -1,6 +1,6 @@
 // Runs the vendored statusline and checks Node (spec 070 FR-006, FR-008). It takes a process
 // runner built in register.tsx, so no `$` crosses this import (the engine refuses that).
-import { isFallback, parseAnsiLines, plainOf, type Run } from '../core/statusline-dep'
+import { isFallback, parseAnsiLines, parseRunsOutput, plainOf, type Run } from '../core/statusline-dep'
 
 export type RunProc = (
   argv: string[],
@@ -25,12 +25,14 @@ export const nodeStatus = async (run: RunProc): Promise<'ok' | 'missing' | 'old'
 }
 
 export type RenderResult =
-  | { ok: true; lines: Run[][]; ms: number }
-  | { ok: false; reason: 'exit' | 'fallback' | 'timeout' | 'error'; ms: number }
+  | { ok: true; lines: Run[][]; ms: number; format: 'runs' | 'ansi' }
+  | { ok: false; reason: 'exit' | 'fallback' | 'timeout' | 'error' | 'contract-newer' | 'contract-error'; ms: number; code?: string; contract?: number }
 
 /**
  * One render: the CLI with the payload on stdin and the environment additions, as an argv array.
- * Good only when it exits 0, prints something and is not its own fallback line.
+ * The runs form is read first (statusline spec 056): an object with lines is good, an object with
+ * an error names the failure, a newer contract is not read. Otherwise the ANSI text is parsed:
+ * good only when it exits 0, prints something and is not its own fallback line.
  */
 export const renderFooter = async (input: {
   run: RunProc
@@ -49,10 +51,18 @@ export const renderFooter = async (input: {
       ...(input.cwd === undefined ? {} : { cwd: input.cwd }),
     })
     const ms = input.now() - started
+    // The error object arrives with a non-zero exit, so the output is read before the exit code.
+    const data = parseRunsOutput(r.stdout)
+    if (data.kind === 'newer') return { ok: false, reason: 'contract-newer', ms, contract: data.contract }
+    if (data.kind === 'error') return { ok: false, reason: 'contract-error', ms, code: data.code, contract: data.contract }
+    if (data.kind === 'runs') {
+      if (r.exitCode !== 0 || data.lines.length === 0) return { ok: false, reason: r.exitCode !== 0 ? 'exit' : 'fallback', ms }
+      return { ok: true, lines: data.lines, ms, format: 'runs' }
+    }
     if (r.exitCode !== 0) return { ok: false, reason: 'exit', ms }
     const lines = parseAnsiLines(r.stdout)
     if (isFallback(plainOf(lines))) return { ok: false, reason: 'fallback', ms }
-    return { ok: true, lines, ms }
+    return { ok: true, lines, ms, format: 'ansi' }
   } catch (error) {
     const ms = input.now() - started
     return { ok: false, reason: /time|kill|abort/i.test(error instanceof Error ? error.message : String(error)) ? 'timeout' : 'error', ms }

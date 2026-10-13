@@ -102,3 +102,26 @@ describe('the vendored statusline (070)', () => {
     expect(src).toContain('needs Node')
   })
 })
+
+// Statusline spec 056: the runs form and the failure contract. The copy vendored today predates it,
+// so these run only once a sync brings it (the mod reads ANSI until then).
+const runsSupported = (() => {
+  const r = run(payload(), 100, { CLAUDE_STATUSLINE_OUTPUT: 'runs' })
+  return r.out.trim().startsWith('{')
+})()
+
+describe.skipIf(!runsSupported)('the runs form (076, statusline 056)', () => {
+  test('one object with contract 1 and lines; the runs join to the ANSI text', () => {
+    for (const columns of [80, 100, 144, 200]) {
+      const data = JSON.parse(run(payload(), columns, { CLAUDE_STATUSLINE_OUTPUT: 'runs' }).out) as { contract: number; lines: Array<Array<{ text: string }>> }
+      expect(data.contract).toBe(1)
+      const ansi = run(payload(), columns).out.split('\n').map(plain).filter(l => l.trim() !== '')
+      expect(data.lines.map(l => l.map(r => r.text).join(''))).toEqual(ansi)
+    }
+  })
+  test('input that is not an object exits 75 with bad-payload', () => {
+    const r = run('not json' as unknown, 100, { CLAUDE_STATUSLINE_OUTPUT: 'runs' })
+    expect(r.status).toBe(75)
+    expect(JSON.parse(r.out)).toMatchObject({ contract: 1, error: { code: 'bad-payload' } })
+  })
+})

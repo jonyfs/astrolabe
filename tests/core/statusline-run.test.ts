@@ -59,3 +59,27 @@ describe('renderFooter (070 FR-006, FR-008)', () => {
     expect(r.ok && r.lines).toEqual([[{ text: 'hello' }]])
   })
 })
+
+describe('renderFooter, the runs form (076)', () => {
+  const base = { cli: '/p/vendor/statusline/bin/cli.js', payload: {}, env: {}, now: clock() }
+  test('a runs object is read as lines', async () => {
+    const r = await renderFooter({ ...base, run: ok('{"contract":1,"lines":[[{"text":"main","bold":true}],[{"text":"x"}]]}') })
+    expect(r).toMatchObject({ ok: true, format: 'runs', lines: [[{ text: 'main', bold: true }], [{ text: 'x' }]] })
+  })
+  test('ANSI text from a copy that does not know runs still renders', async () => {
+    const r = await renderFooter({ ...base, run: ok('\x1b[1mmain\x1b[0m\n') })
+    expect(r).toMatchObject({ ok: true, format: 'ansi' })
+  })
+  test('the error object arrives with exit 75 and names its code', async () => {
+    const r = await renderFooter({ ...base, run: async () => ({ exitCode: 75, stdout: '{"contract":1,"error":{"code":"bad-payload","message":"x"}}' }) })
+    expect(r).toMatchObject({ ok: false, reason: 'contract-error', code: 'bad-payload' })
+  })
+  test('a newer contract is a failure of its own', async () => {
+    const r = await renderFooter({ ...base, run: ok('{"contract":9,"lines":[[{"text":"a"}]]}') })
+    expect(r).toMatchObject({ ok: false, reason: 'contract-newer', contract: 9 })
+  })
+  test('runs with no lines is not a footer; a non-zero exit with runs is a failure', async () => {
+    expect(await renderFooter({ ...base, run: ok('{"contract":1,"lines":[]}') })).toMatchObject({ ok: false, reason: 'fallback' })
+    expect(await renderFooter({ ...base, run: async () => ({ exitCode: 1, stdout: '{"contract":1,"lines":[[{"text":"a"}]]}' }) })).toMatchObject({ ok: false, reason: 'exit' })
+  })
+})
