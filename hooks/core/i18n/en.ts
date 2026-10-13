@@ -71,6 +71,7 @@ export const EN = {
   'config.group.governor': 'Usage governor',
   'config.group.claude': 'Claude',
   'config.group.integrations': 'Integrations',
+  'models.running': "running",
   'setup.models': 'Model per skill',
   'config.footnote': 'Changes save to the mod store; nothing writes settings.json.',
   'config.none': 'No Astrolabe options were listed by /config.',

@@ -67,6 +67,7 @@ export const FR: Dictionary = {
   'config.group.governor': 'Gouverneur d\'usage',
   'config.group.claude': 'Claude',
   'config.group.integrations': 'Intégrations',
+  'models.running': "en cours",
   'setup.models': 'Modèle par skill',
   'config.footnote': 'Les changements vont dans le stockage du mod; rien n\'écrit settings.json.',
   'config.none': '/config n’a listé aucune option d’Astrolabe.',
